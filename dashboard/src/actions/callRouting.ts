@@ -17,7 +17,7 @@ export function getCallRoutingNumbers(
 
         promise.then(
             function(numbers) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -69,9 +69,9 @@ export function getTeamAndSchedules(projectId: $TSFixMe) {
         promise.then(
             function([schedule, team]) {
                 const data = {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     teams: team.data,
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     schedules: schedule.data.data,
                 };
                 dispatch(getTeamAndSchedulesSuccess(data));
@@ -125,7 +125,7 @@ export function addCallRoutingNumber(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(number) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(addCallRoutingNumberSuccess(number.data));
             },
             function(error) {
@@ -193,7 +193,7 @@ export function uploadCallRoutingAudio(
                     uploadCallRoutingAudioSuccess(
                         callRoutingId,
                         audioFieldName,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         data.data
                     )
                 );
@@ -270,7 +270,7 @@ export function addCallRoutingSchedule(
 
         promise.then(
             function(data) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(addCallRoutingScheduleSuccess(data.data));
             },
             function(error) {
@@ -326,7 +326,7 @@ export function fetchNumbers(
 
         promise.then(
             function(numbers) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -383,7 +383,7 @@ export function removeNumbers(projectId: $TSFixMe, callRoutingId: $TSFixMe) {
 
         promise.then(
             function(numbers) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(removeNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -441,9 +441,9 @@ export function getCallRoutingLogs(
             function(logs) {
                 dispatch(
                     getCallRoutingLogsSuccess({
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         logs: logs.data,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         count: logs.data.length,
                         skip,
                         limit,
@@ -512,7 +512,7 @@ export function removeIntroAudio(
 
         promise.then(
             function(numbers) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
             function(error) {

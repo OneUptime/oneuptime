@@ -35,12 +35,12 @@ export function fetchAlert(projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(`alert/${projectId}`);
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(alertRequest());
 
         promise.then(
             function(payload) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(alertSuccess(payload.data));
             },
             function(error) {
@@ -101,12 +101,12 @@ export function fetchProjectAlert(
             `alert/${projectId}/alert?skip=${skip}&limit=${limit}`
         );
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(projectAlertRequest());
 
         promise.then(
             function(payload) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const data = payload.data;
                 data.projectId = projectId;
                 dispatch(projectAlertSuccess(data));
@@ -171,12 +171,12 @@ export function fetchIncidentAlert(
             `alert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
         );
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(incidentAlertRequest());
 
         promise.then(
             function(alerts) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(incidentAlertSuccess(alerts.data));
             },
             function(error) {
@@ -251,12 +251,12 @@ export function fetchSubscriberAlert(
             );
         }
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(subscriberAlertRequest());
 
         promise.then(
             function(alerts) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
             function(error) {
@@ -318,7 +318,7 @@ export function fetchAlertCharges(
 
         promise.then(
             function(alertCharges) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
             function(error) {
@@ -368,7 +368,7 @@ export function downloadAlertCharges(projectId: $TSFixMe) {
 
         promise.then(
             function(alertCharges) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
             function(error) {

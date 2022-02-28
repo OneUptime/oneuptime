@@ -1,6 +1,6 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
-// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai';
 const expect = chai.expect;
@@ -8,10 +8,10 @@ import userData from './data/user';
 import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
@@ -33,7 +33,7 @@ const {
     acknowledgeRequest,
 } = require('./data/incomingHttpRequest');
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Incoming HTTP Request API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe,
@@ -51,7 +51,7 @@ describe('Incoming HTTP Request API', function() {
         internalNoteUrl: $TSFixMe;
 
     this.timeout(timeout);
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(
@@ -137,7 +137,7 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -153,7 +153,7 @@ describe('Incoming HTTP Request API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an incoming http request (Create Incident)', function(done: $TSFixMe) {
         IncidentPrioritiesService.findOne({
             query: { projectId },
@@ -178,7 +178,7 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an incoming http request (Acknowledge Incident)', function(done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
@@ -193,7 +193,7 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an incoming http request (Resolve Incident)', function(done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
@@ -208,7 +208,7 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an incoming http request (Update incident note)', function(done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
@@ -226,7 +226,7 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an incoming http request (Update internal note)', function(done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
@@ -244,7 +244,7 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update an incoming http request', function(done: $TSFixMe) {
         const update = {
             name: 'updateName',
@@ -261,7 +261,7 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should list all the created incoming http request in a project', function(done: $TSFixMe) {
         incidentRequest.name = 'anotherOne';
         incidentRequest.selectAllMonitors = false;
@@ -285,7 +285,7 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an incident with incoming http request url', function(done: $TSFixMe) {
         axios({
             method: 'post',
@@ -298,7 +298,7 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should acknowledge an incident with an incoming http request url', function(done: $TSFixMe) {
         axios({
             method: 'post',
@@ -311,7 +311,7 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should resolve an incident with an incoming http request url', function(done: $TSFixMe) {
         axios({
             method: 'post',
@@ -324,7 +324,7 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add incident note with an incoming http request url', function(done: $TSFixMe) {
         // it should also work for a get request
         axios({
@@ -338,7 +338,7 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add internal note with an incoming http request url', function(done: $TSFixMe) {
         axios({
             method: 'get',
@@ -351,7 +351,7 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete an incoming http request in project', function(done: $TSFixMe) {
         request
             .delete(`/incoming-request/${projectId}/remove/${requestId}`)

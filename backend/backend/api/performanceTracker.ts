@@ -9,10 +9,10 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import uuid from 'uuid';
 
 // Route
@@ -34,7 +34,7 @@ router.post(
                     message: "values can't be null",
                 });
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             data.createdById = req.user ? req.user.id : null;
             if (!data.name) {
                 return sendErrorResponse(req, res, {
@@ -50,13 +50,13 @@ router.post(
             );
 
             try {
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                
                 NotificationService.create(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Doc... Remove this comment to see the full error message
+                    
                     performanceTracker.componentId.projectId._id,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+                    
                     `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+                    
                     performanceTracker.createdById._id,
                     'performanceTrackeraddremove'
                 );
@@ -137,7 +137,7 @@ router.get(
                 const error = new Error(
                     'Please specify the performance tracker ID or attach the slug as a query parameter'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -161,7 +161,7 @@ router.delete(
                 {
                     _id: performanceTrackerId,
                 },
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                
                 req.user.id
             );
             if (performanceTracker) {
@@ -321,11 +321,11 @@ router.put(
 
         const performanceTrackerData = {};
         if (data.name) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+            
             performanceTrackerData.name = data.name;
         }
         if (data.showQuickStart !== undefined) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showQuickStart' does not exist on type '... Remove this comment to see the full error message
+            
             performanceTrackerData.showQuickStart = data.showQuickStart;
         }
 
@@ -351,9 +351,9 @@ router.get(
         try {
             const { performanceTrackerId } = req.params;
             let { startDate, endDate } = req.query;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
+            
             startDate = decode(startDate);
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | ParsedQs | string[] | P... Remove this comment to see the full error message
+            
             endDate = decode(endDate);
 
             // get each of the individual metrics
@@ -378,16 +378,16 @@ router.get(
 
             const result = {
                 performanceTrackerId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
+                
                 time: time.length > 0 ? time[time.length - 1].value : 0,
                 throughput:
                     throughput.length > 0
-                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
+                        ? 
                           throughput[throughput.length - 1].value
                         : 0,
                 errorRate:
                     errorRate.length > 0
-                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
+                        ? 
                           errorRate[errorRate.length - 1].value
                         : 0,
             };

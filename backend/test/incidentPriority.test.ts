@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -6,9 +6,9 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import IncidentSettings from '../backend/services/incidentSettingsService';
@@ -23,10 +23,10 @@ let token: $TSFixMe,
     defaultIncidentPriorityId: $TSFixMe,
     newIncidentPriorityId: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Incident Priority API', function() {
     this.timeout(500000);
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(90000);
         GlobalConfig.initTestConfig().then(function() {
@@ -61,7 +61,7 @@ describe('Incident Priority API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await IncidentSettings.hardDeleteBy({ projectId: projectId });
@@ -70,7 +70,7 @@ describe('Incident Priority API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should return the list of the available variables.', async () => {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -89,7 +89,7 @@ describe('Incident Priority API', function() {
         expect(res.body.data[1].name).to.eql('Low');
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should not remove the default incident priority.', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
@@ -102,7 +102,7 @@ describe('Incident Priority API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should create a new incident priority.', async () => {
         const authorization = `Basic ${token}`;
         let res = await request
@@ -132,7 +132,7 @@ describe('Incident Priority API', function() {
         expect(res.body.data[2].name).to.eql('Intermediate');
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should update incident priority.', async () => {
         const newIncidentPriorityName = 'Intermediate Updated';
         const authorization = `Basic ${token}`;
@@ -161,7 +161,7 @@ describe('Incident Priority API', function() {
         expect(res.body.data[2].name).to.eql(newIncidentPriorityName);
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should delete incident priority.', async () => {
         const authorization = `Basic ${token}`;
         let res = await request

@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'faker' or its corresponding ty... Remove this comment to see the full error message
+
 import faker from 'faker';
 
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';

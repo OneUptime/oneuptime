@@ -167,7 +167,7 @@ export default {
         let monitor = await MonitorService.findBy({
             query: {
                 type: 'incomingHttpRequest',
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+                
                 'data.link': `${global.apiHost}/incomingHttpRequest/${id}`,
             },
             select: 'lastPingTime criteria type _id',

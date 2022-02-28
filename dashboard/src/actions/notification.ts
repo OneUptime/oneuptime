@@ -72,7 +72,7 @@ export function fetchNotifications(projectId: $TSFixMe) {
             const notifications = await getApi(`notification/${projectId}`);
 
             dispatch(fetchNotificationsRequest());
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchNotificationsSuccess(notifications.data));
         } catch (error) {
             let payload;
@@ -107,7 +107,7 @@ export function markAsRead(projectId: $TSFixMe, notificationIds: $TSFixMe) {
                 { notificationIds }
             );
 
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             for (const notificationId of notifications.data) {
                 dispatch(
                     notificationReadSuccess({
@@ -149,7 +149,7 @@ export function closeNotification(
                 })
             );
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             await putApi(`notification/${projectId}/${notificationId}/closed`);
         } catch (error) {
             let payload;
@@ -173,7 +173,7 @@ export function markAllAsRead(projectId: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         try {
             const userId = User.getUserId();
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             await putApi(`notification/${projectId}/readAll`);
 
             dispatch(allNotificationReadSuccess(userId));

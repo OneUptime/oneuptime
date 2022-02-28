@@ -15,7 +15,7 @@ export default (state = initialState, action: $TSFixMe) => {
         case CLOSE_MODAL:
             return Object.assign({}, state, {
                 modals: state.modals.filter(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type 'never'.
+                    
                     item => item.id !== action.payload.id
                 ),
             });

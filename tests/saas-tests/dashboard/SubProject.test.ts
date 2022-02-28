@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,13 +12,13 @@ const password = '1234567890';
 const newProjectName = 'Test';
 const subProjectName = 'Trial';
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Sub-Project API', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -35,26 +35,26 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show pricing plan modal for project not on Growth plan and above',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btn_Add_SubProjects');
 
             const pricingPlanModal = await init.pageWaitForSelector(
@@ -70,13 +70,13 @@ describe('Sub-Project API', () => {
     );
 });
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Member Restriction', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -102,13 +102,13 @@ describe('Member Restriction', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show unauthorised modal to a team member who is not an admin or owner of the project',
         async (done: $TSFixMe) => {
@@ -124,13 +124,13 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btn_Add_SubProjects');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,
@@ -145,7 +145,7 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show unauthorised modal to a team member who is not an admin of the project trying to perform any action subproject list',
         async (done: $TSFixMe) => {
@@ -164,14 +164,14 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
             await init.pageWaitForSelector(page, deleteSubProjectBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, deleteSubProjectBtn);
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,

@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -18,12 +18,12 @@ const user = {
     password: '1234567890',
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Users', () => {
     const operationTimeOut = init.timeout;
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig); // User-Dashboard
@@ -38,7 +38,7 @@ describe('Users', () => {
         await init.registerEnterpriseUser(user, browserPage);
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         await browser2.close();
@@ -46,7 +46,7 @@ describe('Users', () => {
     });
     /**  This test works by running user dashboard and admin dashboard in two seperate browsers.
      as two dashboards cannot be run in the same browser */
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it(
         'should logout the user if the admin deletes the account from the dashboard.',
         async (done: $TSFixMe) => {
@@ -57,29 +57,29 @@ describe('Users', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(browserPage, `#${user.email.split('@')[0]}`);
             await browserPage.waitForSelector('#delete', {
                 visible: true,
                 timeout: init.timeout,
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(browserPage, '#delete');
             await browserPage.waitForSelector('#confirmDelete', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(browserPage, '#confirmDelete');
             await browserPage.waitForSelector('#confirmDelete', {
                 hidden: true,
             });
 
             await page.bringToFront();
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#statusPages');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#statusPages');
             await init.pageWaitForSelector(page, '#login-button', {
                 visible: true,
@@ -90,24 +90,24 @@ describe('Users', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it(
         'should be able to restore deleted users (using admin account)',
         async (done: $TSFixMe) => {
             await init.loginAdminUser(admin, page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(
                 page,
                 `#deleted__${user.email.split('@')[0]}`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#deleted__${user.email.split('@')[0]}`);
 
             await init.pageWaitForSelector(page, '#restore', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#restore');
             const delBtn = await init.pageWaitForSelector(page, '#delete', {
                 visible: true,

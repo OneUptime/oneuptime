@@ -1,9 +1,9 @@
 import express from 'express';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../services/twilioService"' has no export... Remove this comment to see the full error message
+
 import { fetchPhoneNumbers } from '../services/twilioService';
 import CallRoutingService from '../services/callRoutingService';
 import FileService from '../services/fileService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -95,9 +95,9 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
         let { skip, limit } = req.query;
         const { projectId } = req.params;
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
+        
         if (typeof skip === 'string') skip = parseInt(skip);
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string | ... Remove this comment to see the full error message
+        
         if (typeof limit === 'string') limit = parseInt(limit);
 
         const populate = [{ path: 'projectId', select: 'name slug _id' }];
@@ -214,20 +214,20 @@ router.put(
                     return sendErrorResponse(req, res, error);
                 }
                 const data = {};
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'audioFieldName' does not exist on type '... Remove this comment to see the full error message
+                
                 data.audioFieldName = audioFieldName;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'callRoutingId' does not exist on type '{... Remove this comment to see the full error message
+                
                 data.callRoutingId = callRoutingId;
                 if (
                     req.files &&
-                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    
                     req.files[audioFieldName] &&
-                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    
                     req.files[audioFieldName][0].filename
                 ) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'file' does not exist on type '{}'.
+                    
                     data.file = req.files[audioFieldName][0].filename;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'fileName' does not exist on type '{}'.
+                    
                     data.fileName = req.files[audioFieldName][0].originalname;
                 }
                 const CallRouting = await CallRoutingService.updateRoutingSchemaAudio(
@@ -248,7 +248,7 @@ router.delete(
     async function(req, res) {
         try {
             const { projectId, callRoutingId } = req.params;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user.id;
             if (!callRoutingId) {
                 return sendErrorResponse(req, res, {
@@ -290,12 +290,12 @@ router.delete(
             routingSchema = routingSchema.routingSchema;
             const query = {};
             if (backup) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filename' does not exist on type '{}'.
+                
                 query.filename = routingSchema.backup_introAudio;
                 routingSchema.backup_introAudio = null;
                 routingSchema.backup_introAudioName = '';
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filename' does not exist on type '{}'.
+                
                 query.filename = routingSchema.introAudio;
                 routingSchema.introAudio = null;
                 routingSchema.introAudioName = '';

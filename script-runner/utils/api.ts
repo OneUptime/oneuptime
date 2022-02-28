@@ -14,7 +14,7 @@ const _this = {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             axios({
                 method: 'POST',
                 url: `${config.serverUrl}/${url}`,
@@ -38,7 +38,7 @@ const _this = {
     getApi: (url: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             axios({
                 method: 'GET',
                 url: `${config.serverUrl}/${url}`,
@@ -61,7 +61,7 @@ const _this = {
     putApi: (url: $TSFixMe, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             axios({
                 method: 'PUT',
                 url: `${config.serverUrl}/${url}`,
@@ -85,7 +85,7 @@ const _this = {
     deleteApi: (url: $TSFixMe, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             axios({
                 method: 'DELETE',
                 url: `${config.serverUrl}/${url}`,

@@ -84,9 +84,9 @@ export default function incomingRequest(
             let incomingRequests = [...state.incomingRequests.incomingRequests];
             if (action.payload.isDefault) {
                 incomingRequests = incomingRequests.map(request => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
+                    
                     if (request.isDefault) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
+                        
                         request.isDefault = false;
                     }
                     return request;
@@ -132,9 +132,9 @@ export default function incomingRequest(
             let incomingRequests = [...state.incomingRequests.incomingRequests];
             if (action.payload.isDefault) {
                 incomingRequests = incomingRequests.map(request => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
+                    
                     if (request.isDefault) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
+                        
                         request.isDefault = false;
                     }
                     return request;
@@ -142,9 +142,9 @@ export default function incomingRequest(
             }
 
             incomingRequests = incomingRequests.map(request => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 if (String(request._id) === String(action.payload._id)) {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                    
                     request = action.payload;
                 }
                 return request;
@@ -187,7 +187,7 @@ export default function incomingRequest(
 
         case types.DELETE_INCOMING_REQUEST_SUCCESS: {
             const incomingRequests = state.incomingRequests.incomingRequests.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 request => String(request._id) !== String(action.payload._id)
             );
             return {

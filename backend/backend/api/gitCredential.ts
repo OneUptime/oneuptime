@@ -1,6 +1,6 @@
 import express from 'express';
 const getUser = require('../middlewares/user').getUser;
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -91,21 +91,21 @@ router.put(
             const data = {};
 
             if (gitUsername) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'gitUsername' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 data.gitUsername = gitUsername;
             }
             if (gitPassword) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'gitPassword' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 data.gitPassword = gitPassword;
             }
 
             if (sshTitle) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'sshTitle' does not exist on type '{}'.
+                
                 data.sshTitle = sshTitle;
             }
 
             if (sshPrivateKey) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'sshPrivateKey' does not exist on type '{... Remove this comment to see the full error message
+                
                 data.sshPrivateKey = sshPrivateKey;
             }
 

@@ -5,21 +5,21 @@ export default {
         // prepare issue model
         let issue = new IssueModel();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         issue.name = data.exception ? data.exception.type : 'Unknown Error';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         issue.description = data.exception ? data.exception.message : '';
 
         // generate hash from fingerprint
         const hash = sha256(data.fingerprint.join('')).toString();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprintHash' does not exist on type ... Remove this comment to see the full error message
+        
         issue.fingerprintHash = hash;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         issue.fingerprint = data.fingerprint;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         issue.type = data.type;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerId' does not exist on type '... Remove this comment to see the full error message
+        
         issue.errorTrackerId = data.errorTrackerId;
 
         const savedIssue = await issue.save();
@@ -93,11 +93,11 @@ export default {
         const query = {};
         const hash = sha256(fingerprint.join('')).toString();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
+        
         if (!query.deleted) query.deleted = false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprintHash' does not exist on type ... Remove this comment to see the full error message
+        
         query.fingerprintHash = hash;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerId' does not exist on type '... Remove this comment to see the full error message
+        
         query.errorTrackerId = errorTrackerId;
         const issue = await IssueModel.findOne(query)
             .lean()
@@ -124,7 +124,7 @@ export default {
         );
 
         if (unsetData) {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             issue = await IssueModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -178,7 +178,7 @@ export default {
                 select: 'projectId',
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+            
             NotificationService.create(
                 component.projectId,
                 `An Issue under Error Tracker ${issue.errorTrackerId.name} was deleted under the component ${component.name} by ${issue.deletedById.name}`,
@@ -207,7 +207,7 @@ export default {
 };
 
 import IssueModel from '../models/issue';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cryp... Remove this comment to see the full error message
+
 import sha256 from 'crypto-js/sha256';
 import ComponentService from './componentService';
 import RealTimeService from './realTimeService';

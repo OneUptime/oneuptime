@@ -350,7 +350,7 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: false,
                     updating: state.updateUser.updating.concat([
-                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                        
                         action.payload,
                     ]),
                 },
@@ -612,7 +612,7 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
             return Object.assign({}, state, {
                 projectTeam: {
                     ...state.projectTeam,
-                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'page' does not exist on type '{ requesti... Remove this comment to see the full error message
+                    
                     page: state.projectTeam.page + 1,
                 },
             });
@@ -621,9 +621,9 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                 projectTeam: {
                     ...state.projectTeam,
                     page:
-                        // @ts-expect-error ts-migrate(2551) FIXME: Property 'page' does not exist on type '{ requesti... Remove this comment to see the full error message
+                        
                         state.projectTeam.page > 1
-                            ? // @ts-expect-error ts-migrate(2551) FIXME: Property 'page' does not exist on type '{ requesti... Remove this comment to see the full error message
+                            ? 
                               state.projectTeam.page - 1
                             : 1,
                 },
@@ -638,7 +638,7 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                     requesting: true,
                     success: false,
                     deleting: state.teamDelete.deleting.concat([
-                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                        
                         action.payload,
                     ]),
                 },
@@ -949,9 +949,9 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     projects: state.projects.projects.map(project => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         if (project._id === action.payload._id) {
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                            
                             project = action.payload;
                         }
                         return project;

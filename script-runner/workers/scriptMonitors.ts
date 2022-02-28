@@ -1,11 +1,11 @@
 import ApiService from '../utils/apiService';
 import ErrorService from '../utils/errorService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/scriptSandbox"' has no exported ... Remove this comment to see the full error message
+
 import { run as runScript } from '../utils/scriptSandbox';
 
 // it collects all monitors then ping them one by one to store their response
 export default {
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+    
     run: async monitor => {
         try {
             if (monitor && monitor.type === 'script') {

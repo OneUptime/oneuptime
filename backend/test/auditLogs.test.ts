@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 import chai from 'chai';
 const expect = require('chai').expect;
@@ -7,10 +7,10 @@ import userData from './data/user';
 import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import AuditLogsService from '../backend/services/auditLogsService';
 import UserService from '../backend/services/userService';
@@ -21,11 +21,11 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Audit Logs API', function() {
     this.timeout(30000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         testSuiteStartTime = new Date();
         this.timeout(40000);
@@ -62,7 +62,7 @@ describe('Audit Logs API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -93,12 +93,12 @@ describe('Audit Logs API', function() {
         await AuditLogsService.hardDeleteBy({ query: deleteQuery });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeEach'.
+    
     beforeEach(async function() {
         testCaseStartTime = new Date();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterEach'.
+    
     afterEach(async function() {
         // Deleting any auditLogs created between each test case in this suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
@@ -118,7 +118,7 @@ describe('Audit Logs API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject get audit logs request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .get('/audit-logs')
@@ -129,7 +129,7 @@ describe('Audit Logs API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject get audit logs request of NON master-admin user', function(done: $TSFixMe) {
         createUser(request, userData.newUser, function() {
             request
@@ -154,7 +154,7 @@ describe('Audit Logs API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should send get audit logs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
@@ -172,7 +172,7 @@ describe('Audit Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should send appopriate data set when limit is provided', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
@@ -197,7 +197,7 @@ describe('Audit Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should send appopriate data set when skip is provided', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
@@ -224,7 +224,7 @@ describe('Audit Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject search request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post('/audit-logs/search')
@@ -235,7 +235,7 @@ describe('Audit Logs API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject search request of NON master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Resetting user to normal USER.
         const authorization = `Basic ${token}`;
@@ -250,7 +250,7 @@ describe('Audit Logs API', function() {
         }
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should send Searched AuditLogs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
@@ -268,7 +268,7 @@ describe('Audit Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should send only matched result to provided search string when searched.', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;

@@ -1,2 +1,2 @@
-// @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+
 (function(){var e="",t: $TSFixMe=null,n={};for(var r=0,i=document.anchors.length;r<i;r++){var s=$(document.anchors[r]),o=s.offset().top,u=document.anchors[r].id;u!=""&&(n[u]=o)}var a=function(){t=null;var r=$(window).scrollTop(),i=Infinity,s;for(var o in n){var u=Math.abs(r-n[o]);u<i&&(s=o,i=u)}s!=e&&(e=s,$("a.flybar-button").each(function(t: $TSFixMe,n: $TSFixMe){n.href=n.href.replace(/(#(.+)?)?$/,"#"+e)}))};$(window).scroll(function(){t!==null&&window.clearTimeout(t),t=window.setTimeout(a,300)}),a()})();

@@ -1,6 +1,6 @@
 import Crypto from 'crypto';
 import DockerCredentialModel from '../models/dockerCredential';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
+
 import { encrypt, decrypt } from '../config/encryptDecrypt';
 import axios from 'axios';
 import handleSelect from '../utils/select';
@@ -57,7 +57,7 @@ export default {
             const error = new Error(
                 'Docker Credential already exist in this project'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -91,9 +91,9 @@ export default {
                 data.iv = iv;
             } else {
                 const password = await decrypt(
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     dockerCredential.dockerPassword,
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     dockerCredential.iv.buffer
                 );
                 await this.validateDockerCredential({
@@ -115,9 +115,9 @@ export default {
             'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
         dockerCredential = await this.findOneBy({
             query: {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 _id: dockerCredential._id,
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 deleted: dockerCredential.deleted,
             },
             select,
@@ -128,7 +128,7 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -145,7 +145,7 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -173,7 +173,7 @@ export default {
         } catch (err) {
             // username or password was incorrect
             const error = new Error('Invalid docker credential');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

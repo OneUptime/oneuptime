@@ -53,11 +53,11 @@ export function getProbes(
 
         promise.then(
             function(probes) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 probes.data.skip = skip || 0;
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 probes.data.limit = limit || 10;
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(probeSuccess(probes.data));
             },
             function(error) {

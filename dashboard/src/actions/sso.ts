@@ -20,7 +20,7 @@ export function createSso({ data }: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createSsoSuccess(response.data));
             },
             function(error) {
@@ -64,7 +64,7 @@ export function fetchSsos({ projectId, skip, limit }: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchSsosSuccess(response.data));
             },
             function(error) {
@@ -103,7 +103,7 @@ export function fetchSso(ssoId: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchSsoSuccess(response.data));
             },
             function(error) {
@@ -142,7 +142,7 @@ export function updateSso({ id, data }: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(updateSsoSuccess(response.data));
             },
             function(error) {
@@ -176,13 +176,13 @@ export const deleteSsoFailure = (error: $TSFixMe) => ({
 });
 export function deleteSso(ssoId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(`sso/${ssoId}`);
         dispatch(deleteSsoRequest());
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteSsoSuccess(response.data));
             },
             function(error) {

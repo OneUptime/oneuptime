@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,13 +13,13 @@ const teamEmail = utils.generateRandomBusinessEmail();
 const newProjectName = 'Test';
 const subProjectName = 'Trial';
 let browser: $TSFixMe, page: $TSFixMe;
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Project Setting: Change Plan', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(360000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -36,19 +36,19 @@ describe('Project Setting: Change Plan', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should change project plan',
         async () => {
             await init.growthPlanUpgrade(page);
             await page.reload({ waitUntil: 'networkidle0' });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, 'input#Growth_month');
             const checked = await init.page$Eval(
                 page,
@@ -59,7 +59,7 @@ describe('Project Setting: Change Plan', () => {
         },
         operationTimeOut
     );
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not update project account when admin recharge account with negative number',
         async (done: $TSFixMe) => {
@@ -70,15 +70,15 @@ describe('Project Setting: Change Plan', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#billing');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -90,22 +90,22 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account then click cancel
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = -20;
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(
                 page,
                 '#rechargeBalanceAmount',
                 creditedBalance.toString()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#rechargeAccount');
 
             // confirm the current balance is still $0
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#field-error'
@@ -122,7 +122,7 @@ describe('Project Setting: Change Plan', () => {
         },
         operationTimeOut
     );
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should update project account when admin recharge account',
         async (done: $TSFixMe) => {
@@ -133,15 +133,15 @@ describe('Project Setting: Change Plan', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#billing');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -153,31 +153,31 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = 20;
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(
                 page,
                 '#rechargeBalanceAmount',
                 creditedBalance.toString()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#rechargeAccount');
             balance += creditedBalance;
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#confirmBalanceTopUp');
             await init.pageWaitForSelector(page, '#confirmBalanceTopUp', {
                 hidden: true,
             });
 
             // confirm a pop up comes up and the message is a successful
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let spanModalElement = await init.pageWaitForSelector(
                 page,
                 '#message-modal-message'
@@ -189,14 +189,14 @@ describe('Project Setting: Change Plan', () => {
             );
 
             // click ok
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#modal-ok');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#modal-ok');
             await init.pageWaitForSelector(page, '#modal-ok', { hidden: true });
 
             // confirm the current balance is $20
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -211,7 +211,7 @@ describe('Project Setting: Change Plan', () => {
         },
         operationTimeOut
     );
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not update project account when admin recharge account and clicks cancel',
         async (done: $TSFixMe) => {
@@ -222,15 +222,15 @@ describe('Project Setting: Change Plan', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#billing');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -242,30 +242,30 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account then click cancel
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = 20;
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(
                 page,
                 '#rechargeBalanceAmount',
                 creditedBalance.toString()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#rechargeAccount');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#cancelBalanceTopUp');
             await init.pageWaitForSelector(page, '#cancelBalanceTopUp', {
                 hidden: true,
             });
 
             // confirm the current balance is still $0
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -282,13 +282,13 @@ describe('Project Setting: Change Plan', () => {
     );
 });
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Member Restriction', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -325,13 +325,13 @@ describe('Member Restriction', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to update alert option',
         async (done: $TSFixMe) => {
@@ -344,11 +344,11 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#billing');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing');
             await init.pageWaitForSelector(page, '#alertEnable', {
                 visible: true,
@@ -359,7 +359,7 @@ describe('Member Restriction', () => {
                 '#alertEnable',
                 (checkbox: $TSFixMe) => checkbox.click
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#alertOptionSave');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,
@@ -373,7 +373,7 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to recharge account',
         async (done: $TSFixMe) => {
@@ -382,19 +382,19 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#billing');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#rechargeBalanceAmount');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#rechargeBalanceAmount', '20');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#rechargeAccount');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,
@@ -408,7 +408,7 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to change project plan',
         async (done: $TSFixMe) => {
@@ -417,19 +417,19 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#billing');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing');
             await init.pageWaitForSelector(page, 'input#Startup_month', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'input#Startup_month');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#changePlanBtn');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,

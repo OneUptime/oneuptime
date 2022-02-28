@@ -73,7 +73,7 @@ export default {
         projectId: $TSFixMe,
         alertPhoneNumber: $TSFixMe
     ) {
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'alertOptions',
@@ -150,33 +150,33 @@ export default {
         alertProgress =
             alertProgress && `${alertProgress.current}/${alertProgress.total}`;
         const alert = new AlertModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         alert.projectId = projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onCallScheduleStatus' does not exist on ... Remove this comment to see the full error message
+        
         alert.onCallScheduleStatus = onCallScheduleStatus;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedule' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         alert.schedule = schedule;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalation' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         alert.escalation = escalation;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         alert.monitorId = monitorId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         alert.alertVia = alertVia;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Document... Remove this comment to see the full error message
+        
         alert.userId = userId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         alert.incidentId = incidentId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertStatus' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         alert.alertStatus = alertStatus;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventType' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         alert.eventType = eventType;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertProgress' does not exist on type 'D... Remove this comment to see the full error message
+        
         alert.alertProgress = alertProgress;
 
         if (error) {
-            // @ts-expect-error ts-migrate(2551) FIXME: Property 'error' does not exist on type 'Document<... Remove this comment to see the full error message
+            
             alert.error = error;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorMessage' does not exist on type 'Do... Remove this comment to see the full error message
+            
             alert.errorMessage = errorMessage;
         }
 
@@ -562,7 +562,7 @@ export default {
         const pushRem = currentEscalationStatus.pushRemindersSent + 1;
 
         if (emailRem > 1) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ current: any; total: any; }' is not assign... Remove this comment to see the full error message
+            
             alertProgress.emailProgress = {
                 current: emailRem,
                 total: escalation.emailReminders,
@@ -570,7 +570,7 @@ export default {
         }
 
         if (callRem > 1) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ current: any; total: any; }' is not assign... Remove this comment to see the full error message
+            
             alertProgress.callProgress = {
                 current: callRem,
                 total: escalation.callReminders,
@@ -578,7 +578,7 @@ export default {
         }
 
         if (smsRem > 1) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ current: any; total: any; }' is not assign... Remove this comment to see the full error message
+            
             alertProgress.smsProgress = {
                 current: smsRem,
                 total: escalation.smsReminders,
@@ -586,7 +586,7 @@ export default {
         }
 
         if (pushRem > 1) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ current: any; total: any; }' is not assign... Remove this comment to see the full error message
+            
             alertProgress.pushProgress = {
                 current: pushRem,
                 total: escalation.pushReminders,
@@ -756,7 +756,7 @@ export default {
         ];
 
         const [project, ec] = await Promise.all([
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: '_id alertEnable alertOptions slug name',
@@ -780,7 +780,7 @@ export default {
             });
         }
 
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'group' implicitly has an 'any' type.
+        
         const groupUsers = teamGroup.map(group => group.teams);
         const groupUserIds = [].concat
             .apply([], groupUsers)
@@ -1138,16 +1138,16 @@ export default {
 
             const projectId = incident.projectId._id || incident.projectId;
             const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+            
             const ack_url = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+            
             const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
+            
             const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Date'.
+                
                 date = moment(incident.createdAt)
                     .tz(user.timezone)
                     .format('LLLL');
@@ -1312,10 +1312,10 @@ export default {
             // const componentSlug = monitor.componentId.slug;
             // const componentName = monitor.componentId.name;
             // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
+            
             const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.slug}`;
             let incidentSlaTimeline = incidentCommunicationSla.duration * 60;
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number'.
+            
             incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
             const incidentSlaRemaining = secondsToHms(alertTime);
 
@@ -1486,7 +1486,7 @@ export default {
                 AlertType.Call
             );
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+            
             if (!status.success) {
                 return await _this.create({
                     projectId,
@@ -1500,7 +1500,7 @@ export default {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+                    
                     errorMessage: status.message,
                     alertProgress: callProgress,
                 });
@@ -1555,7 +1555,7 @@ export default {
                 );
 
                 if (!balanceStatus.error) {
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 8 arguments, but got 7.
+                    
                     await AlertChargeService.create(
                         projectId,
                         balanceStatus.chargeAmount,
@@ -1697,7 +1697,7 @@ export default {
                 AlertType.SMS
             );
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+            
             if (!status.success) {
                 return await _this.create({
                     projectId: incident.projectId._id || incident.projectId,
@@ -1711,7 +1711,7 @@ export default {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+                    
                     errorMessage: status.message,
                     alertProgress: smsProgress,
                 });
@@ -1773,7 +1773,7 @@ export default {
                 );
 
                 if (!balanceStatus.error) {
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 8 arguments, but got 7.
+                    
                     await AlertChargeService.create(
                         incident.projectId._id || incident.projectId,
                         balanceStatus.chargeAmount,
@@ -1891,25 +1891,25 @@ export default {
             if (incident) {
                 for (const subscriber of subscribers) {
                     let statusPageSlug = null;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                    
                     if (subscriber.statusPageId) {
                         const statusPage = await StatusPageService.findOneBy({
                             query: {
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                                
                                 _id: subscriber.statusPageId,
                             },
                             select: 'slug',
                         });
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type '{}'.
+                        
                         statusPageSlug = statusPage ? statusPage.slug : null;
                     }
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                    
                     if (subscriber.alertVia === AlertType.Email) {
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         if (!track[subscriber.contactEmail]) {
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            
                             track[subscriber.contactEmail] =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                
                                 subscriber.contactEmail;
                             sendSubscriberAlert({
                                 subscriber,
@@ -1979,12 +1979,12 @@ export default {
                     }
                 );
                 for (const subscriber of subscribers) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                    
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
                                 query: {
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                                    
                                     _id: subscriber.statusPageId,
                                     isSubscriberEnabled: true,
                                 },
@@ -1993,13 +1993,13 @@ export default {
                             }
                         );
                         if (enabledStatusPage) {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                            
                             if (subscriber.alertVia === AlertType.Email) {
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 if (!track[subscriber.contactEmail]) {
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                    
                                     track[subscriber.contactEmail] =
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                        
                                         subscriber.contactEmail;
                                     sendSubscriberAlert({
                                         subscriber,
@@ -2018,13 +2018,13 @@ export default {
                             }
                         }
                     } else {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                        
                         if (subscriber.alertVia === AlertType.Email) {
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            
                             if (!track[subscriber.contactEmail]) {
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 track[subscriber.contactEmail] =
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                    
                                     subscriber.contactEmail;
                                 sendSubscriberAlert({
                                     subscriber,
@@ -2081,7 +2081,7 @@ export default {
                     populate: monitorPopulate,
                     select: monitorSelect,
                 }),
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'slug name',
@@ -2257,14 +2257,14 @@ export default {
             });
 
             const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+            
             const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
+            
             const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Date'.
+                
                 date = moment(date)
                     .tz(user.timezone)
                     .format();
@@ -2444,7 +2444,7 @@ export default {
                     populate: monitorPopulate,
                     select: monitorSelect,
                 }),
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'slug name',
@@ -2623,12 +2623,12 @@ export default {
             });
 
             const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
+            
             const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Date'.
+                
                 date = moment(date)
                     .tz(user.timezone)
                     .format();
@@ -2819,12 +2819,12 @@ export default {
                     }
                 );
                 for (const subscriber of subscribers) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                    
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
                                 query: {
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                                    
                                     _id: subscriber.statusPageId,
                                     isSubscriberEnabled: true,
                                 },
@@ -2833,13 +2833,13 @@ export default {
                             }
                         );
                         if (enabledStatusPage) {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                            
                             if (subscriber.alertVia === AlertType.Email) {
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 if (!track[subscriber.contactEmail]) {
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                    
                                     track[subscriber.contactEmail] =
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                        
                                         subscriber.contactEmail;
                                     await sendSubscriberAlert({
                                         subscriber,
@@ -2858,13 +2858,13 @@ export default {
                             }
                         }
                     } else {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                        
                         if (subscriber.alertVia === AlertType.Email) {
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            
                             if (!track[subscriber.contactEmail]) {
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 track[subscriber.contactEmail] =
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                    
                                     subscriber.contactEmail;
                                 await sendSubscriberAlert({
                                     subscriber,
@@ -2934,12 +2934,12 @@ export default {
                     }
                 );
                 for (const subscriber of subscribers) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                    
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
                                 query: {
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                                    
                                     _id: subscriber.statusPageId,
                                     isSubscriberEnabled: true,
                                 },
@@ -2948,13 +2948,13 @@ export default {
                             }
                         );
                         if (enabledStatusPage) {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                            
                             if (subscriber.alertVia === AlertType.Email) {
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 if (!track[subscriber.contactEmail]) {
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                    
                                     track[subscriber.contactEmail] =
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                        
                                         subscriber.contactEmail;
                                     sendSubscriberAlert({
                                         subscriber,
@@ -2973,13 +2973,13 @@ export default {
                             }
                         }
                     } else {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                        
                         if (subscriber.alertVia === AlertType.Email) {
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            
                             if (!track[subscriber.contactEmail]) {
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 track[subscriber.contactEmail] =
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                    
                                     subscriber.contactEmail;
                                 sendSubscriberAlert({
                                     subscriber,
@@ -3030,7 +3030,7 @@ export default {
         ];
         const monitorSelect = '_id customFields componentId projectId';
         const [project, mon] = await Promise.all([
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select:
@@ -3064,7 +3064,7 @@ export default {
 
         let statusPageUrl: $TSFixMe;
         if (statusPage) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusHost' does not exist on type 'Glob... Remove this comment to see the full error message
+            
             statusPageUrl = `${global.statusHost}/status-page/${statusPage._id}`;
             if (statusPage.domains && statusPage.domains.length > 0) {
                 const domains = statusPage.domains.filter(
@@ -3084,7 +3084,7 @@ export default {
 
         let statusUrl: $TSFixMe;
         if (statusPageSlug) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusHost' does not exist on type 'Glob... Remove this comment to see the full error message
+            
             statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.slug}`;
         }
 
@@ -3092,14 +3092,14 @@ export default {
             incidentCustomFields = {};
         if (monitor && monitor.customFields) {
             monitor.customFields.forEach(
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 (field: $TSFixMe) =>
                     (monitorCustomFields[field.fieldName] = field.fieldValue)
             );
         }
         if (incident && incident.customFields) {
             incident.customFields.forEach(
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 (field: $TSFixMe) =>
                     (incidentCustomFields[field.fieldName] = field.fieldValue)
             );
@@ -3164,7 +3164,7 @@ export default {
                     );
                     alertStatus = webhookNotificationSent ? 'Sent' : 'Not Sent';
                 } catch (error) {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'null' is not assignable to type 'string'.
+                    
                     alertStatus = null;
                     throw error;
                 } finally {
@@ -3305,9 +3305,9 @@ export default {
                     id,
                 });
                 const alertId = subscriberAlert._id;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+                
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${projectId}/${alertId}/viewed`;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
+                
                 const unsubscribeUrl = `${global.homeHost}/unsubscribe/${monitor._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
@@ -3629,7 +3629,7 @@ export default {
                         eventType = 'identified';
                     }
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+                    
                     if (!status.success) {
                         return await SubscriberAlertService.create({
                             projectId,
@@ -3638,7 +3638,7 @@ export default {
                             alertVia: AlertType.SMS,
                             alertStatus: null,
                             error: true,
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+                            
                             errorMessage: status.message,
                             eventType: eventType,
                             totalSubscribers,
@@ -3890,7 +3890,7 @@ export default {
     },
 
     mapCountryShortNameToCountryCode(shortName: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
+        
         return countryCode[[shortName]];
     },
 
@@ -4025,7 +4025,7 @@ export default {
                 projectId: projectId,
                 createdAt: { $gte: yesterday },
             }),
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'alertLimit',
@@ -4056,7 +4056,7 @@ export default {
     ) {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName, slug: projectSlug } = project;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
+        
         const projectUrl = `${global.dashboardHost}/project/${projectSlug}`;
         const projectPlan = getPlanById(stripePlanId);
 
@@ -4114,13 +4114,13 @@ export default {
                 );
 
                 for (const subscriber of subscribers) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                    
                     if (subscriber.alertVia === AlertType.Email) {
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         if (!track[subscriber.contactEmail]) {
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            
                             track[subscriber.contactEmail] =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                
                                 subscriber.contactEmail;
                             sendSubscribersAlert({
                                 subscriber,
@@ -4170,13 +4170,13 @@ export default {
                 );
 
                 for (const subscriber of subscribers) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                    
                     if (subscriber.alertVia === AlertType.Email) {
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         if (!track[subscriber.contactEmail]) {
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            
                             track[subscriber.contactEmail] =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                
                                 subscriber.contactEmail;
                             await sendSubscribersAlert({
                                 subscriber,
@@ -4256,17 +4256,17 @@ export default {
                 for (const subscriber of subscribers) {
                     const projectId = message.scheduledEventId.projectId._id;
 
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     const project = await ProjectService.findOneBy({
                         query: { _id: projectId },
                         select:
                             'sendNewScheduledEventInvestigationNoteNotificationEmail name alertEnable sendNewScheduledEventInvestigationNoteNotificationSms users _id alertOptions slug sendNewScheduledEventInvestigationNoteNotificationSms',
                     });
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
+                    
                     const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                    
                     if (subscriber.alertVia === AlertType.Email) {
                         const select =
                             'projectId subject body emailType allowedVariables';
@@ -4327,7 +4327,7 @@ export default {
                             }
                             return await SubscriberAlertService.create({
                                 projectId,
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                                
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.Email,
                                 eventType: 'Scheduled maintenance note created',
@@ -4342,7 +4342,7 @@ export default {
                         const subscriberAlert = await SubscriberAlertService.create(
                             {
                                 projectId,
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                                
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.Email,
                                 alertStatus: 'Pending',
@@ -4369,9 +4369,9 @@ export default {
                                 message.scheduledEventId.name,
                                 message.event_state,
                                 message.content,
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                
                                 subscriber.contactEmail,
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                
                                 subscriber.contactEmail,
                                 createdBy,
                                 emailTemplate,
@@ -4398,7 +4398,7 @@ export default {
                             );
                             throw error;
                         }
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                        
                     } else if (subscriber.alertVia === AlertType.SMS) {
                         let owner;
                         const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
@@ -4454,7 +4454,7 @@ export default {
 
                             return await SubscriberAlertService.create({
                                 projectId,
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                                
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.SMS,
                                 alertStatus: null,
@@ -4466,10 +4466,10 @@ export default {
                             });
                         }
                         const countryCode = await _this.mapCountryShortNameToCountryCode(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type '{}'... Remove this comment to see the full error message
+                            
                             subscriber.countryCode
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactPhone' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         let contactPhone = subscriber.contactPhone;
                         if (countryCode) {
                             contactPhone = countryCode + contactPhone;
@@ -4501,7 +4501,7 @@ export default {
 
                                 return await SubscriberAlertService.create({
                                     projectId: projectId,
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                                    
                                     subscriberId: subscriber._id,
                                     alertVia: AlertType.SMS,
                                     alertStatus: null,
@@ -4520,16 +4520,16 @@ export default {
                                 AlertType.SMS
                             );
 
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+                            
                             if (!status.success) {
                                 return await SubscriberAlertService.create({
                                     projectId,
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                                    
                                     subscriberId: subscriber._id,
                                     alertVia: AlertType.SMS,
                                     alertStatus: null,
                                     error: true,
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+                                    
                                     errorMessage: status.message,
                                     eventType: eventType,
                                     totalSubscribers,
@@ -4549,7 +4549,7 @@ export default {
                         const subscriberAlert = await SubscriberAlertService.create(
                             {
                                 projectId,
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                                
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.SMS,
                                 alertStatus: 'Pending',
@@ -4658,7 +4658,7 @@ export default {
         const date = new Date();
         const projectName = schedule.projectId.name;
         const projectId = schedule.projectId._id;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select:
@@ -4749,7 +4749,7 @@ export default {
                     id,
                 });
                 const alertId = subscriberAlert._id;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
+                
                 const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                 let alertStatus = null;
@@ -4934,7 +4934,7 @@ export default {
                         AlertType.SMS
                     );
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+                    
                     if (!status.success) {
                         return await SubscriberAlertService.create({
                             projectId,
@@ -4942,7 +4942,7 @@ export default {
                             alertVia: AlertType.SMS,
                             alertStatus: null,
                             error: true,
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+                            
                             errorMessage: status.message,
                             eventType: eventType,
                             totalSubscribers,
@@ -5343,7 +5343,7 @@ export default {
                             AlertType.SMS
                         );
 
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+                        
                         if (!status.success) {
                             return await SubscriberAlertService.create({
                                 projectId,
@@ -5351,7 +5351,7 @@ export default {
                                 alertVia: AlertType.SMS,
                                 alertStatus: null,
                                 error: true,
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+                                
                                 errorMessage: status.message,
                                 eventType: eventType,
                                 totalSubscribers,
@@ -5472,27 +5472,27 @@ export default {
 
                 for (const subscriber of subscribers) {
                     const projectId = message.projectId;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type '{}'... Remove this comment to see the full error message
+                    
                     const monitorName = subscriber.monitorName;
 
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     const project = await ProjectService.findOneBy({
                         query: { _id: projectId },
                         select:
                             'sendAnnouncementNotificationEmail replyAddress name sendAnnouncementNotificationSms alertEnable users _id alertEnable alertOptions slug',
                     });
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'homeHost' does not exist on type 'Global... Remove this comment to see the full error message
+                    
                     const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                     let announcementAlert =
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationType' does not exist on type... Remove this comment to see the full error message
+                        
                         subscriber.notificationType?.announcement;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                    
                     const statusPageId = subscriber?.statusPageId;
 
                     // if there is no notification type, then set incidentAlert to true.
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationType' does not exist on type... Remove this comment to see the full error message
+                    
                     if (!subscriber.notificationType) {
                         announcementAlert = true;
                     }
@@ -5509,13 +5509,13 @@ export default {
                         });
                     } else {
                         if (announcementAlert) {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+                            
                             if (subscriber.alertVia === AlertType.Email) {
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 if (!track[subscriber.contactEmail]) {
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                    
                                     track[subscriber.contactEmail] =
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                                        
                                         subscriber.contactEmail;
                                     await sendAlerts({
                                         project,
@@ -5575,14 +5575,14 @@ import ErrorService from 'common-server/utils/error';
 import StatusPageService from './statusPageService';
 import AlertChargeService from './alertChargeService';
 import countryCode from '../config/countryCode';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/alertType"' has no exported mem... Remove this comment to see the full error message
+
 import { getCountryType } from '../config/alertType';
 import SmsCountService from './smsCountService';
 import DateTime from '../utils/DateTime';
 import moment from 'moment-timezone';
 const TimeZoneNames = moment.tz.names();
 import OnCallScheduleStatusService from './onCallScheduleStatusService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
+
 import { IS_SAAS_SERVICE } from '../config/server';
 import ComponentService from './componentService';
 import GlobalConfigService from './globalConfigService';
@@ -5590,7 +5590,7 @@ import WebHookService from '../services/webHookService';
 import IncidentUtility from '../utils/incident';
 import TeamService from './teamService';
 import secondsToHms from '../utils/secondsToHms';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/plans"' has no exported member ... Remove this comment to see the full error message
+
 import { getPlanById, getPlanByExtraUserId } from '../config/plans';
 const {
     INCIDENT_RESOLVED,
@@ -5598,7 +5598,7 @@ const {
     INCIDENT_ACKNOWLEDGED,
 } = require('../constants/incidentEvents');
 import componentService from './componentService';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'web-... Remove this comment to see the full error message
+
 import webpush from 'web-push';
 const {
     calculateHumanReadableDownTime,

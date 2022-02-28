@@ -18,7 +18,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const [ssos, count] = await Promise.all([
             SsoService.findBy({ query: {}, limit, skip, select: selectSso }),
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+            
             SsoService.countBy(),
         ]);
 

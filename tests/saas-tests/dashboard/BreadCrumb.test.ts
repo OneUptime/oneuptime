@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +15,13 @@ const user = {
     password,
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('BreadCrumb Component test', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,13 +32,13 @@ describe('BreadCrumb Component test', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should navigate between pages from the breadcrumbs',
         async (done: $TSFixMe) => {
@@ -57,14 +57,14 @@ describe('BreadCrumb Component test', () => {
                     visible: true,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const componentBreadcrumb = await init.pageWaitForSelector(
                 page,
                 '#cbMonitors'
             );
             expect(monitorBreadcrumb).toBeDefined();
             expect(componentBreadcrumb).toBeDefined();
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#cbMonitors');
 
             const monitorTitle = await init.pageWaitForSelector(
@@ -78,7 +78,7 @@ describe('BreadCrumb Component test', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should not go to the landing page when the project breadcrumb item is clicked',
         async (done: $TSFixMe) => {
@@ -89,7 +89,7 @@ describe('BreadCrumb Component test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#cbUnnamedProject');
             let currentPage = await init.pageWaitForSelector(
                 page,

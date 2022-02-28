@@ -36,7 +36,7 @@ export function verifyDomain({ projectId, domainId, payload }: $TSFixMe) {
                 `domainVerificationToken/${projectId}/verify/${domainId}`,
                 payload
             );
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(verifyDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -89,7 +89,7 @@ export function createDomain({
                 `status-page/${projectId}/${statusPageId}/domain`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(createDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -129,11 +129,11 @@ export function deleteDomain({ projectId, statusPageId, domainId }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(deleteDomainRequest());
         try {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             const response = await deleteApi(
                 `status-page/${projectId}/${statusPageId}/${domainId}`
             );
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -186,7 +186,7 @@ export function updateDomain({
                 `status-page/${projectId}/${statusPageId}/${domainId}`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(updateDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =

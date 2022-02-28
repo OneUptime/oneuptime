@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -18,7 +18,7 @@ router.post(
         try {
             const { statusPageCategoryName } = req.body;
             const { statusPageId } = req.params;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
 
             if (!statusPageCategoryName || !statusPageCategoryName.trim()) {
@@ -70,7 +70,7 @@ router.delete(
         try {
             const { statusPageCategoryId } = req.params;
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
 
             if (!statusPageCategoryId || !statusPageCategoryId.trim()) {

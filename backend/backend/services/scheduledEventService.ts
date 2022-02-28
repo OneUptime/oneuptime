@@ -20,7 +20,7 @@ export default {
             const error = new Error(
                 'You need at least one monitor to create a scheduled event'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -28,7 +28,7 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of a monitor'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -69,12 +69,12 @@ export default {
             populate,
         });
         // add note when a scheduled event is created
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         await ScheduledEventNoteService.create({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
+            
             content: scheduledEvent.description,
             scheduledEventId: scheduledEvent._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+            
             createdById: scheduledEvent.createdById._id,
             type: 'investigation',
             event_state: 'Created',
@@ -82,7 +82,7 @@ export default {
 
         //Create event start note immediately if start time equal to create time
         const currentTime = moment();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         const startTime = moment(scheduledEvent.startDate);
         if (startTime <= currentTime) {
             //set monitoring state of the monitor
@@ -104,7 +104,7 @@ export default {
                 }
             }
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             await ScheduledEventNoteService.create({
                 content: 'This scheduled event has started',
                 scheduledEventId: scheduledEvent._id,
@@ -114,7 +114,7 @@ export default {
         }
 
         //Create event end note immediately if end time equal to create time
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         const endTime = moment(scheduledEvent.endDate);
         if (endTime <= currentTime) {
             // revert monitor to monitoring state
@@ -126,7 +126,7 @@ export default {
                 );
             }
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             await ScheduledEventNoteService.create({
                 content: 'This scheduled event has ended',
                 scheduledEventId: scheduledEvent._id,
@@ -134,7 +134,7 @@ export default {
                 event_state: 'Ended',
             });
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertSubscriber' does not exist on type ... Remove this comment to see the full error message
+        
         if (scheduledEvent.alertSubscriber) {
             // handle this asynchronous operation in the background
             AlertService.sendCreatedScheduledEventToSubscribers(
@@ -165,7 +165,7 @@ export default {
             const error = new Error(
                 'You need at least one monitor to update a scheduled event'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -174,7 +174,7 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of a monitor'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -235,7 +235,7 @@ export default {
             const error = new Error(
                 'Scheduled Event not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -302,7 +302,7 @@ export default {
             const error = new Error(
                 'Scheduled Event not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -587,38 +587,38 @@ export default {
                 newEndDate = moment(endDate).add(1, 'months');
             }
             const postObj = {};
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+            
             postObj.name = resolvedScheduledEvent.name;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type '{}'.
+            
             postObj.startDate = newStartDate;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type '{}'.
+            
             postObj.endDate = newEndDate;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+            
             postObj.description = resolvedScheduledEvent.description;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showEventOnStatusPage' does not exist on... Remove this comment to see the full error message
+            
             postObj.showEventOnStatusPage =
                 resolvedScheduledEvent.showEventOnStatusPage;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callScheduleOnEvent' does not exist on t... Remove this comment to see the full error message
+            
             postObj.callScheduleOnEvent =
                 resolvedScheduledEvent.callScheduleOnEvent;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorDuringEvent' does not exist on ty... Remove this comment to see the full error message
+            
             postObj.monitorDuringEvent =
                 resolvedScheduledEvent.monitorDuringEvent;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertSubscriber' does not exist on type ... Remove this comment to see the full error message
+            
             postObj.alertSubscriber = resolvedScheduledEvent.alertSubscriber;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'recurring' does not exist on type '{}'.
+            
             postObj.recurring = resolvedScheduledEvent.recurring;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvance' does not exist on type '{}'... Remove this comment to see the full error message
+            
             postObj.showAdvance = resolvedScheduledEvent.showAdvance;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'interval' does not exist on type '{}'.
+            
             postObj.interval = resolvedScheduledEvent.interval;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type '{}'... Remove this comment to see the full error message
+            
             postObj.createdById = resolvedScheduledEvent.createdById;
             const projectId = resolvedScheduledEvent.projectId;
             const monitors = resolvedScheduledEvent.monitors.map(
                 (monitor: $TSFixMe) => monitor.monitorId
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            
             postObj.monitors = monitors;
             _this.create({ projectId }, postObj, true);
         }
@@ -647,7 +647,7 @@ export default {
 
         // add note automatically
         // when a scheduled event is resolved
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         await ScheduledEventNoteService.create({
             content: 'This scheduled event has been resolved',
             scheduledEventId: query._id,
@@ -728,7 +728,7 @@ export default {
                 }
             );
             if (scheduledEventNoteCount === 0) {
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+                
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has started',
                     scheduledEventId,
@@ -779,7 +779,7 @@ export default {
                 }
             );
             if (scheduledEventNoteListCount === 0) {
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+                
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has ended',
                     scheduledEventId,

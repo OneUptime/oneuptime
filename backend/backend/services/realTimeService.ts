@@ -1,12 +1,12 @@
 export default {
     sendCreatedIncident: async (incident: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProjectId _id',
@@ -28,12 +28,12 @@ export default {
 
     sendIncidentTimeline: async (timeline: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: timeline.projectId },
                 select: 'parentProjectId _id',
@@ -67,12 +67,12 @@ export default {
 
     sendSlaCountDown: async (incident: $TSFixMe, countDown: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProjectId _id',
@@ -95,11 +95,11 @@ export default {
 
     deleteIncident: async (incident: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProjectId _id',
@@ -121,7 +121,7 @@ export default {
 
     addIncidentNote: async (incidentNote: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -131,7 +131,7 @@ export default {
                 },
                 select: 'projectId _id',
             });
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProjectId _id',
@@ -153,7 +153,7 @@ export default {
 
     updateIncidentNote: async (incidentNote: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -163,7 +163,7 @@ export default {
                 },
                 select: 'projectId',
             });
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -185,11 +185,11 @@ export default {
 
     updateIncidentTimeline: async (incidentTimeline: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: {
                     _id:
@@ -215,12 +215,12 @@ export default {
 
     updateIncident: async (incident: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -242,7 +242,7 @@ export default {
 
     deleteIncidentNote: async (incidentNote: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -252,7 +252,7 @@ export default {
                 },
                 select: 'projectId',
             });
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -274,7 +274,7 @@ export default {
 
     addScheduledEvent: async (event: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
@@ -296,7 +296,7 @@ export default {
 
     deleteScheduledEvent: async (event: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
@@ -318,7 +318,7 @@ export default {
 
     updateScheduledEvent: async (event: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
@@ -340,7 +340,7 @@ export default {
 
     resolveScheduledEvent: async (event: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
@@ -362,7 +362,7 @@ export default {
 
     addScheduledEventInternalNote: async (note: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -388,12 +388,12 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -423,7 +423,7 @@ export default {
 
     deleteScheduledEventInternalNote: async (note: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -449,12 +449,12 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -484,7 +484,7 @@ export default {
 
     updateScheduledEventInternalNote: async (note: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -510,12 +510,12 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -545,12 +545,12 @@ export default {
 
     sendComponentCreated: async (component: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
@@ -572,12 +572,12 @@ export default {
 
     sendMonitorCreated: async (monitor: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
@@ -599,12 +599,12 @@ export default {
 
     deleteMonitor: async (monitor: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
@@ -626,12 +626,12 @@ export default {
 
     sendComponentDelete: async (component: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
@@ -653,12 +653,12 @@ export default {
 
     sendMonitorDelete: async (monitor: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
@@ -680,12 +680,12 @@ export default {
 
     incidentResolved: async (incident: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -707,12 +707,12 @@ export default {
 
     incidentAcknowledged: async (incident: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -734,7 +734,7 @@ export default {
 
     statusPageEdit: async (statusPage: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: {
                     _id: statusPage.projectId._id || statusPage.projectId,
@@ -758,12 +758,12 @@ export default {
 
     componentEdit: async (component: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
@@ -785,12 +785,12 @@ export default {
 
     monitorEdit: async (monitor: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
@@ -816,12 +816,12 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -846,12 +846,12 @@ export default {
 
     updateLighthouseLog: async (data: $TSFixMe, projectId: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -875,12 +875,12 @@ export default {
 
     updateAllLighthouseLog: async (projectId: $TSFixMe, data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -904,12 +904,12 @@ export default {
 
     updateMonitorStatus: async (data: $TSFixMe, projectId: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -933,7 +933,7 @@ export default {
 
     updateProbe: async (data: $TSFixMe, monitorId: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -947,7 +947,7 @@ export default {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId },
                 select: 'parentProject _id',
@@ -966,12 +966,12 @@ export default {
 
     sendNotification: async (data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: data.projectId._id || data.projectId },
                 select: 'parentProjectId _id',
@@ -993,12 +993,12 @@ export default {
 
     updateTeamMemberRole: async (projectId: $TSFixMe, data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -1021,12 +1021,12 @@ export default {
 
     createTeamMember: async (projectId: $TSFixMe, data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -1049,12 +1049,12 @@ export default {
 
     deleteTeamMember: async (projectId: $TSFixMe, data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -1077,7 +1077,7 @@ export default {
 
     sendApplicationLogCreated: async (applicationLog: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1097,7 +1097,7 @@ export default {
     },
     sendApplicationLogDelete: async (applicationLog: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1115,7 +1115,7 @@ export default {
     },
     sendLogCreated: async (contentLog: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1132,7 +1132,7 @@ export default {
     },
     applicationLogKeyReset: async (applicationLog: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1150,7 +1150,7 @@ export default {
     },
     sendContainerSecurityCreated: async (containerSecurity: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1171,7 +1171,7 @@ export default {
     },
     sendApplicationSecurityCreated: async (applicationSecurity: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1192,7 +1192,7 @@ export default {
     },
     sendErrorTrackerCreated: async (errorTracker: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1209,7 +1209,7 @@ export default {
     },
     sendErrorTrackerDelete: async (errorTracker: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1227,7 +1227,7 @@ export default {
     },
     errorTrackerKeyReset: async (errorTracker: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1245,7 +1245,7 @@ export default {
     },
     sendErrorEventCreated: async (data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1263,7 +1263,7 @@ export default {
     },
     sendIssueStatusChange: async (issue: $TSFixMe, type: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1281,7 +1281,7 @@ export default {
     },
     sendErrorTrackerIssueDelete: async (issue: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1302,7 +1302,7 @@ export default {
     },
     sendTimeMetrics: async (appId: $TSFixMe, data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1314,7 +1314,7 @@ export default {
     },
     sendThroughputMetrics: async (appId: $TSFixMe, data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1329,7 +1329,7 @@ export default {
     },
     sendErrorMetrics: async (appId: $TSFixMe, data: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1341,7 +1341,7 @@ export default {
     },
     handleScanning: ({ security }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1355,7 +1355,7 @@ export default {
     },
     handleLog: ({ securityId, securityLog }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
@@ -1375,7 +1375,7 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: {
                     _id: projectId._id || projectId,
@@ -1403,8 +1403,8 @@ import ErrorService from 'common-server/utils/error';
 import ProjectService from './projectService';
 import MonitorService from './monitorService';
 import IncidentService from './incidentService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
+
 import { postApi } from '../utils/api';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/realtime"' has no exported memb... Remove this comment to see the full error message
+
 import { REALTIME_URL } from '../config/realtime';
 const realtimeBaseUrl = `${REALTIME_URL}/realtime`;

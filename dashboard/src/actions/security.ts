@@ -28,7 +28,7 @@ export const addContainerSecurity = ({
             `security/${projectId}/${componentId}/container`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(addContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -69,7 +69,7 @@ export const getContainerSecurity = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -95,7 +95,7 @@ export const getContainerSecurityBySlug = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/containerSecuritySlug/${containerSecuritySlug}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -139,7 +139,7 @@ export const getContainerSecurities = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/container?skip=${skip}&limit=${limit}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getContainerSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -177,11 +177,11 @@ export const deleteContainerSecurity = ({
     dispatch(deleteContainerSecurityRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteContainerSecuritySuccess(response.data));
 
         // update the list of container securities
@@ -222,7 +222,7 @@ export const scanContainerSecurity = ({
     dispatch(setActiveContainerSecurity(containerSecurityId));
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         await postApi(
             `security/${projectId}/container/scan/${containerSecurityId}`
         );
@@ -265,7 +265,7 @@ export const getContainerSecurityLog = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getContainerSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -291,7 +291,7 @@ export const getContainerSecurityLogBySlug = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/containerSecuritySlug/logs/${containerSecuritySlug}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getContainerSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -331,7 +331,7 @@ export const getContainerSecurityLogs = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/container/logs`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getContainerSecurityLogsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -376,7 +376,7 @@ export function editContainerSecurity({
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editContainerSecuritySuccess(response.data));
             },
             function(error) {
@@ -423,7 +423,7 @@ export const addApplicationSecurity = ({
             `security/${projectId}/${componentId}/application`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(addApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -464,7 +464,7 @@ export const getApplicationSecurity = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -490,7 +490,7 @@ export const getApplicationSecurityBySlug = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/applicationSecuritySlug/${applicationSecuritySlug}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -534,7 +534,7 @@ export const getApplicationSecurities = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/application?skip=${skip}&limit=${limit}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getApplicationSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -572,11 +572,11 @@ export const deleteApplicationSecurity = ({
     dispatch(deleteApplicationSecurityRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteApplicationSecuritySuccess(response.data));
 
         // update the list of application securities
@@ -616,7 +616,7 @@ export const scanApplicationSecurity = ({
     dispatch(scanApplicationSecurityRequest());
     dispatch(setActiveApplicationSecurity(applicationSecurityId));
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         await postApi(
             `security/${projectId}/application/scan/${applicationSecurityId}`
         );
@@ -659,7 +659,7 @@ export const getApplicationSecurityLog = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getApplicationSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -685,7 +685,7 @@ export const getApplicationSecurityLogBySlug = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/applicationSecuritySlug/logs/${applicationSecuritySlug}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getApplicationSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -725,7 +725,7 @@ export const getApplicationSecurityLogs = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/application/logs`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getApplicationSecurityLogsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -770,7 +770,7 @@ export function editApplicationSecurity({
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editApplicationSecuritySuccess(response.data));
             },
             function(error) {

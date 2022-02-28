@@ -19,13 +19,13 @@ export default {
             .skip(skip);
     },
     countBy: async function(query = {}) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
+        
         if (!query.deleted) query.deleted = false;
 
         return await IncidentNoteTemplateModel.countDocuments(query);
     },
     findOneBy: async function(query = {}) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
+        
         if (!query.deleted) query.deleted = false;
 
         const incidentNoteTemplate = await IncidentNoteTemplateModel.findOne(
@@ -43,7 +43,7 @@ export default {
             const error = new Error(
                 'Incident note template with this name already exist in this project'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -67,7 +67,7 @@ export default {
             const error = new Error(
                 'Incident note template with this name already exist in this project'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

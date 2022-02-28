@@ -7,7 +7,7 @@ import RealTimeService from '../services/realTimeService';
 import NotificationService from '../services/notificationService';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -36,9 +36,9 @@ router.get(
     isAuthorized,
     getSubProjects,
     async function(req, res) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const subProjectIds = req.user.subProjects
-            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            ? 
               req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
         try {
@@ -110,7 +110,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     res
 ) {
     const data = req.body;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+    
     const userId = req.user ? req.user : null;
     const { projectId } = req.params;
 
@@ -175,7 +175,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
         // Call the TeamService
         const users = await TeamService.inviteTeamMembers(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             req.user.id,
             projectId,
             data.emails,
@@ -214,7 +214,7 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         const teamMemberUserId = req.params.teamMemberId;
         const projectId = req.params.projectId;
@@ -293,7 +293,7 @@ router.put(
             });
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         const teamMemberId = data.teamMemberId;
 
@@ -315,12 +315,12 @@ router.put(
                 );
 
                 try {
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                    
                     NotificationService.create(
                         projectId,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                        
                         `A team members role was updated by ${req.user.name}`,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                        
                         req.user.id,
                         'information'
                     );
@@ -337,12 +337,12 @@ router.put(
                     data.role
                 );
                 try {
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                    
                     NotificationService.create(
                         projectId,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                        
                         `A team members role was updated by ${req.user.name}`,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                        
                         req.user.id,
                         'information'
                     );

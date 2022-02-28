@@ -209,7 +209,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                 },
                 allNumbers: {
                     ...state.allNumbers,
-                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                    
                     numbers: state.allNumbers.numbers.concat([action.payload]),
                 },
             });
@@ -255,7 +255,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                 allNumbers: {
                     ...state.allNumbers,
                     numbers: state.allNumbers.numbers.map(n => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {
@@ -317,7 +317,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                 allNumbers: {
                     ...state.allNumbers,
                     numbers: state.allNumbers.numbers.filter(
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         n => String(n._id) !== String(action.payload._id)
                     ),
                 },
@@ -388,7 +388,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                         ...state.allNumbers,
                         numbers: state.allNumbers.numbers.map(n => {
                             if (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 String(n._id) ===
                                 String(action.payload.data._id)
                             ) {
@@ -417,7 +417,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                         ...state.allNumbers,
                         numbers: state.allNumbers.numbers.map(n => {
                             if (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 String(n._id) ===
                                 String(action.payload.data._id)
                             ) {
@@ -471,7 +471,7 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 introAudioState: {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'introAudioState' does not exist on type ... Remove this comment to see the full error message
+                    
                     ...state.introAudioState,
                     requesting: true,
                     error: null,
@@ -483,7 +483,7 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 introAudioState: {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'introAudioState' does not exist on type ... Remove this comment to see the full error message
+                    
                     ...state.introAudioState,
                     requesting: false,
                     error: null,
@@ -492,7 +492,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                 allNumbers: {
                     ...state.allNumbers,
                     numbers: state.allNumbers.numbers.map(n => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {
@@ -506,7 +506,7 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 introAudioState: {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'introAudioState' does not exist on type ... Remove this comment to see the full error message
+                    
                     ...state.introAudioState,
                     requesting: false,
                     error: action.payload,
@@ -518,7 +518,7 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 backupIntroAudioState: {
-                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'backupIntroAudioState' does not exist on... Remove this comment to see the full error message
+                    
                     ...state.backupIntroAudioState,
                     requesting: true,
                     error: null,
@@ -530,7 +530,7 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 backupIntroAudioState: {
-                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'backupIntroAudioState' does not exist on... Remove this comment to see the full error message
+                    
                     ...state.backupIntroAudioState,
                     requesting: false,
                     error: null,
@@ -539,7 +539,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                 allNumbers: {
                     ...state.allNumbers,
                     numbers: state.allNumbers.numbers.map(n => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {
@@ -553,7 +553,7 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 backupIntroAudioState: {
-                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'backupIntroAudioState' does not exist on... Remove this comment to see the full error message
+                    
                     ...state.backupIntroAudioState,
                     requesting: false,
                     error: action.payload,

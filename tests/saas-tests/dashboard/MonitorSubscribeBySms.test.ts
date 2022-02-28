@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,13 +11,13 @@ const password = '1234567890';
 const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,13 +34,13 @@ describe('Monitor Detail API', () => {
         await init.addMonitorToComponent(componentName, monitorName, page);
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'When the Contact Number is all Numeric characters',
         async (done: $TSFixMe) => {
@@ -52,15 +52,15 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '.subscribers-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.subscribers-tab');
 
             const addNewSubscriber = '#addSubscriberButton';
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, addNewSubscriber);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, addNewSubscriber);
 
             await init.addAnExternalSubscriber(
@@ -78,7 +78,7 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Check for when an sms subscriber is created',
         async (done: $TSFixMe) => {
@@ -90,9 +90,9 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '.subscribers-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.subscribers-tab');
 
             const textContent = await init.page$Eval(
@@ -106,7 +106,7 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'When the Contact Number is not a Numeric characters',
         async (done: $TSFixMe) => {
@@ -118,15 +118,15 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '.subscribers-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.subscribers-tab');
 
             const addNewSubscriber = '#addSubscriberButton';
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, addNewSubscriber);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, addNewSubscriber);
 
             await init.addAnExternalSubscriber(
@@ -141,9 +141,9 @@ describe('Monitor Detail API', () => {
             );
 
             // click on create subscribers
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#createSubscriber');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createSubscriber');
 
             const textContent = await init.page$Eval(

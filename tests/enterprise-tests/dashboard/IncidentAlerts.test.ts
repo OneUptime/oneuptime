@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,13 +17,13 @@ const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const callScheduleName = utils.generateRandomString();
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Schedule', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -58,17 +58,17 @@ describe('Schedule', () => {
                 phoneNumber: '9173976128',
             }
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.addSchedule(callScheduleName, page);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, 'table tbody tr:first-child');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, 'table tbody tr:first-child');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#btnSaveMonitors');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#scheduleMonitor_0');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#btnSaveMonitors');
         await init.page$Eval(
             page,
@@ -90,38 +90,38 @@ describe('Schedule', () => {
             'Test Name',
             page
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#saveSchedulePolicy');
 
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should send on-call and external subscribers alerts when an incident is created.',
         async (done: $TSFixMe) => {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.addIncident(monitorName, 'offline', page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#viewIncident-0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#viewIncident-0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#react-tabs-4');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#react-tabs-4');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#TeamAlertLogBox');
 
             const firstOncallAlertStatusSelector =
                 '#TeamAlertLogBox tbody tr:nth-last-of-type(1) td:last-of-type';
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(
                 page,
                 firstOncallAlertStatusSelector
@@ -135,7 +135,7 @@ describe('Schedule', () => {
 
             expect(firstOncallAlertStatus).toEqual('Success');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#subscriberAlertTable');
             const subscriberAlertStatusSelector =
                 '#subscriberAlertTable tbody tr:first-of-type td:nth-last-of-type(1)';

@@ -29,21 +29,21 @@ export default {
             populate,
         });
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEventId' does not exist on type... Remove this comment to see the full error message
+            
             scheduledEventMessage.scheduledEventId.alertSubscriber &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
+            
             scheduledEventMessage.type === 'investigation' &&
             !(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                
                 (
                     scheduledEventMessage.event_state === 'Resolved' ||
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                    
                     scheduledEventMessage.event_state === 'Created' ||
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                    
                     scheduledEventMessage.event_state === 'Started' ||
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                    
                     scheduledEventMessage.event_state === 'Ended' ||
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'event_state' does not exist on type 'Doc... Remove this comment to see the full error message
+                    
                     scheduledEventMessage.event_state === 'Cancelled'
                 )
             )
@@ -58,7 +58,7 @@ export default {
             });
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         scheduledEventMessage.type === 'internal'
             ? RealTimeService.addScheduledEventInternalNote(
                   scheduledEventMessage
@@ -97,7 +97,7 @@ export default {
             const error = new Error(
                 'Scheduled Event Note not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -183,14 +183,14 @@ export default {
             deletedAt: Date.now(),
             deletedById: userId,
         };
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const deletedEventMessage = await this.updateOneBy(query, data);
 
         if (!deletedEventMessage) {
             const error = new Error(
                 'Scheduled Event Note not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

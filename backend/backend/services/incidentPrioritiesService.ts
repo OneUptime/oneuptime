@@ -55,11 +55,11 @@ export default {
     create: async function(data: $TSFixMe) {
         const incidentPriority = new incidentPriorityModel();
         const { projectId, name, color } = data;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         incidentPriority.projectId = projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         incidentPriority.name = name;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         incidentPriority.color = color;
         await incidentPriority.save();
         return incidentPriority;

@@ -64,7 +64,7 @@ export function fetchTutorial() {
 
         promise.then(
             function(tutorial) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
             function(error) {
@@ -95,7 +95,7 @@ export function closeTutorial(type: $TSFixMe, projectId: $TSFixMe) {
 
         promise.then(
             function(tutorial) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
             function(error) {

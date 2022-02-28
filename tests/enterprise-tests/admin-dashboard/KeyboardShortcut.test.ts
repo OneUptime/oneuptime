@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -10,13 +10,13 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Keyboard Shortcut: Admin Dashboard', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(360000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -33,13 +33,13 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should navigate to projects page with keyboard shortcut (f + p)',
         async (done: $TSFixMe) => {
@@ -65,7 +65,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should navigate to probes page with keyboard shortcut (f + b)',
         async (done: $TSFixMe) => {
@@ -91,14 +91,14 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should navigate to audit logs with keyboard shortcut (f + a)',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#logs');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#auditLogs', {
                 visible: true,
@@ -121,7 +121,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should navigate to license setting with keyboard shortcut (f + l)',
         async (done: $TSFixMe) => {
@@ -147,7 +147,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should navigate to smtp setting with keyboard shortcut (f + m)',
         async (done: $TSFixMe) => {
@@ -173,7 +173,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should navigate to twilio setting with keyboard shortcut (f + t)',
         async (done: $TSFixMe) => {
@@ -199,7 +199,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should navigate to sso setting with keyboard shortcut (f + o)',
         async (done: $TSFixMe) => {
@@ -221,7 +221,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should navigate to dashboard from admin dashboard with keyboard shortcut (f + d)',
         async (done: $TSFixMe) => {

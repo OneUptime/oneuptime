@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
+
 import { find, update } from '../util/db';
 
 const monitorCollection = 'monitors';
@@ -65,10 +65,10 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.and
                                         );
                                         up.criteria.criteria.push(nestVal);
@@ -78,10 +78,10 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.or
                                         );
                                         up.criteria.criteria.push(nestVal);
@@ -103,7 +103,7 @@ async function run() {
                                     or[0].match && or[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                
                                 nested.criteria.push(...or);
                                 up.criteria.criteria.push(nested);
                             });
@@ -118,10 +118,10 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.and
                                             );
                                             up.criteria.criteria.push(nestVal);
@@ -131,10 +131,10 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.or
                                             );
                                             up.criteria.criteria.push(nestVal);
@@ -165,10 +165,10 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.or
                                         );
                                         up.criteria.criteria.push(nestVal);
@@ -178,10 +178,10 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.and
                                         );
                                         up.criteria.criteria.push(nestVal);
@@ -203,7 +203,7 @@ async function run() {
                                     and[0].match && and[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                
                                 nested.criteria.push(...and);
                                 up.criteria.criteria.push(nested);
                             });
@@ -218,10 +218,10 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.and
                                             );
                                             up.criteria.criteria.push(nestVal);
@@ -231,10 +231,10 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.or
                                             );
                                             up.criteria.criteria.push(nestVal);
@@ -278,10 +278,10 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.and
                                         );
                                         down.criteria.criteria.push(nestVal);
@@ -291,10 +291,10 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.or
                                         );
                                         down.criteria.criteria.push(nestVal);
@@ -316,7 +316,7 @@ async function run() {
                                     or[0].match && or[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                
                                 nested.criteria.push(...or);
                                 down.criteria.criteria.push(nested);
                             });
@@ -331,10 +331,10 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.and
                                             );
                                             down.criteria.criteria.push(
@@ -346,10 +346,10 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.or
                                             );
                                             down.criteria.criteria.push(
@@ -382,10 +382,10 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.or
                                         );
                                         down.criteria.criteria.push(nestVal);
@@ -395,10 +395,10 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.and
                                         );
                                         down.criteria.criteria.push(nestVal);
@@ -420,7 +420,7 @@ async function run() {
                                     and[0].match && and[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                
                                 nested.criteria.push(...and);
                                 down.criteria.criteria.push(nested);
                             });
@@ -435,10 +435,10 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.and
                                             );
                                             down.criteria.criteria.push(
@@ -450,10 +450,10 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.or
                                             );
                                             down.criteria.criteria.push(
@@ -499,10 +499,10 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.and
                                         );
                                         degraded.criteria.criteria.push(
@@ -514,10 +514,10 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.or
                                         );
                                         degraded.criteria.criteria.push(
@@ -541,7 +541,7 @@ async function run() {
                                     or[0].match && or[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                
                                 nested.criteria.push(...or);
                                 degraded.criteria.criteria.push(nested);
                             });
@@ -556,10 +556,10 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.and
                                             );
                                             degraded.criteria.criteria.push(
@@ -571,10 +571,10 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.or
                                             );
                                             degraded.criteria.criteria.push(
@@ -607,10 +607,10 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.or
                                         );
                                         degraded.criteria.criteria.push(
@@ -622,10 +622,10 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                        
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                            
                                             ...obj.collection.and
                                         );
                                         degraded.criteria.criteria.push(
@@ -649,7 +649,7 @@ async function run() {
                                     and[0].match && and[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                
                                 nested.criteria.push(...and);
                                 degraded.criteria.criteria.push(nested);
                             });
@@ -664,10 +664,10 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.and
                                             );
                                             degraded.criteria.criteria.push(
@@ -679,10 +679,10 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{ cri... Remove this comment to see the full error message
+                                            
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                                                
                                                 ...obj.collection.or
                                             );
                                             degraded.criteria.criteria.push(

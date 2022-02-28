@@ -37,7 +37,7 @@ export function loginSuccess(user: $TSFixMe) {
     const { statusPageLogin, statusPageURL } = state.login;
     if (statusPageLogin) {
         const newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+        
         return (window.location = newURL);
     }
 
@@ -62,15 +62,15 @@ export function loginSuccess(user: $TSFixMe) {
     }
 
     if (user.redirect && user?.tokens?.jwtAccessToken) {
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+        
         return (window.location = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`);
     } else if (user.redirect) {
         return (window.location = user.redirect);
     } else if (user.role === 'master-admin') {
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+        
         window.location = ADMIN_DASHBOARD_URL;
     } else {
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+        
         window.location = DASHBOARD_URL;
     }
 
@@ -111,7 +111,7 @@ export function loginUser(values: $TSFixMe) {
 
         promise.then(
             function(user) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(loginSuccess(user.data));
             },
             function(error) {
@@ -144,7 +144,7 @@ export const loginUserSso = (values: $TSFixMe) => async (
 ) => {
     try {
         const response = await getApi(`user/sso/login?email=${values.email}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const { url } = response.data;
         window.location = url;
     } catch (error) {
@@ -176,7 +176,7 @@ export function verifyAuthToken(values: $TSFixMe) {
 
         promise.then(
             function(user) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(loginSuccess(user.data));
             },
             function(error) {
@@ -231,7 +231,7 @@ export function verifyBackupCode(values: $TSFixMe) {
 
         promise.then(
             function(user) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(loginSuccess(user.data));
             },
             function(error) {
@@ -289,12 +289,12 @@ export const resetMasterAdminExists = () => {
 // Calls the API to register a user.
 export function checkIfMasterAdminExists(values: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
+        
         const promise = getApi('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(masterAdminExistsSuccess(response.data));
             },
             function(error) {

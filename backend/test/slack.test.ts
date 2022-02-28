@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -6,7 +6,7 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
@@ -16,7 +16,7 @@ import GlobalConfig from './utils/globalConfig';
 let token: $TSFixMe,
     projectId: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Slack API', function() {
     this.timeout(20000);
 
@@ -56,7 +56,7 @@ describe('Slack API', function() {
     });
 
     // 'post /slack/:projectId/monitor'
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('The purchase', function(done: $TSFixMe) {
         request
             .get(`/team/${projectId}/team`)
@@ -69,7 +69,7 @@ describe('Slack API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it.skip('The purchase', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

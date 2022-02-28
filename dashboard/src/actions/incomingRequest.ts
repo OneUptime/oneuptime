@@ -26,7 +26,7 @@ export const createIncomingRequest = (
             `incoming-request/${projectId}/create-request-url`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(createIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -67,7 +67,7 @@ export const editIncomingRequest = (
             `incoming-request/${projectId}/update/${requestId}`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(editIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -103,11 +103,11 @@ export const deleteIncomingRequest = (
     try {
         dispatch(deleteIncomingRequestRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `incoming-request/${projectId}/remove/${requestId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -147,7 +147,7 @@ export const fetchAllIncomingRequest = (
         const response = await getApi(
             `incoming-request/${projectId}/all-incoming-request?skip=${skip}&limit=${limit}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchAllIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -179,7 +179,7 @@ export const incomingRequestToggle = (
             enabled
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(editIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =

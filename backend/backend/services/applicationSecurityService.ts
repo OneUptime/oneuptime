@@ -1,6 +1,6 @@
 import ApplicationSecurityModel from '../models/applicationSecurity';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
+
 import { decrypt } from '../config/encryptDecrypt';
 import ApplicationSecurityLogService from './applicationSecurityLogService';
 import GitCredentialService from './gitCredentialService';
@@ -38,7 +38,7 @@ export default {
             const error = new Error(
                 'Application security with this name already exist in this component'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -47,7 +47,7 @@ export default {
             const error = new Error(
                 'Application security with this git repository url already exist in this component'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -56,7 +56,7 @@ export default {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -142,7 +142,7 @@ export default {
         ).populate('gitCredential');
 
         if (unsetData) {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -155,7 +155,7 @@ export default {
             const error = new Error(
                 'Application Security not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -187,7 +187,7 @@ export default {
             const error = new Error(
                 'Application Security not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -200,7 +200,7 @@ export default {
         // delete log associated with this application security
         if (securityLog) {
             await ApplicationSecurityLogService.deleteBy({
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 _id: securityLog._id,
             });
         }

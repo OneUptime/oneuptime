@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
+
 import express from 'express';
 import path from 'path';
 const app = express();
@@ -7,11 +7,11 @@ import https from 'https';
 import http from 'http';
 import tls from 'tls';
 import fs from 'fs';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
+
 import fetch from 'node-fetch';
 import { spawn } from 'child_process';
 import axios from 'axios';
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
+
 import cors from 'cors';
 
 // mongodb
@@ -148,15 +148,15 @@ async function handleCustomDomain(
         });
 
     return {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'cert' does not exist on type '{}'.
+        
         cert: domainObj.cert,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKey' does not exist on type '{}'.
+        
         privateKey: domainObj.privateKey,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoProvisioning' does not exist on type... Remove this comment to see the full error message
+        
         autoProvisioning: domainObj.autoProvisioning,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableHttps' does not exist on type '{}'... Remove this comment to see the full error message
+        
         enableHttps: domainObj.enableHttps,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type '{}'.
+        
         domain: domainObj.domain,
     };
 }

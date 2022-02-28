@@ -334,7 +334,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 action.payload.monitorIds &&
                 action.payload.monitorIds.length > 0 &&
                 action.payload.monitorIds.find(
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    
                     (monitor: $TSFixMe) =>
                         monitor._id === state.individualnote._id
                 );
@@ -349,13 +349,13 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                             ? action.payload.monitorsData.map(
                                   (newMonitorData: $TSFixMe) => {
                                       if (
-                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                                          
                                           state.statusPage.monitorsData &&
-                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                                          
                                           state.statusPage.monitorsData.length >
                                               0
                                       ) {
-                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                                          
                                           state.statusPage.monitorsData.forEach(
                                               (oldMonitorData: $TSFixMe) => {
                                                   if (
@@ -389,11 +389,11 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.statusPage,
 
                     monitorIds:
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
+                        
                         state.statusPage.monitorIds &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
+                        
                         state.statusPage.monitorIds.length > 0
-                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
+                            ? 
                               state.statusPage.monitorIds.map(
                                   (monitor: $TSFixMe) => {
                                       if (monitor._id === action.payload._id) {
@@ -404,11 +404,11 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                               )
                             : [],
                     monitorsData:
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         state.statusPage.monitorsData &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         state.statusPage.monitorsData.length > 0
-                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                            ? 
                               state.statusPage.monitorsData.map(
                                   (monitor: $TSFixMe) => {
                                       if (monitor._id === action.payload._id) {
@@ -431,7 +431,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case 'DELETE_MONITOR': {
             const isIndividualNote =
                 state.individualnote &&
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                
                 state.individualnote._id === action.payload;
             return Object.assign({}, state, {
                 error: null,
@@ -439,22 +439,22 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.statusPage,
 
                     monitorIds:
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
+                        
                         state.statusPage.monitorIds &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
+                        
                         state.statusPage.monitorIds.length > 0
-                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type '{}'.
+                            ? 
                               state.statusPage.monitorIds.filter(
                                   (monitor: $TSFixMe) =>
                                       monitor._id !== action.payload
                               )
                             : [],
                     monitorsData:
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         state.statusPage.monitorsData &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         state.statusPage.monitorsData.length > 0
-                            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                            ? 
                               state.statusPage.monitorsData.filter(
                                   (monitor: $TSFixMe) =>
                                       monitor._id !== action.payload
@@ -507,7 +507,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     notes: state.notes.notes,
                     requesting: false,
                     skip: state.notes.skip,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                    
                     count: state.notes.count,
                 },
             });
@@ -541,43 +541,43 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 result: $TSFixMe = [];
             const check = noteData.find(
                 note =>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     String(note._id) === String(action.payload.incidentId._id)
             );
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId._id)
             ) {
                 addToIncident = true;
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                
                 notes = [action.payload, ...notes];
             }
             if (check && noteData) {
                 let oneNote: $TSFixMe;
                 noteData.forEach(item => {
                     if (
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         String(item._id) ===
                         String(action.payload.incidentId._id)
                     ) {
                         const messageLog =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'never'.
+                            
                             item.message && item.message.length > 0
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'never'.
+                                ? 
                                   item.message
                                 : [];
                         oneNote = {
-                            // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                            
                             ...item,
                             message: [...messageLog, action.payload],
                         };
                     }
                 });
                 noteData.forEach(elem => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     if (String(elem._id) === String(oneNote._id)) {
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                        
                         elem = oneNote;
                     }
                     result.push(elem);
@@ -604,13 +604,13 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case 'UPDATE_INCIDENT_NOTE': {
             let notes = [...state.incidentNotes.notes];
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId._id)
             ) {
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type 'never[]'.
+                
                 notes = state.incidentNotes.notes.map(note => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     if (String(note._id) === String(action.payload._id)) {
                         return action.payload;
                     }
@@ -629,7 +629,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'DELETE_INCIDENT_NOTE': {
             const notes = state.incidentNotes.notes.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 note => String(note._id) !== String(action.payload._id)
             );
             return {
@@ -651,7 +651,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     skip: action.payload.skip,
                     count: action.payload.count
                         ? action.payload.count
-                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                        : 
                           state.notes.count,
                 },
                 requestingmore: false,
@@ -664,7 +664,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     notes: state.notes.notes,
                     requesting: false,
                     skip: state.notes.skip,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                    
                     count: state.notes.count,
                 },
                 requestingmore: false,
@@ -707,7 +707,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'RESOLVE_SCHEDULED_EVENT': {
             const events = state.events.events.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 event => String(event._id) !== String(action.payload._id)
             );
             return {
@@ -793,7 +793,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             let monitorInStatusPage = false;
             let addEvent = false;
             let addFutureEvent = false;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            
             state.statusPage.monitors.map((monitorData: $TSFixMe) => {
                 action.payload.monitors.map((monitor: $TSFixMe) => {
                     if (
@@ -852,12 +852,12 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             if (startDate > currentDate) {
                 isFutureEvent = true;
                 events = state.futureEvents.events.filter(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     event => String(event._id) !== String(action.payload._id)
                 );
             } else {
                 events = state.events.events.filter(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     event => String(event._id) !== String(action.payload._id)
                 );
             }
@@ -892,7 +892,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             const startDate = moment(action.payload.startDate).format();
             const endDate = moment(action.payload.endDate).format();
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            
             state.statusPage.monitors.map((monitorData: $TSFixMe) => {
                 action.payload.monitors.map((monitor: $TSFixMe) => {
                     if (
@@ -907,42 +907,42 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             });
 
             const updatedEvents = state.events.events.map(event => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 if (String(event._id) === String(action.payload._id)) {
                     eventExist = true;
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                    
                     event = action.payload;
                 }
                 return event;
             });
 
             const updatedFutureEvent = state.futureEvents.events.map(event => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 if (String(event._id) === String(action.payload._id)) {
                     futureEventExist = true;
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                    
                     event = action.payload;
                 }
                 return event;
             });
 
             if (!eventExist) {
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                
                 updatedEvents.unshift(action.payload);
             }
 
             if (!futureEventExist) {
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                
                 updatedFutureEvent.unshift(action.payload);
             }
 
             const removeEvent = state.events.events.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 event => String(event._id) !== String(action.payload._id)
             );
 
             const removeFutureEvent = state.futureEvents.events.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 event => String(event._id) !== String(action.payload._id)
             );
 
@@ -1153,7 +1153,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 statusPage: {
                     ...state.statusPage,
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                    
                     monitorsData: state.statusPage.monitorsData.map(
                         (monitor: $TSFixMe) => {
                             if (
@@ -1190,7 +1190,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 statusPage: {
                     ...state.statusPage,
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+                    
                     monitorsData: state.statusPage.monitorsData.map(
                         (monitor: $TSFixMe) => {
                             if (
@@ -1409,10 +1409,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             });
         case FETCH_MONITOR_LOGS_REQUEST:
             return Object.assign({}, state, {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'never... Remove this comment to see the full error message
+                
                 logs: state.logs.some(log => log.monitorId === action.payload)
                     ? state.logs.map(log =>
-                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'never... Remove this comment to see the full error message
+                          
                           log.monitorId !== action.payload
                               ? log
                               : {
@@ -1435,7 +1435,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_MONITOR_LOGS_SUCCESS:
             return Object.assign({}, state, {
                 logs: state.logs.map(log =>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'never... Remove this comment to see the full error message
+                    
                     log.monitorId !== action.payload.monitorId
                         ? log
                         : {
@@ -1452,7 +1452,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_MONITOR_LOGS_FAILURE:
             return Object.assign({}, state, {
                 logs: state.logs.map(log =>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'never... Remove this comment to see the full error message
+                    
                     log.monitorId !== action.payload
                         ? log
                         : {
@@ -1525,12 +1525,12 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             let eventNotes = [...state.eventNoteList.eventNotes];
             let increaseCount = false;
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
             ) {
                 increaseCount = true;
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                
                 eventNotes = [action.payload, ...eventNotes];
             }
             return {
@@ -1549,13 +1549,13 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             let eventNotes = [...state.eventNoteList.eventNotes];
             let reduceCount = false;
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
             ) {
                 reduceCount = true;
                 eventNotes = state.eventNoteList.eventNotes.filter(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     note => String(note._id) !== String(action.payload._id)
                 );
             }
@@ -1574,13 +1574,13 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case 'UPDATE_EVENT_NOTE': {
             let eventNotes = [...state.eventNoteList.eventNotes];
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
             ) {
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type 'never[]'.
+                
                 eventNotes = state.eventNoteList.eventNotes.map(note => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     if (String(note._id) === String(action.payload._id)) {
                         return action.payload;
                     }
@@ -1734,12 +1734,12 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'INCIDENT_CREATED': {
             let incidentFound = false;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            
             const statusPageMonitorIds = state.statusPage.monitors.map(
                 (monitorData: $TSFixMe) => String(monitorData.monitor._id)
             );
             let notes = state.notes.notes.map(note => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 if (String(note._id) === String(action.payload._id)) {
                     incidentFound = true;
                 }
@@ -1757,7 +1757,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     !incidentFound &&
                     statusPageMonitorIds.includes(String(monitor._id))
                 ) {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                    
                     notes = [action.payload, ...notes];
                     break;
                 }
@@ -1768,9 +1768,9 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.notes,
                     notes,
                     count: incidentFound
-                        ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                        ? 
                           state.notes.count
-                        : // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                        : 
                           state.notes.count + 1,
                 },
             };
@@ -1778,7 +1778,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'INCIDENT_DELETED': {
             const notes = state.notes.notes.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 note => String(note._id) !== String(action.payload._id)
             );
             return {
@@ -1786,7 +1786,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 notes: {
                     ...state.notes,
                     notes,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{ error: ... Remove this comment to see the full error message
+                    
                     count: state.notes.count - 1,
                 },
             };
@@ -1794,9 +1794,9 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'INCIDENT_UPDATED': {
             const notes = state.notes.notes.map(note => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 if (String(note._id) === String(action.payload._id)) {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                    
                     note = action.payload;
                     return note;
                 }
@@ -1962,35 +1962,35 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             let timelines = state.lastIncidentTimelines.timelines.map(
                 timeline => {
                     if (
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'neve... Remove this comment to see the full error message
+                        
                         String(timeline.incidentId) ===
                         String(action.payload.incidentId)
                     ) {
                         singleTimeline = true;
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                        
                         timeline = action.payload;
                     }
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'neve... Remove this comment to see the full error message
+                    
                     timelineIds.push(String(timeline.incidentId));
                     return timeline;
                 }
             );
             if (
                 !timelineIds.includes(String(action.payload.incidentId)) &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 String(state.incident.incident._id) ===
                     String(action.payload.incidentId)
             ) {
                 singleTimeline = true;
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                
                 timelines = [...timelines, action.payload];
             }
             if (!timelineIds.includes(String(action.payload.incidentId))) {
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                
                 timelines = [...timelines, action.payload];
             }
             const timeline =
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId)
                     ? action.payload
@@ -2134,7 +2134,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_EXTERNAL_STATUSPAGES_REQUEST:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'externalStatusPages' does not exist on t... Remove this comment to see the full error message
+                    
                     ...state.externalStatusPages,
                     requesting: true,
                     success: false,
@@ -2144,7 +2144,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_EXTERNAL_STATUSPAGES_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'cexternalStatusPages' does not exist on ... Remove this comment to see the full error message
+                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -2156,7 +2156,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_EXTERNAL_STATUSPAGES_FAILURE: {
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'externalStatusPages' does not exist on t... Remove this comment to see the full error message
+                    
                     ...state.externalStatusPages,
                     requesting: false,
                     success: false,

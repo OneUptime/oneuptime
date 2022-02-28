@@ -35,7 +35,7 @@ export const fetchTimeMetrics = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchTimeMetricsSuccess(response.data));
         },
         function(error) {
@@ -86,7 +86,7 @@ export const fetchThroughputMetrics = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchThroughputMetricsSuccess(response.data));
         },
         function(error) {
@@ -137,7 +137,7 @@ export const fetchErrorMetrics = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchErrorMetricsSuccess(response.data));
         },
         function(error) {
@@ -187,31 +187,31 @@ export const setErrorEndDate = (date: $TSFixMe) => ({
     payload: date,
 });
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
+
 export const resetTimeDate = (startDate, endDate) => ({
     type: types.RESET_TIME_DATE,
     payload: { startDate, endDate },
 });
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
+
 export const resetThroughputDate = (startDate, endDate) => ({
     type: types.RESET_THROUGHPUT_DATE,
     payload: { startDate, endDate },
 });
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
+
 export const resetErrorDate = (startDate, endDate) => ({
     type: types.RESET_ERROR_DATE,
     payload: { startDate, endDate },
 });
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
+
 export const resetIncomingDate = (startDate, endDate) => ({
     type: types.RESET_INCOMING_DATE,
     payload: { startDate, endDate },
 });
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startDate' implicitly has an 'any' type... Remove this comment to see the full error message
+
 export const resetOutgoingDate = (startDate, endDate) => ({
     type: types.RESET_OUTGOING_DATE,
     payload: { startDate, endDate },
@@ -267,7 +267,7 @@ export const fetchIncomingMetrics = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchIncomingMetricsSuccess(response.data));
         },
         function(error) {
@@ -319,7 +319,7 @@ export const fetchOutgoingMetrics = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchOutgoingMetricsSuccess(response.data));
         },
         function(error) {
@@ -382,14 +382,14 @@ export const deleteIncomingMetrics = ({ appId, key, metricId }: $TSFixMe) => (
 ) => {
     dispatch(deleteIncomingMetricsRequest());
 
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+    
     const promise = deleteApi(
         `performanceMetric/${appId}/key/${key}/${metricId}`
     );
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(deleteIncomingMetricsSuccess(response.data));
         },
         function(error) {
@@ -431,14 +431,14 @@ export const deleteOutgoingMetrics = ({ appId, key, metricId }: $TSFixMe) => (
 ) => {
     dispatch(deleteOutgoingMetricsRequest());
 
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+    
     const promise = deleteApi(
         `performanceMetric/${appId}/key/${key}/${metricId}`
     );
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(deleteOutgoingMetricsSuccess(response.data));
         },
         function(error) {

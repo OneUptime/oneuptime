@@ -1,13 +1,13 @@
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
+
 const monitorStatusCollection = global.db.collection('monitorstatuses');
 import { ObjectId } from 'mongodb';
 import ErrorService from '../services/errorService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
+
 import { postApi } from '../utils/api';
 import MonitorService from './monitorService';
 import moment from 'moment';
 import ProjectService from './projectService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
+
 import { realtimeUrl } from '../utils/config';
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
@@ -16,9 +16,9 @@ export default {
     create: async function(data: $TSFixMe) {
         try {
             const query = {};
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
+            
             if (data.monitorId) query.monitorId = data.monitorId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
+            
             if (data.probeId) query.probeId = data.probeId;
 
             let previousMonitorStatus = await this.findBy({
@@ -46,7 +46,7 @@ export default {
                     }
                     await this.updateOneBy(
                         {
-                            // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                            
                             _id: ObjectId(previousMonitorStatus._id),
                         },
                         {
@@ -66,7 +66,7 @@ export default {
                     deleted: false,
                 };
                 if (data.lastStatus) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastStatus' does not exist on type '{ mo... Remove this comment to see the full error message
+                    
                     monitorStatusData.lastStatus = data.lastStatus;
                 }
 
@@ -74,7 +74,7 @@ export default {
                     monitorStatusData
                 );
                 const savedMonitorStatus = await this.findOneBy({
-                    // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                    
                     _id: ObjectId(result.insertedId),
                 });
 
@@ -168,7 +168,7 @@ export default {
     async sendMonitorStatus(data: $TSFixMe) {
         try {
             const monitor = await MonitorService.findOneBy({
-                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                
                 query: { _id: ObjectId(data.monitorId) },
                 // select: 'projectId',
                 // populate: [{ path: 'projectId', select: '_id' }],
@@ -176,7 +176,7 @@ export default {
             if (monitor && monitor.projectId) {
                 const project = await ProjectService.findOneBy({
                     query: {
-                        // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                        
                         _id: ObjectId(
                             monitor.projectId._id || monitor.projectId
                         ),

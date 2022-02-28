@@ -17,12 +17,12 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
+
 import express from 'express';
 const app = express();
 import path from 'path';
 import version from './api/version';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cors... Remove this comment to see the full error message
+
 import cors from 'cors';
 
 app.use(cors());

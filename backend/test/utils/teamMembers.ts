@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import ProjectModel from '../../backend/models/project';
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module '../../backend/services/errorSe... Remove this comment to see the full error message
+
 import ErrorService from '../../backend/services/errorService';
 
 export default {

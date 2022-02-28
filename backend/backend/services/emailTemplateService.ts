@@ -1,17 +1,17 @@
 export default {
     create: async function(data: $TSFixMe) {
         const emailTemplateModel = new EmailTemplateModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         emailTemplateModel.projectId = data.projectId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         emailTemplateModel.subject = data.subject || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         emailTemplateModel.body = data.body || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         emailTemplateModel.emailType = data.emailType || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'allowedVariables' does not exist on type... Remove this comment to see the full error message
+        
         emailTemplateModel.allowedVariables =
-            // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
+            
             emailTemplateVariables[[data.emailType]];
         const emailTemplate = await emailTemplateModel.save();
         return emailTemplate;
@@ -25,7 +25,7 @@ export default {
         if (!query.deleted) query.deleted = false;
 
         if (data.emailType && !data.allowedVariables) {
-            // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
+            
             data.allowedVariables = emailTemplateVariables[[data.emailType]];
         }
         const updatedEmailTemplate = await EmailTemplateModel.findOneAndUpdate(

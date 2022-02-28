@@ -34,12 +34,12 @@ export const fetchProjects = (skip: $TSFixMe, limit: $TSFixMe) => async (
     dispatch(fetchProjectsRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(
             `project/projects/allProjects?skip=${skip}&limit=${limit}`
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchProjectsSuccess(response.data));
         return response;
     } catch (error) {
@@ -83,9 +83,9 @@ export const fetchProject = (slug: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(fetchProjectRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(`project/projects/${slug}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const projects = response.data;
 
         dispatch(fetchProjectSuccess(projects));
@@ -130,12 +130,12 @@ export function userCreateError(error: $TSFixMe) {
 // Calls the API to add users to project.
 export function userCreate(projectId: $TSFixMe, values: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const promise = postApi(`team/${projectId}`, values);
         dispatch(userCreateRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const data = response.data;
                 const projectUsers = data.filter(
                     (team: $TSFixMe) => team.projectId === projectId
@@ -187,9 +187,9 @@ export const fetchProjectTeam = (projectId: $TSFixMe) => async (
 ) => {
     dispatch(fetchProjectTeamRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(`team/${projectId}/teamMembers`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const team = response.data;
         const projectTeam = team.filter(
             (team: $TSFixMe) => team._id === projectId
@@ -269,7 +269,7 @@ export function userUpdateRole(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const data = response.data;
                 const projectUsers = data.filter(
                     (user: $TSFixMe) => user.projectId === projectId
@@ -326,7 +326,7 @@ export const updateBalance = (
         const response = await putApi(`project/${projectId}/updateBalance`, {
             rechargeBalanceAmount,
         });
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
         dispatch(updateProjectBalanceSuccess(data));
         return response;
@@ -373,7 +373,7 @@ export function teamDelete(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const team = response.data;
                 const projectTeam = team.filter(
                     (team: $TSFixMe) => team.projectId === projectId
@@ -444,11 +444,11 @@ export const fetchUserProjects = (
     dispatch(fetchUserProjectsRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(
             `project/projects/user/${userId}?skip=${skip}&limit=${limit}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const users = response.data;
 
         dispatch(fetchUserProjectsSuccess(users));
@@ -503,9 +503,9 @@ export const deleteProject = (projectId: $TSFixMe) => async (
     dispatch(deleteProjectRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(`project/${projectId}/deleteProject`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(deleteProjectSuccess(data));
@@ -560,9 +560,9 @@ export const blockProject = (projectId: $TSFixMe) => async (
     dispatch(blockProjectRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await putApi(`project/${projectId}/blockProject`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(blockProjectSuccess(data));
@@ -621,7 +621,7 @@ export const renewAlertLimit = (
         const response = await putApi(`project/${projectId}/renewAlertLimit`, {
             alertLimit,
         });
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(renewAlertLimitSuccess(data));
@@ -676,9 +676,9 @@ export const restoreProject = (projectId: $TSFixMe) => async (
     dispatch(restoreProjectRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await putApi(`project/${projectId}/restoreProject`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(restoreProjectSuccess(data));
@@ -733,9 +733,9 @@ export const unblockProject = (projectId: $TSFixMe) => async (
     dispatch(unblockProjectRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await putApi(`project/${projectId}/unblockProject`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(unblockProjectSuccess(data));
@@ -790,9 +790,9 @@ export const addProjectNote = (projectId: $TSFixMe, values: $TSFixMe) => async (
     dispatch(addProjectNoteRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi(`project/${projectId}/addNote`, values);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(addProjectNoteSuccess(data));
@@ -853,12 +853,12 @@ export const searchProjects = (
     dispatch(searchProjectsRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi(
             `project/projects/search?skip=${skip}&limit=${limit}`,
             values
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(searchProjectsSuccess(data));
@@ -916,7 +916,7 @@ export const changePlan = (
             oldPlan,
             newPlan,
         });
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(changePlanSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -956,13 +956,13 @@ export function fetchProjectDomains(projectId: $TSFixMe, skip = 0, limit = 10) {
         dispatch(fetchProjectDomainsRequest());
 
         try {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             const response = await getApi(
                 `domainVerificationToken/${projectId}/domains?skip=${skip}&limit=${limit}`
             );
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchProjectDomainsSuccess(response.data));
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -1007,15 +1007,15 @@ export function resetDeleteProjectDomain() {
 export function deleteProjectDomain({ projectId, domainId }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(deleteProjectDomainRequest());
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(
             `domainVerificationToken/${projectId}/domain/${domainId}`
         );
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteProjectDomainSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -1065,13 +1065,13 @@ export function verifyProjectDomain({ projectId, domainId }: $TSFixMe) {
         dispatch(verifyProjectDomainRequest());
 
         try {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             const response = await putApi(
                 `domainVerificationToken/${projectId}/forceVerify/${domainId}`
             );
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(verifyProjectDomainSuccess(response.data));
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -1117,13 +1117,13 @@ export function unVerifyProjectDomain(projectId: $TSFixMe, domainId: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(unVerifyProjectDomainRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = putApi(
             `domainVerificationToken/${projectId}/unverify/${domainId}`
         );
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(unVerifyProjectDomainSuccess(response.data));
             },
             function(error) {
@@ -1171,13 +1171,13 @@ export function resetProjectDomainOnMount() {
 export function resetProjectDomain(projectId: $TSFixMe, domainId: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(resetProjectDomainRequest());
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = putApi(
             `domainVerificationToken/${projectId}/resetDomain/${domainId}`
         );
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(resetProjectDomainSuccess(response.data));
             },
             function(error) {

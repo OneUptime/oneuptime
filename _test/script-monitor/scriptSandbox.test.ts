@@ -1,19 +1,19 @@
 import { expect } from "chai"
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./scriptSandbox"' has no exported member ... Remove this comment to see the full error message
+
 import { runScript } from "./scriptSandbox"
 import axios from 'axios';
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('ScriptMonitor V2', function() {
   this.timeout(10000);
-  // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+  
   describe("runScript function", function(){
     let server: $TSFixMe;
     
     // create a quick express server
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(){
-      // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
+      
       import express from "express"
       const app = express();
       app.get("/test", (req: $TSFixMe, res: $TSFixMe) => res.send("yipee!"));
@@ -21,12 +21,12 @@ describe('ScriptMonitor V2', function() {
     });
 
     // close express server
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(function(){
       server.close();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it("should return success for a valid script", async function() {     
       const someFunction = async (done: $TSFixMe) => {
 
@@ -50,7 +50,7 @@ describe('ScriptMonitor V2', function() {
 
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it("should return false for error thrown in script", async function() {
       const someFunction = async (done: $TSFixMe) => {
         console.log('Error log');
@@ -71,7 +71,7 @@ describe('ScriptMonitor V2', function() {
       expect(result.consoleLogs).to.include('[log]: Error log');
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it("should return scriptMonitor error when script returns a value in cb", async function() {
       const someFunction = async (done: $TSFixMe) => {
         done("Some Error");
@@ -87,7 +87,7 @@ describe('ScriptMonitor V2', function() {
       console.log(result.executionTime);
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it("should return timeout error when script takes too long", async function() {
       const someFunction = async (done: $TSFixMe) => {
         return new Promise((resolve) => {
@@ -104,7 +104,7 @@ describe('ScriptMonitor V2', function() {
       console.log(result.executionTime);
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it("should return timeout error when statement takes too long", async function() {
       const someFunction = async (done: $TSFixMe) => {
         while(true){

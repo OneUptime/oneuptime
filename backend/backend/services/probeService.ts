@@ -1,5 +1,5 @@
 export default {
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+    
     create: async function(data) {
         const _this = this;
         let probeKey;
@@ -8,30 +8,30 @@ export default {
         } else {
             probeKey = uuidv1();
         }
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { probeName: any; }; se... Remove this comment to see the full error message
+        
         const storedProbe = await _this.findOneBy({
             query: { probeName: data.probeName },
             select: 'probeName',
         });
         if (storedProbe && storedProbe.probeName) {
             const error = new Error('Probe name already exists.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
             const probe = new ProbeModel();
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeKey' does not exist on type 'Docume... Remove this comment to see the full error message
+            
             probe.probeKey = probeKey;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeName' does not exist on type 'Docum... Remove this comment to see the full error message
+            
             probe.probeName = data.probeName;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'version' does not exist on type 'Documen... Remove this comment to see the full error message
+            
             probe.version = data.probeVersion;
             const savedProbe = await probe.save();
             return savedProbe;
         }
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
+    
     updateOneBy: async function(query, data) {
         if (!query) {
             query = {};
@@ -48,7 +48,7 @@ export default {
         return probe;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
+    
     updateBy: async function(query, data) {
         if (!query) {
             query = {};
@@ -61,12 +61,12 @@ export default {
 
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; select: string; }'... Remove this comment to see the full error message
+        
         updatedData = await this.findBy({ query, select: selectProbe });
         return updatedData;
     },
 
-    // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'query' implicitly has an 'any' ty... Remove this comment to see the full error message
+    
     findBy: async function({ query, limit, skip, populate, select }) {
         if (!skip) skip = 0;
 
@@ -99,7 +99,7 @@ export default {
         return probe;
     },
 
-    // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'query' implicitly has an 'any' ty... Remove this comment to see the full error message
+    
     findOneBy: async function({ query, populate, select }) {
         if (!query) {
             query = {};
@@ -115,7 +115,7 @@ export default {
         return probe;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
+    
     countBy: async function(query) {
         if (!query) {
             query = {};
@@ -126,7 +126,7 @@ export default {
         return count;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
+    
     deleteBy: async function(query) {
         if (!query) {
             query = {};
@@ -140,17 +140,17 @@ export default {
         return probe;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'query' implicitly has an 'any' type.
+    
     hardDeleteBy: async function(query) {
         await ProbeModel.deleteMany(query);
         return 'Probe(s) removed successfully!';
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'probeId' implicitly has an 'any' type.
+    
     sendProbe: async function(probeId, monitorId) {
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const probe = await this.findOneBy({
             query: { _id: probeId },
             select: selectProbe,
@@ -162,13 +162,13 @@ export default {
         }
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+    
     saveLighthouseLog: async function(data) {
         const log = await LighthouseLogService.create(data);
         return log;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+    
     createMonitorDisabledStatus: async function(data) {
         const select =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
@@ -189,7 +189,7 @@ export default {
         return monitorStatus;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+    
     saveMonitorLog: async function(data) {
         const _this = this;
 
@@ -210,22 +210,22 @@ export default {
         }
 
         // grab all the criteria in a monitor
-        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'allCriteria' implicitly has type 'any[]'... Remove this comment to see the full error message
+        
         const allCriteria = [];
         if (data.matchedUpCriterion) {
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'criteria' implicitly has an 'any' type.
+            
             data.matchedUpCriterion.forEach(criteria =>
                 allCriteria.push(criteria)
             );
         }
         if (data.matchedDownCriterion) {
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'criteria' implicitly has an 'any' type.
+            
             data.matchedDownCriterion.forEach(criteria =>
                 allCriteria.push(criteria)
             );
         }
         if (data.matchedDegradedCriterion) {
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'criteria' implicitly has an 'any' type.
+            
             data.matchedDegradedCriterion.forEach(criteria =>
                 allCriteria.push(criteria)
             );
@@ -244,12 +244,12 @@ export default {
                 )
                     return { retry: true, retryCount: data.retryCount };
 
-                // @ts-expect-error ts-migrate(7005) FIXME: Variable 'allCriteria' implicitly has an 'any[]' t... Remove this comment to see the full error message
+                
                 await _this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
             const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(data);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'retry' does not exist on type 'any[] | {... Remove this comment to see the full error message
+            
             if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
 
             if (
@@ -261,7 +261,7 @@ export default {
 
             await MonitorStatusService.create(data);
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type 'any[] | ... Remove this comment to see the full error message
+            
             if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
                 log = await MonitorLogService.updateOneBy(
                     { _id: log._id },
@@ -271,7 +271,7 @@ export default {
         } else {
             // should make sure all unresolved incidents for the monitor is resolved
             if (data.status === 'online') {
-                // @ts-expect-error ts-migrate(7005) FIXME: Variable 'allCriteria' implicitly has an 'any[]' t... Remove this comment to see the full error message
+                
                 await _this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
@@ -284,7 +284,7 @@ export default {
                 select: '_id',
             });
 
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'incident' implicitly has an 'any' type.
+            
             const incidentIds = incidents.map(incident => incident._id);
 
             if (incidentIds && incidentIds.length) {
@@ -297,7 +297,7 @@ export default {
         return log;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+    
     getMonitorLog: async function(data) {
         const date = new Date();
 
@@ -323,7 +323,7 @@ export default {
         return log;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+    
     incidentCreateOrUpdate: async function(data) {
         const populate = [
             {
@@ -376,7 +376,7 @@ export default {
             matchedCriterion.scripts &&
             matchedCriterion.scripts.length > 0
         ) {
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'script' implicitly has an 'any' type.
+            
             scripts = matchedCriterion.scripts.map(script => {
                 return {
                     automatedScript: script.scriptId,
@@ -394,7 +394,7 @@ export default {
                 const internalIncidents = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'probe' implicitly has an 'any' type.
+                        
                         const initialProbes = incident.probes.map(probe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
@@ -450,7 +450,7 @@ export default {
                 });
 
                 AutomatedScriptService.runResource({
-                    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                    
                     triggeredId: incident._id,
                     triggeredBy: 'incident',
                     resources: scripts,
@@ -470,7 +470,7 @@ export default {
                 const internalIncidents = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'probe' implicitly has an 'any' type.
+                        
                         const initialProbes = incident.probes.map(probe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
@@ -525,7 +525,7 @@ export default {
                 });
 
                 AutomatedScriptService.runResource({
-                    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                    
                     triggeredId: incident._id,
                     triggeredBy: 'incident',
                     resources: scripts,
@@ -545,7 +545,7 @@ export default {
                 const internalIncidents = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'probe' implicitly has an 'any' type.
+                        
                         const initialProbes = incident.probes.map(probe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
@@ -601,7 +601,7 @@ export default {
                 });
 
                 AutomatedScriptService.runResource({
-                    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                    
                     triggeredId: incident._id,
                     triggeredBy: 'incident',
                     resources: scripts,
@@ -618,7 +618,7 @@ export default {
         return incidentIds;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+    
     incidentResolveOrAcknowledge: async function(data, allCriteria) {
         const populate = [
             {
@@ -648,12 +648,12 @@ export default {
         // check the id of each criteria against the id of criteria attached to an incident
         // ack / resolve according to the criteria
 
-        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'autoAcknowledge' implicitly has type 'an... Remove this comment to see the full error message
+        
         let autoAcknowledge, autoResolve;
         if (incidents && incidents.length > 0) {
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'incident' implicitly has an 'any' type.
+            
             incidents.forEach(incident => {
-                // @ts-expect-error ts-migrate(7034) FIXME: Variable 'criteriaId' implicitly has type 'any' in... Remove this comment to see the full error message
+                
                 let criteriaId = null;
                 if (
                     incident &&
@@ -661,10 +661,10 @@ export default {
                     incident.criterionCause._id
                 )
                     criteriaId = String(incident.criterionCause._id);
-                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'criteria' implicitly has an 'any' type.
+                
                 allCriteria.forEach(criteria => {
                     if (
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'criteriaId' implicitly has an 'any' type... Remove this comment to see the full error message
+                        
                         String(criteria._id) === criteriaId ||
                         criteria.name === incident.criterionCause.name
                     ) {
@@ -674,22 +674,22 @@ export default {
                 });
             });
         }
-        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'incidentsV1' implicitly has type 'any[]'... Remove this comment to see the full error message
+        
         const incidentsV1 = [];
-        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'incidentsV2' implicitly has type 'any[]'... Remove this comment to see the full error message
+        
         const incidentsV2 = [];
 
         if (incidents && incidents.length) {
             // is this check needed at all??
             // if (lastStatus && lastStatus !== data.status) {
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'incident' implicitly has an 'any' type.
+            
             incidents.forEach(incident => {
                 if (
                     incident.probes &&
                     incident.probes.length > 0 &&
                     monitor.type !== 'incomingHttpRequest'
                 ) {
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'probe' implicitly has an 'any' type.
+                    
                     incident.probes.some(probe => {
                         if (
                             probe.probeId &&
@@ -708,14 +708,14 @@ export default {
             // }
         }
         await Promise.all(
-            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'incidentsV1' implicitly has an 'any[]' t... Remove this comment to see the full error message
+            
             incidentsV1.map(async incident => {
                 if (
                     incident.probes &&
                     incident.probes.length > 0 &&
                     monitor.type !== 'incomingHttpRequest'
                 ) {
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'probe' implicitly has an 'any' type.
+                    
                     const initialProbes = incident.probes.map(probe => ({
                         probeId: probe.probeId._id || probe.probeId,
                         updatedAt: probe.updatedAt,
@@ -754,11 +754,11 @@ export default {
                 }
             })
         );
-        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'incidentsV2' implicitly has an 'any[]' t... Remove this comment to see the full error message
+        
         await forEach(incidentsV2, async incident => {
             const trueArray = [];
             const falseArray = [];
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'probe' implicitly has an 'any' type.
+            
             incident.probes.forEach(probe => {
                 if (probe.status) {
                     trueArray.push(probe);
@@ -770,10 +770,10 @@ export default {
                 trueArray.length === falseArray.length ||
                 monitor.type === 'incomingHttpRequest'
             ) {
-                // @ts-expect-error ts-migrate(7005) FIXME: Variable 'autoAcknowledge' implicitly has an 'any'... Remove this comment to see the full error message
+                
                 if (autoAcknowledge) {
                     if (!incident.acknowledged) {
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5-7 arguments, but got 4.
+                        
                         await IncidentService.acknowledge(
                             incident._id,
                             null,
@@ -782,9 +782,9 @@ export default {
                         );
                     }
                 }
-                // @ts-expect-error ts-migrate(7005) FIXME: Variable 'autoResolve' implicitly has an 'any' typ... Remove this comment to see the full error message
+                
                 if (autoResolve) {
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5-7 arguments, but got 4.
+                    
                     await IncidentService.resolve(
                         incident._id,
                         null,
@@ -797,7 +797,7 @@ export default {
         return {};
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'probeId' implicitly has an 'any' type.
+    
     updateProbeStatus: async function(probeId) {
         try {
             const probe = await ProbeModel.findOneAndUpdate(
@@ -812,18 +812,18 @@ export default {
         }
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'resp' implicitly has an 'any' type.
+    
     scriptConditions: (resp, con) => {
         const body = resp ?? null;
-        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'successReasons' implicitly has type 'any... Remove this comment to see the full error message
+        
         const successReasons = [];
-        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'failedReasons' implicitly has type 'any[... Remove this comment to see the full error message
+        
         const failedReasons = [];
 
         let eventOccurred = false;
         let matchedCriterion;
         if (con && con.length) {
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'condition' implicitly has an 'any' type... Remove this comment to see the full error message
+            
             eventOccurred = con.some(condition => {
                 let stat = true;
                 if (
@@ -835,9 +835,9 @@ export default {
                     stat = checkScriptAnd(
                         condition.criteria,
                         body,
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'successReasons' implicitly has an 'any[]... Remove this comment to see the full error message
+                        
                         successReasons,
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedReasons' implicitly has an 'any[]'... Remove this comment to see the full error message
+                        
                         failedReasons
                     );
                 } else if (
@@ -849,9 +849,9 @@ export default {
                     stat = checkScriptOr(
                         condition.criteria,
                         body,
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'successReasons' implicitly has an 'any[]... Remove this comment to see the full error message
+                        
                         successReasons,
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedReasons' implicitly has an 'any[]'... Remove this comment to see the full error message
+                        
                         failedReasons
                     );
                 }
@@ -866,15 +866,15 @@ export default {
 
         return {
             stat: eventOccurred,
-            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'successReasons' implicitly has an 'any[]... Remove this comment to see the full error message
+            
             successReasons,
-            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedReasons' implicitly has an 'any[]'... Remove this comment to see the full error message
+            
             failedReasons,
             matchedCriterion,
         };
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitorType' implicitly has an 'any' ty... Remove this comment to see the full error message
+    
     conditions: (monitorType, con, payload, resp, response) => {
         const status = resp
             ? resp.status
@@ -888,38 +888,38 @@ export default {
         const headers = resp && resp.headers ? resp.headers : null;
         const sslCertificate =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
-        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'successReasons' implicitly has type 'any... Remove this comment to see the full error message
+        
         const successReasons = [];
-        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'failedReasons' implicitly has type 'any[... Remove this comment to see the full error message
+        
         const failedReasons = [];
 
         let eventOccurred = false;
         let matchedCriterion;
 
         if (con && con.length) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'Promise<boolean>' is not assignable to type ... Remove this comment to see the full error message
+            
             eventOccurred = some(con, condition => {
                 let stat = true;
                 if (
                     condition &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria.condition &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria.condition === 'and'
                 ) {
                     stat = checkAnd(
                         payload,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         condition.criteria,
                         status,
                         body,
                         sslCertificate,
                         response,
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'successReasons' implicitly has an 'any[]... Remove this comment to see the full error message
+                        
                         successReasons,
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedReasons' implicitly has an 'any[]'... Remove this comment to see the full error message
+                        
                         failedReasons,
                         monitorType,
                         queryParams,
@@ -927,24 +927,24 @@ export default {
                     );
                 } else if (
                     condition &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria.condition &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria.condition === 'or'
                 ) {
                     stat = checkOr(
                         payload,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         condition.criteria,
                         status,
                         body,
                         sslCertificate,
                         response,
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'successReasons' implicitly has an 'any[]... Remove this comment to see the full error message
+                        
                         successReasons,
-                        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedReasons' implicitly has an 'any[]'... Remove this comment to see the full error message
+                        
                         failedReasons,
                         monitorType,
                         queryParams,
@@ -962,20 +962,20 @@ export default {
 
         return {
             stat: eventOccurred,
-            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'successReasons' implicitly has an 'any[]... Remove this comment to see the full error message
+            
             successReasons,
-            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'failedReasons' implicitly has an 'any[]'... Remove this comment to see the full error message
+            
             failedReasons,
             matchedCriterion,
         };
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'payload' implicitly has an 'any' type.
+    
     incomingCondition: (payload, conditions) => {
         let eventOccurred = false;
         let matchedCriterion;
         if (conditions && conditions.length) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'Promise<boolean>' is not assignable to type ... Remove this comment to see the full error message
+            
             eventOccurred = some(conditions, condition => {
                 let response = false;
                 let respAnd = false,
@@ -985,27 +985,27 @@ export default {
 
                 if (
                     condition &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria.condition &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria.condition === 'and'
                 ) {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     respAnd = incomingCheckAnd(payload, condition.criteria);
                     countAnd++;
                 }
                 if (
                     condition &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria.condition &&
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     condition.criteria.condition === 'or'
                 ) {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     respOr = incomingCheckOr(payload, condition.criteria);
                     countOr++;
                 }
@@ -1033,12 +1033,12 @@ export default {
         return { eventOccurred, matchedCriterion };
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'params' implicitly has an 'any' type.
+    
     toArray: function(params) {
         const array = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 array.push(key.toLowerCase() + '=' + value.toLowerCase());
             }
             return array;
@@ -1046,7 +1046,7 @@ export default {
         return null;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+    
     processHttpRequest: async function(data) {
         const _this = this;
         const { monitor, body } = data;
@@ -1063,7 +1063,7 @@ export default {
             failedReasons: upFailedReasons,
             matchedCriterion: matchedUpCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.up
-            ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+            ? 
               _this.conditions(monitor.type, monitor.criteria.up, payload, {
                   body,
                   queryParams,
@@ -1076,7 +1076,7 @@ export default {
             failedReasons: degradedFailedReasons,
             matchedCriterion: matchedDegradedCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.degraded
-            ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+            ? 
               _this.conditions(
                   monitor.type,
                   monitor.criteria.degraded,
@@ -1094,7 +1094,7 @@ export default {
             failedReasons: downFailedReasons,
             matchedCriterion: matchedDownCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.down
-            ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+            ? 
               _this.conditions(monitor.type, monitor.criteria.down, payload, {
                   body,
                   queryParams,
@@ -1127,7 +1127,7 @@ export default {
             ];
             if (monitor.criteria.down) {
                 matchedCriterion = monitor.criteria.down.find(
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'criterion' implicitly has an 'any' type... Remove this comment to see the full error message
+                    
                     criterion => criterion.default === true
                 );
             }
@@ -1176,7 +1176,7 @@ export default {
         return log;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+    
     probeHttpRequest: async function(monitor, probeId) {
         const _this = this;
         let status, reason;
@@ -1184,16 +1184,16 @@ export default {
         const lastPingTime = monitor.lastPingTime;
         const payload = moment().diff(moment(lastPingTime), 'minutes');
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventOccurred' does not exist on type 'f... Remove this comment to see the full error message
+        
         const { eventOccurred: validUp, matchedCriterion: matchedUpCriterion } =
             monitor && monitor.criteria && monitor.criteria.up
                 ? _this.incomingCondition(payload, monitor.criteria.up)
                 : false;
 
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventOccurred' does not exist on type 'f... Remove this comment to see the full error message
+            
             eventOccurred: validDegraded,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'matchedCriterion' does not exist on type... Remove this comment to see the full error message
+            
             matchedCriterion: matchedDegradedCriterion,
         } =
             monitor && monitor.criteria && monitor.criteria.degraded
@@ -1201,15 +1201,15 @@ export default {
                 : false;
 
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventOccurred' does not exist on type 'f... Remove this comment to see the full error message
+            
             eventOccurred: validDown,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'matchedCriterion' does not exist on type... Remove this comment to see the full error message
+            
             matchedCriterion: matchedDownCriterion,
         } =
             monitor && monitor.criteria && monitor.criteria.down
                 ? _this.incomingCondition(payload, [
                       ...monitor.criteria.down.filter(
-                          // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'criterion' implicitly has an 'any' type... Remove this comment to see the full error message
+                          
                           criterion => criterion.default !== true
                       ),
                   ])
@@ -1240,52 +1240,52 @@ export default {
             reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
             if (monitor.criteria.down) {
                 matchedCriterion = monitor.criteria.down.find(
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'criterion' implicitly has an 'any' type... Remove this comment to see the full error message
+                    
                     criterion => criterion.default === true
                 );
             }
         }
         const logData = {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseTime' does not exist on type '{}... Remove this comment to see the full error message
+        
         logData.responseTime = 0;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseStatus' does not exist on type '... Remove this comment to see the full error message
+        
         logData.responseStatus = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type '{}'.
+        
         logData.status = status;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
+        
         logData.probeId = probeId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
+        
         logData.monitorId =
             monitor && monitor.id
                 ? monitor.id
                 : monitor._id
                 ? monitor._id
                 : null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sslCertificate' does not exist on type '... Remove this comment to see the full error message
+        
         logData.sslCertificate = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseScanStatus' does not exist on ... Remove this comment to see the full error message
+        
         logData.lighthouseScanStatus = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type '{}'... Remove this comment to see the full error message
+        
         logData.performance = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type '{... Remove this comment to see the full error message
+        
         logData.accessibility = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'bestPractices' does not exist on type '{... Remove this comment to see the full error message
+        
         logData.bestPractices = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'seo' does not exist on type '{}'.
+        
         logData.seo = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pwa' does not exist on type '{}'.
+        
         logData.pwa = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'lighthouseData' does not exist on type '... Remove this comment to see the full error message
+        
         logData.lighthouseData = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'retryCount' does not exist on type '{}'.
+        
         logData.retryCount = 3;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+        
         logData.reason = reason;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'response' does not exist on type '{}'.
+        
         logData.response = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stopPingTimeUpdate' does not exist on ty... Remove this comment to see the full error message
+        
         logData.stopPingTimeUpdate = true;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'matchedCriterion' does not exist on type... Remove this comment to see the full error message
+        
         logData.matchedCriterion = matchedCriterion;
 
         // update monitor to save the last matched criterion
@@ -1299,10 +1299,10 @@ export default {
     },
 };
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import _ from 'lodash';
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'payload' implicitly has an 'any' type.
+
 const incomingCheckAnd = (payload, condition) => {
     let validity = false;
     let val = 0;
@@ -1453,7 +1453,7 @@ const incomingCheckAnd = (payload, condition) => {
     return validity;
 };
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'payload' implicitly has an 'any' type.
+
 const incomingCheckOr = (payload, condition) => {
     let validity = false;
     let val = 0;
@@ -1603,29 +1603,29 @@ const incomingCheckOr = (payload, condition) => {
     return validity;
 };
 
-// @ts-expect-error ts-migrate(7024) FIXME: Function implicitly has return type 'any' because ... Remove this comment to see the full error message
+
 const checkAnd = (
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'payload' implicitly has an 'any' type.
+    
     payload,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'con' implicitly has an 'any' type.
+    
     con,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'statusCode' implicitly has an 'any' typ... Remove this comment to see the full error message
+    
     statusCode,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'body' implicitly has an 'any' type.
+    
     body,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'ssl' implicitly has an 'any' type.
+    
     ssl,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'response' implicitly has an 'any' type.
+    
     response,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'successReasons' implicitly has an 'any'... Remove this comment to see the full error message
+    
     successReasons,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'failedReasons' implicitly has an 'any' ... Remove this comment to see the full error message
+    
     failedReasons,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'type' implicitly has an 'any' type.
+    
     type,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'queryParams' implicitly has an 'any' ty... Remove this comment to see the full error message
+    
     queryParams,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'headers' implicitly has an 'any' type.
+    
     headers
 ) => {
     let validity = true;
@@ -1640,7 +1640,7 @@ const checkAnd = (
                     con.criteria[i].condition === 'and'
                 ) {
                     // check and again
-                    // @ts-expect-error ts-migrate(7022) FIXME: 'temp' implicitly has type 'any' because it does n... Remove this comment to see the full error message
+                    
                     const temp = checkAnd(
                         payload,
                         con.criteria[i],
@@ -1663,7 +1663,7 @@ const checkAnd = (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check or again
-                    // @ts-expect-error ts-migrate(7022) FIXME: 'temp1' implicitly has type 'any' because it does ... Remove this comment to see the full error message
+                    
                     const temp1 = checkOr(
                         payload,
                         con.criteria[i],
@@ -2044,13 +2044,13 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
                         } else {
                             successReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
@@ -2072,13 +2072,13 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
                         } else {
                             successReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
@@ -2407,7 +2407,7 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2417,7 +2417,7 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2442,7 +2442,7 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2452,7 +2452,7 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2479,7 +2479,7 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2489,7 +2489,7 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2514,7 +2514,7 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2524,7 +2524,7 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2549,7 +2549,7 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2559,7 +2559,7 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2584,7 +2584,7 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2594,7 +2594,7 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2619,7 +2619,7 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2629,7 +2629,7 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2665,7 +2665,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2674,7 +2674,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2698,7 +2698,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2707,7 +2707,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2733,7 +2733,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2742,7 +2742,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2766,7 +2766,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2775,7 +2775,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2799,7 +2799,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2808,7 +2808,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2832,7 +2832,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2841,7 +2841,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2865,7 +2865,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2874,7 +2874,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2914,7 +2914,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2927,7 +2927,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2954,7 +2954,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2967,7 +2967,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2996,7 +2996,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3009,7 +3009,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3036,7 +3036,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3049,7 +3049,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3076,7 +3076,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3089,7 +3089,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3116,7 +3116,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3129,7 +3129,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3156,7 +3156,7 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3169,7 +3169,7 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3386,7 +3386,7 @@ const checkAnd = (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
                                     body &&
-                                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+                                    
                                     body.includes([con.criteria[i].field1])
                                 )
                             ) {
@@ -3429,7 +3429,7 @@ const checkAnd = (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
                                     body &&
-                                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+                                    
                                     !body.includes([con.criteria[i].field1])
                                 )
                             ) {
@@ -3679,7 +3679,7 @@ const checkAnd = (
                             validity = false;
                             failedReasons.push('Pod is not available');
                         } else {
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'pod' implicitly has an 'any' type.
+                            
                             // eslint-disable-next-line no-loop-func
                             payload.podData.allPods.forEach(pod => {
                                 if (
@@ -3718,7 +3718,7 @@ const checkAnd = (
                             validity = false;
                             failedReasons.push('Pod is not available');
                         } else {
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'pod' implicitly has an 'any' type.
+                            
                             // eslint-disable-next-line no-loop-func
                             payload.podData.allPods.forEach(pod => {
                                 if (
@@ -3763,7 +3763,7 @@ const checkAnd = (
                             validity = false;
                             failedReasons.push('Job is not available');
                         } else {
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'job' implicitly has an 'any' type.
+                            
                             // eslint-disable-next-line no-loop-func
                             payload.jobData.allJobs.forEach(job => {
                                 if (
@@ -3802,7 +3802,7 @@ const checkAnd = (
                             validity = false;
                             failedReasons.push('Job is not available');
                         } else {
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'job' implicitly has an 'any' type.
+                            
                             // eslint-disable-next-line no-loop-func
                             payload.jobData.allJobs.forEach(job => {
                                 if (
@@ -3847,7 +3847,7 @@ const checkAnd = (
                             failedReasons.push('Deployment is not available');
                         } else {
                             payload.deploymentData.allDeployments.forEach(
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'deployment' implicitly has an 'any' typ... Remove this comment to see the full error message
+                                
                                 // eslint-disable-next-line no-loop-func
                                 deployment => {
                                     if (
@@ -3879,7 +3879,7 @@ const checkAnd = (
                             failedReasons.push('Deployment is not available');
                         } else {
                             payload.deploymentData.allDeployments.forEach(
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'deployment' implicitly has an 'any' typ... Remove this comment to see the full error message
+                                
                                 // eslint-disable-next-line no-loop-func
                                 deployment => {
                                     if (
@@ -3916,7 +3916,7 @@ const checkAnd = (
                             failedReasons.push('Statefulset is not available');
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'statefulset' implicitly has an 'any' ty... Remove this comment to see the full error message
+                                
                                 // eslint-disable-next-line no-loop-func
                                 statefulset => {
                                     if (
@@ -3948,7 +3948,7 @@ const checkAnd = (
                             failedReasons.push('Statefulset is not available');
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'statefulset' implicitly has an 'any' ty... Remove this comment to see the full error message
+                                
                                 // eslint-disable-next-line no-loop-func
                                 statefulset => {
                                     if (
@@ -3986,13 +3986,13 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
                         } else {
                             successReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
@@ -4011,13 +4011,13 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
                         } else {
                             successReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
@@ -4031,29 +4031,29 @@ const checkAnd = (
     return validity;
 };
 
-// @ts-expect-error ts-migrate(7024) FIXME: Function implicitly has return type 'any' because ... Remove this comment to see the full error message
+
 const checkOr = (
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'payload' implicitly has an 'any' type.
+    
     payload,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'con' implicitly has an 'any' type.
+    
     con,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'statusCode' implicitly has an 'any' typ... Remove this comment to see the full error message
+    
     statusCode,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'body' implicitly has an 'any' type.
+    
     body,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'ssl' implicitly has an 'any' type.
+    
     ssl,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'response' implicitly has an 'any' type.
+    
     response,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'successReasons' implicitly has an 'any'... Remove this comment to see the full error message
+    
     successReasons,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'failedReasons' implicitly has an 'any' ... Remove this comment to see the full error message
+    
     failedReasons,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'type' implicitly has an 'any' type.
+    
     type,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'queryParams' implicitly has an 'any' ty... Remove this comment to see the full error message
+    
     queryParams,
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'headers' implicitly has an 'any' type.
+    
     headers
 ) => {
     let validity = false;
@@ -4068,7 +4068,7 @@ const checkOr = (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check or again
-                    // @ts-expect-error ts-migrate(7022) FIXME: 'temp1' implicitly has type 'any' because it does ... Remove this comment to see the full error message
+                    
                     const temp1 = checkOr(
                         payload,
                         con.criteria[i],
@@ -4089,7 +4089,7 @@ const checkOr = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'and'
                 ) {
-                    // @ts-expect-error ts-migrate(7022) FIXME: 'temp' implicitly has type 'any' because it does n... Remove this comment to see the full error message
+                    
                     const temp = checkAnd(
                         payload,
                         con.criteria[i],
@@ -4437,13 +4437,13 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
                         } else {
                             failedReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
@@ -4463,13 +4463,13 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
                         } else {
                             failedReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
@@ -4790,7 +4790,7 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4800,7 +4800,7 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4823,7 +4823,7 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4833,7 +4833,7 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4858,7 +4858,7 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4868,7 +4868,7 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4891,7 +4891,7 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4901,7 +4901,7 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4924,7 +4924,7 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4934,7 +4934,7 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4957,7 +4957,7 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4967,7 +4967,7 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4990,7 +4990,7 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -5000,7 +5000,7 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -5033,7 +5033,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5042,7 +5042,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5063,7 +5063,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5072,7 +5072,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5095,7 +5095,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5104,7 +5104,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5125,7 +5125,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5134,7 +5134,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5155,7 +5155,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5164,7 +5164,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5185,7 +5185,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5194,7 +5194,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5215,7 +5215,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5224,7 +5224,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5261,7 +5261,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5274,7 +5274,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5298,7 +5298,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5311,7 +5311,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5337,7 +5337,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5350,7 +5350,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5374,7 +5374,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5387,7 +5387,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5411,7 +5411,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5424,7 +5424,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5448,7 +5448,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5461,7 +5461,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5485,7 +5485,7 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5498,7 +5498,7 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5700,7 +5700,7 @@ const checkOr = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 body &&
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+                                
                                 body.includes([con.criteria[i].field1])
                             ) {
                                 validity = true;
@@ -5747,7 +5747,7 @@ const checkOr = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 body &&
-                                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+                                
                                 !body.includes([con.criteria[i].field1])
                             ) {
                                 validity = true;
@@ -6002,7 +6002,7 @@ const checkOr = (
                         ) {
                             failedReasons.push('Pod is not available');
                         } else {
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'pod' implicitly has an 'any' type.
+                            
                             // eslint-disable-next-line no-loop-func
                             payload.podData.allPods.forEach(pod => {
                                 if (
@@ -6040,7 +6040,7 @@ const checkOr = (
                         ) {
                             failedReasons.push('Pod is not available');
                         } else {
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'pod' implicitly has an 'any' type.
+                            
                             // eslint-disable-next-line no-loop-func
                             payload.podData.allPods.forEach(pod => {
                                 if (
@@ -6084,7 +6084,7 @@ const checkOr = (
                         ) {
                             failedReasons.push('Job is not available');
                         } else {
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'job' implicitly has an 'any' type.
+                            
                             // eslint-disable-next-line no-loop-func
                             payload.jobData.allJobs.forEach(job => {
                                 if (
@@ -6122,7 +6122,7 @@ const checkOr = (
                         ) {
                             failedReasons.push('Job is not available');
                         } else {
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'job' implicitly has an 'any' type.
+                            
                             // eslint-disable-next-line no-loop-func
                             payload.jobData.allJobs.forEach(job => {
                                 if (
@@ -6166,7 +6166,7 @@ const checkOr = (
                             failedReasons.push('Deployment is not available');
                         } else {
                             payload.deploymentData.allDeployments.forEach(
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'deployment' implicitly has an 'any' typ... Remove this comment to see the full error message
+                                
                                 // eslint-disable-next-line no-loop-func
                                 deployment => {
                                     if (
@@ -6197,7 +6197,7 @@ const checkOr = (
                             failedReasons.push('Deployment is not available');
                         } else {
                             payload.deploymentData.allDeployments.forEach(
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'deployment' implicitly has an 'any' typ... Remove this comment to see the full error message
+                                
                                 // eslint-disable-next-line no-loop-func
                                 deployment => {
                                     if (
@@ -6233,7 +6233,7 @@ const checkOr = (
                             failedReasons.push('Statefulset is not available');
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'statefulset' implicitly has an 'any' ty... Remove this comment to see the full error message
+                                
                                 // eslint-disable-next-line no-loop-func
                                 statefulset => {
                                     if (
@@ -6264,7 +6264,7 @@ const checkOr = (
                             failedReasons.push('Statefulset is not available');
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'statefulset' implicitly has an 'any' ty... Remove this comment to see the full error message
+                                
                                 // eslint-disable-next-line no-loop-func
                                 statefulset => {
                                     if (
@@ -6300,13 +6300,13 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
                         } else {
                             failedReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
@@ -6323,13 +6323,13 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
                         } else {
                             failedReasons.push(
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
@@ -6348,7 +6348,7 @@ const checkOr = (
  * @param {'and' | 'or'} conditionLogic
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'condition' implicitly has an 'any' type... Remove this comment to see the full error message
+
 const checkScriptCondition = (condition, body) => {
     if (!condition || !condition.responseType) {
         return;
@@ -6366,89 +6366,89 @@ const checkScriptCondition = (condition, body) => {
         // we need a catch-all for server-defined
         // script timeout errors or terminated scripts
         if (body.statusText === 'timeout') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+            
             validity.valid = false;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+            
             validity.reason = body.error;
             return validity;
         }
 
         if (condition.filter === 'throwsError') {
             if (body.statusText === 'failed' && body.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = true;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script threw error ${body.error}`;
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = false;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'doesNotThrowError') {
             if (body.statusText === 'failed' && body.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = false;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script threw error ${body.error}`;
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = true;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'emptyCallback') {
             if (body.statusText === 'nonEmptyCallback' && body.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = false;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script callback invoked with arguments ${JSON.stringify(
                     body.error
                 )}`;
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = true;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script callback has no arguments`;
             }
         } else if (condition.filter === 'nonEmptyCallback') {
             if (body.statusText === 'nonEmptyCallback' && body.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = true;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script callback invoked with arguments ${JSON.stringify(
                     body.error
                 )}`;
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = false;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script callback has no arguments`;
             }
         }
     } else if (condition.responseType === 'executionTime') {
         if (condition.filter === 'executesIn') {
             if (body.executionTime <= condition.filter1) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = true;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script executed in ${body.executionTime}ms within ${condition.filter1}ms limit`;
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = false;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script executed above ${condition.filter1}ms limit`;
             }
         } else if (condition.filter === 'doesNotExecuteIn') {
             if (body.executionTime >= condition.filter1) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = true;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script executed in ${body.executionTime}ms above ${condition.filter1}ms minimum`;
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                
                 validity.valid = false;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                
                 validity.reason = `Script executed below ${condition.filter1}ms minimum`;
             }
         }
@@ -6460,7 +6460,7 @@ const checkScriptCondition = (condition, body) => {
     return validity;
 };
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'con' implicitly has an 'any' type.
+
 const checkScriptAnd = (con, body, successReasons, failedReasons) => {
     let valid = true;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -6501,13 +6501,13 @@ const checkScriptAnd = (con, body, successReasons, failedReasons) => {
             } else {
                 const validity = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                    
                     if (validity.valid) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                        
                         successReasons.push(validity.reason);
                     } else {
                         valid = false;
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                        
                         failedReasons.push(validity.reason);
                     }
                 }
@@ -6518,7 +6518,7 @@ const checkScriptAnd = (con, body, successReasons, failedReasons) => {
     return valid;
 };
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'con' implicitly has an 'any' type.
+
 const checkScriptOr = (con, body, successReasons, failedReasons) => {
     let valid = false;
     if (con && con.criteria && con.criteria.length > 0) {
@@ -6559,13 +6559,13 @@ const checkScriptOr = (con, body, successReasons, failedReasons) => {
             } else {
                 const validity = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'valid' does not exist on type '{}'.
+                    
                     if (validity.valid) {
                         valid = true;
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                        
                         successReasons.push(validity.reason);
                     } else {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                        
                         failedReasons.push(validity.reason);
                     }
                 }
@@ -6594,7 +6594,7 @@ const criteriaStrings = {
     ip: 'IP is',
 };
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'value' implicitly has an 'any' type.
+
 const formatDecimal = (value, decimalPlaces, roundType) => {
     let formattedNumber;
     switch (roundType) {
@@ -6618,7 +6618,7 @@ const formatDecimal = (value, decimalPlaces, roundType) => {
     );
 };
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'a' implicitly has an 'any' type.
+
 const formatBytes = (a, b, c, d, e) => {
     let value = a;
     let decimalPlaces;
@@ -6646,7 +6646,7 @@ const formatBytes = (a, b, c, d, e) => {
 import ProbeModel from '../models/probe';
 import RealTimeService from './realTimeService';
 import ErrorService from 'common-server/utils/error';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v1 as uuidv1 } from 'uuid';
 import MonitorService from './monitorService';
 import MonitorStatusService from './monitorStatusService';

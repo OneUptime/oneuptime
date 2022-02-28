@@ -24,7 +24,7 @@ export const createIncidentNoteTemplate = ({ projectId, data }: $TSFixMe) => (
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(createIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {
@@ -70,7 +70,7 @@ export const fetchIncidentNoteTemplates = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchIncidentNoteTemplatesSuccess(response.data));
         },
         function(error) {
@@ -117,7 +117,7 @@ export const updateIncidentNoteTemplate = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(updateIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {
@@ -156,14 +156,14 @@ export const deleteIncidentNoteTemplate = ({
     templateId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deleteIncidentNoteTemplateRequest());
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+    
     const promise = deleteApi(
         `incidentNoteTemplate/${projectId}/${templateId}`
     );
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(deleteIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {

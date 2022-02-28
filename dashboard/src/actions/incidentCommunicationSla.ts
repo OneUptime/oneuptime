@@ -23,7 +23,7 @@ export const createCommunicationSla = (
         dispatch(createCommunicationSlaRequest());
 
         const response = await postApi(`incidentSla/${projectId}`, data);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(createCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -66,7 +66,7 @@ export const updateCommunicationSla = (
             `incidentSla/${projectId}/${incidentSlaId}`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(updateCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -111,7 +111,7 @@ export const fetchCommunicationSlas = (
                 `incidentSla/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchCommunicationSlasSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -147,11 +147,11 @@ export const deleteCommunicationSla = (
     try {
         dispatch(deleteCommunicationSlaRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `incidentSla/${projectId}/${incidentSlaId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -195,7 +195,7 @@ export const fetchDefaultCommunicationSla = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `incidentSla/${projectId}/defaultCommunicationSla`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchDefaultCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =

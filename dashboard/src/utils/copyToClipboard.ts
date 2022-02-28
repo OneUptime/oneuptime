@@ -16,9 +16,9 @@ export default function(text: $TSFixMe) {
     // Check if there is any content selected previously
     // Store selection if found
     const selected =
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+        
         document.getSelection().rangeCount > 0
-            ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            ? 
               document.getSelection().getRangeAt(0)
             : false;
 
@@ -32,9 +32,9 @@ export default function(text: $TSFixMe) {
     Unselect everything on the HTML document;
     Restore the original selection */
     if (selected) {
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+        
         document.getSelection().removeAllRanges();
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+        
         document.getSelection().addRange(selected);
     }
 }

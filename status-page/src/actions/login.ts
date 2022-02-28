@@ -48,7 +48,7 @@ export const loginUser = (values: $TSFixMe) => {
 
         promise.then(
             function(user) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(loginSuccess(user.data));
             },
             function(error) {

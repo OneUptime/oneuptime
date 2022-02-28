@@ -48,7 +48,7 @@ export function createSubscriber(
 
         promise.then(
             function(createSubscriber) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             function(error) {
@@ -116,9 +116,9 @@ export function exportCSV(
 
         promise.then(
             function(csvData) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 saveFile(csvData.data.data, 'subscriber.csv');
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(exportCsvSuccess(csvData.data.data));
             },
             function(error) {
@@ -181,11 +181,11 @@ export function deleteSubscriber(projectId: $TSFixMe, subscriberId: $TSFixMe) {
 
         promise.then(
             function(subscriber) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteSubscriberSuccess(subscriber.data));
                 dispatch({
                     type: 'REMOVE_MONITORS_SUBSCRIBERS',
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     payload: subscriber.data,
                 });
             },
@@ -266,7 +266,7 @@ export function importSubscribersFromCsvFile(
 
         promise.then(
             function(createSubscriber) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             function(error) {

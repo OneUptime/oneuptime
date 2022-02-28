@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -21,13 +21,13 @@ const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const newComponentName = utils.generateRandomString();
 let browser: $TSFixMe, page: $TSFixMe;
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Incident API With SubProjects', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,21 +38,21 @@ describe('Incident API With SubProjects', () => {
         await init.growthPlanUpgrade(page);
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create an incident in parent project for valid `admin`',
         async (done: $TSFixMe) => {
             // add sub-project
             await init.addSubProject(subProjectName, page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectFilterToggle');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#project-${subProjectName}`);
             // Create Component
             await init.addComponent(componentName, page);
@@ -89,16 +89,16 @@ describe('Incident API With SubProjects', () => {
                 `#create_incident_${projectMonitorName}`,
                 { visible: true, timeout: init.timeout }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 `#create_incident_${projectMonitorName}`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
             // await init.pageType(page, '#title', 'new incident');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
@@ -125,7 +125,7 @@ describe('Incident API With SubProjects', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const incidentTitleSelector = await init.page$(
                 page,
                 `#incident_${projectMonitorName}_title`
@@ -144,7 +144,7 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not display created incident status in a different component',
         async (done: $TSFixMe) => {
@@ -169,7 +169,7 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create an incident in sub-project for sub-project `member`',
         async (done: $TSFixMe) => {
@@ -192,27 +192,27 @@ describe('Incident API With SubProjects', () => {
             }
 
             // Navigate to details page of monitor
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectFilterToggle');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#project-${subProjectName}`);
             await init.navigateToComponentDetails(componentName, page);
             // create incident
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(
                 page,
                 `#create_incident_${projectMonitorName1}`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 `#create_incident_${projectMonitorName1}`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
             // await init.pageType(page, '#title', 'new incident');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
@@ -235,7 +235,7 @@ describe('Incident API With SubProjects', () => {
                     visible: true,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#more-details-${projectMonitorName1}`);
 
             await init.pageWaitForSelector(
@@ -243,7 +243,7 @@ describe('Incident API With SubProjects', () => {
                 `#incident_${projectMonitorName1}_title`,
                 { visible: true }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const incidentTitleSelector = await init.page$(
                 page,
                 `#incident_${projectMonitorName1}_title`
@@ -262,15 +262,15 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should acknowledge incident in sub-project for sub-project `member`',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, `#incident_0`);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incident_0');
 
             // acknowledge incident
@@ -278,14 +278,14 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAcknowledge_0');
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: operationTimeOut,
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const acknowledgeTextSelector = await init.page$(
                 page,
                 '#AcknowledgeText_0'
@@ -297,15 +297,15 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should resolve incident in sub-project for sub-project `member`',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, `#incident_0`);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incident_0');
 
             // resolve incident
@@ -313,14 +313,14 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnResolve_0');
             await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
                 timeout: operationTimeOut,
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const resolveTextSelector = await init.page$(
                 page,
                 '#ResolveText_0'
@@ -332,7 +332,7 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should update internal and investigation notes of incident in sub-project (Postmortem notes)',
         async (done: $TSFixMe) => {
@@ -361,26 +361,26 @@ describe('Incident API With SubProjects', () => {
 
             const type = 'internal';
             // fill internal message thread form
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, `#add-${type}-message`);
             await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
                 e.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(
                 page,
                 `#form-new-incident-${type}-message`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incident_description');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#incident_description', internalNote);
             await init.selectDropdownValue(
                 '#incident_state',
                 'investigating',
                 page
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#${type}-addButton`);
             await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
@@ -394,7 +394,7 @@ describe('Incident API With SubProjects', () => {
                     visible: true,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const internalMessage = await init.page$(
                 page,
                 `#content_${type}_incident_message_0`
@@ -528,7 +528,7 @@ describe('Incident API With SubProjects', () => {
     //     operationTimeOut
     // );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should get list of incidents and paginate for incidents in sub-project',
         async (done: $TSFixMe) => {
@@ -541,9 +541,9 @@ describe('Incident API With SubProjects', () => {
             );
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAcknowledge_0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnResolve_0');
 
             // Navigate to details page of component created
@@ -553,19 +553,19 @@ describe('Incident API With SubProjects', () => {
                 page
             );
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 `#createIncident_${projectMonitorName1}`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#createIncident`);
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const incidentRows = await init.page$$(
                 page,
                 'tr.createdIncidentListItem'

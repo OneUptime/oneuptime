@@ -16,7 +16,7 @@ class OneUptimeListener {
         this.options = options;
         this.isWindow = isWindow;
         this.timelineObj = new OneUptimeTimelineManager(options);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         this.utilObj = new Util();
         this.currentEventId = eventId;
         this.BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
@@ -80,7 +80,7 @@ class OneUptimeListener {
             };
         })(global.console);
         //Then redefine the old console
-        // @ts-expect-error ts-migrate(2740) FIXME: Type '{ log: (text: any) => void; info: (text: any... Remove this comment to see the full error message
+        
         global.console = console;
     }
     // set up dom listener
@@ -142,7 +142,7 @@ class OneUptimeListener {
             });
 
             // set up how to send this log to the server to take this log
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'IArguments' is not assignable to... Remove this comment to see the full error message
+            
             return open.apply(this, arguments);
         }
 
@@ -162,14 +162,14 @@ class OneUptimeListener {
             // Do something with the promise
             promise.then(
                 res => {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
+                    
                     obj.status_code = res.status;
                 },
                 err => {
                     obj.status_code = err.status;
                 }
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startsWith' does not exist on type 'Requ... Remove this comment to see the full error message
+            
             if (!url.startsWith(_this.BASE_URL)) {
                 _this._logFetchEvent(obj, _this.utilObj.getErrorType().INFO);
             }
@@ -363,7 +363,7 @@ class OneUptimeListener {
             current = current + 1;
         }
         let path = fullPath.reverse();
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'string[]'... Remove this comment to see the full error message
+        
         path = path.join(' > ');
         return { tree, path }; // return the final tree which contains a max of 5 elements
     }
@@ -373,13 +373,13 @@ class OneUptimeListener {
         const excludedAttributes = ['class', 'value']; // exclude items that are nnot needed
         // eslint-disable-next-line no-unused-vars
         for (const [key, value] of Object.entries(elementAtrributes)) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             if (!excludedAttributes.includes(value.name)) {
                 // if each attribute doesnt exist in the excluded one, we get the value and make an object
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const attribute = elem[value.name];
                 attributes.push({
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     key: value.name,
                     value: attribute,
                 });

@@ -185,7 +185,7 @@ export default function applicationLog(
                 state.applicationLogsList.applicationLogs
             );
             applicationLogs = applicationLogs.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'nev... Remove this comment to see the full error message
+                
                 applicationLog => action.payload !== applicationLog.componentId
             );
 
@@ -217,12 +217,12 @@ export default function applicationLog(
         case FETCH_LOGS_FAILURE:
             failureLogs = {
                 ...state.logs,
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 [action.payload.applicationLogId]: state.logs[
                     action.payload.applicationLogId
                 ]
                     ? {
-                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          
                           ...state.logs[action.payload.applicationLogId],
                           error: action.payload.error,
                       }
@@ -243,12 +243,12 @@ export default function applicationLog(
         case FETCH_LOGS_REQUEST:
             requestLogs = {
                 ...state.logs,
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 [action.payload.applicationLogId]: state.logs[
                     action.payload.applicationLogId
                 ]
                     ? {
-                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          
                           ...state.logs[action.payload.applicationLogId],
                           requesting: true,
                       }
@@ -273,9 +273,9 @@ export default function applicationLog(
         case RESET_APPLICATION_LOG_KEY_SUCCESS:
             applicationLogs = state.applicationLogsList.applicationLogs.map(
                 applicationLog => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     if (applicationLog._id === action.payload._id) {
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                        
                         applicationLog = action.payload;
                     }
                     return applicationLog;
@@ -318,16 +318,16 @@ export default function applicationLog(
         case EDIT_APPLICATION_LOG_SWITCH:
             applicationLogs = state.applicationLogsList.applicationLogs.map(
                 applicationLog => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     if (applicationLog._id === action.payload) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMode' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         if (!applicationLog.editMode)
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMode' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             applicationLog.editMode = true;
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMode' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         else applicationLog.editMode = false;
                     } else {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMode' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         applicationLog.editMode = false;
                     }
                     return applicationLog;
@@ -350,9 +350,9 @@ export default function applicationLog(
         case EDIT_APPLICATION_LOG_SUCCESS:
             applicationLogs = state.applicationLogsList.applicationLogs.map(
                 applicationLog => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     if (applicationLog._id === action.payload._id) {
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                        
                         applicationLog = action.payload;
                     }
                     return applicationLog;
@@ -406,12 +406,12 @@ export default function applicationLog(
         case FETCH_LOG_STAT_FAILURE:
             failureStats = {
                 ...state.stats,
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 [action.payload.applicationLogId]: state.stats[
                     action.payload.applicationLogId
                 ]
                     ? {
-                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          
                           ...state.stats[action.payload.applicationLogId],
                           error: action.payload.error,
                       }
@@ -429,12 +429,12 @@ export default function applicationLog(
         case FETCH_LOG_STAT_REQUEST:
             requestStats = {
                 ...state.stats,
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 [action.payload.applicationLogId]: state.stats[
                     action.payload.applicationLogId
                 ]
                     ? {
-                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          
                           ...state.stats[action.payload.applicationLogId],
                           requesting: true,
                       }
@@ -454,13 +454,13 @@ export default function applicationLog(
                 stats: INITIAL_STATE.stats,
             });
         case GET_LOG_SUCCESS:
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             requestLogs = state.logs[action.payload.applicationLogId._id].logs; // current logs
             logCount =
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 state.stats[action.payload.applicationLogId._id].stats.all || 0; // current count of all logs
             typeCount =
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 state.stats[action.payload.applicationLogId._id].stats[
                     action.payload.type
                 ] || 0; // current count of all logs of that type
@@ -470,7 +470,7 @@ export default function applicationLog(
                 ).length > 0
             ) {
                 // If the new log exist maybe the event was emitted twice or more, just replace
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 requestLogs = state.logs[
                     action.payload.applicationLogId._id
                 ].logs.map((log: $TSFixMe) => {
@@ -481,7 +481,7 @@ export default function applicationLog(
                 });
             } else {
                 // new log add to beginning of logs
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 requestLogs = state.logs[
                     action.payload.applicationLogId._id
                 ].logs.concat([action.payload]);
@@ -494,7 +494,7 @@ export default function applicationLog(
                 logs: {
                     ...state.logs,
                     [action.payload.applicationLogId._id]: {
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         ...state.logs[action.payload.applicationLogId._id],
                         logs: requestLogs,
                         count: logCount,
@@ -503,10 +503,10 @@ export default function applicationLog(
                 stats: {
                     ...state.stats,
                     [action.payload.applicationLogId._id]: {
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         ...state.stats[action.payload.applicationLogId._id],
                         stats: {
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                            
                             ...state.stats[action.payload.applicationLogId._id]
                                 .stats,
                             all: logCount,

@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +16,13 @@ const user = {
 // smtp credential
 const smtpData = { ...utils.smtpCredential };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Custom SMTP Settings', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,13 +34,13 @@ describe('Custom SMTP Settings', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create a custom smtp settings',
         async (done: $TSFixMe) => {
@@ -51,60 +51,60 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
             await init.pageWaitForSelector(page, '#showsmtpForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#showsmtpForm');
             await init.pageWaitForSelector(page, '#user', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#user');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#user', smtpData.user);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#pass');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#pass', smtpData.pass);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#host');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#host', smtpData.host);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#port');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#port', smtpData.port);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#from');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#from', smtpData.from);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', name);
             await init.page$Eval(
                 page,
                 '#secure',
                 (elem: $TSFixMe) => (elem.checked = true)
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveSmtp');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -127,7 +127,7 @@ describe('Custom SMTP Settings', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should update a custom smtp settings',
         async (done: $TSFixMe) => {
@@ -138,19 +138,19 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
             const from = 'test@oneuptime.com';
             await init.pageWaitForSelector(page, '#from', {
@@ -158,11 +158,11 @@ describe('Custom SMTP Settings', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#from', { clickCount: 3 });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#from', from);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveSmtp');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#saveSmtpLoading');
             await init.pageWaitForSelector(page, '#saveSmtpLoading', {
                 hidden: true, // This confirms that the request has been fulfilled
@@ -185,7 +185,7 @@ describe('Custom SMTP Settings', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not save a custom smtp settings if one of the input fields is missing',
         async (done: $TSFixMe) => {
@@ -196,31 +196,31 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
             await init.pageWaitForSelector(page, '#port', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const port = await init.page$(page, '#port');
             await port.click({ clickCount: 3 });
             await port.press('Backspace'); // clear out the input field
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveSmtp');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#port');
             const emptyMessage = await init.page$Eval(
                 page,
@@ -235,7 +235,7 @@ describe('Custom SMTP Settings', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should delete custom smtp settings',
         async (done: $TSFixMe) => {
@@ -246,19 +246,19 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
             await init.pageWaitForSelector(page, 'label[id=showsmtpForm]', {
                 visible: true,
@@ -276,11 +276,11 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'label[id=enableSecureTransport]');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'label[id=showsmtpForm]');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveSmtp');
             await init.navigateToSmtp(page);
             const username = await init.page$(page, '#user', { hidden: true });
@@ -291,7 +291,7 @@ describe('Custom SMTP Settings', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not display any error message if custom smtp settings is already deleted and user clicks on save',
         async (done: $TSFixMe) => {
@@ -302,25 +302,25 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
             await init.pageWaitForSelector(page, '#saveSmtp', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveSmtp');
             const error = await init.pageWaitForSelector(page, '#errorInfo', {
                 hidden: true,

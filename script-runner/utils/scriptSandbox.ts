@@ -181,7 +181,7 @@ const run = async (
         });
     } else {
         // worker_threads code
-        // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
+        
         import { NodeVM } from 'vm2';
         const vm = new NodeVM({
             eval: false,
@@ -243,6 +243,6 @@ const run = async (
     }
 };
 
-// @ts-expect-error ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 0.
+
 export default run(); // DO NOT call default export directly (used by worker thread)
 module.exports.run = run; // call named export only

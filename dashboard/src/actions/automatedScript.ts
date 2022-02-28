@@ -32,14 +32,14 @@ export function createAutomatedScriptFailure(error: $TSFixMe) {
 export function createAutomatedScript(projectId: $TSFixMe, data: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = postApi(`automated-scripts/${projectId}`, data);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(createAutomatedScriptRequest());
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createAutomatedScriptSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -94,14 +94,14 @@ export function updateAutomatedScript(
             `automated-scripts/${projectId}/${automatedScriptId}`,
             data
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(updateAutomatedScriptRequest());
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(updateAutomatedScriptSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -156,12 +156,12 @@ export function fetchSingleAutomatedScript(
         const promise = getApi(
             `automated-scripts/${projectId}/${automatedSlug}?skip=${skip}&limit=${limit}`
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(fetchSingleAutomatedScriptRequest());
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchSingleAutomatedScriptSuccess(response.data));
             },
             function(error) {
@@ -210,7 +210,7 @@ export function fetchAutomatedScript(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchAutomatedScriptSuccess(response.data));
             },
             function(error) {
@@ -252,7 +252,7 @@ export function runAutomatedScriptSuccess(data: $TSFixMe) {
 
 export function runScript(projectId: $TSFixMe, automatedScriptId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = putApi(
             `automated-scripts/${projectId}/${automatedScriptId}/run`
         );
@@ -260,9 +260,9 @@ export function runScript(projectId: $TSFixMe, automatedScriptId: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(runAutomatedScriptSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -309,7 +309,7 @@ export function deleteAutomatedScript(
     automatedSlug: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(
             `automated-scripts/${projectId}/${automatedSlug}`
         );
@@ -317,7 +317,7 @@ export function deleteAutomatedScript(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteAutomatedScriptSuccess(response.data));
                 return true;
             },

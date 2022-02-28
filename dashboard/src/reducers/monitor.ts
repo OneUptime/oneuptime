@@ -240,7 +240,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
             let monitorFound = false;
             const monitors = state.monitorsList.monitors.map(monitorData => {
                 let output = {
-                    // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                    
                     ...monitorData,
                     monitors: monitorData.monitors.map(monitor => {
                         if (
@@ -359,7 +359,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     monitors: state.monitorsList.monitors.map(project => {
                         const subProject = Object.assign({}, project);
                         const subProjectMonitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             subProject.monitors && subProject.monitors.slice();
 
                         const newMonitor = Object.assign({}, action.payload);
@@ -372,7 +372,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                             );
                         const isSubProjectMonitor = monitorIndex > -1;
 
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         if (subProject._id === newMonitor.projectId) {
                             if (isSubProjectMonitor) {
                                 const oldMonitor = Object.assign(
@@ -410,18 +410,18 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                 newMonitor.count = 0;
 
                                 subProjectMonitors.unshift(newMonitor);
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                                
                                 subProject.count += 1;
                             }
                         } else {
                             if (isSubProjectMonitor) {
                                 subProjectMonitors.splice(monitorIndex, 1);
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                                
                                 subProject.count -= 1;
                             }
                         }
 
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         subProject.monitors = subProjectMonitors;
                         return subProject;
                     }),
@@ -464,7 +464,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: false,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors = monitor.monitors.map(
                             (monitor: $TSFixMe, i: $TSFixMe) => {
                                 if (
@@ -499,11 +499,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
@@ -519,7 +519,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -531,11 +531,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
                         monitor => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             monitor.monitors =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 monitor._id === action.payload.projectId
-                                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    ? 
                                       monitor.monitors.map(
                                           (monitor: $TSFixMe) => {
                                               if (
@@ -556,7 +556,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               }
                                           }
                                       )
-                                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    : 
                                       monitor.monitors;
                             return monitor;
                         }
@@ -595,11 +595,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
@@ -618,7 +618,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -658,11 +658,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
@@ -675,7 +675,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -687,11 +687,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
                         monitor => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             monitor.monitors =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 monitor._id === action.payload.projectId
-                                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    ? 
                                       monitor.monitors.map(
                                           (monitor: $TSFixMe) => {
                                               if (
@@ -706,7 +706,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               }
                                           }
                                       )
-                                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    : 
                                       monitor.monitors;
                             return monitor;
                         }
@@ -749,11 +749,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
@@ -766,7 +766,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -778,11 +778,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
                         monitor => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             monitor.monitors =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 monitor._id === action.payload.projectId
-                                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    ? 
                                       monitor.monitors.map(
                                           (monitor: $TSFixMe) => {
                                               if (
@@ -797,7 +797,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               }
                                           }
                                       )
-                                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    : 
                                       monitor.monitors;
                             return monitor;
                         }
@@ -835,11 +835,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
@@ -868,7 +868,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -880,11 +880,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
                         monitor => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             monitor.monitors =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 monitor._id === action.payload.projectId
-                                    ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    ? 
                                       monitor.monitors.map(
                                           (monitor: $TSFixMe) => {
                                               if (
@@ -920,7 +920,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               }
                                           }
                                       )
-                                    : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    : 
                                       monitor.monitors;
                             return monitor;
                         }
@@ -973,9 +973,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
         case 'UPDATE_MONITOR_LOG': {
             const isPresent =
                 state.monitorLogs &&
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 state.monitorLogs[action.payload.monitorId] &&
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 state.monitorLogs[action.payload.monitorId].logs
                     ? true
                     : false;
@@ -983,23 +983,23 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                 ? {
                       ...state.monitorLogs,
                       [action.payload.monitorId]: {
-                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          
                           ...state.monitorLogs[action.payload.monitorId],
                           logs: (() => {
-                              // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                              
                               state.monitorLogs[
                                   action.payload.monitorId
                               ].logs.unshift(action.payload.logData);
-                              // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                              
                               state.monitorLogs[
                                   action.payload.monitorId
                               ].logs.pop();
-                              // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                              
                               return state.monitorLogs[action.payload.monitorId]
                                   .logs;
                           })(),
                           count:
-                              // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                              
                               state.monitorLogs[action.payload.monitorId]
                                   .count + 1,
                       },
@@ -1024,11 +1024,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
@@ -1237,7 +1237,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
 
                         return monitor;
@@ -1255,11 +1255,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(subProject => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         subProject.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             subProject._id === action.payload.status.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   subProject.monitors.map(
                                       (monitor: $TSFixMe) => {
                                           if (
@@ -1403,7 +1403,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   )
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   subProject.monitors;
 
                         return subProject;
@@ -1420,11 +1420,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
@@ -1468,7 +1468,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -1483,11 +1483,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor.data &&
@@ -1526,7 +1526,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -1573,7 +1573,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                         monitorType === 'incomingHttpRequest' ||
                         monitorType === 'kubernetes' ||
                         monitorType === 'ip')
-                    ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    ? 
                       state.monitorCriteria.criteria[monitorType]
                     : null
             );
@@ -1605,17 +1605,17 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors.find(
                             (targetMonitor: $TSFixMe, index: $TSFixMe) => {
                                 if (
                                     targetMonitor._id ===
                                     action.payload.monitorId
                                 ) {
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                    
                                     monitor.monitors[
                                         index
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                        
                                     ].subscribers.subscribers = monitor.monitors[
                                         index
                                     ].subscribers.subscribers.filter(
@@ -1642,14 +1642,14 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
                                 ({ _id }: $TSFixMe) =>
                                     String(_id) !== String(action.payload)
                             );
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                            
                             subProjectMonitor.count =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                
                                 subProjectMonitor.monitors.length;
                             return subProjectMonitor;
                         }
@@ -1690,7 +1690,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             subProjectMonitor.monitors = subProjectMonitor.monitors.map(
                                 (monitor: $TSFixMe) => {
                                     if (
@@ -1744,7 +1744,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             subProjectMonitor.monitors = subProjectMonitor.monitors.map(
                                 (monitor: $TSFixMe) => {
                                     if (
@@ -1795,7 +1795,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
         case DELETE_PROJECT_MONITORS:
             monitors = Object.assign([], state.monitorsList.monitors);
             monitors = monitors.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'never... Remove this comment to see the full error message
+                
                 monitor => action.payload !== monitor.projectId
             );
 
@@ -1816,12 +1816,12 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId._id ||
                             action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(
@@ -1839,7 +1839,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           : [action.payload];
                                       return monitor;
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -1854,12 +1854,12 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.projectId._id ||
                             action.payload.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(
@@ -1877,7 +1877,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           : [action.payload];
                                       return monitor;
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -1892,12 +1892,12 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.data.projectId._id ||
                             action.payload.data.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(
@@ -1916,7 +1916,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           : [action.payload.data];
                                       return monitor;
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -1931,12 +1931,12 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id === action.payload.data.projectId._id ||
                             action.payload.data.projectId
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(
@@ -1955,7 +1955,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           : [action.payload.data];
                                       return monitor;
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -1971,14 +1971,14 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
                                 ({ _id }: $TSFixMe) =>
                                     String(_id) !== String(action.payload)
                             );
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                            
                             subProjectMonitor.count =
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                
                                 subProjectMonitor.monitors.length;
                             return subProjectMonitor;
                         }
@@ -1991,13 +1991,13 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                 monitorsList: {
                     ...state.monitorsList,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                        
                         monitor.monitors =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             monitor._id ===
                             (action.payload.projectId._id ||
                                 action.payload.projectId)
-                                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                ? 
                                   monitor.monitors.map((monitor: $TSFixMe) => {
                                       const monitors = action.payload.monitors.map(
                                           (monitor: $TSFixMe) =>
@@ -2057,7 +2057,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                       );
                                       return monitor;
                                   })
-                                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'never'... Remove this comment to see the full error message
+                                : 
                                   monitor.monitors;
                         return monitor;
                     }),
@@ -2130,12 +2130,12 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
         case GET_MONITOR_LOGS_FAILURE: {
             const failureLogs = {
                 ...state.monitorLogs,
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 [action.payload.monitorId]: state.monitorLogs[
                     action.payload.monitorId
                 ]
                     ? {
-                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          
                           ...state.monitorLogs[action.payload.monitorId],
                           error: action.payload.error,
                       }
@@ -2158,12 +2158,12 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
         case GET_MONITOR_LOGS_REQUEST: {
             const requestLogs = {
                 ...state.monitorLogs,
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 [action.payload.monitorId]: state.monitorLogs[
                     action.payload.monitorId
                 ]
                     ? {
-                          // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          
                           ...state.monitorLogs[action.payload.monitorId],
                           requesting: true,
                       }
@@ -2234,7 +2234,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
 
         case CLOSE_BREACHED_MONITOR_SLA_SUCCESS: {
             const slaBreaches = state.monitorSlaBreaches.slaBreaches.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 monitor => String(monitor._id) !== String(action.payload._id)
             );
 

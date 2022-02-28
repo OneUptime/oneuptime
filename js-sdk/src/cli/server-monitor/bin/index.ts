@@ -14,25 +14,25 @@ dotenv.config();
 
 import program from 'commander'
 import Promise from 'promise'
-// @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../../../../package.json'. Con... Remove this comment to see the full error message
+
 import { version } from '../../../../package.json'
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'inqu... Remove this comment to see the full error message
+
 import { prompt } from 'inquirer'
 import fs from 'fs'
 import logger from '../lib/logger'
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../lib/config"' has no exported member 'A... Remove this comment to see the full error message
+
 import { API_URL, LOG_PATH } from '../lib/config'
 import serverMonitor from '../lib/api'
 
 program
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'version' does not exist on type 'typeof ... Remove this comment to see the full error message
+    
     .version(version, '-v, --version')
     .description('OneUptime Monitoring Shell');
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'typeof imp... Remove this comment to see the full error message
+
 program.name('server-monitor');
 
 program
-    // @ts-expect-error ts-migrate(2551) FIXME: Property 'option' does not exist on type 'typeof i... Remove this comment to see the full error message
+    
     .option(
         '-p, --project-id [projectId]',
         "Use Project ID from project's API settings"
@@ -84,21 +84,21 @@ const questions = [
  * @param {Array} params - The params or questions of the cli.
  * @return {Promise} The cli params promise.
  */
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'params' implicitly has an 'any' type.
+
 const checkParams = params => {
-    // @ts-expect-error ts-migrate(7034) FIXME: Variable 'values' implicitly has type 'any[]' in s... Remove this comment to see the full error message
+    
     const values = [];
 
     return new Promise(resolve => {
         resolve(
             params.reduce(
-                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'promiseChain' implicitly has an 'any' t... Remove this comment to see the full error message
+                
                 (promiseChain, param) =>
                     promiseChain.then(() =>
                         getParamValue(params, param.name).then(value => {
                             values.push(value);
 
-                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'values' implicitly has an 'any[]' type.
+                            
                             return values;
                         })
                     ),
@@ -114,9 +114,9 @@ const checkParams = params => {
  * @param {string} name - The name of the cli param.
  * @return {Promise} The cli param value promise.
  */
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'params' implicitly has an 'any' type.
+
 const getParamValue = (params, name) => {
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'opts' does not exist on type 'typeof imp... Remove this comment to see the full error message
+    
     const options = program.opts();
     return new Promise(resolve => {
         if (options[name] === true || options[name] === undefined) {
@@ -132,9 +132,9 @@ const getParamValue = (params, name) => {
                         resolve(null);
                     } else {
                         prompt(
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'param' implicitly has an 'any' type.
+                            
                             params.filter(param => param.name === name)
-                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'values' implicitly has an 'any' type.
+                        
                         ).then(values => {
                             resolve(values[name]);
                         });
@@ -149,32 +149,32 @@ const getParamValue = (params, name) => {
 
 /** Init server monitor cli. */
 checkParams(questions).then(values => {
-    // @ts-expect-error ts-migrate(2488) FIXME: Type 'unknown' must have a '[Symbol.iterator]()' m... Remove this comment to see the full error message
+    
     const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
     if (daemon) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'platform' does not exist on type 'ThenPr... Remove this comment to see the full error message
+        
         import os from 'os').platform(
 
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'let'.
+        
         let Service;
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'os'.
+        
         switch (os) {
             case 'linux':
-                // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'Service'.
+                
                 Service = require('node-linux').Service;
                 break;
             case 'darwin':
-                // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'Service'.
+                
                 Service = require('node-mac').Service;
                 break;
             case 'win32':
-                // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'Service'.
+                
                 Service = require('node-windows').Service;
                 break;
         }
 
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'Service'.
+        
         const svc = new Service({
             name: 'OneUptime Server Monitor',
             description: 'OneUptime Monitoring Shell',
@@ -186,7 +186,7 @@ checkParams(questions).then(values => {
                 },
                 {
                     name: 'apiUrl',
-                    // @ts-expect-error ts-migrate(2552) FIXME: Cannot find name 'apiUrl'. Did you mean 'API_URL'?
+                    
                     value: apiUrl,
                 },
                 {
@@ -195,7 +195,7 @@ checkParams(questions).then(values => {
                 },
                 {
                     name: 'monitorId',
-                    // @ts-expect-error ts-migrate(2552) FIXME: Cannot find name 'monitorId'. Did you mean '_monit... Remove this comment to see the full error message
+                    
                     value: monitorId,
                 },
             ],
@@ -224,48 +224,48 @@ checkParams(questions).then(values => {
             logger.info('OneUptime Server Monitor uninstalled');
         });
 
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'daemon'.
+        
         if (daemon === 'errors') {
             logger.error(
-                // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'os'.
+                
                 fs.readFileSync(LOG_PATH[os].error, {
                     encoding: 'utf8',
                     flag: 'r',
                 })
             );
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'daemon'.
+        
         } else if (daemon === 'logs') {
             logger.info(
-                // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'os'.
+                
                 fs.readFileSync(LOG_PATH[os].log, {
                     encoding: 'utf8',
                     flag: 'r',
                 })
             );
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'daemon'.
+        
         } else if (daemon === 'uninstall') {
             svc.uninstall();
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'daemon'.
+        
         } else if (daemon === 'stop') {
             svc.stop();
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'daemon'.
+        
         } else if (daemon === 'restart') {
             svc.restart();
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'daemon'.
+        
         } else if (daemon === 'start') {
             svc.start();
         } else if (
             projectId &&
-            // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'apiUrl'.
+            
             apiUrl &&
             apiKey &&
-            // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'monitorId'.
+            
             monitorId &&
-            // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'daemon'.
+            
             (typeof daemon === 'boolean' || daemon === 'install')
         ) {
             svc.install();
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'monitorId'.
+        
         } else if (!monitorId) {
             logger.error('Server Monitor ID is required');
 
@@ -278,29 +278,29 @@ checkParams(questions).then(values => {
             process.exitCode = 1;
         }
     } else {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 1.
+        
         serverMonitor({
             projectId,
-            // @ts-expect-error ts-migrate(18004) FIXME: No value exists in scope for the shorthand propert... Remove this comment to see the full error message
+            
             apiUrl,
             apiKey,
             monitorId:
-                // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'monitorId'.
+                
                 monitorId ||
-                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'data' implicitly has an 'any' type.
+                
                 (data => {
                     return new Promise(resolve => {
                         const question = questions.filter(
                             param => param.name === 'monitorId'
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'choices' does not exist on type '{ type:... Remove this comment to see the full error message
+                        
                         question[0].choices = data.map(
-                            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+                            
                             monitor =>
                                 `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`
                         );
 
-                        // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'monitorId' implicitly has an 'any... Remove this comment to see the full error message
+                        
                         prompt(question).then(({ monitorId }) => {
                             resolve(
                                 monitorId

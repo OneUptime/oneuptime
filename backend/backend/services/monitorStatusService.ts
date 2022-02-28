@@ -1,9 +1,9 @@
 export default {
     create: async function(data: $TSFixMe) {
         const query = {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
+        
         if (data.monitorId) query.monitorId = data.monitorId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
+        
         if (data.probeId) query.probeId = data.probeId;
 
         const select = '_id status lastStatus';
@@ -42,18 +42,18 @@ export default {
 
             const monitorStatus = new MonitorStatusModel();
             if (data.lastStatus) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastStatus' does not exist on type 'Docu... Remove this comment to see the full error message
+                
                 monitorStatus.lastStatus = data.lastStatus;
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
+            
             monitorStatus.monitorId = data.monitorId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type 'Documen... Remove this comment to see the full error message
+            
             monitorStatus.probeId = data.probeId || null;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
+            
             monitorStatus.incidentId = data.incidentId || null;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'manuallyCreated' does not exist on type ... Remove this comment to see the full error message
+            
             monitorStatus.manuallyCreated = data.manuallyCreated || false;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
+            
             monitorStatus.status = data.status;
 
             const savedMonitorStatus = await monitorStatus.save();
@@ -70,9 +70,9 @@ export default {
         const dataList = [];
         for (const data of allData) {
             const query = {};
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
+            
             if (data.monitorId) query.monitorId = data.monitorId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
+            
             if (data.probeId) query.probeId = data.probeId;
 
             const select = '_id status lastStatus';
@@ -116,7 +116,7 @@ export default {
         if (dataList.length > 0) {
             const docs = await MonitorStatusModel.insertMany(dataList);
             // we don't want to await this ):
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'forEach' does not exist on type 'Documen... Remove this comment to see the full error message
+            
             docs.forEach((doc: $TSFixMe) => _this.sendMonitorStatus(doc));
 
             return docs;

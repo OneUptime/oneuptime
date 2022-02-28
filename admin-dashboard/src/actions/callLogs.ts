@@ -32,9 +32,9 @@ export const fetchCallLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
     dispatch(fetchCallLogsRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(`call-logs?skip=${skip}&limit=${limit}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(fetchCallLogsSuccess(data));
@@ -89,12 +89,12 @@ export const searchCallLogs = (
     dispatch(searchCallLogsRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi(
             `call-logs/search?skip=${skip}&limit=${limit}`,
             values
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
 
         dispatch(searchCallLogsSuccess(data));
@@ -140,9 +140,9 @@ export const deleteCallLogs = () => async (dispatch: $TSFixMe) => {
     dispatch(deleteCallLogsRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(`call-logs`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const message = response.data.message;
 
         dispatch(deleteCallLogsSuccess(message));
@@ -193,13 +193,13 @@ export const resetFetchCallLogStatus = () => {
 
 // Calls the API to fetch callLogStatus
 export const fetchCallLogStatus = () => async (dispatch: $TSFixMe) => {
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+    
     dispatch(fetchCallLogStatusRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi('globalConfig/callLogMonitoringStatus');
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchCallLogStatusSuccess(response.data));
         return response;
     } catch (error) {
@@ -252,15 +252,15 @@ export const resetConfirmCallLogStatus = () => {
 export const callLogStatusChange = (values: $TSFixMe) => async (
     dispatch: $TSFixMe
 ) => {
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+    
     dispatch(changeCallLogStatusRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi('globalConfig/', [
             { name: 'callLogMonitoringStatus', value: values.status },
         ]);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
         dispatch(changeCallLogStatusSuccess(data));
         return data;

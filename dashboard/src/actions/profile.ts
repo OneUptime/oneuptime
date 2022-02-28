@@ -79,7 +79,7 @@ export function updateProfileSetting(values: $TSFixMe) {
         dispatch(updateProfileSettingRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const profileSettings = response.data;
                 dispatch(updateProfileSettingSuccess(profileSettings));
                 return profileSettings;
@@ -110,7 +110,7 @@ export function updatePushNotification(data: $TSFixMe) {
         dispatch(updatePushNotificationRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const profileSettings = response.data;
                 dispatch(updatePushNotificationSuccess(profileSettings));
                 return profileSettings;
@@ -161,7 +161,7 @@ export function verifyTwoFactorAuthToken(values: $TSFixMe) {
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
@@ -208,12 +208,12 @@ export function generateTwoFactorQRCodeError(error: $TSFixMe) {
 
 export function generateTwoFactorQRCode(userId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = postApi(`user/totp/token/${userId}`);
         dispatch(generateTwoFactorQRCodeRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const payload = response.data;
                 dispatch(generateTwoFactorQRCodeSuccess(payload));
                 return payload;
@@ -245,7 +245,7 @@ export function updateTwoFactorAuthToken(data: $TSFixMe) {
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
@@ -363,7 +363,7 @@ export function userSettings() {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const settings = response.data;
                 dispatch(userSettingsSuccess(settings));
                 return settings;
@@ -482,7 +482,7 @@ export function sendVerificationSMS(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const vericationAction = response.data;
                 dispatch(sendVerificationSMSSuccess(vericationAction));
                 return vericationAction;
@@ -541,7 +541,7 @@ export function verifySMSCode(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const verificationResult = response.data;
                 dispatch(verifySMSCodeSuccess(verificationResult));
                 return verificationResult;
@@ -684,7 +684,7 @@ export function deleteAccount(userId: $TSFixMe, confirmation: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteAccountSuccess(response.data));
                 return response;
             },
@@ -724,13 +724,13 @@ const generateBackupCodesFailure = (payload: $TSFixMe) => ({
 
 export const generateBackupCodes = () => {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = postApi(`user/generate/backupCode`);
         dispatch(generateBackupCodesRequest());
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(generateBackupCodesSuccess(response.data));
                 return response;
             },

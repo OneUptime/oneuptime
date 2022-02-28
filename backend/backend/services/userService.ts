@@ -27,69 +27,69 @@ export default {
     create: async function(data: $TSFixMe) {
         if (!data.email) {
             const error = new Error('Email address can not be empty');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
         const userModel = new UserModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         userModel.name = data.name || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         userModel.email = data.email || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         userModel.role = data.role || 'user';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyName' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         userModel.companyName = data.companyName || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyRole' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         userModel.companyRole = data.companyRole || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companySize' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         userModel.companySize = data.companySize || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'referral' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         userModel.referral = data.referral || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyPhoneNumber' does not exist on ty... Remove this comment to see the full error message
+        
         userModel.companyPhoneNumber = data.companyPhoneNumber || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onCallAlert' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         userModel.onCallAlert = data.onCallAlert || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         userModel.profilePic = data.profilePic || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripeCustomerId' does not exist on type... Remove this comment to see the full error message
+        
         userModel.stripeCustomerId = data.stripeCustomerId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordToken' does not exist on ty... Remove this comment to see the full error message
+        
         userModel.resetPasswordToken = data.resetPasswordToken || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetPasswordExpires' does not exist on ... Remove this comment to see the full error message
+        
         userModel.resetPasswordExpires = data.resetPasswordExpires || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         userModel.createdAt = data.createdAt || Date.now();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'timezone' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         userModel.timezone = data.timezone || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastActive' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         userModel.lastActive = data.lastActive || Date.now();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'coupon' does not exist on type 'Document... Remove this comment to see the full error message
+        
         userModel.coupon = data.coupon || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'adminNotes' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         userModel.adminNotes = data.adminNotes || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tempEmail' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         userModel.tempEmail = data.tempEmail || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'twoFactorAuthEnabled' does not exist on ... Remove this comment to see the full error message
+        
         userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'twoFactorSecretCode' does not exist on t... Remove this comment to see the full error message
+        
         userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'otpauth_url' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         userModel.otpauth_url = data.otpauth_url || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type 'Document... Remove this comment to see the full error message
+        
         userModel.source = data.source || null;
         if (data.password) {
             const hash = await bcrypt.hash(data.password, constants.saltRounds);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type 'Docume... Remove this comment to see the full error message
+            
             userModel.password = hash;
         }
         // setting isVerified true for master admin
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isVerified' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         if (data.role == 'master-admin') userModel.isVerified = true;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'jwtRefreshToken' does not exist on type ... Remove this comment to see the full error message
+        
         userModel.jwtRefreshToken = randToken.uid(256);
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'Document<an... Remove this comment to see the full error message
+        
         if (data.sso) userModel.sso = data.sso;
 
         const user = await userModel.save();
@@ -144,7 +144,7 @@ export default {
 
         if ((user && !IS_SAAS_SERVICE) || user) {
             // find user subprojects and parent projects
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { 'users.userId': any; ... Remove this comment to see the full error message
+            
             let userProjects = await ProjectService.findBy({
                 query: { 'users.userId': user._id },
                 select: 'parentProjectId',
@@ -174,7 +174,7 @@ export default {
             ];
             const selectProject =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: { _id: { $in: an... Remove this comment to see the full error message
+            
             userProjects = await ProjectService.findBy({
                 query: {
                     $or: [
@@ -293,7 +293,7 @@ export default {
         });
         const verificationToken = await verificationTokenModel.save();
         if (verificationToken) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+            
             const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
             // Checking for already verified user so that he/she will not recieve another email verification
             try {
@@ -318,7 +318,7 @@ export default {
                     });
             }
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'token' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         return verificationToken.token;
     },
     //Description: signup function for new user.
@@ -339,7 +339,7 @@ export default {
 
             if (user) {
                 const error = new Error('User already exists.');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             } else {
@@ -353,7 +353,7 @@ export default {
                         const error = new Error(
                             'Unsuccessful attempt to charge card'
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                        
                         error.code = 400;
                         throw error;
                     }
@@ -419,7 +419,7 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -570,14 +570,14 @@ export default {
 
             if (!user) {
                 const error = new Error('User does not exist.');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             } else if (user.sso) {
                 const error = new Error(
                     'This domain is configured as SSO. Please use SSO to log in to your account'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 401;
                 throw error;
             } else {
@@ -585,7 +585,7 @@ export default {
                     // calculate number of days the subscription renewal has failed.
                     const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
                     const daysAfterPaymentFailed = Math.round(
-                        // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
+                        
                         (new Date() - user.paymentFailedDate) /
                             oneDayInMilliSeconds
                     );
@@ -599,7 +599,7 @@ export default {
                         const error = new Error(
                             'Your account has been disabled. Kindly contact support@oneuptime.com'
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                        
                         error.code = 400;
                         throw error;
                     }
@@ -610,7 +610,7 @@ export default {
                     const error = new Error(
                         'Your account has been disabled. Kindly contact support@oneuptime.com'
                     );
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                    
                     error.code = 400;
                     throw error;
                 }
@@ -620,7 +620,7 @@ export default {
                     NODE_ENV !== 'development'
                 ) {
                     const error = new Error('Verify your email first.');
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                    
                     error.code = 401;
                     throw error;
                 }
@@ -628,7 +628,7 @@ export default {
                     const error = new Error(
                         'Your account does not exist. Please sign up.'
                     );
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                    
                     error.code = 400;
                     throw error;
                 } else {
@@ -671,7 +671,7 @@ export default {
                             userAgent,
                             'incorrect password'
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                        
                         error.code = 400;
                         throw error;
                     }
@@ -679,7 +679,7 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -699,7 +699,7 @@ export default {
 
             if (!user) {
                 const error = new Error('User does not exist.');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             } else {
@@ -708,7 +708,7 @@ export default {
                     const error = new Error(
                         'Your account is currently under maintenance. Please try again later'
                     );
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                    
                     error.code = 400;
                     throw error;
                 }
@@ -730,7 +730,7 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -761,7 +761,7 @@ export default {
                 const error = new Error(
                     'Your account is currently under maintenance. Please try again later'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -793,7 +793,7 @@ export default {
             const error = new Error(
                 'A temporary password is required for admin mode'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -805,7 +805,7 @@ export default {
 
         if (!user) {
             const error = new Error('User not found');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
@@ -845,14 +845,14 @@ export default {
 
         if (!user) {
             const error = new Error('User not found');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
             // ensure user is in admin mode
             if (!user.isAdminMode) {
                 const error = new Error('User is not currently in admin mode');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -887,7 +887,7 @@ export default {
 
         if (!user) {
             const error = new Error('Invalid Refresh Token');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
@@ -924,7 +924,7 @@ export default {
             const error = new Error(
                 'Your account is currently under maintenance. Please try again later'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -942,7 +942,7 @@ export default {
             return user;
         } else {
             const error = new Error('Current Password is incorrect.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -961,7 +961,7 @@ export default {
         users = await Promise.all(
             users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { 'users.userId': any; ... Remove this comment to see the full error message
+                
                 let userProjects = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
@@ -991,7 +991,7 @@ export default {
                 const populate = [{ path: 'parentProjectId', select: 'name' }];
                 const select =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: { _id: { $in: an... Remove this comment to see the full error message
+                
                 userProjects = await ProjectService.findBy({
                     query: {
                         $or: [
@@ -1068,7 +1068,7 @@ export default {
         users = await Promise.all(
             users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { 'users.userId': any; ... Remove this comment to see the full error message
+                
                 let userProjects = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
@@ -1098,7 +1098,7 @@ export default {
                 const populate = [{ path: 'parentProjectId', select: 'name' }];
                 const select =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: { _id: { $in: an... Remove this comment to see the full error message
+                
                 userProjects = await ProjectService.findBy({
                     query: {
                         $or: [
@@ -1133,9 +1133,9 @@ export default {
     },
 };
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'bcry... Remove this comment to see the full error message
+
 import bcrypt from 'bcrypt';
-// @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../config/constants.json'. Con... Remove this comment to see the full error message
+
 import constants from '../config/constants.json';
 import UserModel from '../models/user';
 import util from './utilService.js';
@@ -1144,18 +1144,18 @@ import PaymentService from './paymentService';
 import crypto from 'crypto';
 import ProjectService from './projectService';
 import ErrorService from 'common-server/utils/error';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'json... Remove this comment to see the full error message
+
 import jwt from 'jsonwebtoken';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'geoi... Remove this comment to see the full error message
+
 import geoip from 'geoip-lite';
 const jwtSecretKey = process.env['JWT_SECRET'];
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
+
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV } = process.env;
 import VerificationTokenModel from '../models/verificationToken';
 import MailService from '../services/mailService';
 import AirtableService from './airtableService';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'spea... Remove this comment to see the full error message
+
 import speakeasy from 'speakeasy';
 import { hotp } from 'otplib';
 import LoginHistoryService from './loginHistoryService';

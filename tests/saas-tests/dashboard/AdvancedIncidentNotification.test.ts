@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,13 +12,13 @@ const user = {
     email,
     password,
 };
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Project Settings Page - (Email and SMS & Calls)', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(operationTimeOut);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -29,13 +29,13 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should enable sending email notification when incident is created, acknowledged, resolved or investigated',
         async (done: $TSFixMe) => {
@@ -47,17 +47,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -109,7 +109,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should disable sending email notification when incident is created',
         async (done: $TSFixMe) => {
@@ -121,17 +121,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -146,7 +146,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendCreatedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -174,7 +174,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should disable sending email notification when incident is acknowledged',
         async (done: $TSFixMe) => {
@@ -186,17 +186,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -211,7 +211,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendAcknowledgedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -239,7 +239,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should disable sending email notification when incident is resolved',
         async (done: $TSFixMe) => {
@@ -251,17 +251,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -276,7 +276,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendResolvedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -304,7 +304,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should disable sending email notification for investigation note',
         async (done: $TSFixMe) => {
@@ -316,17 +316,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -341,7 +341,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#enableInvestigationNoteNotificationEmail',
                 (elem: $TSFixMe) => elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -369,7 +369,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should enable sending sms notification when incident is created, acknowledged, resolved or investigated',
         async (done: $TSFixMe) => {
@@ -381,17 +381,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#smsCalls');
 
             await init.pageWaitForSelector(
@@ -444,7 +444,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should disable sending sms notification when incident is created',
         async (done: $TSFixMe) => {
@@ -456,17 +456,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#smsCalls');
 
             await init.pageWaitForSelector(
@@ -482,7 +482,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendCreatedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -511,7 +511,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should disable sending sms notification when incident is acknowledged',
         async (done: $TSFixMe) => {
@@ -523,17 +523,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#smsCalls');
             await init.pageWaitForSelector(
                 page,
@@ -547,7 +547,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendAcknowledgedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -575,7 +575,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should disable sending sms notification when incident is resolved',
         async (done: $TSFixMe) => {
@@ -587,21 +587,21 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#smsCalls');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(
                 page,
@@ -616,7 +616,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendResolvedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -644,7 +644,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         },
         operationTimeOut
     );
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should disable sending sms notification for investigation note',
         async (done: $TSFixMe) => {
@@ -656,17 +656,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#smsCalls');
 
             await init.pageWaitForSelector(
@@ -681,7 +681,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#enableInvestigationNoteNotificationSMS',
                 (elem: $TSFixMe) => elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {

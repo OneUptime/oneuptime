@@ -1,6 +1,6 @@
 import ContainerSecurityModel from '../models/containerSecurity';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
+
 import { decrypt } from '../config/encryptDecrypt';
 import ContainerSecurityLogService from './containerSecurityLogService';
 import DockerCredentialService from './dockerCredentialService';
@@ -38,7 +38,7 @@ export default {
             const error = new Error(
                 'Container security with this name already exist in this component'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -47,7 +47,7 @@ export default {
             const error = new Error(
                 'Container security with this image path already exist in this component'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -56,7 +56,7 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -136,7 +136,7 @@ export default {
         );
 
         if (unsetData) {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -150,7 +150,7 @@ export default {
             const error = new Error(
                 'Container Security not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -183,7 +183,7 @@ export default {
             const error = new Error(
                 'Container Security not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -195,7 +195,7 @@ export default {
 
         if (securityLog) {
             await ContainerSecurityLogService.deleteBy({
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 _id: securityLog._id,
             });
         }

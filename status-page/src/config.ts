@@ -1,6 +1,6 @@
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'sane... Remove this comment to see the full error message
+
 import isEmail from 'sane-email-validation';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'vali... Remove this comment to see the full error message
+
 import validUrl from 'valid-url';
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
@@ -8,7 +8,7 @@ let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
 export function env(value: $TSFixMe) {
-    // @ts-expect-error ts-migrate(2339) FIXME: Property '_env' does not exist on type 'Window & t... Remove this comment to see the full error message
+    
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -192,7 +192,7 @@ export function getServiceStatus(monitorsData: $TSFixMe, probes: $TSFixMe) {
 
     monitorsData.forEach((monitor: $TSFixMe) => {
         probes.forEach((probe: $TSFixMe) => {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const statuses = filterProbeData(monitor, probe);
             const monitorStatus = monitor.status
                 ? monitor.status
@@ -292,7 +292,7 @@ export const handleResources = (
         return 'All resources are affected';
     } else {
         const result = affectedMonitors
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+            
             .map(monitor => capitalize(monitor.name))
             .join(', ')
             .replace(/, ([^,]*)$/, ' and $1');
@@ -302,12 +302,12 @@ export const handleResources = (
 
 export const cacheProvider = {
     get: (language: $TSFixMe, key: $TSFixMe) =>
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | null' is not assignable... Remove this comment to see the full error message
+        
         ((JSON.parse(localStorage.getItem('translations')) || {})[key] || {})[
             language
         ],
     set: (language: $TSFixMe, key: $TSFixMe, value: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | null' is not assignable... Remove this comment to see the full error message
+        
         const existing = JSON.parse(localStorage.getItem('translations')) || {
             [key]: {},
         };

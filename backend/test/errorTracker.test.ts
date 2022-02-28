@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
@@ -8,9 +8,9 @@ chai.use(chaihttp);
 chai.use(require(..set'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp'
 import VerificationTokenModel from '../backend/models/verificationToken'
 
@@ -25,11 +25,11 @@ let token: $TSFixMe,
     errorEventMembers = 0;
 const sampleErrorEvent = {};
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Error Tracker API', function() {
     this.timeout(80000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function( done: $TSFixMe) {
         this.timeout(95000);
         GlobalConfig.initTestConfig().then(function() {
@@ -76,7 +76,7 @@ describe('Error Tracker API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post(`/error-tracker/${projectId}/${componentId}/create`)
@@ -88,7 +88,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject the request of an empty error tracker name', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -102,7 +102,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an error tracker', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -118,7 +118,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return a list of error trackers under component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -130,7 +130,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not return a list of error trackers under wrong component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -145,7 +145,7 @@ describe('Error Tracker API', function() {
             });
     });
     // reset api key
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reset error tracker key', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const currentKey = errorTracker.key;
@@ -163,7 +163,7 @@ describe('Error Tracker API', function() {
             });
     });
     // edit error tracker details
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update the current error tracker name', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const appName = 'Python API App';
@@ -183,7 +183,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should request for eventId for tracking an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -196,10 +196,10 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should request for fingerprint for tracking an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -213,12 +213,12 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should request for fingerprint as an array for tracking an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+        
         sampleErrorEvent.fingerprint = 'fingerprint';
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -232,12 +232,12 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should request for error event type for tracking an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+        
         sampleErrorEvent.fingerprint = ['fingerprint'];
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -251,14 +251,14 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should request for tags for tracking an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+        
         sampleErrorEvent.fingerprint = ['fingerprint'];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+        
         sampleErrorEvent.type = 'exception';
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -270,18 +270,18 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should request for timeline in array format for tracking an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+        
         sampleErrorEvent.fingerprint = ['fingerprint'];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+        
         sampleErrorEvent.type = 'exception';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tags' does not exist on type '{}'.
+        
         sampleErrorEvent.tags = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeline' does not exist on type '{}'.
+        
         sampleErrorEvent.timeline = 'done';
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -295,16 +295,16 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should request for exception for tracking an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+        
         sampleErrorEvent.fingerprint = ['fingerprint'];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+        
         sampleErrorEvent.type = 'exception';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeline' does not exist on type '{}'.
+        
         sampleErrorEvent.timeline = [];
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -316,20 +316,20 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should declare Error Tracker not existing for an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+        
         sampleErrorEvent.fingerprint = ['fingerprint'];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+        
         sampleErrorEvent.type = 'exception';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeline' does not exist on type '{}'.
+        
         sampleErrorEvent.timeline = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tags' does not exist on type '{}'.
+        
         sampleErrorEvent.tags = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'exception' does not exist on type '{}'.
+        
         sampleErrorEvent.exception = {};
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -343,22 +343,22 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an error event and set a fingerprint hash and issueId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+        
         sampleErrorEvent.fingerprint = ['fingerprint'];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+        
         sampleErrorEvent.type = 'exception';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeline' does not exist on type '{}'.
+        
         sampleErrorEvent.timeline = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tags' does not exist on type '{}'.
+        
         sampleErrorEvent.tags = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'exception' does not exist on type '{}'.
+        
         sampleErrorEvent.exception = {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerKey' does not exist on type ... Remove this comment to see the full error message
+        
         sampleErrorEvent.errorTrackerKey = errorTracker.key;
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -367,7 +367,7 @@ describe('Error Tracker API', function() {
             .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 errorEvent = res.body; // save as an error event
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+                
                 expect(errorEvent.type).to.be.equal(sampleErrorEvent.type);
                 expect(errorEvent).to.have.property('fingerprintHash');
                 expect(errorEvent).to.have.property('issueId');
@@ -376,22 +376,22 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a new error event with the old fingerprint, create a new one with a different fingerprint and confirm the two have different issueId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventId' does not exist on type '{}'.
+        
         sampleErrorEvent.eventId = 'samplId';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+        
         sampleErrorEvent.fingerprint = ['fingerprint'];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+        
         sampleErrorEvent.type = 'exception';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeline' does not exist on type '{}'.
+        
         sampleErrorEvent.timeline = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tags' does not exist on type '{}'.
+        
         sampleErrorEvent.tags = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'exception' does not exist on type '{}'.
+        
         sampleErrorEvent.exception = {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerKey' does not exist on type ... Remove this comment to see the full error message
+        
         sampleErrorEvent.errorTrackerKey = errorTracker.key;
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
@@ -400,7 +400,7 @@ describe('Error Tracker API', function() {
             .end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200); // weve created an error event with the existing issue fingerprint
                 expect(res.body.issueId).to.be.equal(errorEvent.issueId);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fingerprint' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 sampleErrorEvent.fingerprint = ['random', 'testing'];
                 request
                     .post(`/error-tracker/${errorTracker._id}/track`)
@@ -422,7 +422,7 @@ describe('Error Tracker API', function() {
                     });
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return a list of issues under an error event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -437,7 +437,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return a list of issues under an error event based on limit', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const limit = 1;
@@ -454,7 +454,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return an error event with its next and previous', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -471,7 +471,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return an error when trying to ignore an issue without passing the IssueID', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -485,7 +485,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return an error when trying to ignore an issue without passing an array of issues', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -502,7 +502,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return an error when trying to ignore an issue without passing a valid action type', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -517,7 +517,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should ignore an issue successfully', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -538,7 +538,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should resolve an issue and change the ignore state successfully', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -562,7 +562,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should unresolve an issue and change the ignore and resolved state successfully', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -585,7 +585,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not fetch errors attached to a fingerprint if fingerprint is not provided', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -601,7 +601,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fetch errors attached to a fingerprint successfully', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -619,7 +619,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fetch errors attached to a fingerprint successfully based on limit', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const limit = 1;
@@ -636,7 +636,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fetch members attached to an issue successfully', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -656,7 +656,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not assign member to issue due to no member ID passed', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -672,7 +672,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not assign member to issue if member ID is not of required type', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -689,7 +689,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should assign member to issue if member ID is of required type', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -710,7 +710,7 @@ describe('Error Tracker API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should unassign member to issue if member ID is of required type', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -728,7 +728,7 @@ describe('Error Tracker API', function() {
             });
     });
     // delete error tracker
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete the error tracker', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

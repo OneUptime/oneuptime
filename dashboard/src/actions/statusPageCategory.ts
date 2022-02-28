@@ -29,7 +29,7 @@ export const createStatusPageCategory = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(createStatusPageCategorySuccess(response.data));
         },
         function(error) {
@@ -79,7 +79,7 @@ export const updateStatusPageCategory = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(updateStatusPageCategorySuccess(response.data));
         },
         function(error) {
@@ -133,7 +133,7 @@ export const fetchStatusPageCategories = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchStatusPageCategoriesSuccess(response.data));
         },
         function(error) {
@@ -187,7 +187,7 @@ export const fetchAllStatusPageCategories = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
         },
         function(error) {
@@ -226,7 +226,7 @@ export const deleteStatusPageCategory = ({
     projectId,
     statusPageCategoryId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+    
     const promise = deleteApi(
         `statusPageCategory/${projectId}/${statusPageCategoryId}`
     );
@@ -234,7 +234,7 @@ export const deleteStatusPageCategory = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(updateStatusPageCategorySuccess(response.data));
         },
         function(error) {

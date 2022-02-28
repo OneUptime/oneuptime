@@ -56,23 +56,23 @@ export default {
         if (globalConfig && globalConfig.value) {
             let item = new EmailStatusModel();
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
+            
             item.status = status;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'from' does not exist on type 'Document<a... Remove this comment to see the full error message
+            
             item.from = from;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'to' does not exist on type 'Document<any... Remove this comment to see the full error message
+            
             item.to = to;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subject' does not exist on type 'Documen... Remove this comment to see the full error message
+            
             item.subject = subject;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type 'Document<a... Remove this comment to see the full error message
+            
             item.body = body;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type 'Docume... Remove this comment to see the full error message
+            
             item.template = template;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
+            
             item.content = content;
-            // @ts-expect-error ts-migrate(2551) FIXME: Property 'error' does not exist on type 'Document<... Remove this comment to see the full error message
+            
             item.error = error;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpServer' does not exist on type 'Docu... Remove this comment to see the full error message
+            
             item.smtpServer = smtpServer;
             item = await item.save();
 

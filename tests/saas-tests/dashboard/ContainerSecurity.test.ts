@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,13 +12,13 @@ const component = 'TestComponent';
 const containerSecurityName = 'Test';
 const newContainerSecurityName = 'Byter';
 let browser: $TSFixMe, page: $TSFixMe;
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Container Security Page', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(operationTimeOut);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,13 +34,13 @@ describe('Container Security Page', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create an application security with a resource category and ensure it redirects to the details page and has category attached',
         async (done: $TSFixMe) => {
@@ -62,66 +62,66 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#container');
 
             await init.pageWaitForSelector(page, '#containerSecurityForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addCredentialBtn');
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#dockerRegistryUrl');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#dockerUsername');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#dockerUsername', dockerUsername);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#dockerPassword');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#dockerPassword', dockerPassword);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addCredentialModalBtn');
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 hidden: true,
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', containerSecurityName);
             // await init.selectDropdownValue(
             //     '#resourceCategory',
             //     categoryName,
             //     page
             // ); // add category
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#dockerCredential');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#dockerCredential', dockerUsername);
             await page.keyboard.press('Enter');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#imagePath');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#imagePath', imagePath);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#imageTags');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#imageTags', imageTags);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addContainerBtn');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -135,7 +135,7 @@ describe('Container Security Page', () => {
             expect(containerSecurity).toBeDefined();
 
             // find the edit button which appears only on the details page
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const editContainerElement = await init.pageWaitForSelector(
                 page,
                 `#edit_${containerSecurityName}`
@@ -156,33 +156,33 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test('should scan a container security', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL);
         await init.pageWaitForSelector(page, '#components', {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#components');
 
         await init.pageWaitForSelector(page, '#component0', {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, `#more-details-${component}`);
         await init.pageWaitForSelector(page, '#security', {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#security');
         await init.pageWaitForSelector(page, '#container', {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#container');
         await init.pageWaitForSelector(page, '#largeSpinner', {
             hidden: true,
@@ -192,7 +192,7 @@ describe('Container Security Page', () => {
             `#scanningContainerSecurity_${containerSecurityName}`,
             { hidden: true, timeout: 600000 } //Pinging takes 5 minutes and scanning takes some more time
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(
             page,
             `#moreContainerSecurity_${containerSecurityName}`
@@ -210,7 +210,7 @@ describe('Container Security Page', () => {
         done();
     }, 600000);
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should view details of the security log',
         async (done: $TSFixMe) => {
@@ -219,31 +219,31 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
@@ -264,7 +264,7 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should also view details of the security log on clicking the issue count section',
         async (done: $TSFixMe) => {
@@ -273,32 +273,32 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#issueCount');
             const securityLog = await init.pageWaitForSelector(
                 page,
@@ -316,7 +316,7 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should display log(s) of a container security scan',
         async (done: $TSFixMe) => {
@@ -325,31 +325,31 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
@@ -361,7 +361,7 @@ describe('Container Security Page', () => {
             });
             // make sure the added container security
             // have atlest one security vulnerability
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const logs = await init.page$$(page, '#securityLog tbody tr');
             expect(logs.length).toBeGreaterThanOrEqual(1);
 
@@ -370,7 +370,7 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should edit container security',
         async (done: $TSFixMe) => {
@@ -379,31 +379,31 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
@@ -417,16 +417,16 @@ describe('Container Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#edit_${containerSecurityName}`);
             await init.pageWaitForSelector(page, '#editContainerSecurityForm', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#name', { clickCount: 3 });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', newContainerSecurityName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#editContainerBtn');
             await init.pageWaitForSelector(page, '#editContainerSecurityForm', {
                 hidden: true,
@@ -444,7 +444,7 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should delete container security',
         async (done: $TSFixMe) => {
@@ -453,36 +453,36 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${newContainerSecurityName}`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.advanced-options-tab');
             await init.pageWaitForSelector(
                 page,
@@ -492,7 +492,7 @@ describe('Container Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#deleteContainerSecurityBtn');
             await init.pageWaitForSelector(
                 page,
@@ -502,7 +502,7 @@ describe('Container Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#deleteContainerSecurityModalBtn');
 
             const containerSecurity = await init.pageWaitForSelector(

@@ -2,7 +2,7 @@ import express from 'express';
 
 const router = express.Router();
 import NotificationService from '../services/notificationService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
@@ -15,9 +15,9 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     res
 ) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const subProjectIds = req.user.subProjects
-            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            ? 
               req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
 
@@ -59,7 +59,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
 router.put('/:projectId/read', getUser, isAuthorized, async function(req, res) {
     try {
         // const notificationId = req.params.notificationId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
 
         const { notificationIds } = req.body;
@@ -87,7 +87,7 @@ router.put(
     async function(req, res) {
         try {
             const notificationId = req.params.notificationId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
             const notification = await NotificationService.updateOneBy(
                 { _id: notificationId },
@@ -97,7 +97,7 @@ router.put(
                 return sendItemResponse(req, res, notification);
             } else {
                 const error = new Error('Notification not found.');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
@@ -114,12 +114,12 @@ router.put(
     getSubProjects,
     async function(req, res) {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
             const notifications = await NotificationService.updateManyBy(
                 { projectId: { $in: subProjectIds } },
@@ -133,7 +133,7 @@ router.put(
                 });
             } else {
                 const error = new Error('No notification found.');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
@@ -158,7 +158,7 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function(
             return sendItemResponse(req, res, notification);
         } else {
             const error = new Error('Notification not found.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -170,10 +170,10 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function(
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         const data = req.body;
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+        
         const notification = await NotificationService.create(
             projectId,
             data.message,

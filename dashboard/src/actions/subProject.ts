@@ -40,9 +40,9 @@ export function getSubProjects(projectId: $TSFixMe, skip = 0, limit = 10) {
         promise.then(
             function(subProjects) {
                 const subData = {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     subProjects: subProjects.data.data,
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     count: subProjects.data.count,
                     skip,
                     limit,
@@ -119,9 +119,9 @@ export function createSubProject(
 
         return promise.then(
             function(subProject) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createSubProjectSuccess(subProject.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return subProject.data;
             },
             function(error) {

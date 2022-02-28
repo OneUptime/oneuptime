@@ -25,7 +25,7 @@ let registerService;
 export function register(config: $TSFixMe) {
     if ('serviceWorker' in navigator) {
         // The URL constructor is available in all browsers that support SW.
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+        
         const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
         if (publicUrl.origin !== window.location.origin) {
             // Our service worker won't work if PUBLIC_URL is on a different origin
@@ -55,12 +55,12 @@ export function register(config: $TSFixMe) {
 function registerValidSW(swUrl: $TSFixMe, config: $TSFixMe) {
     // Clear old caches
     navigator.serviceWorker.addEventListener('activate', function(event) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'waitUntil' does not exist on type 'Event... Remove this comment to see the full error message
+        
         event.waitUntil(
             caches.keys().then(function(cacheNames) {
                 // grab the updated cache names
                 const validCacheSet = new Set(
-                    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'workbox'.
+                    
                     Object.values(workbox.core.cacheNames)
                 );
                 return Promise.all(

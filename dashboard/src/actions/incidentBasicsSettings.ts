@@ -24,7 +24,7 @@ export const fetchBasicIncidentSettingsVariables = () => {
             function(incidentBasicSettings) {
                 dispatch(
                     fetchBasicIncidentSettingsVariablesSuccess(
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         incidentBasicSettings.data
                     )
                 );
@@ -83,7 +83,7 @@ export const fetchIncidentTemplates = ({
     dispatch(fetchIncidentTemplatesRequest());
     promise.then(
         function(incidentBasicSettings) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchIncidentTemplatesSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -128,7 +128,7 @@ export const createIncidentTemplate = ({ projectId, data }: $TSFixMe) => (
     dispatch(createIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(createIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -175,7 +175,7 @@ export const updateIncidentTemplate = ({
     dispatch(updateIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(updateIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -216,12 +216,12 @@ export const deleteIncidentTemplate = ({ projectId, templateId }: $TSFixMe) => (
 ) => {
     const url = `incidentSettings/${projectId}/${templateId}`;
 
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+    
     const promise = deleteApi(url);
     dispatch(deleteIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(deleteIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -266,7 +266,7 @@ export const setDefaultTemplate = ({ projectId, templateId }: $TSFixMe) => (
     dispatch(setDefaultTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -317,7 +317,7 @@ export const fetchDefaultTemplate = ({ projectId }: $TSFixMe) => (
     dispatch(fetchDefaultTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchDefaultTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {

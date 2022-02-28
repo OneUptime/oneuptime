@@ -8,7 +8,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -31,7 +31,7 @@ export default {
             const error = new Error(
                 'Error Tracker with that name already exists.'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -40,20 +40,20 @@ export default {
         });
         // prepare error tracker model
         let errorTracker = new ErrorTrackerModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         errorTracker.name = data.name;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'key' does not exist on type 'Document<an... Remove this comment to see the full error message
+        
         errorTracker.key = uuid.v4(); // generate random string here
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         errorTracker.componentId = data.componentId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         errorTracker.createdById = data.createdById;
         if (resourceCategoryCount && resourceCategoryCount > 0) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
+            
             errorTracker.resourceCategory = data.resourceCategory;
         }
         if (data && data.name) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
+            
             errorTracker.slug = getSlug(data.name);
         }
         const savedErrorTracker = await errorTracker.save();
@@ -134,7 +134,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -183,9 +183,9 @@ export default {
                 query: { _id: errorTracker.componentId._id },
                 select: 'projectId',
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+            
             NotificationService.create(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Promi... Remove this comment to see the full error message
+                
                 component.projectId,
                 `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
                 errorTracker.deletedById._id,
@@ -221,7 +221,7 @@ export default {
         );
 
         if (unsetData) {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             errorTracker = await ErrorTrackerModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -251,7 +251,7 @@ import ComponentService from './componentService';
 import ResourceCategoryService from './resourceCategoryService';
 import RealTimeService from './realTimeService';
 import NotificationService from './notificationService';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import uuid from 'uuid';
 import getSlug from '../utils/getSlug';
 import handleSelect from '../utils/select';

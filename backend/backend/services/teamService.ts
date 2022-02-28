@@ -6,7 +6,7 @@ export default {
     //Returns: list of team members
     getTeamMembersBy: async function(query: $TSFixMe) {
         let projectMembers: $TSFixMe = [];
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; select: string; }'... Remove this comment to see the full error message
+        
         const projects = await ProjectService.findBy({
             query,
             select: 'users parentProjectId',
@@ -14,7 +14,7 @@ export default {
         if (projects && projects.length > 0) {
             // check for parentProject and add parent project users
             if (query.parentProjectId && projects[0]) {
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; deleted: { ... Remove this comment to see the full error message
+                
                 const parentProject = await ProjectService.findOneBy({
                     query: {
                         _id: projects[0].parentProjectId,
@@ -33,7 +33,7 @@ export default {
         }
 
         let usersId: $TSFixMe = [];
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'user' implicitly has an 'any' type.
+        
         // eslint-disable-next-line array-callback-return
         projectMembers.map(user => {
             if (user.show) {
@@ -51,7 +51,7 @@ export default {
         const response = [];
         for (let i = 0; i < users.length; i++) {
             const memberDetail = projectMembers.filter(
-                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'member' implicitly has an 'any' type.
+                
                 member => member.userId === users[i]._id.toString()
             )[0];
 
@@ -74,14 +74,14 @@ export default {
         let index;
         let subProject = null;
 
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId users',
         });
         if (project.parentProjectId) {
             subProject = project;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: 'users',
@@ -109,7 +109,7 @@ export default {
         // Checks if team member is present in the project or not.
         if (index === -1) {
             const error = new Error('Member does not exist in project.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
@@ -177,18 +177,18 @@ export default {
 
         if (duplicateEmail) {
             const error = new Error('Duplicate email present. Please check.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId seats',
             });
             if (project && project.parentProjectId) {
                 subProject = project;
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 project = await ProjectService.findOneBy({
                     query: { _id: subProject.parentProjectId },
                     select: 'seats',
@@ -206,7 +206,7 @@ export default {
                 const error = new Error(
                     'These users are already members of the project.'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             } else {
@@ -232,7 +232,7 @@ export default {
                         );
                     }
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type 'true'.
+                    
                     if (isHiddenAdminUser && isHiddenAdminUser.length > 0) {
                         await _this.removeTeamMember(
                             projectId,
@@ -262,13 +262,13 @@ export default {
     //Returns: promise
     getTeamMembers: async function(projectId: $TSFixMe) {
         const _this = this;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const subProject = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
         });
         if (subProject && subProject.parentProjectId) {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: '_id',
@@ -340,14 +340,14 @@ export default {
         let projectUsers = [];
         const _this = this;
         let subProject = null;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId seats _id users stripeSubscriptionId name',
         });
         if (project && project.parentProjectId) {
             subProject = project;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: 'seats _id users stripeSubscriptionId name',
@@ -379,7 +379,7 @@ export default {
         let members = [];
 
         for (const member of invitedTeamMembers) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
+            
             let registerUrl = `${global.accountsHost}/register`;
             if (member.name) {
                 projectUsers = await _this.getTeamMembersBy({
@@ -403,7 +403,7 @@ export default {
                                 member.email
                             );
                         }
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                        
                         NotificationService.create(
                             project._id,
                             `New user added to ${subProject.name} subproject by ${addedBy.name}`,
@@ -424,7 +424,7 @@ export default {
                                 member.email
                             );
                         }
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                        
                         NotificationService.create(
                             project._id,
                             `New user added to the project by ${addedBy.name}`,
@@ -445,7 +445,7 @@ export default {
                 });
                 const verificationToken = await verificationTokenModel.save();
                 if (verificationToken) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'token' does not exist on type 'Document<... Remove this comment to see the full error message
+                    
                     registerUrl = `${registerUrl}?token=${verificationToken.token}`;
                 }
                 try {
@@ -463,7 +463,7 @@ export default {
                             registerUrl
                         );
                     }
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                    
                     NotificationService.create(
                         project._id,
                         `New user added to the project by ${addedBy.name}`,
@@ -499,7 +499,7 @@ export default {
                     { _id: projectId },
                     { users: allProjectMembers }
                 ),
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+                
                 ProjectService.findBy({
                     query: { parentProjectId: project._id },
                     select: 'users _id',
@@ -557,7 +557,7 @@ export default {
             team: team,
         };
         response.push(teamusers);
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+        
         const subProjectTeams = await ProjectService.findBy({
             query: { parentProjectId: project._id },
             select: '_id',
@@ -575,7 +575,7 @@ export default {
                     return teamusers;
                 })
             );
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             response = response.concat(subProjectTeamsUsers);
         }
         return response;
@@ -598,18 +598,18 @@ export default {
 
         if (userId === teamMemberUserId) {
             const error = new Error('Admin User cannot delete himself');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId users _id',
             });
             if (project.parentProjectId) {
                 subProject = project;
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 project = await ProjectService.findOneBy({
                     query: { _id: subProject.parentProjectId },
                     select: 'users _id',
@@ -639,13 +639,13 @@ export default {
                 const error = new Error(
                     'Member to be deleted from the project does not exist.'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             } else {
                 if (subProject) {
                     // removes team member from subProject
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+                    
                     await ProjectService.exitProject(
                         subProject._id,
                         teamMemberUserId,
@@ -653,14 +653,14 @@ export default {
                     );
                 } else {
                     // removes team member from project
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+                    
                     await ProjectService.exitProject(
                         project._id,
                         teamMemberUserId,
                         userId
                     );
                     // remove user from all subProjects.
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+                    
                     const subProjects = await ProjectService.findBy({
                         query: { parentProjectId: project._id },
                         select: '_id',
@@ -668,7 +668,7 @@ export default {
                     if (subProjects.length > 0) {
                         await Promise.all(
                             subProjects.map(async (subProject: $TSFixMe) => {
-                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+                                
                                 await ProjectService.exitProject(
                                     subProject._id,
                                     teamMemberUserId,
@@ -680,7 +680,7 @@ export default {
                 }
 
                 const [projectObj, user, member] = await Promise.all([
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     ProjectService.findOneBy({
                         query: { _id: project._id },
                         select: '_id name',
@@ -703,7 +703,7 @@ export default {
                             user,
                             member.email
                         );
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                        
                         NotificationService.create(
                             project._id,
                             `User removed from subproject ${subProject.name} by ${user.name}`,
@@ -716,7 +716,7 @@ export default {
                             user,
                             member.email
                         );
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                        
                         NotificationService.create(
                             project._id,
                             `User removed from the project by ${user.name}`,
@@ -738,7 +738,7 @@ export default {
                     team: team,
                 };
                 response.push(teamusers);
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+                
                 const subProjectTeams = await ProjectService.findBy({
                     query: { parentProjectId: project._id },
                     select: '_id',
@@ -756,7 +756,7 @@ export default {
                             return teamusers;
                         })
                     );
-                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                    
                     response = response.concat(subProjectTeamsUsers);
                 }
                 team = await _this.getTeamMembersBy({ _id: projectId });
@@ -790,7 +790,7 @@ export default {
         let index;
         let subProject = null;
         let subProjects = null;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId users _id name seats stripeSubscriptionId',
@@ -798,7 +798,7 @@ export default {
 
         if (project.parentProjectId) {
             subProject = project;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: 'users _id name seats stripeSubscriptionId',
@@ -814,7 +814,7 @@ export default {
             );
         }
 
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+        
         subProjects = await ProjectService.findBy({
             query: { parentProjectId: project._id },
             select: 'users _id',
@@ -835,7 +835,7 @@ export default {
             const error = new Error(
                 'User whose role is to be changed is not present in the project.'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
@@ -849,7 +849,7 @@ export default {
                 const error = new Error(
                     'Please provide role different from current role and try again.'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             } else {
@@ -923,7 +923,7 @@ export default {
                     team: team,
                 };
                 response.push(teamusers);
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+                
                 const subProjectTeams = await ProjectService.findBy({
                     query: { parentProjectId: project._id },
                     select: '_id',
@@ -941,7 +941,7 @@ export default {
                             return teamusers;
                         })
                     );
-                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                    
                     response = response.concat(subProjectTeamsUsers);
                 }
                 team = await _this.getTeamMembersBy({ _id: projectId });
@@ -994,8 +994,8 @@ import ErrorService from 'common-server/utils/error';
 import domains from '../config/domains';
 import VerificationTokenModel from '../models/verificationToken';
 import crypto from 'crypto';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
+
 import { IS_SAAS_SERVICE } from '../config/server';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/emaildomains"' has no exported ... Remove this comment to see the full error message
+
 import { emaildomains } from '../config/emaildomains';
 import flatten from '../utils/flattenArray';

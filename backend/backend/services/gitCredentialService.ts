@@ -1,6 +1,6 @@
 import Crypto from 'crypto';
 import GitCredentialModel from '../models/gitCredential';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/encryptDecrypt"' has no exporte... Remove this comment to see the full error message
+
 import { encrypt } from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
@@ -64,7 +64,7 @@ export default {
                 const error = new Error(
                     'Git Credential already exist in this project'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -88,7 +88,7 @@ export default {
                 const error = new Error(
                     'Git Ssh already exist in this project'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -127,12 +127,12 @@ export default {
         const populateGitCredentials = [
             { path: 'projectId', select: 'name slug' },
         ];
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type 'Document... Remove this comment to see the full error message
+        
         gitCredential = await this.findOneBy({
             query: {
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                
                 _id: gitCredential._id,
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                
                 deleted: gitCredential.deleted,
             },
             select: selectGitCredentials,
@@ -143,7 +143,7 @@ export default {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -157,7 +157,7 @@ export default {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

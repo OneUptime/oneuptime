@@ -1,5 +1,5 @@
 import dns from 'dns';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'psl'... Remove this comment to see the full error message
+
 import psl from 'psl';
 import DomainVerificationTokenModel from '../models/domainVerificationToken';
 import flatten from '../utils/flattenArray';
@@ -17,14 +17,14 @@ export default {
         const token = 'oneuptime=' + randomChar();
 
         // all domain should be tied to parentProject only
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
         });
         if (!project) {
             const error = new Error('Project not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -86,7 +86,7 @@ export default {
 
         // fetch subproject
         if (query.projectId) {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+            
             let subProjects = await ProjectService.findBy({
                 query: { parentProjectId: query.projectId },
                 select: '_id',
@@ -203,7 +203,7 @@ export default {
         // ensure that a particular domain is available to all project and subProject
         // domain added to a project should be available for both project and subProjects
         // domain added to a subProject should be available to other subProjects and project
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: '_id parentProjectId',
@@ -216,7 +216,7 @@ export default {
             );
 
             // find all the subProjects attached to this parent project
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+            
             subProjects = await ProjectService.findBy({
                 query: {
                     parentProjectId:
@@ -225,7 +225,7 @@ export default {
                 select: '_id',
             });
         } else {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+            
             subProjects = await ProjectService.findBy({
                 query: { parentProjectId: project._id },
                 select: '_id',
@@ -269,7 +269,7 @@ export default {
 
         if (!domainCount || domainCount === 0) {
             const error = new Error('Domain not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -291,7 +291,7 @@ export default {
         // making this synchronous is intentional
         // so we don't have a delay in deleting domains from project settings
         // while all custom domains is deleted gradually in the background
-        // @ts-expect-error ts-migrate(2488) FIXME: Type '{}' must have a '[Symbol.iterator]()' method... Remove this comment to see the full error message
+        
         for (const statusPage of statusPages) {
             const statusPageId = statusPage._id;
             for (const eachDomain of statusPage.domains) {
@@ -341,7 +341,7 @@ export default {
 
         // fetch subproject
         if (query.projectId) {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+            
             let subProjects = await ProjectService.findBy({
                 query: { parentProjectId: query.projectId },
                 select: '_id',

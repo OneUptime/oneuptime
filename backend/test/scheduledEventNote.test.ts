@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -7,9 +7,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
@@ -65,11 +65,11 @@ const updatedInvestigationNote = {
     content: 'Just updated this note',
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Scheduled Event Note', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -189,7 +189,7 @@ describe('Scheduled Event Note', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -211,7 +211,7 @@ describe('Scheduled Event Note', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get all scheduled event notes => internal notes', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -229,7 +229,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get first 10 scheduled event notes for data length 10, skip 0, limit 10 and count 12 => internal notes', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -259,7 +259,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get 2 last scheduled events notes with data length 2, skip 10, limit 10 and count 12 => internal notes', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -289,7 +289,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a scheduled event note => internal note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -305,7 +305,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a scheduled event note => investigation note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -321,7 +321,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a scheduled event note if any of the field is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -335,7 +335,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not creat a scheduled event note if type field is not investigation or internal', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -349,7 +349,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update a note => internal note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -368,7 +368,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update a note => investigation note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -387,7 +387,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not update a note if the scheduled event note does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const noteId = projectId;
@@ -404,7 +404,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a scheduled event note => internal note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -420,7 +420,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a scheduled event note => investigation note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -436,7 +436,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should note delete a scheduled event note if it does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const noteId = projectId;

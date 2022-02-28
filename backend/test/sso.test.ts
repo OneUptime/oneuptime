@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -7,9 +7,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import AirtableService from '../backend/services/airtableService';
@@ -29,11 +29,11 @@ const ssoObject = {
 
 let token: $TSFixMe, userId: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('SSO API', function() {
     this.timeout(300000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -72,7 +72,7 @@ describe('SSO API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ 'users.userId': userId });
@@ -89,23 +89,23 @@ describe('SSO API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+    
     describe('should reject requests from an unauthenticated users', function() {
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should reject GET requests', function(done: $TSFixMe) {
             request.get('/sso').end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
         });
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should reject POST requests', function(done: $TSFixMe) {
             request.post('/sso').end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
         });
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should reject PUT requests', function(done: $TSFixMe) {
             request
                 .put('/sso/5ea951228877984ea9f47660')
@@ -114,7 +114,7 @@ describe('SSO API', function() {
                     done();
                 });
         });
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should reject DELETE requests', function(done: $TSFixMe) {
             request
                 .delete('/sso/5ea951228877984ea9f47660')
@@ -125,9 +125,9 @@ describe('SSO API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+    
     describe('GET /sso/', function() {
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should return SSOs list with count', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -141,7 +141,7 @@ describe('SSO API', function() {
                     done();
                 });
         });
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should return SSOs list with count, skip and limit (when skip&limit specified)', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -158,9 +158,9 @@ describe('SSO API', function() {
                 });
         });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+    
     describe('POST /sso', function() {
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should create a new SSO', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -190,11 +190,11 @@ describe('SSO API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should not create a new SSO if domaine is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
-            // @ts-expect-error ts-migrate(2790) FIXME: The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
+            
             delete payload.domain;
 
             request
@@ -207,11 +207,11 @@ describe('SSO API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should not create a new SSO if Saml SSO url is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
-            // @ts-expect-error ts-migrate(2790) FIXME: The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
+            
             delete payload.samlSsoUrl;
 
             request
@@ -224,11 +224,11 @@ describe('SSO API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should not create a new SSO if remote logout url is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
-            // @ts-expect-error ts-migrate(2790) FIXME: The operand of a 'delete' operator must be optiona... Remove this comment to see the full error message
+            
             delete payload.remoteLogoutUrl;
 
             request
@@ -242,9 +242,9 @@ describe('SSO API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+    
     describe('DELETE /sso', function() {
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should delete sso', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             SsoService.create(ssoObject).then(sso => {
@@ -274,9 +274,9 @@ describe('SSO API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+    
     describe('UPDATE /sso', function() {
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should update SSO', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             SsoService.create(ssoObject).then(sso => {

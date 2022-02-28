@@ -8,13 +8,13 @@ export default {
      * @returns { (Promise<{error : (string) }> | Promise< {closingBalance : number, chargeAmount:number}>} an object containing error or closing balance and charge amount
      */
     chargeAlertAndGetProjectBalance: async function(
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'userId' implicitly has an 'any' type.
+        
         userId,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
+        
         project,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'alertType' implicitly has an 'any' type... Remove this comment to see the full error message
+        
         alertType,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'alertPhoneNumber' implicitly has an 'an... Remove this comment to see the full error message
+        
         alertPhoneNumber,
         segments = 1
     ) {
@@ -68,17 +68,17 @@ export default {
      * @return {boolean} whether the project has enough balance
      */
     hasEnoughBalance: async (
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectId' implicitly has an 'any' type... Remove this comment to see the full error message
+        
         projectId,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'alertPhoneNumber' implicitly has an 'an... Remove this comment to see the full error message
+        
         alertPhoneNumber,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'userId' implicitly has an 'any' type.
+        
         userId,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'alertType' implicitly has an 'any' type... Remove this comment to see the full error message
+        
         alertType
     ) => {
         try {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'balance alertOptions',
@@ -117,7 +117,7 @@ export default {
      * @param {*} project project to add blance to
      * @returns {boolean} whether the balance is recharged to the project
      */
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'userId' implicitly has an 'any' type.
+    
     fillProjectBalance: async (userId, project) => {
         try {
             let balanceRecharged;
@@ -150,13 +150,13 @@ export default {
      * @returns {{success : boolean, message : string}} whether the balance is recharged successfully
      */
     checkAndRechargeProjectBalance: async function(
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'project' implicitly has an 'any' type.
+        
         project,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'userId' implicitly has an 'any' type.
+        
         userId,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'alertPhoneNumber' implicitly has an 'an... Remove this comment to see the full error message
+        
         alertPhoneNumber,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'alertType' implicitly has an 'any' type... Remove this comment to see the full error message
+        
         alertType
     ) {
         // let release;
@@ -180,20 +180,20 @@ export default {
                 project
             );
             if (lowBalanceRecharged) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+                
                 status.success = true;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+                
                 status.message = 'Balance recharged successfully';
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+                
                 status.success = false;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+                
                 status.message = 'Low Balance';
             }
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'success' does not exist on type '{}'.
+            
             status.success = true;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type '{}'.
+            
             status.message = 'Balance is enough';
         }
 
@@ -204,9 +204,9 @@ export default {
     //Params:
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'paymentIntent' implicitly has an 'any' ... Remove this comment to see the full error message
+    
     checkPaymentIntent: async function(paymentIntent) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'paymentIntents' does not exist on type '... Remove this comment to see the full error message
+        
         const processedPaymentIntent = await stripe.paymentIntents.retrieve(
             paymentIntent.id
         );
@@ -218,9 +218,9 @@ export default {
     //Param 1: stripeToken: Token generated from frontend
     //Param 2: user: User details
     //Returns: promise
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'email' implicitly has an 'any' type.
+    
     createCustomer: async function(email, companyName) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customers' does not exist on type 'typeo... Remove this comment to see the full error message
+        
         const customer = await stripe.customers.create({
             email: email,
             description: companyName,
@@ -228,10 +228,10 @@ export default {
         return customer.id;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'customerId' implicitly has an 'any' typ... Remove this comment to see the full error message
+    
     // eslint-disable-next-line no-unused-vars
     addPayment: async function(customerId, stripeToken) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customers' does not exist on type 'typeo... Remove this comment to see the full error message
+        
         const card = await stripe.customers.createSource(customerId);
         return card;
     },
@@ -241,7 +241,7 @@ export default {
     //Param 1: stripePlanId: Id generated from frontend.
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'stripePlanId' implicitly has an 'any' t... Remove this comment to see the full error message
+    
     subscribePlan: async function(stripePlanId, stripeCustomerId, coupon) {
         const items = [];
         items.push({
@@ -265,7 +265,7 @@ export default {
                 trial_period_days: 14,
             };
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         const subscription = await stripe.subscriptions.create(subscriptionObj);
         return {
             stripeSubscriptionId: subscription.id,
@@ -277,11 +277,11 @@ export default {
     //Param 1: stripePlanId: Id generated from frontend.
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'subscriptionId' implicitly has an 'any'... Remove this comment to see the full error message
+    
     changeSeats: async function(subscriptionId, seats) {
         if (subscriptionId === null) return;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         let subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
         let plan = null;
@@ -290,11 +290,11 @@ export default {
             !subscription ||
             !subscription.items ||
             !subscription.items.data ||
-            // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
+            
             !subscription.items.data.length > 0
         ) {
             const error = new Error('Your subscription cannot be retrieved.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
@@ -323,13 +323,13 @@ export default {
             }
 
             if (trial_end_date) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+                
                 subscription = await stripe.subscriptions.update(
                     subscriptionId,
                     { items: items, trial_end: trial_end_date }
                 );
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+                
                 subscription = await stripe.subscriptions.update(
                     subscriptionId,
                     { items: items }
@@ -340,10 +340,10 @@ export default {
         }
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'stripeCustomerId' implicitly has an 'an... Remove this comment to see the full error message
+    
     createSubscription: async function(stripeCustomerId, amount) {
         const productId = Plans.getReserveNumberProductId();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         const subscriptions = await stripe.subscriptions.create({
             customer: stripeCustomerId,
             items: [
@@ -362,24 +362,24 @@ export default {
         return subscriptions;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'stripeSubscriptionId' implicitly has an... Remove this comment to see the full error message
+    
     removeSubscription: async function(stripeSubscriptionId) {
         const confirmations = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
         return confirmations;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'subscriptionId' implicitly has an 'any'... Remove this comment to see the full error message
+    
     changePlan: async function(subscriptionId, planId, seats) {
         let subscriptionObj = {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         const subscription = await stripe.subscriptions.retrieve(
             subscriptionId
         );
         const trial_end = subscription.trial_end;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         await stripe.subscriptions.del(subscriptionId);
 
         const items = [];
@@ -401,7 +401,7 @@ export default {
                 items: items,
             };
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         const subscriptions = await stripe.subscriptions.create(
             subscriptionObj
         );
@@ -409,9 +409,9 @@ export default {
         return subscriptions.id;
     },
 
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'userId' implicitly has an 'any' type.
+    
     chargeAlert: async function(userId, projectId, chargeAmount) {
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance alertOptions _id',
@@ -419,7 +419,7 @@ export default {
         const { balance } = project;
         const { minimumBalance, rechargeToBalance } = project.alertOptions;
         if (balance < minimumBalance) {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             const paymentIntent = await StripeService.chargeCustomerForBalance(
                 userId,
                 rechargeToBalance,
@@ -451,7 +451,7 @@ export default {
             // if further process is required the user will need to manually top up the account
             await StripeService.confirmPayment(paymentIntent);
         }
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance',
@@ -477,14 +477,14 @@ export default {
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
     chargeExtraUser: async function(
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'stripeCustomerId' implicitly has an 'an... Remove this comment to see the full error message
+        
         stripeCustomerId,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'extraUserPlanId' implicitly has an 'any... Remove this comment to see the full error message
+        
         extraUserPlanId,
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'extraUsersToAdd' implicitly has an 'any... Remove this comment to see the full error message
+        
         extraUsersToAdd
     ) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         const subscription = await stripe.subscriptions.create({
             customer: stripeCustomerId,
             items: [
@@ -513,6 +513,6 @@ import {
     Call,
 } from '../config/alertType';
 // import getMutex from '../constants/mutexProvider'
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/number"' has no exported member ... Remove this comment to see the full error message
+
 import { formatBalance } from '../utils/number';
 // import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'

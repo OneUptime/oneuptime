@@ -46,25 +46,25 @@ export default {
         }
 
         if (list) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+            
             response.data = list;
         }
 
         if (count) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{}'.
+            
             response.count = count;
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{}'.
+            
             if (list) response.count = list.length;
         }
 
         if (req.query.skip) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type '{}'.
+            
             response.skip = parseInt(req.query.skip);
         }
 
         if (req.query.limit) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type '{}'.
+            
             response.limit = parseInt(req.query.limit);
         }
 

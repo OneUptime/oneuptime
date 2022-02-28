@@ -89,7 +89,7 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: true,
                 },
                 showingTemplate: action.payload.find(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type '{}'.
+                    
                     (temp: $TSFixMe) =>
                         temp.emailType === state.showingTemplate.emailType
                 ),
@@ -138,7 +138,7 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: false,
                 },
                 showingTemplate: action.payload.find(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type '{}'.
+                    
                     (temp: $TSFixMe) =>
                         temp.emailType === state.showingTemplate.emailType
                 ),
@@ -165,7 +165,7 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
                 showingTemplate: state.emailTemplates.templates.find(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailType' does not exist on type 'never... Remove this comment to see the full error message
+                    
                     temp => temp.emailType === action.payload
                 ),
             });

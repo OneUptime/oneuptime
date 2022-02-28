@@ -14,7 +14,7 @@ const headers = {
 
 export function postApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
 
@@ -37,7 +37,7 @@ export function postApi(url: $TSFixMe, data: $TSFixMe) {
                 // store original destination url
                 const redirectTo = window.location.href;
 
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+                
                 window.location =
                     ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
             }
@@ -53,7 +53,7 @@ export function postApi(url: $TSFixMe, data: $TSFixMe) {
 
 export function getApi(url: $TSFixMe) {
     if (User.isLoggedIn())
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -74,7 +74,7 @@ export function getApi(url: $TSFixMe) {
                 // store original destination url
                 const redirectTo = window.location.href;
 
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+                
                 window.location =
                     ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
             }
@@ -91,7 +91,7 @@ export function getApi(url: $TSFixMe) {
 
 export function putApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -113,7 +113,7 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
                 // store original destination url
                 const redirectTo = window.location.href;
 
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+                
                 window.location =
                     ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
             }
@@ -130,7 +130,7 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
 
 export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -152,7 +152,7 @@ export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
                 // store original destination url
                 const redirectTo = window.location.href;
 
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+                
                 window.location =
                     ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
             }

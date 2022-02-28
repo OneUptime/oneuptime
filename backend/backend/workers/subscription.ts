@@ -6,20 +6,20 @@ import ErrorService from 'common-server/utils/error';
 import ProjectService from '../services/projectService';
 import UserService from '../services/userService';
 import AlertService from '../services/alertService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
+
 import { IS_SAAS_SERVICE } from '../config/server';
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startAfter' implicitly has an 'any' typ... Remove this comment to see the full error message
+
 const handleFetchingUnpaidSubscriptions = async startAfter => {
     if (startAfter) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         return await stripe.subscriptions.list({
             status: 'unpaid',
             limit: 100, // default limit is 10 and limit can range between 1 to 100
             starting_after: startAfter,
         });
     } else {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+        
         return await stripe.subscriptions.list({
             status: 'unpaid',
             limit: 100, // default limit is 10 and limit can range between 1 to 100
@@ -27,7 +27,7 @@ const handleFetchingUnpaidSubscriptions = async startAfter => {
     }
 };
 
-// @ts-expect-error ts-migrate(7034) FIXME: Variable 'data' implicitly has type 'any[]' in som... Remove this comment to see the full error message
+
 let data = [];
 const _this = {
     /**
@@ -38,7 +38,7 @@ const _this = {
      * THE SERVICE TO UPDATE A PROJECT WILL RUN IN THE BACKGROUND, SO WE DON'T DELAY THE SYSTEM UNNECESSARILY
      * THE SERVICE TO ALERT PROJECT OWNERS BY MAIL WILL ALSO RUN IN THE BACKGROUND
      */
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'startAfter' implicitly has an 'any' typ... Remove this comment to see the full error message
+    
     handleUnpaidSubscription: async startAfter => {
         try {
             if (IS_SAAS_SERVICE) {
@@ -49,7 +49,7 @@ const _this = {
                 // since stripe have a limit on the amount of items to return in the subscription list
                 // and also because, if we cancel a subscription and the subscription happens to be the last item in the subscription data array
                 // there is no way to fetch the next 100 item, so we are using this approach to fetch every thing once before proceeding to the next stage
-                // @ts-expect-error ts-migrate(7005) FIXME: Variable 'data' implicitly has an 'any[]' type.
+                
                 data = [...data, ...subscriptions.data];
                 if (subscriptions && subscriptions.has_more) {
                     const lastIndex = subscriptions.data.length - 1;
@@ -70,7 +70,7 @@ const _this = {
                             query: { stripeCustomerId },
                             select: 'name email',
                         }),
-                        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { stripeSubscriptionId:... Remove this comment to see the full error message
+                        
                         ProjectService.findOneBy({
                             query: { stripeSubscriptionId },
                             select:
@@ -103,7 +103,7 @@ const _this = {
                                 14
                         ) {
                             // cancel subscription
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriptions' does not exist on type 't... Remove this comment to see the full error message
+                            
                             stripe.subscriptions.del(stripeSubscriptionId);
 
                             // delete project

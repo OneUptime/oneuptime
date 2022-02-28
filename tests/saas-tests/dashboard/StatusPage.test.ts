@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,7 +17,7 @@ const gotoTheFirstStatusPage = async (page: $TSFixMe) => {
     await page.goto(utils.DASHBOARD_URL, {
         waitUntil: ['networkidle2'],
     });
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+    
     await init.pageWaitForSelector(page, '#statusPages');
     await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => e.click());
     const rowItem = await init.pageWaitForSelector(
@@ -28,13 +28,13 @@ const gotoTheFirstStatusPage = async (page: $TSFixMe) => {
     rowItem.click();
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Status Page', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -64,13 +64,13 @@ describe('Status Page', () => {
         );
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should indicate that no monitor is set yet for a status page',
         async (done: $TSFixMe) => {
@@ -95,7 +95,7 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show error message and not submit the form if no monitor is selected and user clicks on save.',
         async (done: $TSFixMe) => {
@@ -104,11 +104,11 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreMonitors');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#monitor-0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await init.pageWaitForSelector(page, '#monitor-0', {
                 visible: true,
@@ -132,7 +132,7 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show an error message and not submit the form if the users select the same monitor twice.',
         async (done: $TSFixMe) => {
@@ -141,25 +141,25 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreMonitors');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#monitor-0');
             await init.selectDropdownValue(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreMonitors');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#monitor-1');
             await init.selectDropdownValue(
                 '#monitor-1 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAddStatusPageMonitors');
             await init.pageWaitForSelector(page, '#monitor-1', {
                 visible: true,
@@ -192,7 +192,7 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should add a new monitor.',
         async (done: $TSFixMe) => {
@@ -201,16 +201,16 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreMonitors');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#monitor-0');
             await init.selectDropdownValue(
                 '#monitor-0 .db-select-nw',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await page.reload({ waitUntil: 'networkidle2' });
@@ -224,16 +224,16 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should remove monitor.',
         async (done: $TSFixMe) => {
             await gotoTheFirstStatusPage(page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#monitor-0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#delete-monitor-0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await page.reload({ waitUntil: 'networkidle2' });

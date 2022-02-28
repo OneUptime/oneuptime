@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
@@ -8,9 +8,9 @@ chai.use(chaihttp);
 chai.use(require(..set'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp'
 import UserService from '../backend/services/userService'
 import ProjectService from '../backend/services/projectService'
@@ -31,11 +31,11 @@ let token: $TSFixMe,
     monitorId: $TSFixMe,
     resourceCount = 0;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Component API', function() {
     this.timeout(30000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function( done: $TSFixMe) {
         this.timeout(80000);
         GlobalConfig.initTestConfig().then(function() {
@@ -68,7 +68,7 @@ describe('Component API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post(`/component/${projectId}`)
@@ -81,7 +81,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a component when the `name` field is null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -96,7 +96,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a new component when the correct data is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -113,7 +113,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update a component when the correct data is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -129,7 +129,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get components for an authenticated user by ProjectId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -144,7 +144,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get a component for an authenticated user with valid componentId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -158,7 +158,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a new monitor when `componentId` is given`', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -179,7 +179,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return a list of all resources under component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -194,7 +194,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a new application log when `componentId` is given then get list of resources`', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -226,7 +226,7 @@ describe('Component API', function() {
                     });
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a new application log then creater a log when `componentId` is given then get list of resources`', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -276,7 +276,7 @@ describe('Component API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an application security then get list of resources', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -288,7 +288,7 @@ describe('Component API', function() {
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 gitCredential: credential._id,
             };
 
@@ -322,7 +322,7 @@ describe('Component API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -365,7 +365,7 @@ describe('Component API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a component and its monitor when componentId is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -395,10 +395,10 @@ let subProjectId: $TSFixMe,
     subProjectComponentId: $TSFixMe,
     newComponentId: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Component API with Sub-Projects', function() {
     this.timeout(30000);
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function( done: $TSFixMe) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
@@ -464,7 +464,7 @@ describe('Component API with Sub-Projects', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
@@ -492,7 +492,7 @@ describe('Component API with Sub-Projects', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a component for user not present in project', function(done: $TSFixMe) {
         createUser(request, userData.anotherUser, function(err: $TSFixMe, res: $TSFixMe) {
             const project = res.body.project;
@@ -532,7 +532,7 @@ describe('Component API with Sub-Projects', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a component for user that is not `admin` in project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -550,7 +550,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a component in parent project by valid admin.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -567,7 +567,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a component with exisiting name in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -585,7 +585,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a component in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -602,7 +602,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it("should get only sub-project's components for valid sub-project user", function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -619,7 +619,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get project components for valid parent project user.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -635,7 +635,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get sub-project components for valid parent project user.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -651,7 +651,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not delete a component for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -666,7 +666,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete sub-project component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -678,7 +678,7 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete project component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

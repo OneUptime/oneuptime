@@ -110,10 +110,10 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case DELETE_SLACK_WEBHOOK_SUCCESS:
             slacks = Object.assign([], state.slacks.slacks);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+            
             index = slacks.findIndex(slack => slack._id === action.payload._id);
             slacks.splice(index, 1);
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            
             count = state.slacks.count - 1;
             return Object.assign({}, state, {
                 deleteSlack: {
@@ -161,9 +161,9 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case CREATE_SLACK_WEBHOOK_SUCCESS:
             slacks = Object.assign([], state.slacks.slacks);
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+            
             action.payload._id && slacks.push(action.payload);
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            
             count = state.slacks.count + 1;
 
             return Object.assign({}, state, {
@@ -212,9 +212,9 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case UPDATE_SLACK_WEBHOOK_SUCCESS:
             slacks = Object.assign([], state.slacks.slacks);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+            
             index = slacks.findIndex(hook => hook._id === action.payload._id);
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+            
             slacks[index] = action.payload;
 
             return Object.assign({}, state, {

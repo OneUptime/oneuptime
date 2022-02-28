@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -7,9 +7,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
@@ -53,11 +53,11 @@ const ongoingScheduledEvent = {
     monitorDuringEvent: false,
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Scheduled event API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -152,7 +152,7 @@ describe('Scheduled event API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -170,7 +170,7 @@ describe('Scheduled event API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a scheduled event when the fields are null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -188,7 +188,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a scheduled event when a monitor is selected multiple times', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -204,7 +204,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a scheduled event when the start date is greater than end date', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -221,7 +221,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a new scheduled event when proper fields are given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -236,7 +236,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get all scheduled events for a project', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -250,7 +250,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update a scheduled event when scheduledEventId is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -268,7 +268,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a scheduled event when scheduledEventId is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -280,7 +280,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get first 10 scheduled events with data length 10, skip 0, limit 10 and count 12', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -309,7 +309,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get 2 last scheduled events with data length 2, skip 10, limit 10 and count 12', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -337,7 +337,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get 0 scheduled events with data length 0, skip 20, limit 10 and count 12', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -365,7 +365,7 @@ describe('Scheduled event API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fetch an onging scheduled event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -389,11 +389,11 @@ describe('Scheduled event API', function() {
     });
 });
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('User from other project have access to read / write and delete API.', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -438,7 +438,7 @@ describe('User from other project have access to read / write and delete API.', 
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -453,7 +453,7 @@ describe('User from other project have access to read / write and delete API.', 
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not be able to create new scheduled event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -465,7 +465,7 @@ describe('User from other project have access to read / write and delete API.', 
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not be able to delete a scheduled event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -476,7 +476,7 @@ describe('User from other project have access to read / write and delete API.', 
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not be able to get all scheduled events', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -487,7 +487,7 @@ describe('User from other project have access to read / write and delete API.', 
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not be able to update a scheduled event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

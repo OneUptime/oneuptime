@@ -17,17 +17,17 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
+
 import express from 'express';
 const app = express();
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
+
 import bodyParser from 'body-parser';
 import path from 'path';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'comp... Remove this comment to see the full error message
+
 import compression from 'compression';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'mini... Remove this comment to see the full error message
+
 import minify from 'minify';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'try-... Remove this comment to see the full error message
+
 import tryToCatch from 'try-to-catch';
 import productCompare from './config/product-compare';
 import axios from 'axios';

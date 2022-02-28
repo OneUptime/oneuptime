@@ -1,6 +1,6 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
-// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -9,9 +9,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import StatusService from '../backend/services/statusPageService';
@@ -61,11 +61,11 @@ const scheduledEvent = {
     monitorDuringEvent: false,
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Status API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(async function() {
@@ -98,7 +98,7 @@ describe('Status API', function() {
                                 .end(function(err: $TSFixMe, res: $TSFixMe) {
                                     if (err) throw err;
                                     resourceCategoryId = res.body._id;
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
+                                    
                                     monitor.resourceCategory = resourceCategoryId;
                                     ComponentModel.create({
                                         name: 'New Component',
@@ -117,7 +117,7 @@ describe('Status API', function() {
                                             ) {
                                                 if (err) throw err;
                                                 monitorId = res.body._id;
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{ name... Remove this comment to see the full error message
+                                                
                                                 scheduledEvent.monitors = [
                                                     monitorId,
                                                 ];
@@ -151,7 +151,7 @@ describe('Status API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
@@ -161,7 +161,7 @@ describe('Status API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not add status page if the page name is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -181,7 +181,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add status page', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -217,7 +217,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add private status page', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -256,7 +256,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get private status page for authorized user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -270,7 +270,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get valid private status page rss for authorized user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -283,7 +283,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not get private status page for unauthorized user', function(done: $TSFixMe) {
         request
             .get(`/status-page/${privateStatusPageId}`)
@@ -294,7 +294,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not update status page settings when domain is not string', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -310,7 +310,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not update status page settings when domain is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -326,7 +326,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update status page settings', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -361,7 +361,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return monitor category with monitors in status page data', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -386,7 +386,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get list of scheduled events', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -406,7 +406,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get list of scheduled events for monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -428,7 +428,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get list of logs for a monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         monitorLogService
@@ -457,7 +457,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a domain', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptimeapp.com' };
@@ -472,7 +472,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a domain with subdomain', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptimeapp.com' };
@@ -489,7 +489,7 @@ describe('Status API', function() {
 
     // The placement of this test case is very important
     // a domain needs to be created before verifying it
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should verify a domain', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const domain = 'oneuptimeapp.com';
@@ -512,7 +512,7 @@ describe('Status API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should verify a domain and fetch a status page', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.x.com' };
@@ -542,7 +542,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should NOT fetch status page of unverfied domain', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.y.com' };
@@ -568,7 +568,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not verify a domain if txt record is not found', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const domain = 'oneuptimeapp.com';
@@ -590,7 +590,7 @@ describe('Status API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not verify a domain that does not exist on the web', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const domain = 'binoehty1234hgyt.com';
@@ -599,7 +599,7 @@ describe('Status API', function() {
         const populateDomainVerify = [
             { path: 'projectId', select: 'name slug' },
         ];
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 7 arguments, but got 3.
+        
         StatusService.createDomain(domain, projectId, statusPageId).then(
             function() {
                 DomainVerificationService.findOneBy({
@@ -623,7 +623,7 @@ describe('Status API', function() {
         );
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not save domain if domain is invalid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptime.hackerbay' };
@@ -640,7 +640,7 @@ describe('Status API', function() {
 
     // this is no longer the case
     // array of domain are no longer used in the application
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it.skip('should save an array of valid domains', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
@@ -662,7 +662,7 @@ describe('Status API', function() {
 
     // this is no longer the case
     // array of domain are no longer used in the application
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it.skip('should not save domains if one domain in the array is invalid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
@@ -682,7 +682,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should save when domain is without subdomain', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptime.com' };
@@ -697,7 +697,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject adding an existing domain', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptimeapp.com' };
@@ -714,7 +714,7 @@ describe('Status API', function() {
 
     // This test will work base on the fact that a domain was previously created in another project
     // This test will try to create another domain with the same domain on another project
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add domain if it exist in another project and if the domain in other project is NOT verified.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptimeapp.com' };
@@ -761,7 +761,7 @@ describe('Status API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should NOT add domain if it exist in another project and domain in other project is verified', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.x.com' };
@@ -809,14 +809,14 @@ describe('Status API', function() {
     // check for when the domain in statuspage is updated
     // check for when domainverificationtoken is updated
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update a domain on a status page successfully', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: 'app.oneuptimeapp.com' };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             const { _id: domainId } = statusPage.domains[0];
             request
                 .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
@@ -830,14 +830,14 @@ describe('Status API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not update a domain on a status page if the domain field is empty', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: '' };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             const { _id: domainId } = statusPage.domains[0];
             request
                 .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
@@ -851,14 +851,14 @@ describe('Status API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not update a domain on a status page if the domain is not a string', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: { url: 'shop.oneuptimeapp.com' } };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             const { _id: domainId } = statusPage.domains[0];
             request
                 .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
@@ -872,14 +872,14 @@ describe('Status API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not update a domain on a status page if the status page is missing or not found', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = { domain: { url: 'shop.oneuptimeapp.com' } };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             const { _id: domainId } = statusPage.domains[0];
             // provide a random object id
             const statusPageId = '5ea70eb4be9f4b177a1719ad';
@@ -895,12 +895,12 @@ describe('Status API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a domain from a status page', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             const { _id: domainId } = statusPage.domains[0];
             request
                 .delete(`/status-page/${projectId}/${statusPageId}/${domainId}`)
@@ -913,12 +913,12 @@ describe('Status API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not delete any domain if status page does not exist or not found', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             const { _id: domainId } = statusPage.domains[0];
             // create random status page id
             const statusPageId = '5ea70eb4be9f4b177a1719ad';
@@ -940,10 +940,10 @@ let subProjectId: $TSFixMe,
     anotherUserToken: $TSFixMe,
     subProjectStatusPageId: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('StatusPage API with Sub-Projects', function() {
     this.timeout(30000);
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
@@ -985,7 +985,7 @@ describe('StatusPage API with Sub-Projects', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
@@ -1002,7 +1002,7 @@ describe('StatusPage API with Sub-Projects', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a statupage for user not present in project', function(done: $TSFixMe) {
         createUser(request, userData.anotherUser, function() {
             request
@@ -1050,7 +1050,7 @@ describe('StatusPage API with Sub-Projects', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not get private status page for authorized user that is not in project', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -1063,7 +1063,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create a statusPage for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -1099,7 +1099,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a statusPage in parent project by valid admin.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1136,7 +1136,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a statusPage in sub-project by valid admin.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1172,7 +1172,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it("should get only sub-project's statuspages for valid sub-project user", function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -1189,7 +1189,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get both project and sub-project statuspage for valid parent project user.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1208,7 +1208,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get status page for viewer in sub-project', function(done: $TSFixMe) {
         const authorization = `Basic ${anotherUserToken}`;
         request
@@ -1232,7 +1232,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not delete a status page for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -1248,7 +1248,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete sub-project status page', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1261,7 +1261,7 @@ describe('StatusPage API with Sub-Projects', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete parent project status page', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

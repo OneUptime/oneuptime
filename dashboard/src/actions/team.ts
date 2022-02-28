@@ -29,7 +29,7 @@ export function teamLoading(projectId: $TSFixMe) {
         dispatch(teamLoadingRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const team = response.data;
                 dispatch(teamLoadingSuccess(team));
             },
@@ -78,7 +78,7 @@ export function subProjectTeamLoading(projectId: $TSFixMe) {
         dispatch(subProjectTeamLoadingRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const team = response.data;
                 dispatch(subProjectTeamLoadingSuccess(team));
             },
@@ -130,7 +130,7 @@ export function teamCreate(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const team = response.data;
                 dispatch(teamCreateSuccess(team));
             },
@@ -194,7 +194,7 @@ export function teamDelete(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const team = response.data;
                 dispatch(teamDeleteSuccess(team));
                 return { team };
@@ -248,7 +248,7 @@ export function getTeamMember(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(teamMemberSuccess(response.data));
             },
             function(error) {
@@ -302,7 +302,7 @@ export function teamUpdateRole(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const team = response.data;
                 dispatch(teamUpdateRoleSuccess(team));
             },

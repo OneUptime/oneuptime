@@ -27,13 +27,13 @@ export default {
                 }),
             GroupModel.countDocuments(query),
         ]);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'groups' does not exist on type '{}'.
+        
         response.groups = groups;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type '{}'.
+        
         response.count = count;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type '{}'.
+        
         response.skip = skip;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type '{}'.
+        
         response.limit = limit;
         return response;
     },
@@ -63,7 +63,7 @@ export default {
 
         if (groupExist) {
             const error = new Error('Group already exist in this project');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -123,7 +123,7 @@ export default {
 
         if (groupExist && String(groupExist._id) !== String(query._id)) {
             const error = new Error('Group already exist in this project');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -144,7 +144,7 @@ export default {
         const group = await _this.findOneBy({ _id: groupId });
         const teamMembers = group.teams;
         const data = teamMembers.filter((id: $TSFixMe) => id !== memberId);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const newGroup = await _this.updateOneBy(
             { _id: groupId },
             { teams: data }

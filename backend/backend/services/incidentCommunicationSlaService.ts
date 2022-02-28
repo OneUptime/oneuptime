@@ -14,7 +14,7 @@ export default {
             const error = new Error(
                 'Incident communication SLA with the same name already exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -123,7 +123,7 @@ export default {
                 const error = new Error(
                     'Incident communication SLA with the same name already exist'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -196,7 +196,7 @@ export default {
             const error = new Error(
                 'Incident Communication SLA not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

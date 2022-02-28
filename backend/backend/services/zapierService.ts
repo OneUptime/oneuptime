@@ -14,7 +14,7 @@ export default {
     },
 
     test: async function(projectId: $TSFixMe, apiKey: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { apiKey: any; _id: any... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
@@ -27,7 +27,7 @@ export default {
             const error = new Error(
                 'We are not able to authenticate you because your `API Key` or `Project ID` is not valid. Please go to your project settings and retrieve your API key and Project ID.'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -37,18 +37,18 @@ export default {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
 
         if (project) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+            
             zapierResponse.projectName = project.name;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+            
             zapierResponse.projectId = project._id;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ _id: any; } |... Remove this comment to see the full error message
+            
             const projects = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -96,18 +96,18 @@ export default {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse = {};
         const _this = this;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
 
         if (project) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+            
             zapierResponse.projectName = project.name;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+            
             zapierResponse.projectId = project._id;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ _id: any; } |... Remove this comment to see the full error message
+            
             const projects = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -144,7 +144,7 @@ export default {
             await Promise.all(
                 incidentMessages.map(async (incidentNote: $TSFixMe) => {
                     zapierResponseArray.push(
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+                        
                         await _this.mapIncidentToResponse(
                             null,
                             zapierResponse,
@@ -175,13 +175,13 @@ export default {
         await Promise.all(
             data.incidents.map(async (incidentId: $TSFixMe) => {
                 let incidentMessage = new IncidentMessageModel();
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
+                
                 incidentMessage.incidentId = incidentId;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdByZapier' does not exist on type ... Remove this comment to see the full error message
+                
                 incidentMessage.createdByZapier = true;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
+                
                 incidentMessage.type = data.type;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
+                
                 incidentMessage.content = data.content;
                 incidentMessage = await incidentMessage.save();
                 IncidentService.refreshInterval(incidentId);
@@ -197,7 +197,7 @@ export default {
                 incidentNoteArr.push(incidentMessage);
             })
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessage' does not exist on type ... Remove this comment to see the full error message
+        
         zapierResponse.incidentMessage = incidentNoteArr;
         return zapierResponse;
     },
@@ -205,17 +205,17 @@ export default {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
         if (project) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+            
             zapierResponse.projectName = project.name;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+            
             zapierResponse.projectId = project._id;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ _id: any; } |... Remove this comment to see the full error message
+            
             const projects = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -264,17 +264,17 @@ export default {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
         if (project) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+            
             zapierResponse.projectName = project.name;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+            
             zapierResponse.projectId = project._id;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ _id: any; } |... Remove this comment to see the full error message
+            
             const projects = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -330,11 +330,11 @@ export default {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let incident = new IncidentModel();
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+                
                 incident.projectId = monitorObj.projectId._id;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Docume... Remove this comment to see the full error message
+                
                 incident.monitors = [{ monitorId: monitorObj._id }];
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdByZapier' does not exist on type ... Remove this comment to see the full error message
+                
                 incident.createdByZapier = true;
                 incident = await incident.save();
 
@@ -346,9 +346,9 @@ export default {
 
                 const msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
                 try {
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                    
                     NotificationService.create(
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+                        
                         incident.projectId,
                         msg,
                         null,
@@ -363,13 +363,13 @@ export default {
                 // run in the background
                 RealTimeService.sendCreatedIncident(incident);
 
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.project._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -379,14 +379,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 zapierResponse.projectName = project.name;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 zapierResponse.projectId = project._id;
                 incidentArr.push(incident);
             })
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type '{}'.
+        
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -415,13 +415,13 @@ export default {
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -431,14 +431,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 zapierResponse.projectName = project.name;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 zapierResponse.projectId = project._id;
                 incidentArr.push(lastIncident);
             })
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type '{}'.
+        
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -471,13 +471,13 @@ export default {
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -487,14 +487,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 zapierResponse.projectName = project.name;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 zapierResponse.projectId = project._id;
                 incidentArr = incidents;
             })
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type '{}'.
+        
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -538,7 +538,7 @@ export default {
                     select,
                     populate,
                 });
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 let project = await ProjectService.findOneBy({
                     query: {
                         _id: incidentObj.projectId._id || incidentObj.projectId,
@@ -546,7 +546,7 @@ export default {
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -556,14 +556,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 zapierResponse.projectName = project.name;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 zapierResponse.projectId = project._id;
                 incidentArr.push(incidentObj);
             })
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type '{}'.
+        
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -615,13 +615,13 @@ export default {
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -631,14 +631,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 zapierResponse.projectName = project.name;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 zapierResponse.projectId = project._id;
                 incidentArr.push(lastIncident);
             })
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type '{}'.
+        
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -694,13 +694,13 @@ export default {
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -710,14 +710,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 zapierResponse.projectName = project.name;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 zapierResponse.projectId = project._id;
                 incidentArr = incidents;
             })
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type '{}'.
+        
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -761,7 +761,7 @@ export default {
                     select,
                     populate,
                 });
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 let project = await ProjectService.findOneBy({
                     query: {
                         _id: incidentObj.projectId._id || incidentObj.projectId,
@@ -769,7 +769,7 @@ export default {
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -779,14 +779,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 zapierResponse.projectName = project.name;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 zapierResponse.projectId = project._id;
                 incidentArr.push(incidentObj);
             })
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type '{}'.
+        
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -853,13 +853,13 @@ export default {
         monitors: $TSFixMe
     ) {
         const zapier = new ZapierModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         zapier.projectId = projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type 'Document<an... Remove this comment to see the full error message
+        
         zapier.url = url;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         zapier.type = type;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         zapier.monitors = monitors;
         const zap = await zapier.save();
         return { id: zap._id };
@@ -885,7 +885,7 @@ export default {
     ) {
         const _this = this;
         const projectId = incident.projectId._id || incident.projectId;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId _id name',
@@ -894,7 +894,7 @@ export default {
         let zap = [];
         if (project) {
             if (project.parentProjectId) {
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 project = await ProjectService.findOneBy({
                     query: {
                         _id:
@@ -922,9 +922,9 @@ export default {
             for (const z of zap) {
                 let zapierResponse = {};
                 if (project) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type '{}'... Remove this comment to see the full error message
+                    
                     zapierResponse.projectName = project.name;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                    
                     zapierResponse.projectId = project._id;
                     if (incident) {
                         const monitors = incident.monitors.map(

@@ -25,23 +25,23 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
+
 import express from 'express';
 const app = express();
-// @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'createServer'.
+
 import http from 'http';
 http.createServer(app);
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
+
 import cors from 'cors';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
+
 import bodyParser from 'body-parser';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
+
 import cron from 'node-cron';
 import main from './workers/main';
 
 app.use(cors());
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
@@ -62,7 +62,7 @@ app.set('port', process.env.PORT || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.get(['/script/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -76,7 +76,7 @@ app.get(['/script/status', '/status'], function(req, res) {
 
 app.use('/script', require('./api/script'));
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'listen' does not exist on type 'typeof i... Remove this comment to see the full error message
+
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('Script runner started on port ' + app.get('port'));

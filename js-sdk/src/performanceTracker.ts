@@ -1,5 +1,5 @@
 import Module from 'module';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'semv... Remove this comment to see the full error message
+
 import semver from 'semver';
 import MongooseListener from './listeners/mongoose';
 import IncomingListener from './listeners/incomingListener';
@@ -72,10 +72,10 @@ class PerformanceTracker {
         return new OutgoingListener(this.start, this.end, this.store);
     }
     setUpDataBaseListener() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property '_load' does not exist on type 'typeof Mo... Remove this comment to see the full error message
+        
         const load = Module._load;
         const _this = this;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property '_load' does not exist on type 'typeof Mo... Remove this comment to see the full error message
+        
         Module._load = function(request: $TSFixMe) {
             const res = load.apply(this, arguments);
             if (request === 'mongoose') {

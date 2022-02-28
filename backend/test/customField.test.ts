@@ -1,6 +1,6 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
-// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai';
 const expect = chai.expect;
@@ -8,10 +8,10 @@ import userData from './data/user';
 import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
@@ -20,7 +20,7 @@ import ProjectService from '../backend/services/projectService';
 import ComponentService from '../backend/services/componentService';
 import IncidentCustomFieldService from '../backend/services/customFieldService';
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Incident Custom Field API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe,
@@ -39,7 +39,7 @@ describe('Incident Custom Field API', function() {
         };
 
     this.timeout(timeout);
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(
@@ -75,7 +75,7 @@ describe('Incident Custom Field API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -87,7 +87,7 @@ describe('Incident Custom Field API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create an incident custom field when field name is missing or not specified', function(done: $TSFixMe) {
         request
             .post(`/customField/${projectId}`)
@@ -100,7 +100,7 @@ describe('Incident Custom Field API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create an incident custom field when field type is missing or not specified', function(done: $TSFixMe) {
         request
             .post(`/customField/${projectId}`)
@@ -113,7 +113,7 @@ describe('Incident Custom Field API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should setup custom fields for all incidents in a project (text)', function(done: $TSFixMe) {
         request
             .post(`/customField/${projectId}`)
@@ -129,7 +129,7 @@ describe('Incident Custom Field API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create incident custom field with an existing name in a project', function(done: $TSFixMe) {
         request
             .post(`/customField/${projectId}`)
@@ -144,7 +144,7 @@ describe('Incident Custom Field API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update a particular incident custom field in a project', function(done: $TSFixMe) {
         incidentFieldText.fieldName = 'newName';
 
@@ -162,7 +162,7 @@ describe('Incident Custom Field API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should list all the incident custom fields in a project', function(done: $TSFixMe) {
         // add one more monitor custom field
         request
@@ -182,7 +182,7 @@ describe('Incident Custom Field API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a particular monitor custom field in a project', function(done: $TSFixMe) {
         request
             .delete(`/customField/${projectId}/${customFieldId}`)

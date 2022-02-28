@@ -78,7 +78,7 @@ class Logger {
             type: logType,
         };
         if (tags) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'tags' does not exist on type '{ content:... Remove this comment to see the full error message
+            
             requestData.tags = tags;
         }
         return new Promise((resolve, reject) => {

@@ -29,11 +29,11 @@ export const fetchSsoDefaultRoles = (skip: $TSFixMe, limit: $TSFixMe) => async (
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchSsoDefaultRolesRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(
             `ssoDefaultRoles/?skip=${skip}&limit=${limit}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         return dispatch(fetchSsoDefaultRolesSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -76,9 +76,9 @@ export const fetchSsoDefaultRole = (ssoDefaultRoleId: $TSFixMe) => async (
 ) => {
     dispatch(fetchSsoDefaultRoleRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(`ssoDefaultRoles/${ssoDefaultRoleId}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchSsoDefaultRoleSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -121,11 +121,11 @@ export const deleteSsoDefaultRole = (ssoId: $TSFixMe) => async (
 ) => {
     dispatch(deleteSsoDefaultRoleRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(`ssoDefaultRoles/${ssoId}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteSsoDefaultRoleSuccess(response.data));
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
+        
         dispatch(fetchSsoDefaultRoles());
     } catch (error) {
         let errorMsg;
@@ -167,7 +167,7 @@ export const addSsoDefaultRole = ({ data }: $TSFixMe) => async (
 ) => {
     dispatch(addSsoDefaultRoleRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await postApi(`ssoDefaultRoles/`, data);
         dispatch(addSsoDefaultRoleSuccess());
         return true;

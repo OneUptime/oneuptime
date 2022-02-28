@@ -7,31 +7,31 @@ export default {
     //Returns: promise
     create: async function(data: $TSFixMe) {
         let lead = new LeadsModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         lead.type = data.type;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         lead.name = data.name;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         lead.email = data.email;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'phone' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         lead.phone = data.phone;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'website' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         lead.website = data.website;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companySize' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         lead.companySize = data.companySize;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'country' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         lead.country = data.country;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         lead.message = data.message;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'whitepaperName' does not exist on type '... Remove this comment to see the full error message
+        
         lead.whitepaperName = data.whitepaperName;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type 'Document... Remove this comment to see the full error message
+        
         lead.source = data.source;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'templateName' does not exist on type 'Do... Remove this comment to see the full error message
+        
         lead.templateName = 'Request Demo';
         if (data.whitepaperName) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'templateName' does not exist on type 'Do... Remove this comment to see the full error message
+            
             lead.templateName = 'Whitepaper Request';
         }
 

@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -6,9 +6,9 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import GlobalConfig from './utils/globalConfig';
 import incidentData from './data/incident';
@@ -38,11 +38,11 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Subcriber Alert API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -115,7 +115,7 @@ describe('Subcriber Alert API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -136,7 +136,7 @@ describe('Subcriber Alert API', function() {
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create subscriber alert with valid incidentId, alertVia', (done: $TSFixMe) => {
         // update user to a master admin
         UserService.updateOneBy({ _id: userId }, { role: 'master-admin' }).then(
@@ -185,7 +185,7 @@ describe('Subcriber Alert API', function() {
         );
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create subscriber alert with invalid alertVia', (done: $TSFixMe) => {
         request
             .post(`/subscriberAlert/${projectId}/${subscriberId}`)
@@ -200,7 +200,7 @@ describe('Subcriber Alert API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get subscriber alerts by projectId', (done: $TSFixMe) => {
         request
             .get(`/subscriberAlert/${projectId}`)
@@ -213,7 +213,7 @@ describe('Subcriber Alert API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get subscriber alerts by incidentId', (done: $TSFixMe) => {
         request
             .get(`/subscriberAlert/${projectId}/incident/${idNumber}`)

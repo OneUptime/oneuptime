@@ -56,7 +56,7 @@ export default {
 
             if (monitors && monitors.length > 0) {
                 await monitorCollection.updateMany(
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+                    
                     { _id: { $in: monitors.map(monitor => monitor._id) } },
                     { $set: { [key]: new Date(moment().format()) } }
                 );
@@ -74,5 +74,5 @@ export default {
 
 import ErrorService from './errorService';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
+
 const monitorCollection = global.db.collection('monitors');

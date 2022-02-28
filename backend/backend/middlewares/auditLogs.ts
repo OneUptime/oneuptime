@@ -1,12 +1,12 @@
 import url from 'url';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import _ from 'lodash';
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
 import AuditLogsService from '../services/auditLogsService';
 import ErrorService from 'common-server/utils/error';
 const sendErrorResponse = require('./response').sendErrorResponse;
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./api"' has no exported member 'getProjec... Remove this comment to see the full error message
+
 import { getProjectId } from './api';
 import GlobalConfigService from '../services/globalConfigService';
 

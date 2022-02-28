@@ -113,7 +113,7 @@ export default {
         return await StatusPageServiceBase.findOneBy({
             query,
             skip,
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; skip: any; limit: ... Remove this comment to see the full error message
+            
             limit,
             populate,
             select,
@@ -134,7 +134,7 @@ export default {
 
         const statusPage = await StatusPageServiceBase.create({
             data,
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ data: any; checkDuplicatesValu... Remove this comment to see the full error message
+            
             checkDuplicatesValuesIn: ['name'],
             checkDuplicatesValuesInProject: true,
             slugifyField: 'name',
@@ -207,13 +207,13 @@ export default {
 
         if (statusPage) {
             // attach the domain id to statuspage collection and update it
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             const domain = statusPage.domains.find((domain: $TSFixMe) =>
                 domain.domain === subDomain ? true : false
             );
             if (domain) {
                 const error = new Error('Domain already exists');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -231,7 +231,7 @@ export default {
                     select: 'id',
                 });
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
+                
                 const greenlock = global.greenlock;
                 if (!certificate && greenlock) {
                     // handle this in the background
@@ -242,9 +242,9 @@ export default {
                 }
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             statusPage.domains = [
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+                
                 ...statusPage.domains,
                 {
                     domain: subDomain,
@@ -253,21 +253,21 @@ export default {
                     enableHttps,
                     autoProvisioning,
                     domainVerificationToken:
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                        
                         createdDomain._id || existingBaseDomain._id,
                 },
             ];
             return await this.updateOneBy(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 { _id: statusPage._id },
                 {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+                    
                     domains: statusPage.domains,
                 }
             );
         } else {
             const error = new Error('Status page not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -298,7 +298,7 @@ export default {
             select: '_id domains',
         });
 
-        // @ts-expect-error ts-migrate(2488) FIXME: Type '{}' must have a '[Symbol.iterator]()' method... Remove this comment to see the full error message
+        
         for (const statusPage of statusPages) {
             const statusPageId = statusPage._id;
             const domains = [];
@@ -364,13 +364,13 @@ export default {
 
         if (!statusPage) {
             const error = new Error('Status page not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
 
         let doesDomainExist = false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+        
         const domainList = [...statusPage.domains];
         const updatedDomainList = [];
 
@@ -404,7 +404,7 @@ export default {
                         }
                     );
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
+                    
                     const greenlock = global.greenlock;
                     if (!certificate && greenlock) {
                         // handle this in the background
@@ -415,7 +415,7 @@ export default {
                     }
                 }
                 eachDomain.domainVerificationToken =
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                    
                     createdDomain._id || existingBaseDomain._id;
             }
 
@@ -426,18 +426,18 @@ export default {
             const error = new Error(
                 `This custom domain ${newDomain} already exist`
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+        
         statusPage.domains = updatedDomainList;
 
         const result = await this.updateOneBy(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+            
             { _id: statusPage._id },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             { domains: statusPage.domains }
         );
         return result;
@@ -458,13 +458,13 @@ export default {
 
         if (!statusPage) {
             const error = new Error('Status page not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
 
         let deletedDomain: $TSFixMe = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+        
         const remainingDomains = statusPage.domains.filter(
             (domain: $TSFixMe) => {
                 if (String(domain._id) === String(domainId)) {
@@ -474,7 +474,7 @@ export default {
             }
         );
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
+        
         const greenlock = global.greenlock;
         // delete any associated certificate (only for auto provisioned ssl)
         // handle this in the background
@@ -490,12 +490,12 @@ export default {
             });
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+        
         statusPage.domains = remainingDomains;
         return await this.updateOneBy(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+            
             { _id: statusPage._id },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+            
             { domains: statusPage.domains }
         );
     },
@@ -523,13 +523,13 @@ export default {
         });
 
         const data = { ...statusPage };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+        
         data.projectId = statusPageProjectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+        
         data.name = statusPageName;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+        
         if (filterMonitors && data.monitors) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            
             data.monitors = data.monitors
                 .filter((monitorObj: $TSFixMe) => {
                     // values.statuspageId is sub project id selected on the dropdown
@@ -546,10 +546,10 @@ export default {
                     return monitorObj;
                 });
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+        
         if (!filterMonitors && data.monitors) {
             // just filter and use only ids
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            
             data.monitors = data.monitors.map((monitorObj: $TSFixMe) => {
                 monitorObj.monitor =
                     monitorObj.monitor._id || monitorObj.monitor;
@@ -594,14 +594,14 @@ export default {
             await Promise.all(
                 subscribers.map(async subscriber => {
                     await SubscriberService.deleteBy(
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                        
                         { _id: subscriber._id },
                         userId
                     );
                 })
             );
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
+            
             const greenlock = global.greenlock;
             // delete all certificate pipeline for the custom domains
             // handle this for autoprovisioned custom domains
@@ -640,7 +640,7 @@ export default {
             select: selectStatusPage,
             populate: populateStatusPage,
         });
-        // @ts-expect-error ts-migrate(2488) FIXME: Type '{}' must have a '[Symbol.iterator]()' method... Remove this comment to see the full error message
+        
         for (const statusPage of statusPages) {
             const monitors = statusPage.monitors.filter(
                 (monitorData: $TSFixMe) =>
@@ -663,18 +663,18 @@ export default {
             },
             select: 'slug',
         });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type '{}'.
+        
         if (existingStatusPage && existingStatusPage.length > 0) {
             const error = new Error(
                 'StatusPage with that name already exists.'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
 
         if (data && data.name) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type '{}'.
+            
             existingStatusPage.slug = getSlug(data.name);
         }
 
@@ -689,7 +689,7 @@ export default {
                 for (const [key, value] of Object.entries(
                     data.groupedMonitors
                 )) {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     const monitorIds = value.map(
                         (monitorObj: $TSFixMe) => monitorObj.monitor
                     );
@@ -802,7 +802,7 @@ export default {
                 },
             ],
         });
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         const checkHideResolved = statuspages[0].hideResolvedIncident;
         let option = {};
         if (checkHideResolved) {
@@ -811,7 +811,7 @@ export default {
             };
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -864,7 +864,7 @@ export default {
             return { notes, count };
         } else {
             const error = new Error('No monitors on this status page');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -1019,7 +1019,7 @@ export default {
             ],
         });
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -1076,12 +1076,12 @@ export default {
                 })
             );
 
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type '[unknown, ... Remove this comment to see the full error message
+            
             events = flattenArray(events);
             // do not repeat the same event two times
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'id' implicitly has an 'any' type.
+            
             events = eventIds.map(id => {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return events.find(event => String(event._id) === String(id));
             });
             const count = events.length;
@@ -1089,7 +1089,7 @@ export default {
             return { events, count };
         } else {
             const error = new Error('No monitors on this status page');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -1126,7 +1126,7 @@ export default {
             ],
         });
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -1181,24 +1181,24 @@ export default {
                 })
             );
 
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type '[unknown, ... Remove this comment to see the full error message
+            
             events = flattenArray(events);
             // do not repeat the same event two times
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'id' implicitly has an 'any' type.
+            
             events = eventIds.map(id => {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return events.find(event => String(event._id) === String(id));
             });
 
             // // sort in ascending start date
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             events = events.sort((a, b) => b.startDate - a.startDate);
 
             const count = events.length;
             return { events, count };
         } else {
             const error = new Error('No monitors on this status page');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -1235,7 +1235,7 @@ export default {
             ],
         });
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -1287,24 +1287,24 @@ export default {
                 })
             );
 
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type '[unknown, ... Remove this comment to see the full error message
+            
             events = flattenArray(events);
             // do not repeat the same event two times
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'id' implicitly has an 'any' type.
+            
             events = eventIds.map(id => {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return events.find(event => String(event._id) === String(id));
             });
 
             // sort in ascending start date
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             events = events.sort((a, b) => a.startDate - b.startDate);
 
             const count = events.length;
             return { events: limitEvents(events, limit, skip), count };
         } else {
             const error = new Error('No monitors on this status page');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -1473,7 +1473,7 @@ export default {
                 const error = new Error(
                     'You are unauthorized to access the page please login to continue.'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 401;
                 throw error;
             }
@@ -1482,7 +1482,7 @@ export default {
                 String(monitorObj.monitor._id || monitorObj.monitor)
             );
             const projectId = statusPage.projectId._id || statusPage.projectId;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ parentProject... Remove this comment to see the full error message
+            
             const subProjects = await ProjectService.findBy({
                 query: {
                     $or: [{ parentProjectId: projectId }, { _id: projectId }],
@@ -1498,7 +1498,7 @@ export default {
                 0
             );
             const filteredMonitorData = monitors.map(subProject => {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return subProject.monitors.filter((monitor: $TSFixMe) =>
                     monitorIds.includes(monitor._id.toString())
                 );
@@ -1507,12 +1507,12 @@ export default {
         } else {
             if (statusPages.length > 0) {
                 const error = new Error('Domain not verified');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             } else {
                 const error = new Error('Page Not Found');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -1536,7 +1536,7 @@ export default {
             ],
         });
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -1580,7 +1580,7 @@ export default {
             return { incidents, count };
         } else {
             const error = new Error('No monitors on this status page');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -1589,7 +1589,7 @@ export default {
         const fn = async (resolve: $TSFixMe) => {
             if (statusPage.isPrivate) {
                 if (userId) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                    
                     const project = await ProjectService.findOneBy({
                         query: { _id: statusPage.projectId._id },
                         select: '_id users',
@@ -1676,10 +1676,10 @@ export default {
             populate: populateStatusPage,
             select: selectStatusPage,
         });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type '{}'.
+        
         if (statusPage && statusPage.length > 1) {
             const statusPages = await Promise.all(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'map' does not exist on type '{}'.
+                
                 statusPage.map(async (statusPage: $TSFixMe) => {
                     const statusPageId = statusPage._id;
                     statusPage = await _this.updateOneBy(
@@ -1786,17 +1786,17 @@ export default {
 
     createExternalStatusPage: async function(data: $TSFixMe) {
         const externalStatusPage = new ExternalStatusPageModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type 'Document<an... Remove this comment to see the full error message
+        
         externalStatusPage.url = data.url || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         externalStatusPage.name = data.name || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         externalStatusPage.description = data.description || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         externalStatusPage.projectId = data.projectId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Do... Remove this comment to see the full error message
+        
         externalStatusPage.statusPageId = data.statusPageId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         externalStatusPage.createdById = data.createdById || null;
         const newExternalStatusPage = await externalStatusPage.save();
 
@@ -1879,19 +1879,19 @@ export default {
         }
 
         const announcement = new AnnouncementModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         announcement.name = data.name || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         announcement.projectId = data.projectId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Do... Remove this comment to see the full error message
+        
         announcement.statusPageId = data.statusPageId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         announcement.description = data.description || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         announcement.monitors = data.monitors || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         announcement.createdById = data.createdById || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         announcement.slug = data.slug || null;
         const newAnnouncement = await announcement.save();
 
@@ -2030,17 +2030,17 @@ export default {
 
     createAnnouncementLog: async function(data: $TSFixMe) {
         const announcementLog = new AnnouncementLogModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcementId' does not exist on type '... Remove this comment to see the full error message
+        
         announcementLog.announcementId = data.announcementId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         announcementLog.createdById = data.createdById || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Do... Remove this comment to see the full error message
+        
         announcementLog.statusPageId = data.statusPageId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         announcementLog.startDate = data.startDate || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         announcementLog.endDate = data.endDate || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'active' does not exist on type 'Document... Remove this comment to see the full error message
+        
         announcementLog.active = data.active || null;
         const newAnnouncementLog = await announcementLog.save();
         return newAnnouncementLog;
@@ -2235,7 +2235,7 @@ import ErrorService from 'common-server/utils/error';
 import SubscriberService from './subscriberService';
 import ProjectService from './projectService';
 import AlertService from './alertService';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import _ from 'lodash';
 import defaultStatusPageColors from '../config/statusPageColors';
 import DomainVerificationService from './domainVerificationService';
@@ -2243,7 +2243,7 @@ import flattenArray from '../utils/flattenArray';
 import ScheduledEventNoteService from './scheduledEventNoteService';
 import IncidentMessageService from './incidentMessageService';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import uuid from 'uuid';
 import CertificateStoreService from './certificateStoreService';
 import AnnouncementModel from '../models/announcements';

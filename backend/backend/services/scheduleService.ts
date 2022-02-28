@@ -44,35 +44,35 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const scheduleModel = new ScheduleModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         scheduleModel.name = data.name || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         scheduleModel.projectId = data.projectId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         scheduleModel.createdById = data.createdById || null;
 
         // if userIds is array
         if (data.userIds) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userIds' does not exist on type 'Documen... Remove this comment to see the full error message
+            
             scheduleModel.userIds = [];
             for (const userId of data.userIds) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'userIds' does not exist on type 'Documen... Remove this comment to see the full error message
+                
                 scheduleModel.userIds.push(userId);
             }
         }
 
         // if monitorIds is array
         if (data.monitorIds) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorIds' does not exist on type 'Docu... Remove this comment to see the full error message
+            
             scheduleModel.monitorIds = [];
             for (const monitorId of data.monitorIds) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'userIds' does not exist on type 'Documen... Remove this comment to see the full error message
+                
                 scheduleModel.userIds.push(monitorId);
             }
         }
 
         if (data && data.name) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
+            
             scheduleModel.slug = getSlug(data.name);
         }
         const schedule = await scheduleModel.save();
@@ -321,7 +321,7 @@ export default {
                     data
                 );
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+            
             escalationIds.push(escalation._id);
         }
 

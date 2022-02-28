@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -18,7 +18,7 @@ const gotoTheFirstStatusPage = async (page: $TSFixMe) => {
     await page.goto(utils.DASHBOARD_URL, {
         waitUntil: ['networkidle2'],
     });
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+    
     await init.pageWaitForSelector(page, '#statusPages');
     await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => e.click());
     const rowItem = await init.pageWaitForSelector(
@@ -29,13 +29,13 @@ const gotoTheFirstStatusPage = async (page: $TSFixMe) => {
     rowItem.click();
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Status Page', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -65,23 +65,23 @@ describe('Status Page', () => {
         );
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
     //Custom HTML,CSS and JS are now in branding-tab
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create custom HTML and CSS',
         async (done: $TSFixMe) => {
             await gotoTheFirstStatusPage(page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.branding-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#headerHTML textarea', '<div>My header'); // Ace editor completes the div tag
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAddCustomStyles');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -92,10 +92,10 @@ describe('Status Page', () => {
                 waitUntil: 'networkidle2',
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let link = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
@@ -103,10 +103,10 @@ describe('Status Page', () => {
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#customHeaderHTML > div');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let spanElement = await init.page$(page, '#customHeaderHTML > div');
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -116,7 +116,7 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create custom Javascript',
         async (done: $TSFixMe) => {
@@ -124,17 +124,17 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
             await page.waitForNavigation({ waitUntil: 'load' });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.branding-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#customJS textarea');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(
                 page,
                 '#customJS textarea',
                 `<script id='js'>${javascript}`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAddCustomStyles');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -145,10 +145,10 @@ describe('Status Page', () => {
                 waitUntil: 'networkidle2',
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let link = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
@@ -162,7 +162,7 @@ describe('Status Page', () => {
                 page,
                 '#js',
                 (script: $TSFixMe) => script.innerHTML,
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ hidden: boolean; }' is not ass... Remove this comment to see the full error message
+                
                 { hidden: true }
             );
             expect(code).toEqual(javascript);
@@ -171,22 +171,22 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not add a domain when the field is empty',
         async (done: $TSFixMe) => {
             await gotoTheFirstStatusPage(page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.custom-domains-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#addMoreDomain');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreDomain');
             await init.pageWaitForSelector(page, '#createCustomDomainBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#field-error', {
                 visible: true,
@@ -205,29 +205,29 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not add an invalid domain',
         async (done: $TSFixMe) => {
             await gotoTheFirstStatusPage(page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.custom-domains-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#addMoreDomain');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreDomain');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#customDomain');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#customDomain', 'oneuptimeapp');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#createCustomDomainBtn');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#field-error', {
                 visible: true,
@@ -247,25 +247,25 @@ describe('Status Page', () => {
     );
 
     // This test is added again as the next test depends on it.
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create a domain',
         async (done: $TSFixMe) => {
             await gotoTheFirstStatusPage(page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.custom-domains-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#addMoreDomain');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreDomain');
 
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#customDomain', customDomain);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
@@ -287,27 +287,27 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not add an existing domain',
         async (done: $TSFixMe) => {
             await gotoTheFirstStatusPage(page);
             //Removal of repeated function
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.custom-domains-tab');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#addMoreDomain');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreDomain');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#customDomain');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#customDomain', customDomain);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createCustomDomainBtn');
             const addDomainError = await init.pageWaitForSelector(
                 page,

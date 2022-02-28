@@ -9,7 +9,7 @@ const Services = {
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',
             }),
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { stripeSubscriptionId:... Remove this comment to see the full error message
+            
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: 'name _id',
@@ -38,7 +38,7 @@ const Services = {
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',
             }),
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { stripeSubscriptionId:... Remove this comment to see the full error message
+            
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: 'name _id',
@@ -94,7 +94,7 @@ const Services = {
                 query: { stripeCustomerId: customerId },
                 select: 'name _id',
             }),
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { stripeSubscriptionId:... Remove this comment to see the full error message
+            
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: '_id users',
@@ -148,7 +148,7 @@ const Services = {
         create: async function(tok: $TSFixMe, userId: $TSFixMe) {
             const [tokenCard, cards] = await Promise.all([
                 stripe.tokens.retrieve(tok),
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+                
                 this.get(userId),
             ]);
             let duplicateCard = false;
@@ -193,7 +193,7 @@ const Services = {
                 return paymentIntent;
             } else {
                 const error = new Error('Cannot add duplicate card');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -217,11 +217,11 @@ const Services = {
                 select: 'stripeCustomerId',
             });
             const stripeCustomerId = user.stripeCustomerId;
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             const cards = await this.get(userId);
             if (cards.data.length === 1) {
                 const error = new Error('Cannot delete the only card');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 403;
                 throw error;
             }
@@ -287,7 +287,7 @@ const Services = {
                 projectId,
             };
         }
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+        
         const paymentIntent = await this.createInvoice(
             stripechargeAmount,
             stripeCustomerId,
@@ -376,7 +376,7 @@ const Services = {
         const metadata = {
             projectId,
         };
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+        
         let paymentIntent = await this.createInvoice(
             stripechargeAmount,
             stripeCustomerId,
@@ -501,7 +501,7 @@ import ProjectService from '../services/projectService';
 import ProjectModel from '../models/project';
 import MailService from '../services/mailService';
 import ErrorService from 'common-server/utils/error';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/stripeHandlers"' has no exported... Remove this comment to see the full error message
+
 import { sendSlackAlert } from '../utils/stripeHandlers';
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up

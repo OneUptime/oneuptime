@@ -1,6 +1,6 @@
 import ScriptModel from '../models/automatedScripts';
 import ScriptModelLog from '../models/automationScriptsLog';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
+
 import { postApi } from '../utils/api';
 import getSlug from '../utils/getSlug';
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
@@ -53,19 +53,19 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const script = new ScriptModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         script.name = data.name || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         script.slug = getSlug(data.name) || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scriptType' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         script.scriptType = data.scriptType || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'successEvent' does not exist on type 'Do... Remove this comment to see the full error message
+        
         script.successEvent = data.successEvent || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'failureEvent' does not exist on type 'Do... Remove this comment to see the full error message
+        
         script.failureEvent = data.failureEvent || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         script.projectId = data.projectId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Document... Remove this comment to see the full error message
+        
         script.script = data.script || null;
         const newScript = await script.save();
 
@@ -74,21 +74,21 @@ export default {
 
     createLog: async function(id: $TSFixMe, data: $TSFixMe) {
         const scriptLog = new ScriptModelLog();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'automationScriptId' does not exist on ty... Remove this comment to see the full error message
+        
         scriptLog.automationScriptId = id || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'triggerByUser' does not exist on type 'D... Remove this comment to see the full error message
+        
         scriptLog.triggerByUser = data.triggerByUser || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'triggerByScript' does not exist on type ... Remove this comment to see the full error message
+        
         scriptLog.triggerByScript = data.triggerByScript || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'triggerByIncident' does not exist on typ... Remove this comment to see the full error message
+        
         scriptLog.triggerByIncident = data.triggerByIncident || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
+        
         scriptLog.status = data.status || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'executionTime' does not exist on type 'D... Remove this comment to see the full error message
+        
         scriptLog.executionTime = data.executionTime || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'consoleLogs' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         scriptLog.consoleLogs = data.consoleLogs || null;
-        // @ts-expect-error ts-migrate(2551) FIXME: Property 'error' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         scriptLog.error = data.error || null;
         const newScriptLog = await scriptLog.save();
 
@@ -195,7 +195,7 @@ export default {
                 };
                 switch (type) {
                     case 'automatedScript':
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'triggerByScript' does not exist on type ... Remove this comment to see the full error message
+                        
                         data.triggerByScript = triggeredId;
                         break;
                     default:
@@ -283,16 +283,16 @@ export default {
             };
         }
         triggeredBy === 'user'
-            ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            ? 
               (data.triggerByUser = triggeredId)
             : triggeredBy === 'script'
-            ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            ? 
               (data.triggerByScript = triggeredId)
             : triggeredBy === 'incident'
-            ? // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            ? 
               (data.triggerByIncident = triggeredId)
             : null;
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+        
         if (data.success && successEvent.length > 0) {
             await _this.runResource({
                 triggeredId: automatedScriptId,
@@ -300,7 +300,7 @@ export default {
                 stackSize,
             });
         }
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+        
         if (!data.success && failureEvent.length > 0) {
             await _this.runResource({
                 triggeredId: automatedScriptId,

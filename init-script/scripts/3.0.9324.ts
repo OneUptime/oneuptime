@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
+
 import { find, update } from '../util/db';
 import { ObjectId } from 'mongodb';
 
@@ -16,10 +16,10 @@ async function run() {
         // check if there's no unresolved incident
         const query = {
             deleted: false,
-            // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+            
             'monitors.monitorId': { $in: [ObjectId(monitor._id)] },
         };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
+        
         const incidents = await global.db
             .collection(incidentCollection)
             .find(query)

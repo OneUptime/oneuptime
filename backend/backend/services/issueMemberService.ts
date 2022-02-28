@@ -5,12 +5,12 @@ export default {
         // prepare issue member model
         let issueMember = new IssueMemberModel();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Document... Remove this comment to see the full error message
+        
         issueMember.userId = data.userId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'issueId' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         issueMember.issueId = data.issueId;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         issueMember.createdById = data.createdById;
 
         const savedIssueMember = await issueMember.save();
@@ -76,7 +76,7 @@ export default {
         );
 
         if (unsetData) {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             issueMember = await IssueMemberModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },

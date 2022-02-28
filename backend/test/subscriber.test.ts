@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -6,9 +6,9 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import GlobalConfig from './utils/globalConfig';
 import UserService from '../backend/services/userService';
@@ -56,11 +56,11 @@ const csvData = {
     ],
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Subscriber API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -146,7 +146,7 @@ describe('Subscriber API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -167,7 +167,7 @@ describe('Subscriber API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should register subscriber with valid monitorIds and contact email or phone number', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${statusPageId}`)
@@ -191,7 +191,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not register subscriber without contact email or phone number', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${statusPageId}`)
@@ -204,7 +204,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get list of subscribers to a project', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}`)
@@ -217,7 +217,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get list of subscribers to a monitorId', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}/monitor/${monitorId}`)
@@ -230,7 +230,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get a subscriber', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}/${subscriberId}`)
@@ -241,7 +241,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a subscriber', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -253,7 +253,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should upload subscribers from a csv file', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
@@ -267,7 +267,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should not register subscriber twice on the same monitor', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
@@ -280,7 +280,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should ignore exisiting subscribers and register only new subscribers from the svc file', (done: $TSFixMe) => {
         csvData.data.push({
             alertVia: 'sms',
@@ -304,7 +304,7 @@ describe('Subscriber API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('Should not register subscribers if scv file is blank', (done: $TSFixMe) => {
         csvData.data = [];
         request

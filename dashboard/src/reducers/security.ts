@@ -97,11 +97,11 @@ export default function security(state = initialState, action: $TSFixMe) {
                     ? state.containerSecurities.securities.map(
                           containerSecurity => {
                               if (
-                                  // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                  
                                   String(containerSecurity._id) ===
                                   String(action.payload._id)
                               ) {
-                                  // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                                  
                                   containerSecurity = action.payload;
                               }
                               return containerSecurity;
@@ -192,7 +192,7 @@ export default function security(state = initialState, action: $TSFixMe) {
             // update the list of container securities
             const securities = state.containerSecurities.securities.filter(
                 containerSecurity =>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     String(containerSecurity._id) !== String(action.payload._id)
             );
             const count =
@@ -408,11 +408,11 @@ export default function security(state = initialState, action: $TSFixMe) {
                     ? state.applicationSecurities.securities.map(
                           applicationSecurity => {
                               if (
-                                  // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                  
                                   String(applicationSecurity._id) ===
                                   String(action.payload._id)
                               ) {
-                                  // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                                  
                                   applicationSecurity = action.payload;
                               }
                               return applicationSecurity;
@@ -503,7 +503,7 @@ export default function security(state = initialState, action: $TSFixMe) {
             // update the list of application securities
             const securities = state.applicationSecurities.securities.filter(
                 applicationSecurity =>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     String(applicationSecurity._id) !==
                     String(action.payload._id)
             );

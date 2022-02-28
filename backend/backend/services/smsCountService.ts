@@ -51,17 +51,17 @@ export default {
         error: $TSFixMe
     ) {
         const smsCountModel = new SmsCountModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Document... Remove this comment to see the full error message
+        
         smsCountModel.userId = userId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sentTo' does not exist on type 'Document... Remove this comment to see the full error message
+        
         smsCountModel.sentTo = sentTo || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         smsCountModel.projectId = projectId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         smsCountModel.content = content || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
+        
         smsCountModel.status = status || null;
-        // @ts-expect-error ts-migrate(2551) FIXME: Property 'error' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         smsCountModel.error = error || null;
         const smsCount = await smsCountModel.save();
         return smsCount;
@@ -114,12 +114,12 @@ export default {
         });
         if (smsCount.length > 3) {
             let time = moment(smsCount[3].createdAt).add(1, 'days');
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'Moment'.
+            
             time = time.diff(moment(Date.now()), 'minutes');
             problem = `You have exhausted the maximum limit of sms resends in a day please wait ${Math.floor(
-                // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
+                
                 time / 60
-                // @ts-expect-error ts-migrate(2362) FIXME: The left-hand side of an arithmetic operation must... Remove this comment to see the full error message
+                
             )} Hours ${Math.floor(time % 60)} minutes before retrying.`;
         }
         return {

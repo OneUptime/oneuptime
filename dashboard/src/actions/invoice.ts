@@ -71,7 +71,7 @@ export function getInvoice(
 
         promise.then(
             function(invoices) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(getInvoiceSuccess(invoices.data));
                 if (reqFornext) {
                     dispatch(incrementNextCount());

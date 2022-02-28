@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 process.env.NODE_ENV = 'development';
 const expect = require('chai').expect;
@@ -9,9 +9,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import UserModel from '../backend/models/user';
@@ -39,17 +39,17 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Alert API', function() {
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await UserService.hardDeleteBy({});
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+    
     describe('Alert API without subprojects', function() {
         this.timeout(30000);
 
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+        
         before(function(done: $TSFixMe) {
             this.timeout(30000);
             GlobalConfig.initTestConfig().then(function() {
@@ -116,7 +116,7 @@ describe('Alert API', function() {
             });
         });
 
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+        
         after(async function() {
             await StatusPageService.hardDeleteBy({ projectId: projectId });
             await NotificationService.hardDeleteBy({ projectId: projectId });
@@ -129,7 +129,7 @@ describe('Alert API', function() {
         });
 
         // 'post /:projectId'
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should register with valid projectId, monitorId, incidentId, alertVia', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -157,7 +157,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should get an array of alerts by valid projectId', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -172,7 +172,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should get an array alerts of by valid incidentId', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -187,7 +187,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should deleted alert', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -199,7 +199,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should not delete alert with non-existing projectId', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -214,10 +214,10 @@ describe('Alert API', function() {
 
     let newUserToken: $TSFixMe;
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+    
     describe('Alert API with Sub-Projects', function() {
         this.timeout(40000);
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+        
         before(function(done: $TSFixMe) {
             this.timeout(30000);
             const authorization = `Basic ${token}`;
@@ -275,7 +275,7 @@ describe('Alert API', function() {
             });
         });
 
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+        
         after(async function() {
             await ProjectService.hardDeleteBy({
                 _id: { $in: [projectId, subProjectId] },
@@ -295,7 +295,7 @@ describe('Alert API', function() {
             await GlobalConfig.removeTestConfig();
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should not create alert for user not in the project.', function(done: $TSFixMe) {
             createUser(request, userData.anotherUser, function(
                 err: $TSFixMe,
@@ -339,7 +339,7 @@ describe('Alert API', function() {
             });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should create alert in parent project', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -359,7 +359,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should create alert in sub-project', function(done: $TSFixMe) {
             const authorization = `Basic ${newUserToken}`;
             request
@@ -378,7 +378,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should get only sub-project alerts for valid user.', function(done: $TSFixMe) {
             const authorization = `Basic ${newUserToken}`;
             request
@@ -393,7 +393,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should get both project and sub-project alerts for valid user.', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -410,7 +410,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should delete sub-project alert', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -422,7 +422,7 @@ describe('Alert API', function() {
                 });
         });
 
-        // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+        
         it('should delete project alert', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request

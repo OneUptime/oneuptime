@@ -39,9 +39,9 @@ export function deleteWebHook(projectId: $TSFixMe, webhookId: $TSFixMe) {
 
         return promise.then(
             function(webhook) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteWebHookSuccess(webhook.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return webhook.data;
             },
             function(error) {
@@ -102,7 +102,7 @@ export function getWebHook(
 
         promise.then(
             function(webhooks) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function(error) {
@@ -140,7 +140,7 @@ export function getWebHookMonitor(
 
         promise.then(
             function(webhooks) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function(error) {
@@ -197,9 +197,9 @@ export function createWebHook(projectId: $TSFixMe, data: $TSFixMe) {
 
         return promise.then(
             function(webhook) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createWebHookSuccess(webhook.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return webhook.data;
             },
             function(error) {
@@ -258,9 +258,9 @@ export function updateWebHook(
 
         return promise.then(
             function(webhook) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(updateWebHookSuccess(webhook.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return webhook.data;
             },
             function(error) {

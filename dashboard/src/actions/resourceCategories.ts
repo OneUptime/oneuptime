@@ -25,7 +25,7 @@ export function fetchResourceCategories(
         promise.then(
             function(resourceCategories) {
                 dispatch(
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     fetchResourceCategoriesSuccess(resourceCategories.data)
                 );
             },
@@ -74,7 +74,7 @@ export function createResourceCategory(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(resourceCategory) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createResourceCategorySuccess(resourceCategory.data));
             },
             function(error) {
@@ -111,7 +111,7 @@ export function updateResourceCategory(
         promise.then(
             function(updatedResourceCategory) {
                 dispatch(
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     updateResourceCategorySuccess(updatedResourceCategory.data)
                 );
             },
@@ -181,7 +181,7 @@ export function deleteResourceCategory(
     projectId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`
         );
@@ -190,7 +190,7 @@ export function deleteResourceCategory(
         promise.then(
             function(resourceCategory) {
                 dispatch(
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     deleteResourceCategorySuccess(resourceCategory.data._id)
                 );
             },
@@ -246,7 +246,7 @@ export function fetchResourceCategoriesForNewResource(projectId: $TSFixMe) {
             function(resourceCategories) {
                 dispatch(
                     fetchResourceCategoriesForNewResourceSuccess(
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         resourceCategories.data
                     )
                 );

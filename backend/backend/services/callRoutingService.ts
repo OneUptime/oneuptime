@@ -26,27 +26,27 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const callRoutingModel = new CallRoutingModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         callRoutingModel.projectId = data.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         callRoutingModel.phoneNumber = data.phoneNumber;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'locality' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         callRoutingModel.locality = data.locality;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'region' does not exist on type 'Document... Remove this comment to see the full error message
+        
         callRoutingModel.region = data.region;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'capabilities' does not exist on type 'Do... Remove this comment to see the full error message
+        
         callRoutingModel.capabilities = data.capabilities;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'price' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         callRoutingModel.price = data.price;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'priceUnit' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         callRoutingModel.priceUnit = data.priceUnit;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         callRoutingModel.countryCode = data.countryCode;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberType' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         callRoutingModel.numberType = data.numberType;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripeSubscriptionId' does not exist on ... Remove this comment to see the full error message
+        
         callRoutingModel.stripeSubscriptionId = data.stripeSubscriptionId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sid' does not exist on type 'Document<an... Remove this comment to see the full error message
+        
         callRoutingModel.sid = data.sid;
 
         const numbers = await callRoutingModel.save();
@@ -148,7 +148,7 @@ export default {
             projectId
         );
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'users',
@@ -174,7 +174,7 @@ export default {
                 data.stripeSubscriptionId = stripeSubscription.id;
             } else {
                 const error = new Error('Error Creating Subscription.');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -307,7 +307,7 @@ export default {
                         forwardingNumber: null,
                         error:
                             'Active team have not added their phone number yet',
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         userId: user && user._id ? user._id : null,
                     };
                 }
@@ -315,7 +315,7 @@ export default {
                 return {
                     forwardingNumber: null,
                     error: 'Active team unavailable',
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     userId: user && user._id ? user._id : null,
                 };
             }
@@ -340,7 +340,7 @@ export default {
                 projectId
             );
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 const project = await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'users',
@@ -399,7 +399,7 @@ export default {
         const callStatus = body['CallStatus'] || null;
         const dialCallStatus = body['DialCallStatus'] || null;
 
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: data.projectId },
             select: 'balance alertOptions',
@@ -417,9 +417,9 @@ export default {
             : isBalanceMoreThanMinimum;
 
         if (!hasEnoughBalance) {
-            // @ts-expect-error ts-migrate(2448) FIXME: Block-scoped variable 'response' used before its d... Remove this comment to see the full error message
+            
             response.reject();
-            // @ts-expect-error ts-migrate(2448) FIXME: Block-scoped variable 'response' used before its d... Remove this comment to see the full error message
+            
             return response;
         }
 
@@ -458,7 +458,7 @@ export default {
             response.say(backup_introtext);
         }
         if (!backup && showAdvance && introAudio && introAudio.length) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+            
             response.play(`${global.apiHost}/file/${introAudio}`);
         }
         if (
@@ -467,18 +467,18 @@ export default {
             backup_introAudio &&
             backup_introAudio.length
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+            
             response.play(`${global.apiHost}/file/${backup_introAudio}`);
         }
 
         if (type && !backup) {
             if (id && id.length && type !== 'PhoneNumber') {
                 const result = await this.findTeamMember(type, id);
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 forwardingNumber = result.forwardingNumber;
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 error = result.error;
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 userId = result.userId;
                 scheduleId = type === 'Schedule' ? id : null;
                 if (userId) {
@@ -503,11 +503,11 @@ export default {
                     backup_type,
                     backup_id
                 );
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 forwardingNumber = result.forwardingNumber;
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 error = result.error;
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 userId = result.userId;
                 scheduleId = backup_type === 'Schedule' ? backup_id : null;
                 if (userId) {
@@ -546,7 +546,7 @@ export default {
         ) {
             response.dial(
                 {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+                    
                     action: `${global.apiHost}/callRouting/routeBackupCall`,
                 },
                 forwardingNumber
@@ -758,7 +758,7 @@ import AlertService from './alertService';
 import EscalationService from './escalationService';
 import UserService from './userService';
 import twilio from 'twilio';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
+
 import { IS_SAAS_SERVICE } from '../config/server';
 import ProjectService from './projectService';
 import FileService from './fileService';

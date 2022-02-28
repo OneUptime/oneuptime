@@ -22,7 +22,7 @@ export const createMonitorSla = (projectId: $TSFixMe, data: $TSFixMe) => async (
         dispatch(createMonitorSlaRequest());
 
         const response = await postApi(`monitorSla/${projectId}`, data);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(createMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -65,7 +65,7 @@ export const updateMonitorSla = (
             `monitorSla/${projectId}/${monitorSlaId}`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(updateMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -105,7 +105,7 @@ export const fetchMonitorSlas = (
         const response = await getApi(
             `monitorSla/${projectId}?skip=${skip}&limit=${limit}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchMonitorSlasSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -141,11 +141,11 @@ export const deleteMonitorSla = (
     try {
         dispatch(deleteMonitorSlaRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `monitorSla/${projectId}/${monitorSlaId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -189,7 +189,7 @@ export const fetchDefaultMonitorSla = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `monitorSla/${projectId}/defaultMonitorSla`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchDefaultMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =

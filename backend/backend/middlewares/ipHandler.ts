@@ -37,13 +37,13 @@ const _this = {
             return next();
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableIpWhitelist' does not exist on typ... Remove this comment to see the full error message
+        
         if (!statusPage.enableIpWhitelist) {
             return next();
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
+        
         const ipWhitelist = statusPage.ipWhitelist
-            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
+            ? 
               [...statusPage.ipWhitelist]
             : [];
         // if ip whitelist is enabled and no ip is saved

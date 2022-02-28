@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -20,13 +20,13 @@ const user = {
 const role = 'Viewer';
 
 let browser: $TSFixMe, page: $TSFixMe;
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Sub-Project API', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,13 +38,13 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create a new sub-project',
         async (done: $TSFixMe) => {
@@ -60,22 +60,22 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
 
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btn_Add_SubProjects');
             await init.pageWaitForSelector(page, '#title', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#title', subProjectName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
             const subProjectSelector = await init.pageWaitForSelector(
@@ -94,7 +94,7 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test('should invite viewer to a subproject', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -103,7 +103,7 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#teamMembers');
         let prevMemberCount = await init.page$Eval(
             page,
@@ -118,20 +118,20 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, `button[id=btn_${subProjectName}]`);
         await init.pageWaitForSelector(page, `#frm_${subProjectName}`, {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+        
         await init.pageType(page, 'input[name=emails]', email);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, `#${role}_${subProjectName}`);
         await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
             visible: true,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, `#btn_modal_${subProjectName}`);
         await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
             hidden: true,
@@ -149,7 +149,7 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test('should invite viewer to a project', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -158,7 +158,7 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#teamMembers');
         await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
@@ -177,22 +177,22 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, `button[id=btn_${newProjectName}]`);
         await init.pageWaitForSelector(page, `#frm_${newProjectName}`, {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+        
         await init.pageType(page, 'input[name=emails]', projectViewer.email);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, `#${role}_${newProjectName}`);
         await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
             visible: true,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, `#btn_modal_${newProjectName}`);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const elem = await init.page$(page, 'button[id=btnConfirmInvite]');
         elem.click();
         await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
@@ -211,7 +211,7 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test('should create a status page', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -220,7 +220,7 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#statusPages');
         await init.pageWaitForSelector(
             page,
@@ -254,16 +254,16 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should display subproject status pages to a subproject viewer',
         async (done: $TSFixMe) => {
             // Login as viewer
             await init.logout(page);
             await init.loginProjectViewer({ email, password }, page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#statusPages');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#statusPages');
 
             await init.pageWaitForSelector(page, '#statusPageTable_0', {
@@ -280,7 +280,7 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should display project and subproject status pages to project viewers',
         async (done: $TSFixMe) => {
@@ -290,13 +290,13 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#AccountSwitcherId');
             await init.pageWaitForSelector(page, '#accountSwitcher', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const element = await init.page$(
                 page,
                 `#accountSwitcher > div[title=${newProjectName}]`
@@ -306,14 +306,14 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const projectStatusPages = await init.page$(
                 page,
                 '#statusPageTable'
             );
             expect(projectStatusPages).not.toEqual(null);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const subProjectStatusPages = await init.page$(
                 page,
                 '#statusPageTable_0'
@@ -324,7 +324,7 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test('should redirect viewer to external status page', async (done: $TSFixMe) => {
         await init.logout(page);
         await init.loginProjectViewer(projectViewer, page);
@@ -332,13 +332,13 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#AccountSwitcherId');
         await init.pageWaitForSelector(page, '#accountSwitcher', {
             visible: true,
             timeout: init.timeout,
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const element = await init.page$(
             page,
             `#accountSwitcher > div[title=${newProjectName}]`

@@ -1,5 +1,5 @@
 // In a FrontEnd Environment
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'oneuptime-staging' or its corr... Remove this comment to see the full error message
+
 import oneuptime from 'oneuptime-staging';
 const Logger = oneuptime.Logger;
 

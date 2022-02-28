@@ -25,7 +25,7 @@ export function fetchComponents({ projectId, skip = 0, limit = 3 }: $TSFixMe) {
 
         promise.then(
             function(components) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchComponentsSuccess(components.data));
             },
             function(error) {
@@ -88,7 +88,7 @@ export function fetchPaginatedComponents({
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchPaginatedComponentsSuccess(response.data));
             },
             function(error) {
@@ -144,7 +144,7 @@ export function createComponent(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(component) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createComponentSuccess(component.data));
             },
             function(error) {
@@ -202,7 +202,7 @@ export function editComponent(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(component) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editComponentSuccess(component.data));
             },
             function(error) {
@@ -269,7 +269,7 @@ export function deleteComponent(componentId: $TSFixMe, projectId: $TSFixMe) {
 
         promise.then(
             function(component) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteComponentSuccess(component.data._id));
             },
             function(error) {
@@ -331,9 +331,9 @@ export function addSeat(projectId: $TSFixMe) {
 
         promise.then(
             function(component) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createComponentFailure(component.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(addSeatSuccess(component.data));
             },
             function(error) {
@@ -398,7 +398,7 @@ export function fetchComponentResources(
 
         promise.then(
             function(components) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
             function(error) {
@@ -463,7 +463,7 @@ export function fetchComponentSummary(
 
         promise.then(
             function(components) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
             function(error) {
@@ -546,7 +546,7 @@ export function fetchComponent(projectId: $TSFixMe, slug: $TSFixMe) {
 
         promise.then(
             function(component) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchComponentSuccess(component.data));
             },
             function(error) {

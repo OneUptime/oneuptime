@@ -2,11 +2,11 @@ import express from 'express';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 const jwtSecretKey = process.env['JWT_SECRET'];
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'json... Remove this comment to see the full error message
+
 import jwt from 'jsonwebtoken';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'bcry... Remove this comment to see the full error message
+
 import bcrypt from 'bcrypt';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'saml... Remove this comment to see the full error message
+
 import saml2 from 'saml2-js';
 import { decode } from 'js-base64';
 import MailService from '../services/mailService';
@@ -19,13 +19,13 @@ const router = express.Router();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 import winston from 'winston';
-// @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../config/constants.json'. Con... Remove this comment to see the full error message
+
 import constants from '../config/constants.json';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/emaildomains"' has no exported ... Remove this comment to see the full error message
+
 import { emaildomains } from '../config/emaildomains';
 import randToken from 'rand-token';
 import VerificationTokenModel from '../models/verificationToken';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
+
 import { IS_SAAS_SERVICE } from '../config/server';
 import UserModel from '../models/user';
 import ErrorService from 'common-server/utils/error';
@@ -325,7 +325,7 @@ router.get('/sso/login', async function(req, res) {
     }
 
     const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLocaleLowerCase' does not exist on typ... Remove this comment to see the full error message
+    
     const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
 
     if (!matchedTokens) {
@@ -516,7 +516,7 @@ router.post('/sso/callback', async function(req, res) {
         };
 
         return res.redirect(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
+            
             `${global.accountsHost}` +
                 `/ssologin?id=${authUserObj.id}` +
                 `&name=${authUserObj.name}` +
@@ -763,7 +763,7 @@ router.post('/verify/backupCode', async function(req, res) {
 // None
 // Return: return the new list of backup codes.
 router.post('/generate/backupCode', getUser, async function(req, res) {
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+    
     const userId = req.user.id || null;
     const user = await UserService.findOneBy({
         query: { _id: userId },
@@ -865,7 +865,7 @@ router.post('/forgot-password', async function(req, res) {
         }
         // Call the UserService.
         const user = await UserService.forgotPassword(data.email);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
+        
         const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
         try {
             // Call the MailService.
@@ -975,7 +975,7 @@ router.post('/isInvited', async function(req, res) {
 // I used to validate token given to redirected urls such as status page
 router.post('/isAuthenticated', getUser, async (req, res) => {
     // request will get here if user is authenticated.
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+    
     return sendItemResponse(req, res, { authenticated: true, user: req.user });
 });
 
@@ -995,7 +995,7 @@ router.put('/profile', getUser, async function(req, res) {
             },
         ]);
         upload(req, res, async function(error: $TSFixMe) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
             const data = req.body;
 
@@ -1004,12 +1004,12 @@ router.put('/profile', getUser, async function(req, res) {
             }
             if (
                 req.files &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 req.files.profilePic &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 req.files.profilePic[0].filename
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 data.profilePic = req.files.profilePic[0].filename;
             }
             const userData = await UserService.findOneBy({
@@ -1041,7 +1041,7 @@ router.put('/profile', getUser, async function(req, res) {
 // Returns: 200: Success, 400: Error; 500: Server Error.
 router.put('/push-notification', getUser, async function(req, res) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         const data = req.body;
         const user = await UserService.updatePush({ userId, data });
@@ -1102,12 +1102,12 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function(
 
             if (
                 req.files &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 req.files.profilePic &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 req.files.profilePic[0].filename
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 data.profilePic = req.files.profilePic[0].filename;
             }
 
@@ -1128,7 +1128,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function(
 router.put('/changePassword', getUser, async function(req, res) {
     try {
         const data = req.body;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         data._id = userId;
 
@@ -1219,7 +1219,7 @@ router.put('/changePassword', getUser, async function(req, res) {
 // Returns: 200: Success, 400: Error; 500: Server Error.
 router.get('/profile', getUser, async function(req, res) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
 
         if (!userId) {
@@ -1283,7 +1283,7 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             if (!token) {
                 return res.redirect(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
+                    
                     global.accountsHost +
                         '/user-verify/resend?status=link-expired'
                 );
@@ -1293,7 +1293,7 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             if (!user) {
                 return res.redirect(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
+                    
                     global.accountsHost + '/register?status=user-not-found'
                 );
             }
@@ -1303,7 +1303,7 @@ router.get('/confirmation/:token', async function(req, res) {
                     (user.tempEmail && user.tempEmail === user.email))
             ) {
                 return res.redirect(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
+                    
                     global.accountsHost + '/login?status=already-verified'
                 );
             }
@@ -1311,7 +1311,7 @@ router.get('/confirmation/:token', async function(req, res) {
             if (user.tempEmail && user.tempEmail !== user.email) {
                 dataUpdate = {
                     isVerified: true,
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ isVerified: true; email: any; tempEmail: n... Remove this comment to see the full error message
+                    
                     email: user.tempEmail,
                     tempEmail: null,
                 };
@@ -1319,11 +1319,11 @@ router.get('/confirmation/:token', async function(req, res) {
             await UserModel.findByIdAndUpdate(user._id, {
                 $set: dataUpdate,
             });
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
+            
             return res.redirect(global.accountsHost + '/login?status=verified');
         } else {
             return res.redirect(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountsHost' does not exist on type 'Gl... Remove this comment to see the full error message
+                
                 global.accountsHost +
                     '/user-verify/resend?status=invalid-verification-link'
             );
@@ -1421,17 +1421,17 @@ router.get('/users/:userId', getUser, isUserMasterAdmin, async function(
 router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const userId = req.params.userId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const authUserId = req.user.id;
         if (userId === authUserId) {
             const err = new Error(
                 "Invalid operation! You can't perform this operation on your own account"
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             err.code = 400;
             throw err;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const masterUserId = req.user.id || null;
         const user = await UserService.deleteBy({ _id: userId }, masterUserId);
         return sendItemResponse(req, res, user);
@@ -1446,13 +1446,13 @@ router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const authUserId = req.user.id;
         if (userId === authUserId) {
             const err = new Error(
                 "Invalid operation! You can't perform this operation on your own account"
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             err.code = 400;
             throw err;
         }
@@ -1472,13 +1472,13 @@ router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const authUserId = req.user.id;
         if (userId === authUserId) {
             const err = new Error(
                 "Invalid operation! You can't perform this operation on your own account"
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             err.code = 400;
             throw err;
         }
@@ -1498,13 +1498,13 @@ router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const authUserId = req.user.id;
         if (userId === authUserId) {
             const err = new Error(
                 "Invalid operation! You can't perform this operation on your own account"
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             err.code = 400;
             throw err;
         }
@@ -1530,13 +1530,13 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.params.userId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const authUserId = req.user.id;
             if (userId === authUserId) {
                 const err = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 err.code = 400;
                 throw err;
             }
@@ -1564,13 +1564,13 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.params.userId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const authUserId = req.user.id;
             if (userId === authUserId) {
                 const err = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 err.code = 400;
                 throw err;
             }
@@ -1675,14 +1675,14 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function(
 // Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
 router.delete('/:userId/delete', getUser, async function(req, res) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         if (req.params.userId !== req.user.id) {
             return sendErrorResponse(req, res, {
                 code: 401,
                 message: 'You are unauthorized to access the page',
             });
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         const user = await UserService.findOneBy({
             query: { _id: userId },
@@ -1714,7 +1714,7 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
             })
             .forEach(async (project: $TSFixMe) => {
                 const { _id: projectId } = project;
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
+                
                 await ProjectService.exitProject(projectId, userId);
             });
 
@@ -1740,7 +1740,7 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
                             userId
                         );
                     } else {
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
+                        
                         await ProjectService.exitProject(projectId, userId);
                     }
                 }

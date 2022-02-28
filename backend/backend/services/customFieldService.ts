@@ -87,7 +87,7 @@ export default {
                     field.fieldType = customField.fieldType;
                     field.uniqueField = customField.uniqueField;
                 }
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+                
                 data.customFields.push(field);
             }
 
@@ -101,7 +101,7 @@ export default {
 
         if (!customField) {
             const error = new Error('Custom field not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -200,7 +200,7 @@ export default {
 
         if (!customField) {
             const error = new Error('Custom field not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

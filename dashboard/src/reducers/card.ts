@@ -123,7 +123,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                 fetchCards: {
                     ...state.fetchCards,
                     cards: state.fetchCards.cards.filter(card => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type 'never'.
+                        
                         if (action.payload.id === card.id) {
                             return false;
                         }

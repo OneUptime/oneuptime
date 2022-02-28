@@ -1,12 +1,12 @@
 import PerformanceTrackerModel from '../models/performanceTracker';
 import ErrorService from 'common-server/utils/error';
 import ComponentService from './componentService';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'nano... Remove this comment to see the full error message
+
 import generate from 'nanoid/generate';
 import slugify from 'slugify';
 // import RealTimeService from './realTimeService'
 import NotificationService from './notificationService';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import uuid from 'uuid';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
@@ -22,7 +22,7 @@ export default {
             // send an error if the component doesnt exist
             if (!componentCount || componentCount === 0) {
                 const error = new Error('Component does not exist.');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 ErrorService.log('performanceTrackerService.create', error);
                 throw error;
@@ -39,7 +39,7 @@ export default {
                 const error = new Error(
                     'Performance tracker with that name already exists.'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 ErrorService.log('performanceTrackerService.create', error);
                 throw error;
@@ -153,7 +153,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -207,7 +207,7 @@ export default {
             });
         if (performanceTracker) {
             try {
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                
                 NotificationService.create(
                     performanceTracker.componentId.projectId._id ||
                         performanceTracker.componentId.projectId,
@@ -251,7 +251,7 @@ export default {
         );
 
         if (unsetData) {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },

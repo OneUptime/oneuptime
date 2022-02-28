@@ -80,13 +80,13 @@ export default {
                 // if cluster key matches then just query by applicationScanner name,
                 // because if the applicationScanner key does not match, we can update applicationScanner key later
                 // without updating mongodb database manually.
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { applicationScannerNam... Remove this comment to see the full error message
+                
                 applicationScanner = await ApplicationScannerService.findOneBy({
                     query: { applicationScannerName },
                     select: '_id applicationScannerKey',
                 });
             } else {
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { applicationScannerKey... Remove this comment to see the full error message
+                
                 applicationScanner = await ApplicationScannerService.findOneBy({
                     query: { applicationScannerKey, applicationScannerName },
                     select: '_id applicationScannerKey',
@@ -129,7 +129,7 @@ export default {
             req.applicationScanner.id = applicationScanner._id;
 
             const [applicationScannerValue] = await Promise.all([
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { applicationScannerKey... Remove this comment to see the full error message
+                
                 ApplicationScannerService.findOneBy({
                     query: { applicationScannerKey, applicationScannerName },
                     select: 'version',

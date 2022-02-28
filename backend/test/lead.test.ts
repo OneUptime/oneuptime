@@ -1,11 +1,11 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
 import leadService from '../backend/services/leadService';
@@ -25,22 +25,22 @@ const leadData = {
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Lead API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(async function() {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add lead when requested for type demo or whitepaper', function(done: $TSFixMe) {
         request
             .post('/lead')
@@ -52,7 +52,7 @@ describe('Lead API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add lead when requested for type demo and check the sent message', function(done: $TSFixMe) {
         this.timeout(60000);
         request

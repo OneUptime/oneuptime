@@ -52,7 +52,7 @@ export const createPerformanceTracker = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(createPerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -102,7 +102,7 @@ export const fetchPerformanceTracker = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchPerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -155,7 +155,7 @@ export const fetchPerformanceTrackers = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchPerformanceTrackersSuccess(response.data));
         },
         function(error) {
@@ -207,7 +207,7 @@ export const updatePerformanceTracker = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(updatePerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -250,14 +250,14 @@ export const deletePerformanceTracker = ({
     performanceTrackerId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deletePerformanceTrackerRequest());
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+    
     const promise = deleteApi(
         `performanceTracker/${projectId}/tracker/${performanceTrackerId}`
     );
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(deletePerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -307,7 +307,7 @@ export const resetPerformanceTrackerKey = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(resetPerformanceTrackerKeySuccess(response.data));
         },
         function(error) {
@@ -353,7 +353,7 @@ export const removeQuickStart = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(removeQuickStartSuccess(response.data));
         },
         function(error) {
@@ -404,7 +404,7 @@ export const fetchLastMetrics = ({
 
     promise.then(
         function(response) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             dispatch(fetchLastMetricsSuccess(response.data));
         },
         function(error) {

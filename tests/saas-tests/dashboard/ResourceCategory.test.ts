@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,13 +17,13 @@ const user = {
     password,
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Resource Category', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -36,13 +36,13 @@ describe('Resource Category', () => {
         await init.addComponent(componentName, page);
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test.skip(
         'should create a new resource category',
         async (done: $TSFixMe) => {
@@ -53,20 +53,20 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, 'li#resources a', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'li#resources a');
             await init.pageWaitForSelector(
                 page,
@@ -76,15 +76,15 @@ describe('Resource Category', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createResourceCategoryButton');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(
                 page,
                 '#resourceCategoryName',
                 utils.resourceCategoryName
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addResourceCategoryButton');
 
             const createdResourceCategorySelector =
@@ -113,7 +113,7 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test.skip(
         'should show created resource category in new monitor dropdown',
         async (done: $TSFixMe) => {
@@ -145,7 +145,7 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test.skip(
         'should create a new monitor by selecting resource category from dropdown',
         async (done: $TSFixMe) => {
@@ -160,28 +160,28 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, 'input[id=name]', utils.monitorName);
             await init.selectDropdownValue(
                 '#resourceCategory',
                 utils.resourceCategoryName,
                 page
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#url');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#url', 'https://google.com');
             await Promise.all([
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                
                 init.pageClick(page, 'button[type=submit]'),
                 page.waitForNavigation(),
             ]);
@@ -203,7 +203,7 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test.skip(
         'should delete the created resource category',
         async (done: $TSFixMe) => {
@@ -214,20 +214,20 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, 'li#resources a', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'li#resources a');
 
             const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
@@ -236,13 +236,13 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, deleteButtonSelector);
             await init.pageWaitForSelector(page, '#deleteResourceCategory', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#deleteResourceCategory');
             await init.pageWaitForSelector(page, '#resourceCategoryCount', {
                 visible: true,
@@ -263,13 +263,13 @@ describe('Resource Category', () => {
     );
 });
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Member Restriction', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -294,13 +294,13 @@ describe('Member Restriction', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test.skip(
         'should show unauthorised modal when trying to add a resource category for a member who is not the admin or owner of the project',
         async (done: $TSFixMe) => {
@@ -316,20 +316,20 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, '#resources', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#resources');
             await init.pageWaitForSelector(
                 page,
@@ -339,7 +339,7 @@ describe('Member Restriction', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createResourceCategoryButton');
             const modal = await init.pageWaitForSelector(
                 page,
@@ -355,7 +355,7 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test.skip(
         'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
         async (done: $TSFixMe) => {
@@ -366,27 +366,27 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, '#resources', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#resources');
             const editBtn = `#edit_${resourceCategory}`;
             await init.pageWaitForSelector(page, editBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, editBtn);
             const modal = await init.pageWaitForSelector(
                 page,
@@ -402,7 +402,7 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test.skip(
         'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
         async (done: $TSFixMe) => {
@@ -413,27 +413,27 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, '#resources', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#resources');
             const deleteBtn = `#delete_${resourceCategory}`;
             await init.pageWaitForSelector(page, deleteBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, deleteBtn);
             const modal = await init.pageWaitForSelector(
                 page,

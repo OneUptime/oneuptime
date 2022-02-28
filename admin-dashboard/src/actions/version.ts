@@ -36,7 +36,7 @@ export function getVersion() {
         let docsPromise = null;
         let dashboardPromise = null;
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         backendPromise = getApi('version');
         helmChartPromise = getApiHelm('version');
         docsPromise = getApiDocs('version');
@@ -55,7 +55,7 @@ export function getVersion() {
             function(versions) {
                 let versionsObject = {};
                 versions.forEach(version => {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     versionsObject = { ...versionsObject, ...version.data };
                 });
 

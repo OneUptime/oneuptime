@@ -186,21 +186,21 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     templates: state.incidentTemplates.templates.map(
                         template => {
                             if (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 String(template._id) ===
                                 String(action.payload._id)
                             ) {
                                 return action.payload;
                             }
                             if (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 String(template._id) !==
                                     String(action.payload._id) &&
                                 action.payload.isDefault &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
+                                
                                 template.isDefault
                             ) {
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
+                                
                                 template.isDefault = false;
                             }
                             return template;
@@ -272,20 +272,20 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     templates: state.incidentTemplates.templates.map(
                         template => {
                             if (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 String(template._id) ===
                                 String(action.payload._id)
                             ) {
                                 return action.payload;
                             }
                             if (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 String(template._id) !==
                                     String(action.payload._id) &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
+                                
                                 template.isDefault
                             ) {
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type 'never... Remove this comment to see the full error message
+                                
                                 template.isDefault = false;
                             }
                             return template;

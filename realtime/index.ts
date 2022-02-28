@@ -20,10 +20,10 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
+
 import express from 'express';
 const app = express();
-// @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'createServer'.
+
 import http from 'http';
 http.createServer(app);
 import cors from 'cors';
@@ -42,48 +42,48 @@ const io = require('socket.io')(http, {
     },
 });
 // attach socket to global object
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+
 global.io = io;
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'socket' implicitly has an 'any' type.
+
 io.sockets.on('connection', socket => {
     // join a particular project room
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'projectId' implicitly has an 'any' type... Remove this comment to see the full error message
+    
     socket.on('project_switch', projectId => {
         socket.join(projectId);
     });
 
     // join a particular scheduled event room
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'scheduledEventId' implicitly has an 'an... Remove this comment to see the full error message
+    
     socket.on('schedule_switch', scheduledEventId => {
         socket.join(scheduledEventId);
     });
 
     // join a particular component room
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'componentId' implicitly has an 'any' ty... Remove this comment to see the full error message
+    
     socket.on('component_switch', componentId => {
         socket.join(componentId);
     });
 
     // join a particular application log room
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'applicationLogId' implicitly has an 'an... Remove this comment to see the full error message
+    
     socket.on('application_log_switch', applicationLogId => {
         socket.join(applicationLogId);
     });
 
     // join a particular error tracker room
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'errorTrackerId' implicitly has an 'any'... Remove this comment to see the full error message
+    
     socket.on('error_tracker_switch', errorTrackerId => {
         socket.join(errorTrackerId);
     });
 
     // join app id
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'appId' implicitly has an 'any' type.
+    
     socket.on('app_id_switch', appId => {
         socket.join(appId);
     });
 
     // join a particular security room
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'securityId' implicitly has an 'any' typ... Remove this comment to see the full error message
+    
     socket.on('security_switch', securityId => {
         socket.join(securityId);
     });
@@ -91,7 +91,7 @@ io.sockets.on('connection', socket => {
 
 app.use(cors());
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
@@ -112,7 +112,7 @@ app.use(function(req, res, next) {
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.get(['/realtime/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -128,7 +128,7 @@ app.use('/realtime', require('./api/realtime'));
 
 app.set('port', process.env.PORT || 3300);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'listen' does not exist on type 'typeof i... Remove this comment to see the full error message
+
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('realtime server started on port ' + app.get('port'));

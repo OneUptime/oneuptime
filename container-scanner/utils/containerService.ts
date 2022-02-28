@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import EncryptionKeys from './encryptionKeys';
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v1 as uuidv1 } from 'uuid';
 import fs from 'fs';
 import Path from 'path';
@@ -19,12 +19,12 @@ const {
 import flattenArray from '../utils/flattenArray';
 
 export default {
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'security' implicitly has an 'any' type.
+    
     scan: async function(security) {
         const decryptedSecurity = await this.decryptPassword(security);
         await this.scanContainerSecurity(decryptedSecurity);
     },
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'security' implicitly has an 'any' type.
+    
     decryptPassword: async function(security) {
         try {
             const values = [];
@@ -42,11 +42,11 @@ export default {
             throw error;
         }
     },
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'encText' implicitly has an 'any' type.
+    
     decrypt: (encText, iv) => {
         const promise = new Promise((resolve, reject) => {
             try {
-                // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                
                 const decipher = crypto.createDecipheriv(algorithm, key, iv);
                 let decoded = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
@@ -57,7 +57,7 @@ export default {
         });
         return promise;
     },
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'security' implicitly has an 'any' type.
+    
     scanContainerSecurity: async security => {
         try {
             const { imagePath, imageTags } = security;
@@ -66,7 +66,7 @@ export default {
                 : imagePath;
             const outputFile = `${uuidv1()}result.json`;
             let securityDir = 'container_security_dir';
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type 'string'.
+            
             securityDir = await createDir(securityDir);
             const exactFilePath = Path.resolve(securityDir, outputFile);
             // update container security to scanning true
@@ -87,7 +87,7 @@ export default {
                 output.on('error', async error => {
                     const errorMessage =
                         'Scanning failed please check your docker credential or image path/tag';
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                    
                     error.code = 400;
                     error.message = errorMessage;
                     await Promise.all([
@@ -118,7 +118,7 @@ export default {
                         const error = new Error(
                             'Scanning failed please check your docker credential or image path/tag'
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                        
                         error.code = 400;
 
                         await Promise.all([
@@ -146,7 +146,7 @@ export default {
                     });
 
                     clearCache.on('error', async error => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                        
                         error.code = 400;
                         error.message =
                             'Unable to clear cache, try again later';
@@ -174,7 +174,7 @@ export default {
                             critical: 0,
                         };
 
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         auditLogs.map(auditLog => {
                             const log = {
                                 type: auditLog.Type,
@@ -185,7 +185,7 @@ export default {
                                 auditLog.Vulnerabilities &&
                                 auditLog.Vulnerabilities.length > 0
                             ) {
-                                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'vulnerability' implicitly has an 'any' ... Remove this comment to see the full error message
+                                
                                 auditLog.Vulnerabilities.map(vulnerability => {
                                     let severity;
                                     if (vulnerability.Severity === 'LOW') {
@@ -217,14 +217,14 @@ export default {
                                         description: vulnerability.Description,
                                         severity,
                                     };
-                                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ vulnerabilityId: any; library:... Remove this comment to see the full error message
+                                    
                                     log.vulnerabilities.push(vulObj);
 
                                     return vulnerability;
                                 });
                             }
 
-                            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ type: any; vulnerabilities: ne... Remove this comment to see the full error message
+                            
                             auditData.vulnerabilityData.push(log);
                             return auditLog;
                         });
@@ -232,50 +232,50 @@ export default {
                         auditData.vulnerabilityInfo = counter;
 
                         const arrayData = auditData.vulnerabilityData.map(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'vulnerabilities' does not exist on type ... Remove this comment to see the full error message
+                            
                             log => log.vulnerabilities
                         );
 
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type 'never[]'.
+                        
                         auditData.vulnerabilityData = flattenArray(arrayData);
 
-                        // @ts-expect-error ts-migrate(7034) FIXME: Variable 'criticalArr' implicitly has type 'any[]'... Remove this comment to see the full error message
+                        
                         const criticalArr = [],
-                            // @ts-expect-error ts-migrate(7034) FIXME: Variable 'highArr' implicitly has type 'any[]' in ... Remove this comment to see the full error message
+                            
                             highArr = [],
-                            // @ts-expect-error ts-migrate(7034) FIXME: Variable 'moderateArr' implicitly has type 'any[]'... Remove this comment to see the full error message
+                            
                             moderateArr = [],
-                            // @ts-expect-error ts-migrate(7034) FIXME: Variable 'lowArr' implicitly has type 'any[]' in s... Remove this comment to see the full error message
+                            
                             lowArr = [];
                         auditData.vulnerabilityData.map(vulnerability => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'severity' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             if (vulnerability.severity === 'critical') {
                                 criticalArr.push(vulnerability);
                             }
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'severity' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             if (vulnerability.severity === 'high') {
                                 highArr.push(vulnerability);
                             }
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'severity' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             if (vulnerability.severity === 'moderate') {
                                 moderateArr.push(vulnerability);
                             }
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'severity' does not exist on type 'never'... Remove this comment to see the full error message
+                            
                             if (vulnerability.severity === 'low') {
                                 lowArr.push(vulnerability);
                             }
                             return vulnerability;
                         });
 
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type 'never[]'.
+                        
                         auditData.vulnerabilityData = [
-                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'criticalArr' implicitly has an 'any[]' t... Remove this comment to see the full error message
+                            
                             ...criticalArr,
-                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'highArr' implicitly has an 'any[]' type.
+                            
                             ...highArr,
-                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'moderateArr' implicitly has an 'any[]' t... Remove this comment to see the full error message
+                            
                             ...moderateArr,
-                            // @ts-expect-error ts-migrate(7005) FIXME: Variable 'lowArr' implicitly has an 'any[]' type.
+                            
                             ...lowArr,
                         ];
 
@@ -303,7 +303,7 @@ export default {
         }
     },
 };
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'dirPath' implicitly has an 'any' type.
+
 function createDir(dirPath) {
     return new Promise((resolve, reject) => {
         const workPath = Path.resolve(process.cwd(), dirPath);
@@ -317,7 +317,7 @@ function createDir(dirPath) {
         });
     });
 }
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'filePath' implicitly has an 'any' type.
+
 function readFileContent(filePath) {
     return new Promise((resolve, reject) => {
         if (fs.existsSync(filePath)) {
@@ -330,7 +330,7 @@ function readFileContent(filePath) {
         }
     });
 }
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'file' implicitly has an 'any' type.
+
 async function deleteFile(file) {
     if (fs.existsSync(file)) {
         await unlink(file);

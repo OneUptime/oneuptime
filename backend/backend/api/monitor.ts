@@ -16,7 +16,7 @@ const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -47,7 +47,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 message: "values can't be null",
             });
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         data.createdById = req.user ? req.user.id : null;
 
         /* if (!data.componentId) {
@@ -163,11 +163,11 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                         httpsAgent,
                     };
                     if (headers && Object.keys(headers).length) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'headers' does not exist on type '{ metho... Remove this comment to see the full error message
+                        
                         payload.headers = headers;
                     }
                     if (body && Object.keys(body).length) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{ method: ... Remove this comment to see the full error message
+                        
                         payload.data = body;
                     }
                     const apiResponse = await axios(payload);
@@ -239,7 +239,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         const [monitor, user] = await Promise.all([
             MonitorService.create(data),
             UserService.findOneBy({
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                
                 query: { _id: req.user.id },
                 select: 'name _id',
             }),
@@ -254,7 +254,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         if (monitor) {
             try {
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                
                 NotificationService.create(
                     monitor.projectId._id || monitor.projectId,
                     `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
@@ -292,12 +292,12 @@ router.post('/:projectId/identityFile', async function(req, res) {
             }
             if (
                 req.files &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'identityFile' does not exist on type '{ ... Remove this comment to see the full error message
+                
                 req.files.identityFile &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'identityFile' does not exist on type '{ ... Remove this comment to see the full error message
+                
                 req.files.identityFile[0].filename
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'identityFile' does not exist on type '{ ... Remove this comment to see the full error message
+                
                 identityFile = req.files.identityFile[0].filename;
             }
             return sendItemResponse(req, res, { identityFile });
@@ -324,12 +324,12 @@ router.post('/:projectId/configurationFile', async function(req, res) {
             }
             if (
                 req.files &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'configurationFile' does not exist on typ... Remove this comment to see the full error message
+                
                 req.files.configurationFile &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'configurationFile' does not exist on typ... Remove this comment to see the full error message
+                
                 req.files.configurationFile[0].filename
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'configurationFile' does not exist on typ... Remove this comment to see the full error message
+                
                 configurationFile = req.files.configurationFile[0].filename;
             }
             return sendItemResponse(req, res, { configurationFile });
@@ -372,11 +372,11 @@ router.put(
                         httpsAgent,
                     };
                     if (headers && Object.keys(headers).length) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'headers' does not exist on type '{ metho... Remove this comment to see the full error message
+                        
                         payload.headers = headers;
                     }
                     if (body && Object.keys(body).length) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{ method: ... Remove this comment to see the full error message
+                        
                         payload.data = body;
                     }
                     const apiResponse = await axios(payload);
@@ -442,9 +442,9 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     res
 ) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const subProjectIds = req.user.subProjects
-            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            ? 
               req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
 
@@ -512,9 +512,9 @@ router.get(
     async function(req, res) {
         try {
             const type = req.query.type;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
@@ -559,9 +559,9 @@ router.get(
         try {
             const monitorId = req.params.monitorId;
             const type = req.query.type;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
@@ -619,16 +619,16 @@ router.post(
                         'createdAt lastAlive probeKey probeName version probeImage deleted',
                 },
             ];
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
+            
             if (monitorId && !incidentId) query.monitorId = monitorId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentIds' does not exist on type '{}'... Remove this comment to see the full error message
+            
             if (incidentId) query.incidentIds = incidentId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
+            
             if (probeValue) query.probeId = probeValue;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type '{}'.
+            
             if (type === 'incomingHttpRequest') query.probeId = null;
             if (startDate && endDate)
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type '{}'.
+                
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             const [monitorLogs, count] = await Promise.all([
@@ -658,7 +658,7 @@ router.delete(
         try {
             const monitor = await MonitorService.deleteBy(
                 { _id: monitorId, projectId: projectId },
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                
                 req.user.id
             );
             if (monitor) {
@@ -702,7 +702,7 @@ router.post(
                 failedReasons: upFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.up
-                    ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                    ? 
                       ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.up,
@@ -715,7 +715,7 @@ router.post(
                 failedReasons: degradedFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.degraded
-                    ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                    ? 
                       ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.degraded,
@@ -728,7 +728,7 @@ router.post(
                 failedReasons: downFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.down
-                    ? // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+                    ? 
                       ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.down,
@@ -1016,7 +1016,7 @@ router.post(
     async function(req, res) {
         try {
             const { projectId, monitorId } = req.params;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
             const monitor = await MonitorService.closeBreachedMonitorSla(
                 projectId,
@@ -1100,12 +1100,12 @@ router.post('/:monitorId/calculate-time', async function(req, res) {
 
         if (!monitor) {
             const error = new Error('Monitor not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{ tim... Remove this comment to see the full error message
+        
         result.monitorId = monitor._id;
 
         return sendItemResponse(req, res, result);

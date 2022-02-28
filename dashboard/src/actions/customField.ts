@@ -23,7 +23,7 @@ export const createCustomField = (
         dispatch(createCustomFieldRequest());
 
         const response = await postApi(`customField/${projectId}`, data);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(createCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -64,7 +64,7 @@ export const updateCustomField = ({
             `customField/${projectId}/${customFieldId}`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(updateCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -109,7 +109,7 @@ export const fetchCustomFields = (
                 `customField/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchCustomFieldsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -145,11 +145,11 @@ export const deleteCustomField = (
     try {
         dispatch(deleteCustomFieldRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `customField/${projectId}/${customFieldId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =

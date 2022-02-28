@@ -46,7 +46,7 @@ export function validateToken(token: $TSFixMe) {
 
         promise.then(
             user => {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(validateTokenSuccess(user.data.tokens.jwtAccessToken));
             },
             error => {

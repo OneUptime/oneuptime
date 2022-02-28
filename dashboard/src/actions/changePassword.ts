@@ -37,7 +37,7 @@ export function changePassword(values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(changePasswordSuccess(response.data));
             },
             function(error) {

@@ -7,18 +7,18 @@ if (typeof String.prototype.startsWith != 'function') {
 
 function scrollDivToElement(div: $TSFixMe, element: $TSFixMe, moreOffset: $TSFixMe) {
     var addedPosition = moreOffset ? moreOffset:0;
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'firstPosition'.
+    
     firstPosition = div.children().eq(0).offset().top;
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'elHeight'.
+    
     elHeight =  element.height();
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'elPosition'.
+    
     elPosition = element.offset().top;
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'elHeight'.
+    
     div.scrollTop(elHeight + elPosition - firstPosition + addedPosition);
 }
-// @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+
 $(document).ready(function(){
-   // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+   
    $('#navSelect').change(function(this: $TSFixMe) {
         var section = this.value.split('-');
         if(this.value.startsWith('cf-section-')){
@@ -30,11 +30,11 @@ $(document).ready(function(){
         }
 
     });
-    // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+    
     $('.reference-object').click(function(this: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+        
         $(this).next('.reference-container').toggleClass('open');
-        // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+        
         $(this).children().children().children('.object-arrow').toggleClass('rotate');
     });
 
@@ -47,25 +47,25 @@ $(document).ready(function(){
 //     languageHeader.css({width: exampleContainerWidth + 'px'});
 //     navigationHeader.css({width: docItemContainerWidth + 'px'});
 // });
-// @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+
 $('.dev-doc-item-container').waypoint({
     handler: function(direction: $TSFixMe) {
         var elementId = this.element.id;
         if(elementId.length){
-            // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+            
             var subMenuItem = $('.' + elementId + '.menu-link');
             var subMenuClass = subMenuItem.attr('title');
-            // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+            
             var categoryItem = $('.doc-category[title="'+ subMenuClass + '"]');
-            // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+            
             $('.menu-link').removeClass('active');
             subMenuItem.addClass('active');
-            // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+            
             $('.doc-category').removeClass('active');
             categoryItem.addClass('active');
-            // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+            
             $('.' + elementId + '.doc-category').addClass('active');
-            // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+            
             $('.category-list').removeClass('open');
             categoryItem.parent().addClass('open');
             //if(categoryItem.length > 0){
@@ -76,21 +76,21 @@ $('.dev-doc-item-container').waypoint({
     offset: 100
 });
 
-// @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+
 $(function() {
-    // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+    
     $('a[href*=#]:not([href=#])').click(function(this: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+        
         $('.menu-link').removeClass('active');
-        // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+        
         $(this).addClass('active');
         if (location.pathname.replace(/^\//,'') == this.pathname.replace(/^\//,'') && location.hostname == this.hostname) {
-            // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+            
             var target = $(this.hash);
-            // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+            
             target = target.length ? target : $('[name=' + this.hash.slice(1) +']');
             if (target.length) {
-                // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+                
                 $('html,body').animate({
                     scrollTop: target.offset().top
                 }, 0);
@@ -103,10 +103,10 @@ $(function() {
 var didScroll;
 var lastScrollTop = 0;
 var delta = 5;
-// @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+
 var navBar = $('#languageHeader');
 var navbarHeight = navBar.outerHeight();
-// @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+
 $(window).scroll(function(event: $TSFixMe){
     didScroll = true;
 });
@@ -117,7 +117,7 @@ $(window).scroll(function(event: $TSFixMe){
 //    }
 //}, 250);
 function hasScrolled(this: $TSFixMe) {
-    // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+    
     var st = $(this).scrollTop();
     // Make sure they scroll more than delta
     if(Math.abs(lastScrollTop - st) <= delta)
@@ -130,7 +130,7 @@ function hasScrolled(this: $TSFixMe) {
         navBar.removeClass('nav-down').addClass('nav-up');
     } else {
         // Scroll Up
-        // @ts-expect-error ts-migrate(2581) FIXME: Cannot find name '$'. Do you need to install type ... Remove this comment to see the full error message
+        
         if(st + $(window).height() < $(document).height()) {
             navBar.removeClass('nav-up').addClass('nav-down');
         }
@@ -159,12 +159,12 @@ function hasScrolled(this: $TSFixMe) {
         };
 
         this.push_counter = function(key: $TSFixMe){
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             if(push_counters[key] === undefined){
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 push_counters[key] = 0;
             }
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             return push_counters[key]++;
         };
 
@@ -206,5 +206,5 @@ function hasScrolled(this: $TSFixMe) {
 
         return json;
     };
-// @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jQuery'.
+
 })(jQuery);

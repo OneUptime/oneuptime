@@ -52,7 +52,7 @@ export default {
             const select =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { $or: ({ parentProject... Remove this comment to see the full error message
+            
             const subProjects = await ProjectService.findBy({
                 query,
                 select,

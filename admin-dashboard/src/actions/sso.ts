@@ -29,9 +29,9 @@ export const fetchSsos = (skip: $TSFixMe, limit: $TSFixMe) => async (
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchSsosRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(`sso/?skip=${skip}&limit=${limit}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchSsosSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -72,9 +72,9 @@ export const fetchSsoError = (payload: $TSFixMe) => {
 export const fetchSso = (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(fetchSsoRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(`sso/${ssoId}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchSsoSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -114,7 +114,7 @@ export const deleteSsoError = (payload: $TSFixMe) => {
 export const deleteSso = (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteSsoRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         await deleteApi(`sso/${ssoId}`);
         dispatch(deleteSsoSuccess());
     } catch (error) {
@@ -155,7 +155,7 @@ export const addSsoError = (payload: $TSFixMe) => {
 export const addSso = ({ data }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addSsoRequest());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await postApi(`sso/`, data);
         dispatch(addSsoSuccess());
     } catch (error) {

@@ -20,7 +20,7 @@ const _this = {
         return new Promise((resolve, reject) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
             // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             axios({
                 method: 'POST',
                 url: `${config.dataIngestorUrl}/${url}`,
@@ -46,7 +46,7 @@ const _this = {
     getApi: (url: $TSFixMe, limit = 10) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             axios({
                 method: 'GET',
                 url: `${config.probeApiUrl}/${url}?limit=${limit}`,
@@ -71,7 +71,7 @@ const _this = {
         return new Promise((resolve, reject) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
             // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             axios({
                 method: 'PUT',
                 url: `${config.dataIngestorUrl}/${url}`,
@@ -97,7 +97,7 @@ const _this = {
     deleteApi: (url: $TSFixMe, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+            
             axios({
                 method: 'DELETE',
                 url: `${config.dataIngestorUrl}/${url}`,

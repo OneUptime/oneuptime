@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
+
 import express from 'express';
 const app = express();
 
@@ -28,14 +28,14 @@ import http from 'http';
 
 http.createServer(app);
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'body... Remove this comment to see the full error message
+
 import bodyParser from 'body-parser';
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
+
 import cors from 'cors';
 
 app.use(cors());
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
@@ -66,13 +66,13 @@ app.use('/', express.static(path.join(__dirname, 'views', 'img')));
 app.use('/license/validate', require('./src/api/license'));
 app.set('port', process.env.PORT || 3004);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'listen' does not exist on type 'typeof i... Remove this comment to see the full error message
+
 const server = http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('Server Started on port ' + app.get('port'));
 });
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.get(['/', '/license'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -84,7 +84,7 @@ app.get(['/', '/license'], function(req, res) {
     );
 });
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });

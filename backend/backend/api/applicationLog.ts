@@ -12,14 +12,14 @@ const getUser = require('../middlewares/user').getUser;
 const isApplicationLogValid = require('../middlewares/applicationLog')
     .isApplicationLogValid;
 
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import ResourceCategoryService from '../services/resourceCategoryService';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import uuid from 'uuid';
 
 // Route
@@ -42,7 +42,7 @@ router.post(
                     message: "values can't be null",
                 });
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             data.createdById = req.user ? req.user.id : null;
             if (!data.name) {
                 return sendErrorResponse(req, res, {
@@ -73,17 +73,17 @@ router.post(
                     populate: populateComponent,
                 }),
                 UserService.findOneBy({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                    
                     query: { _id: req.user.id },
                     select: 'name _id',
                 }),
             ]);
 
             try {
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                
                 NotificationService.create(
                     component.projectId._id,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+                    
                     `A New Application Log was Created with name ${applicationLog.name} by ${user.name}`,
                     user._id,
                     'applicationlogaddremove'
@@ -143,7 +143,7 @@ router.delete(
                     _id: applicationLogId,
                     componentId: componentId,
                 },
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                
                 req.user.id
             );
             if (applicationLog) {
@@ -215,18 +215,18 @@ router.post(
 
             const query = {};
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
+            
             if (applicationLogId) query.applicationLogId = applicationLogId;
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+            
             if (type) query.type = type;
 
             if (startDate && endDate)
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdAt' does not exist on type '{}'.
+                
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             if (filter) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'stringifiedContent' does not exist on ty... Remove this comment to see the full error message
+                
                 query.stringifiedContent = {
                     $regex: new RegExp(filter),
                     $options: 'i',
@@ -278,7 +278,7 @@ router.post(
 
             const query = {};
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
+            
             if (applicationLogId) query.applicationLogId = applicationLogId;
 
             const stat = {};
@@ -294,13 +294,13 @@ router.post(
                 LogService.countBy({ ...query, type: 'info' }),
                 LogService.countBy({ ...query, type: 'warning' }),
             ]);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'all' does not exist on type '{}'.
+            
             stat.all = allCount;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             stat.error = errorCount;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'info' does not exist on type '{}'.
+            
             stat.info = infoCount;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'warning' does not exist on type '{}'.
+            
             stat.warning = warningCount;
 
             return sendListResponse(req, res, stat);
@@ -363,7 +363,7 @@ router.put(
                 message: "values can't be null",
             });
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         data.createdById = req.user ? req.user.id : null;
 
         if (!data.name && data.showQuickStart === undefined) {
@@ -391,7 +391,7 @@ router.put(
         };
 
         if (data.resourceCategory != '') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
+            
             existingQuery.resourceCategory = data.resourceCategory;
         }
         const existingApplicationCount = await ApplicationLogService.countBy(
@@ -412,11 +412,11 @@ router.put(
         // application Log is valid
         const applicationLogUpdate = {};
         if (data.name) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+            
             applicationLogUpdate.name = data.name;
         }
         if (data.showQuickStart !== undefined) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showQuickStart' does not exist on type '... Remove this comment to see the full error message
+            
             applicationLogUpdate.showQuickStart = data.showQuickStart;
         }
 
@@ -430,7 +430,7 @@ router.put(
                 }
             );
             if (resourceCategoryCount && resourceCategoryCount > 0) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
+                
                 applicationLogUpdate.resourceCategory = data.resourceCategory;
             } else {
                 unsetData = { resourceCategory: '' };
@@ -441,7 +441,7 @@ router.put(
             const applicationLog = await ApplicationLogService.updateOneBy(
                 { _id: currentApplicationLog._id },
                 applicationLogUpdate,
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ resourceCategory: string; } | ... Remove this comment to see the full error message
+                
                 unsetData
             );
             return sendItemResponse(req, res, applicationLog);
@@ -462,7 +462,7 @@ router.post(
         const endTime = new Date(startTime.getTime() + duration * 60000);
         let response;
         if (filter) {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
+            
             response = await LogService.search(
                 { applicationLogId, deleted: false },
                 filter

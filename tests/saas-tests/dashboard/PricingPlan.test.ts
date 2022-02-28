@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,13 +13,13 @@ const user = {
     password,
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Status Page -> Pricing Plan Component', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -29,32 +29,32 @@ describe('Status Page -> Pricing Plan Component', () => {
         await init.registerUser(user, page);
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show upgrade modal if project is not available in a particular plan',
         async (done: $TSFixMe) => {
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '"test"' is not assignable to par... Remove this comment to see the full error message
+            
             await init.addProject(page, 'test');
             await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
                 elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#btnCreateStatusPage_test');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnCreateStatusPage_test');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', 'test');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
             const rowItem = await init.pageWaitForSelector(
@@ -92,22 +92,22 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not show upgrade modal if project is subscribed to a particular plan',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#billing');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing a');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#alertEnable');
 
             const rowLength = await init.page$$Eval(
@@ -119,13 +119,13 @@ describe('Status Page -> Pricing Plan Component', () => {
             if (rowLength === 1) {
                 // check the box
                 await page.evaluate(() => {
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    
                     document.querySelector('#alertEnable').click();
                 });
             }
 
             await page.evaluate(() => {
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                
                 document.querySelector('#billingRiskCountries').click();
             });
             const elem = await init.pageWaitForSelector(
@@ -141,7 +141,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not upgrade a project when cancel button is clicked',
         async (done: $TSFixMe) => {
@@ -187,7 +187,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#cancelPlanUpgrade');
             const elem = await init.pageWaitForSelector(
                 page,
@@ -203,7 +203,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should upgrade a plan when upgrade is triggered from pricing plan component',
         async (done: $TSFixMe) => {
@@ -249,7 +249,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#confirmPlanUpgrade');
 
             await init.pageWaitForSelector(page, '#pricingPlanModal', {

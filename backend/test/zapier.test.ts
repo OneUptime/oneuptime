@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -7,9 +7,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
@@ -29,11 +29,11 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Zapier API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -105,7 +105,7 @@ describe('Zapier API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -125,7 +125,7 @@ describe('Zapier API', function() {
         app.close();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not subscribe to zapier when missing apiKey in query', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -138,7 +138,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not subscribe to zapier when missing url as a parameter', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -153,7 +153,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not subscribe to zapier when missing type as a parameter', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -168,7 +168,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should subscribe to zapier service', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -186,7 +186,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail getting test and apiKey is missing in query', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -199,7 +199,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail when getting test and projectId is missing in query', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -224,7 +224,7 @@ describe('Zapier API', function() {
     });
     */
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail getting incidents and apiKey is missing in query', function(done: $TSFixMe) {
         request
             .get(`/zapier/incidents?projectId=${projectId}`)
@@ -235,7 +235,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail when getting incidents and projectId is missing in query', function(done: $TSFixMe) {
         request
             .get(`/zapier/incidents?apiKey=${apiKey}`)
@@ -246,7 +246,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get zapier incidents', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -259,7 +259,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail getting resolved and apiKey is missing in query', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -272,7 +272,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail when getting resolved and projectId is missing in query', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -285,7 +285,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get zapier resolved', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -300,7 +300,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail getting acknowledged and apiKey is missing in query', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -313,7 +313,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail when getting acknowledged and projectId is missing in query', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -326,7 +326,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get zapier acknowledged', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -341,7 +341,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should unsubscribe to zapier', function(done: $TSFixMe) {
         request
             .delete(
@@ -354,7 +354,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to create incidents when apiKey is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/createIncident?projectId=${projectId}`)
@@ -367,7 +367,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to create incidents when projectId is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/createIncident?apiKey=${apiKey}`)
@@ -379,7 +379,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create incident', function(done: $TSFixMe) {
         request
             .post(
@@ -397,7 +397,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to acknowledge an incident when apiKey is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/acknowledgeIncident?projectId=${projectId}`)
@@ -408,7 +408,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to acknowledge an incident when projectId is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/acknowledgeIncident?apiKey=${apiKey}`)
@@ -418,7 +418,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should acknowledge an incident', function(done: $TSFixMe) {
         request
             .post(
@@ -436,7 +436,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to resolve an incident when apiKey is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveIncident?projectId=${projectId}`)
@@ -447,7 +447,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to resolve an incident when projectId is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveIncident?apiKey=${apiKey}`)
@@ -457,7 +457,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should resolve an incident', function(done: $TSFixMe) {
         request
             .post(
@@ -475,7 +475,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to acknowledge last incidents when apiKey is missing in query', function(done: $TSFixMe) {
         request
             .post(
@@ -490,7 +490,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to acknowledge last incidents when projectId is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/acknowledgeLastIncident?apiKey=${apiKey}`)
@@ -502,7 +502,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should acknowledge last incident', function(done: $TSFixMe) {
         request
             .post(
@@ -520,7 +520,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to resolve last incidents when apiKey is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveLastIncident?projectId=${projectId}`)
@@ -533,7 +533,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to resolve last incidents when projectId is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveLastIncident?apiKey=${apiKey}`)
@@ -545,7 +545,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should resolve last incident', function(done: $TSFixMe) {
         request
             .post(
@@ -563,7 +563,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to acknowledge all incidents when apiKey is missing in query', function(done: $TSFixMe) {
         request
             .post(
@@ -576,7 +576,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to acknowledge all incidents when projectId is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/acknowledgeAllIncidents?apiKey=${apiKey}`)
@@ -586,7 +586,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should acknowledge all incident', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -621,7 +621,7 @@ describe('Zapier API', function() {
                     });
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to resolve all incidents when apiKey is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveAllIncidents?projectId=${projectId}`)
@@ -632,7 +632,7 @@ describe('Zapier API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should fail to resolve all incidents when projectId is missing in query', function(done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveAllIncidents?apiKey=${apiKey}`)
@@ -642,7 +642,7 @@ describe('Zapier API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should resolve all incident', function(done: $TSFixMe) {
         request
             .post(

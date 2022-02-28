@@ -2,25 +2,25 @@ export default {
     create: async function(data: $TSFixMe) {
         const Log = new LighthouseLogModel();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         Log.monitorId = data.monitorId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         Log.probeId = data.probeId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         Log.data = data.lighthouseData.issues;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type 'Document<an... Remove this comment to see the full error message
+        
         Log.url = data.lighthouseData.url;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         Log.performance = data.performance;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type 'D... Remove this comment to see the full error message
+        
         Log.accessibility = data.accessibility;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'bestPractices' does not exist on type 'D... Remove this comment to see the full error message
+        
         Log.bestPractices = data.bestPractices;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'seo' does not exist on type 'Document<an... Remove this comment to see the full error message
+        
         Log.seo = data.seo;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pwa' does not exist on type 'Document<an... Remove this comment to see the full error message
+        
         Log.pwa = data.pwa;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scanning' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         Log.scanning = data.scanning;
 
         const savedLog = await Log.save();

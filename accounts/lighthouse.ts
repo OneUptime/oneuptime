@@ -1,6 +1,6 @@
 import { fork } from 'child_process';
 const child = fork('./lighthouseWorker');
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'cli-... Remove this comment to see the full error message
+
 import Table from 'cli-table';
 import program from 'commander';
 
@@ -27,24 +27,24 @@ let checksFailed = false;
 child.on('message', function(score) {
     const scores = [
         sites[sitesIndex - 1],
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type 'Ser... Remove this comment to see the full error message
+        
         score.performance,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type 'S... Remove this comment to see the full error message
+        
         score.accessibility,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'bestPractices' does not exist on type 'S... Remove this comment to see the full error message
+        
         score.bestPractices,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'seo' does not exist on type 'Serializabl... Remove this comment to see the full error message
+        
         score.seo,
     ];
     table.push(scores);
     if (
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performance' does not exist on type 'Ser... Remove this comment to see the full error message
+        
         score.performance < 50 ||
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accessibility' does not exist on type 'S... Remove this comment to see the full error message
+        
         score.accessibility < 70 ||
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'bestPractices' does not exist on type 'S... Remove this comment to see the full error message
+        
         score.bestPractices < 70 ||
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'seo' does not exist on type 'Serializabl... Remove this comment to see the full error message
+        
         score.seo < 80
     ) {
         checksFailed = true;
@@ -65,9 +65,9 @@ child.on('message', function(score) {
 });
 
 function pages() {
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'mobile' does not exist on type 'Commande... Remove this comment to see the full error message
+    
     if (program.mobile) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'mobile' does not exist on type 'Commande... Remove this comment to see the full error message
+        
         child.send({ url: sites[sitesIndex], mobile: program.mobile });
     } else {
         child.send({ url: sites[sitesIndex], mobile: false });

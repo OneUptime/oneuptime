@@ -1,5 +1,5 @@
 import axios from 'axios';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
+
 import cron from 'node-cron';
 class DataStore {
     private store;
@@ -98,7 +98,7 @@ class DataStore {
             val = this.mapValue(path, this.outgoing, time, method, errorCount);
             return this.outgoing.set(path, val);
         } else if (type === 'mongoose') {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
+            
             val = this.mapValue(path, this.mongoose, time);
             return this.mongoose.set(path, val);
         }
@@ -108,11 +108,11 @@ class DataStore {
     }
     async sendData() {
         const data = {
-            // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
+            
             incoming: Object.fromEntries(this.incoming),
-            // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
+            
             outgoing: Object.fromEntries(this.outgoing),
-            // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
+            
             mongoose: Object.fromEntries(this.mongoose),
             sentAt: Date.now(),
         };
@@ -124,11 +124,11 @@ class DataStore {
             this.sendingData = true;
 
             const data = {
-                // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
+                
                 incoming: Object.fromEntries(this.incoming),
-                // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
+                
                 outgoing: Object.fromEntries(this.outgoing),
-                // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
+                
                 mongoose: Object.fromEntries(this.mongoose),
                 sentAt: Date.now(),
             };

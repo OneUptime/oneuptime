@@ -11,7 +11,7 @@ export const fetchscheduledEvent = (
         const response = await getApi(
             `scheduledEvent/${projectId}/${scheduledEventId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchscheduledEventSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -64,17 +64,17 @@ export const fetchscheduledEvents = (
     try {
         let response = {};
         if (!skip && !limit) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type '{}'.
+            
             response = await getApi(
                 `scheduledEvent/${projectId}?skip=${0}&limit=${10}`
             );
         } else {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type '{}'.
+            
             response = await getApi(
                 `scheduledEvent/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+        
         const { data, count } = response.data;
         dispatch(fetchscheduledEventsSuccess({ data, count, skip, limit }));
     } catch (error) {
@@ -138,7 +138,7 @@ export const fetchSubProjectScheduledEvents = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `scheduledEvent/${projectId}/scheduledEvents/all`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchSubProjectScheduledEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -176,7 +176,7 @@ export const fetchOngoingScheduledEvents = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `scheduledEvent/${projectId}/ongoingEvent`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchOngoingScheduledEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -217,7 +217,7 @@ export const fetchSubProjectOngoingScheduledEvents = (
         const response = await getApi(
             `scheduledEvent/${projectId}/ongoingEvent/all`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchSubProjectOngoingScheduledEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -240,7 +240,7 @@ export const createScheduledEvent = (
         dispatch(createScheduledEventRequest());
 
         const response = await postApi(`scheduledEvent/${projectId}`, values);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(createScheduledEventSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -282,11 +282,11 @@ export const deleteScheduledEvent = (
     try {
         dispatch(deleteScheduledEventRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `scheduledEvent/${projectId}/${scheduledEventId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteScheduledEventSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -332,12 +332,12 @@ export const cancelScheduledEvent = (
     try {
         dispatch(cancelScheduledEventRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await putApi(
             `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(cancelScheduledEventSuccess(response.data));
         closeModal({ id: modalId });
         history.push(redirect);
@@ -388,7 +388,7 @@ export function updateScheduledEvent(
 
         promise.then(
             function(scheduledEvent) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(updateScheduledEventSuccess(scheduledEvent.data));
             },
             function(error) {
@@ -457,18 +457,18 @@ export const fetchScheduledEventNotesInternal = (
 
         let response = {};
         if (skip >= 0 && limit >= 0) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type '{}'.
+            
             response = await getApi(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}&type=${type}`
             );
         } else {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'unknown' is not assignable to type '{}'.
+            
             response = await getApi(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes?`
             );
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+        
         const { data, count } = response.data;
         dispatch(
             fetchScheduledEventNotesInternalSuccess({
@@ -518,7 +518,7 @@ export const createScheduledEventNote = (
             data
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(createScheduledEventNoteSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -560,7 +560,7 @@ export const updateScheduledEventNoteInternal = (
             data
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(updateScheduledEventNoteInternalSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -607,7 +607,7 @@ export const updateScheduledEventNoteInvestigation = (
             data
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(updateScheduledEventNoteInvestigationSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -644,11 +644,11 @@ export const deleteScheduledEventNote = (
     try {
         dispatch(deleteScheduledEventNoteRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteScheduledEventNoteSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -684,11 +684,11 @@ export const resolveScheduledEvent = (
     try {
         dispatch(resolveScheduledEventRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await putApi(
             `scheduledEvent/${projectId}/resolve/${scheduledEventId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(resolveScheduledEventSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -742,7 +742,7 @@ export function fetchScheduledEvent(projectId: $TSFixMe, slug: $TSFixMe) {
 
         promise.then(
             function(component) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchScheduledEventSuccess(component.data));
             },
             function(error) {

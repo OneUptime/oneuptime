@@ -86,7 +86,7 @@ router.post('/site/opts', async (req, res) => {
         if (issuedBefore) {
             query.$or.push({
                 issuedAt: {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                    
                     $lt: issuedBefore,
                 },
             });
@@ -94,7 +94,7 @@ router.post('/site/opts', async (req, res) => {
         if (expiresBefore) {
             query.$or.push({
                 expiresAt: {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                    
                     $lt: expiresBefore,
                 },
             });
@@ -102,13 +102,13 @@ router.post('/site/opts', async (req, res) => {
         if (renewBefore) {
             query.$or.push({
                 renewAt: {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                    
                     $lt: renewBefore,
                 },
             });
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{ $or: ... Remove this comment to see the full error message
+        
         query.deleted = false;
         const sites = await SiteManagerService.findBy({
             query,
@@ -128,7 +128,7 @@ router.delete('/site', async (req, res) => {
         const { domains } = req.body;
 
         let site = null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'trim' does not exist on type 'string | P... Remove this comment to see the full error message
+        
         if (subject && subject.trim()) {
             site = await SiteManagerService.hardDelete({ subject });
         } else if (domains && domains.length > 0) {

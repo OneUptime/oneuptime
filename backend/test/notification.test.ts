@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -15,18 +15,18 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 
 let projectId: $TSFixMe, token: $TSFixMe, userId;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Notification API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -62,7 +62,7 @@ describe('Notification API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -79,7 +79,7 @@ describe('Notification API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create a new notification', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
@@ -96,7 +96,7 @@ describe('Notification API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get project notifications current user is present in', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -112,7 +112,7 @@ describe('Notification API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not get project notifications current user is not present in', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -125,7 +125,7 @@ describe('Notification API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should mark project notification as read', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -150,7 +150,7 @@ describe('Notification API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should close a notification', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -174,7 +174,7 @@ describe('Notification API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should mark all project notifications as read', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -195,7 +195,7 @@ describe('Notification API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject request if the notification param is invalid ', function(done: $TSFixMe) {
         request
             .put(`/notification/${projectId}/read`)

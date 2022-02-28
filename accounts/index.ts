@@ -17,11 +17,11 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
+
 import express from 'express';
 import path from 'path';
 const app = express();
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'comp... Remove this comment to see the full error message
+
 import compression from 'compression';
 
 app.use(compression());

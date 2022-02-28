@@ -26,7 +26,7 @@ export const addGitCredential = ({ projectId, data }: $TSFixMe) => async (
             `credential/${projectId}/gitCredential`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(addGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -69,7 +69,7 @@ export const updateGitCredential = ({
             data
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(updateGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -106,7 +106,7 @@ export const getGitCredentials = ({ projectId }: $TSFixMe) => async (
 
     try {
         const response = await getApi(`credential/${projectId}/gitCredential`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getGitCredentialsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -143,12 +143,12 @@ export const deleteGitCredential = ({
     dispatch(deleteGitCredentialRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `credential/${projectId}/gitCredential/${credentialId}`
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -190,7 +190,7 @@ export const getGitSecurities = ({
             `security/${projectId}/application/${credentialId}`
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getGitSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -231,7 +231,7 @@ export const addDockerCredential = ({ projectId, data }: $TSFixMe) => async (
             `credential/${projectId}/dockerCredential`,
             data
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(addDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -274,7 +274,7 @@ export const updateDockerCredential = ({
             data
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(updateDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -313,7 +313,7 @@ export const getDockerCredentials = ({ projectId }: $TSFixMe) => async (
         const response = await getApi(
             `credential/${projectId}/dockerCredential`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getDockerCredentialsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -350,12 +350,12 @@ export const deleteDockerCredential = ({
     dispatch(deleteDockerCredentialRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(
             `credential/${projectId}/dockerCredential/${credentialId}`
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -397,7 +397,7 @@ export const getDockerSecurities = ({
             `security/${projectId}/container/${credentialId}`
         );
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getDockerSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =

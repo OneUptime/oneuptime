@@ -92,15 +92,15 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
         const selectApplicationSecurityLog = '_id securityId componentId data';
 
         const findLog = await ApplicationSecurityLogService.findOneBy({
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             query: { _id: securityLog._id },
             populate: populateApplicationSecurityLog,
             select: selectApplicationSecurityLog,
         });
 
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             query: { _id: findLog.componentId.projectId },
             select: '_id name users',
         });
@@ -110,28 +110,28 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             .map((e: $TSFixMe) => ({
                 id: e.userId,
             })); // This cater for projects with multiple registered members
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         project.critical = findLog.data.vulnerabilities.critical;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         project.high = findLog.data.vulnerabilities.high;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         project.moderate = findLog.data.vulnerabilities.moderate;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         project.low = findLog.data.vulnerabilities.low;
 
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const critical = findLog.data.advisories
             .filter((e: $TSFixMe) => e.severity === 'critical')
             .slice(0, 10);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const high = findLog.data.advisories
             .filter((e: $TSFixMe) => e.severity === 'high')
             .slice(0, 10);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const moderate = findLog.data.advisories
             .filter((e: $TSFixMe) => e.severity === 'moderate')
             .slice(0, 10);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const low = findLog.data.advisories
             .filter((e: $TSFixMe) => e.severity === 'low')
             .slice(0, 10);
@@ -251,7 +251,7 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
 
         try {
             RealtimeService.handleLog({
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 securityId: securityLog.securityId,
                 securityLog: findLog,
             });

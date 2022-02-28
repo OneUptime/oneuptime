@@ -10,7 +10,7 @@ export default {
     ) {
         const self = this;
         let response;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProject _id slug name',
@@ -26,19 +26,19 @@ export default {
         if (incidentStatus === INCIDENT_RESOLVED) {
             query = {
                 ...query,
-                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ 'notificationOptions.incidentResolved': bo... Remove this comment to see the full error message
+                
                 'notificationOptions.incidentResolved': true,
             };
         } else if (incidentStatus === INCIDENT_CREATED) {
             query = {
                 ...query,
-                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ 'notificationOptions.incidentCreated': boo... Remove this comment to see the full error message
+                
                 'notificationOptions.incidentCreated': true,
             };
         } else if (incidentStatus === INCIDENT_ACKNOWLEDGED) {
             query = {
                 ...query,
-                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ 'notificationOptions.incidentAcknowledged'... Remove this comment to see the full error message
+                
                 'notificationOptions.incidentAcknowledged': true,
             };
         } else {
@@ -83,7 +83,7 @@ export default {
         component: $TSFixMe,
         duration: $TSFixMe
     ) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
+        
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';
@@ -217,7 +217,7 @@ export default {
     ) {
         const self = this;
         let response;
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProject _id slug',
@@ -271,7 +271,7 @@ export default {
         data: $TSFixMe,
         monitor: $TSFixMe
     ) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dashboardHost' does not exist on type 'G... Remove this comment to see the full error message
+        
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
 
         const payload = {

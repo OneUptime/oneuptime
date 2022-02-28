@@ -49,6 +49,6 @@ export default {
     },
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
+
 const projectCollection = global.db.collection('projects');
 import ErrorService from './errorService';

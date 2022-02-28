@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(7034) FIXME: Variable 'registerService' implicitly has type 'an... Remove this comment to see the full error message
+
 import { registerService } from './serviceWorker';
 const publicVapidKey = process.env.REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY; // URL Safe Base64 Encoded Public Key
 
@@ -13,9 +13,9 @@ export async function getUserAgent() {
 
 export async function getTheSubscription() {
     let subscription;
-    // @ts-expect-error ts-migrate(7005) FIXME: Variable 'registerService' implicitly has an 'any'... Remove this comment to see the full error message
+    
     if (registerService) {
-        // @ts-expect-error ts-migrate(7005) FIXME: Variable 'registerService' implicitly has an 'any'... Remove this comment to see the full error message
+        
         subscription = await registerService.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(publicVapidKey),

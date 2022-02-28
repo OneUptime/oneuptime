@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -19,13 +19,13 @@ const user = {
     email,
     password,
 };
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Incident Communication SLA', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -37,13 +37,13 @@ describe('Incident Communication SLA', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not add incident communication SLA if no name was specified',
         async (done: $TSFixMe) => {
@@ -54,17 +54,17 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
@@ -83,23 +83,23 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addIncidentSlaBtn');
 
             await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', '  ');
             await init.selectDropdownValue('#durationOption', duration, page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#alertTime');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#alertTime', alertTime);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createSlaBtn');
 
             const slaError = await init.pageWaitForSelector(
@@ -117,7 +117,7 @@ describe('Incident Communication SLA', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not add incident communication SLA if alert time is greater or equal to duration',
         async (done: $TSFixMe) => {
@@ -128,17 +128,17 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
@@ -157,23 +157,23 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addIncidentSlaBtn');
 
             await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', slaName);
             await init.selectDropdownValue('#durationOption', duration, page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#alertTime');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#alertTime', duration);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createSlaBtn');
 
             const slaError = await init.pageWaitForSelector(
@@ -191,7 +191,7 @@ describe('Incident Communication SLA', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not add incident communication SLA if alert time is not a number',
         async (done: $TSFixMe) => {
@@ -202,17 +202,17 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
@@ -231,23 +231,23 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addIncidentSlaBtn');
 
             await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', slaName);
             await init.selectDropdownValue('#durationOption', duration, page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#alertTime');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#alertTime', '12m');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createSlaBtn');
 
             const slaError = await init.pageWaitForSelector(
@@ -265,7 +265,7 @@ describe('Incident Communication SLA', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should add incident communication SLA',
         async (done: $TSFixMe) => {
@@ -276,17 +276,17 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
@@ -305,26 +305,26 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addIncidentSlaBtn');
 
             await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', slaName);
             await init.selectDropdownValue('#durationOption', duration, page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#alertTime');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#alertTime', alertTime);
             await init.page$Eval(page, '#isDefault', (elem: $TSFixMe) =>
                 elem.click()
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createSlaBtn');
 
             const sla = await init.pageWaitForSelector(
@@ -342,7 +342,7 @@ describe('Incident Communication SLA', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not edit an incident communication SLA if there is no name',
         async (done: $TSFixMe) => {
@@ -353,17 +353,17 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
@@ -386,7 +386,7 @@ describe('Incident Communication SLA', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#editIncidentSlaBtn_${slaName}`);
 
             await init.pageWaitForSelector(page, '#communicationSlaForm', {
@@ -394,9 +394,9 @@ describe('Incident Communication SLA', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#name', { clickCount: 3 });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', '    ');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#editSlaBtn');
 
             const slaError = await init.pageWaitForSelector(
@@ -414,7 +414,7 @@ describe('Incident Communication SLA', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should edit an incident communication SLA',
         async (done: $TSFixMe) => {
@@ -425,17 +425,17 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
@@ -458,7 +458,7 @@ describe('Incident Communication SLA', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#editIncidentSlaBtn_${slaName}`);
 
             await init.pageWaitForSelector(page, '#communicationSlaForm', {
@@ -466,9 +466,9 @@ describe('Incident Communication SLA', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#name', { clickCount: 3 });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', newSlaName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#editSlaBtn');
 
             const sla = await init.pageWaitForSelector(
@@ -486,7 +486,7 @@ describe('Incident Communication SLA', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show incident communication SLA notification when an incident is created',
         async (done: $TSFixMe) => {
@@ -495,13 +495,13 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#createIncident_${monitor}`);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'offline', page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
@@ -515,7 +515,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#incident_0`);
             const slaIndicator = await init.pageWaitForSelector(
                 page,
@@ -527,13 +527,13 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAcknowledge_0');
             await init.pageWaitForSelector(page, '#btnResolve_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnResolve_0');
 
             expect(slaIndicator).toBeDefined();
@@ -543,30 +543,30 @@ describe('Incident Communication SLA', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should hide incident communication SLA notification when an incident is acknowledged',
         async (done: $TSFixMe) => {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.addIncident(monitor, 'offline', page);
             await init.pageWaitForSelector(page, `#incident_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#incident_0`);
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAcknowledge_0');
             await init.pageWaitForSelector(page, '#btnResolve_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnResolve_0');
 
             const slaIndicator = await init.pageWaitForSelector(
@@ -581,7 +581,7 @@ describe('Incident Communication SLA', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should delete an incident communication SLA',
         async (done: $TSFixMe) => {
@@ -592,17 +592,17 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#more');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#incidentSettings');
 
             // tab id for incident communication sla tab
@@ -625,14 +625,14 @@ describe('Incident Communication SLA', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#deleteIncidentSlaBtn_${newSlaName}`);
 
             await init.pageWaitForSelector(page, '#deleteIncidentSlaBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#deleteIncidentSlaBtn');
 
             const sla = await init.pageWaitForSelector(

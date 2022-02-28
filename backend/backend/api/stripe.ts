@@ -6,9 +6,9 @@ const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 
 const getUser = require('../middlewares/user').getUser;
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/project"' has no exported ... Remove this comment to see the full error message
+
 import { isUserOwner } from '../middlewares/project';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 import ProjectService from '../services/projectService';
 
@@ -63,14 +63,14 @@ router.post('/events', async function(req, res) {
 
 router.get('/:userId/charges', getUser, async function(req, res) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         if (userId) {
             const charges = await StripeService.charges(userId);
             return sendListResponse(req, res, charges);
         }
         const error = new Error('User is required');
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+        
         error.code = 400;
         throw error;
     } catch (error) {
@@ -81,14 +81,14 @@ router.get('/:userId/charges', getUser, async function(req, res) {
 router.post('/:userId/creditCard/:token/pi', getUser, async function(req, res) {
     try {
         const { token } = req.params;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         if (token && userId) {
             const item = await StripeService.creditCard.create(token, userId);
             return sendItemResponse(req, res, item);
         }
         const error = new Error('Both user and token are required');
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+        
         error.code = 400;
         throw error;
     } catch (error) {
@@ -99,14 +99,14 @@ router.post('/:userId/creditCard/:token/pi', getUser, async function(req, res) {
 router.put('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
         const { cardId } = req.params;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         if (cardId && userId) {
             const card = await StripeService.creditCard.update(userId, cardId);
             return sendItemResponse(req, res, card);
         }
         const error = new Error('Both user and card are required');
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+        
         error.code = 400;
         throw error;
     } catch (error) {
@@ -117,14 +117,14 @@ router.put('/:userId/creditCard/:cardId', getUser, async function(req, res) {
 router.delete('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
         const { cardId } = req.params;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         if (cardId && userId) {
             const card = await StripeService.creditCard.delete(cardId, userId);
             return sendItemResponse(req, res, card);
         }
         const error = new Error('Both user and card are required');
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+        
         error.code = 400;
         throw error;
     } catch (error) {
@@ -134,15 +134,15 @@ router.delete('/:userId/creditCard/:cardId', getUser, async function(req, res) {
 
 router.get('/:userId/creditCard', getUser, async function(req, res) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         if (userId) {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+            
             const cards = await StripeService.creditCard.get(userId);
             return sendItemResponse(req, res, cards);
         }
         const error = new Error('User is required');
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+        
         error.code = 400;
         throw error;
     } catch (error) {
@@ -153,14 +153,14 @@ router.get('/:userId/creditCard', getUser, async function(req, res) {
 router.get('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
         const { cardId } = req.params;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         if (userId && cardId) {
             const card = await StripeService.creditCard.get(userId, cardId);
             return sendItemResponse(req, res, card);
         }
         const error = new Error('Both user and card are required');
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+        
         error.code = 400;
         throw error;
     } catch (error) {
@@ -175,7 +175,7 @@ router.post(
     isUserOwner,
     async function(req, res) {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
             const { projectId } = req.params;
             let { rechargeBalanceAmount } = req.body;
@@ -231,7 +231,7 @@ router.get(
 
             if (!updatedProject) {
                 const error = new Error('Project was not updated');
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 sendErrorResponse(req, res, error);
             }
@@ -259,7 +259,7 @@ router.post(
                 });
             }
 
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: string; }; selec... Remove this comment to see the full error message
+            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'stripeSubscriptionId',

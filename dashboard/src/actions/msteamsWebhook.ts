@@ -39,9 +39,9 @@ export function deleteMsTeams(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
 
         return promise.then(
             function(msTeams) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteMsTeamsSuccess(msTeams.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return msTeams.data;
             },
             function(error) {
@@ -103,7 +103,7 @@ export function getMsTeams(
 
         promise.then(
             function(webhooks) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
             function(error) {
@@ -141,7 +141,7 @@ export function getMsTeamsMonitor(
 
         promise.then(
             function(webhooks) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
             function(error) {
@@ -197,9 +197,9 @@ export function createMsTeams(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(createMsTeamsRequest());
         return promise.then(
             function(webhook) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createMsTeamsSuccess(webhook.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return webhook.data;
             },
             function(error) {
@@ -258,9 +258,9 @@ export function updateMsTeams(
 
         return promise.then(
             function(webhook) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(updateMsTeamsSuccess(webhook.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return webhook.data;
             },
             function(error) {

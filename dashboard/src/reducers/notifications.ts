@@ -78,7 +78,7 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case 'ADD_NOTIFICATION_BY_SOCKET': {
             const notify = state.notifications.notifications;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+            
             notify.unshift(action.payload);
             return Object.assign({}, state, {
                 notifications: {
@@ -97,12 +97,12 @@ export default (state = initialState, action: $TSFixMe) => {
                     notifications: state.notifications.notifications.map(
                         notification => {
                             if (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 notification._id ===
                                 action.payload.notificationId
                             ) {
                                 return {
-                                    // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                                    
                                     ...notification,
                                     read: notification.read.concat([
                                         action.payload.userId,
@@ -123,12 +123,12 @@ export default (state = initialState, action: $TSFixMe) => {
                     notifications: state.notifications.notifications.map(
                         notification => {
                             if (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                
                                 notification._id ===
                                 action.payload.notificationId
                             ) {
                                 return {
-                                    // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                                    
                                     ...notification,
                                     closed: notification.closed.concat([
                                         action.payload.userId,
@@ -149,7 +149,7 @@ export default (state = initialState, action: $TSFixMe) => {
                     notifications: state.notifications.notifications.map(
                         notification => {
                             return {
-                                // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                                
                                 ...notification,
                                 read: notification.read.concat([
                                     action.payload,
@@ -166,7 +166,7 @@ export default (state = initialState, action: $TSFixMe) => {
                     ...state.notifications,
                     notifications: state.notifications.notifications.filter(
                         notification =>
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'never... Remove this comment to see the full error message
+                            
                             notification.projectId !== action.payload
                     ),
                 },

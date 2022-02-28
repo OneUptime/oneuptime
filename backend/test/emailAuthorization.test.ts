@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -7,10 +7,10 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 import EmailStatusService from '../backend/services/emailStatusService';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
@@ -25,11 +25,11 @@ let userId: $TSFixMe, projectId: $TSFixMe;
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Email verification API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -47,7 +47,7 @@ describe('Email verification API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -59,13 +59,13 @@ describe('Email verification API', function() {
                 ],
             },
         });
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
+        
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
         await AirtableService.deleteAll({ tableName: 'User' });
         await EmailStatusService.hardDeleteBy({});
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should send email verification', async function() {
         await sleep(10000);
 
@@ -77,7 +77,7 @@ describe('Email verification API', function() {
         expect(emailStatuses[0].status).to.equal('Success');
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not login non-verified user', async function() {
         try {
             await request.post('/user/login').send({
@@ -89,7 +89,7 @@ describe('Email verification API', function() {
         }
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should verify the user', async function() {
         const token = await VerificationTokenModel.findOne({ userId });
         try {
@@ -104,7 +104,7 @@ describe('Email verification API', function() {
         }
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should login the verified user', async function() {
         const res = await request.post('/user/login').send({
             email: userData.user.email,

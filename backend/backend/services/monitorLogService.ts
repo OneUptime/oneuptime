@@ -11,50 +11,50 @@ export default {
         } else {
             responseBody = '';
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         Log.monitorId = data.monitorId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         Log.probeId = data.probeId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
+        
         Log.status = data.status;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseTime' does not exist on type 'Do... Remove this comment to see the full error message
+        
         Log.responseTime = data.responseTime;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseStatus' does not exist on type '... Remove this comment to see the full error message
+        
         Log.responseStatus = data.responseStatus;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseBody' does not exist on type 'Do... Remove this comment to see the full error message
+        
         Log.responseBody = responseBody;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseHeader' does not exist on type '... Remove this comment to see the full error message
+        
         Log.responseHeader =
             data.rawResp && data.rawResp.headers ? data.rawResp.headers : {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'cpuLoad' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         Log.cpuLoad = data.cpuLoad;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'avgCpuLoad' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         Log.avgCpuLoad = data.avgCpuLoad;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'cpuCores' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         Log.cpuCores = data.cpuCores;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'memoryUsed' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         Log.memoryUsed = data.memoryUsed;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'totalMemory' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         Log.totalMemory = data.totalMemory;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'swapUsed' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         Log.swapUsed = data.swapUsed;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'storageUsed' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         Log.storageUsed = data.storageUsed;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'totalStorage' does not exist on type 'Do... Remove this comment to see the full error message
+        
         Log.totalStorage = data.totalStorage;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'storageUsage' does not exist on type 'Do... Remove this comment to see the full error message
+        
         Log.storageUsage = data.storageUsage;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'mainTemp' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         Log.mainTemp = data.mainTemp;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'maxTemp' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         Log.maxTemp = data.maxTemp;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sslCertificate' does not exist on type '... Remove this comment to see the full error message
+        
         Log.sslCertificate = data.sslCertificate;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'kubernetesLog' does not exist on type 'D... Remove this comment to see the full error message
+        
         Log.kubernetesLog = data.kubernetesData || {};
 
         // script log details
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scriptMetadata' does not exist on type '... Remove this comment to see the full error message
+        
         Log.scriptMetadata = data.scriptMetadata;
 
         const savedLog = await Log.save();

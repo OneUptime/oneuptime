@@ -106,7 +106,7 @@ export default function ssoDefaultRoles(
                 ssoDefaultRoles: {
                     ...state.ssoDefaultRoles,
                     ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.filter(
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         element => element._id !== action.payload._id
                     ),
                 },

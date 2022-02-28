@@ -78,14 +78,14 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
             { path: 'componentId', select: 'name slug projectId' },
         ];
         const findLog = await ContainerSecurityLogService.findOneBy({
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             query: { _id: securityLog._id },
             select: selectContainerLog,
             populate: populateContainerLog,
         });
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             query: { _id: findLog.componentId.projectId },
             select: '_id name users',
         });
@@ -94,27 +94,27 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
             .map((e: $TSFixMe) => ({
                 id: e.userId,
             })); // This cater for projects with multiple registered members
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         project.critical = findLog.data.vulnerabilityInfo.critical;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         project.high = findLog.data.vulnerabilityInfo.high;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         project.moderate = findLog.data.vulnerabilityInfo.moderate;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         project.low = findLog.data.vulnerabilityInfo.low;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const critical = findLog.data.vulnerabilityData
             .filter((e: $TSFixMe) => e.severity === 'critical')
             .slice(0, 10);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const high = findLog.data.vulnerabilityData
             .filter((e: $TSFixMe) => e.severity === 'high')
             .slice(0, 10);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const moderate = findLog.data.vulnerabilityData
             .filter((e: $TSFixMe) => e.severity === 'moderate')
             .slice(0, 5);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const low = findLog.data.vulnerabilityData
             .filter((e: $TSFixMe) => e.severity === 'low')
             .slice(0, 5);

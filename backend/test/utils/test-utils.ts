@@ -2,7 +2,7 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 const expect = require('chai').expect;
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'urld... Remove this comment to see the full error message
+
 import decode from 'urldecode';
 
 const methods = {
@@ -347,7 +347,7 @@ const methods = {
         let firstIdpResponse;
         try {
             const response = await chai
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+                
                 .request(SAMLRequest)
                 .get('')
                 .redirects(0);
@@ -364,7 +364,7 @@ const methods = {
         const [postSubmissionUrl, AuthState] = location.split('AuthState=');
 
         const samlResponsePage = await chai
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+            
             .request(postSubmissionUrl)
             .post('')
             .set('Referer', SAMLRequest)
@@ -379,7 +379,7 @@ const methods = {
         const {
             res: { text: html },
         } = samlResponsePage;
-        // @ts-expect-error ts-migrate(1232) FIXME: An import declaration can only be used in a namesp... Remove this comment to see the full error message
+        
         import { parse } from 'node-html-parser';
         const root = parse(html);
         const input = root.querySelectorAll('input')[1];
@@ -390,22 +390,22 @@ const methods = {
 };
 
 const proxy = new Proxy(methods, {
-    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ shared: {}; setShared: (args: ... Remove this comment to see the full error message
+    
     shared: {},
     setShared: function(args: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'shared' does not exist on type 'ProxyHan... Remove this comment to see the full error message
+        
         this.shared = { ...this.shared, ...args };
         return this.shared;
     },
     unsetShared: function(attribute: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'shared' does not exist on type 'ProxyHan... Remove this comment to see the full error message
+        
         if (this.shared[attribute]) delete this.shared[attribute];
         return this.shared;
     },
     get: function(target, prop) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         if (this[prop]) return (args = {}) => this[prop](args);
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         return (args = {}) => target[prop]({ ...this.shared, ...args });
     },
 });

@@ -63,7 +63,7 @@ export default {
 
         if (!customField) {
             const error = new Error('Custom field not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -126,7 +126,7 @@ export default {
 
         if (!customField) {
             const error = new Error('Custom field not found or does not exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

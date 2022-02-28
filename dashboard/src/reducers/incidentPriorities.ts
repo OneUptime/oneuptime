@@ -100,9 +100,9 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 [],
                 state.incidentPrioritiesList.incidentPriorities
             );
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+            
             incidentPriorities.push(action.payload);
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            
             count = state.incidentPrioritiesList.count + 1;
             return Object.assign({}, state, {
                 incidentPrioritiesList: {
@@ -154,10 +154,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 state.incidentPrioritiesList.incidentPriorities
             );
             index = incidentPriorities.findIndex(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 incidentPriority => incidentPriority._id === action.payload._id
             );
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+            
             incidentPriorities[index] = action.payload;
 
             return Object.assign({}, state, {
@@ -209,11 +209,11 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 state.incidentPrioritiesList.incidentPriorities
             );
             index = incidentPriorities.findIndex(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 incidentPriority => incidentPriority._id === action.payload._id
             );
             incidentPriorities.splice(index, 1);
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            
             count = state.incidentPrioritiesList.count - 1;
 
             return Object.assign({}, state, {

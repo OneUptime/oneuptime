@@ -55,7 +55,7 @@ class ServiceBase {
             const countQuery = {};
 
             if (byProject) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 countQuery.projectId = data.projectId;
             }
 
@@ -78,20 +78,20 @@ class ServiceBase {
                         ','
                     )} already exists.`
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
         }
 
         for (const key in data) {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             item[key] = data[key];
         }
 
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         if (slugifyField && data[slugifyField]) {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             item.slug = getSlug(data[slugifyField]);
         }
 
@@ -99,7 +99,7 @@ class ServiceBase {
     }
 
     async countBy({ query = {} }) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
+        
         query.deleted = false;
         const count = await this.model.countDocuments(query);
         return count;
@@ -256,7 +256,7 @@ class ServiceBase {
 
         if (typeof limit === 'string') limit = parseInt(limit);
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
+        
         query.deleted = false;
 
         let functionToCall = 'find';
@@ -301,7 +301,7 @@ class ServiceBase {
             query = {};
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
+        
         if (!query.deleted) query.deleted = false;
 
         let functionToCall = 'updateMany';
@@ -318,7 +318,7 @@ class ServiceBase {
     }
 
     async updateOneBy({ query = {}, updatedValues = {} }) {
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: {}; updatedValues: {}; ... Remove this comment to see the full error message
+        
         return await this.updateBy({ query, updatedValues, updateOne: true });
     }
 }

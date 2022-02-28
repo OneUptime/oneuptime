@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,13 +11,13 @@ const password = '1234567890';
 const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Incident Reports API', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -42,16 +42,16 @@ describe('Incident Reports API', () => {
         await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
             e.click()
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+        
         await init.pageType(page, 'input[id=name]', monitorName);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '[data-testId=type_url]');
         await init.pageWaitForSelector(page, '#url', {
             visible: true,
             timeout: init.timeout,
         });
         await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+        
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
             e.click()
@@ -61,38 +61,38 @@ describe('Incident Reports API', () => {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test('should display why degraded incident was created', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
         await page.evaluate(
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            
             () => (document.getElementById('statusCode').value = '')
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#responseTime');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, 'input[name=responseTime]');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+        
         await init.pageType(page, 'input[name=responseTime]', '5000');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#statusCode');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, 'input[name=statusCode]');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+        
         await init.pageType(page, 'input[name=statusCode]', '200');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, 'button[type=submit]');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#save-btn');
         await init.pageWaitForSelector(page, '#save-btn', {
             visible: true,
@@ -118,32 +118,32 @@ describe('Incident Reports API', () => {
         ).toEqual(true);
     }, 600000);
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test('should display why offline incident was created', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
         await page.evaluate(
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+            
             () => (document.getElementById('statusCode').value = '')
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#responseTime');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, 'input[name=responseTime]');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+        
         await init.pageType(page, 'input[name=responseTime]', '0');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#statusCode');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, 'input[name=statusCode]');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+        
         await init.pageType(page, 'input[name=statusCode]', '400');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, 'button[type=submit]');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#save-btn');
         await init.pageWaitForSelector(page, '#save-btn', {
             visible: true,

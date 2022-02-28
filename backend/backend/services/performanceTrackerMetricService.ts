@@ -102,17 +102,17 @@ export default {
         for (const metric of performanceTrackerMetrics) {
             const key = `${metric.callIdentifier}__${metric.method}`;
             if (!(key in ptm)) {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 ptm[key] = [metric];
             } else {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 ptm[key] = ptm[key].concat(metric);
             }
         }
 
         const trackerMetrics = [];
         for (const [, value] of Object.entries(ptm)) {
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             const valueLength = value.length;
             if (valueLength > 0) {
                 const {
@@ -120,7 +120,7 @@ export default {
                     callIdentifier,
                     performanceTrackerId,
                     method,
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                 } = value[0];
                 const result = {
                     type,
@@ -133,7 +133,7 @@ export default {
                     maxTime = 0,
                     throughput = 0,
                     errorCount = 0;
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 value.forEach((eachValue: $TSFixMe) => {
                     avgTime += eachValue.metrics.avgTime;
                     maxTime += eachValue.metrics.maxTime;
@@ -141,16 +141,16 @@ export default {
                     errorCount += eachValue.metrics.errorCount;
                 });
 
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number'.
+                
                 avgTime = numDecimal(avgTime / valueLength);
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number'.
+                
                 maxTime = numDecimal(maxTime / valueLength);
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number'.
+                
                 throughput = numDecimal(throughput / valueLength, 0);
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number'.
+                
                 errorCount = numDecimal(errorCount / valueLength, 0);
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'metrics' does not exist on type '{ type:... Remove this comment to see the full error message
+                
                 result.metrics = {
                     avgTime,
                     maxTime,
@@ -253,16 +253,16 @@ export default {
                 type,
                 callIdentifier: key,
                 performanceTrackerId: appId,
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 method: value.method,
                 metrics: {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     avgTime: value.avgTime,
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     maxTime: value.maxTime,
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     throughput: value.requests,
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     errorCount: value.errorCount,
                 },
                 createdAt: receivedAt,
@@ -312,10 +312,10 @@ export default {
         timeMetrics.forEach((metric: $TSFixMe) => {
             const date = moment(metric.createdAt).format();
             if (!(date in dataBank)) {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 dataBank[date] = [metric];
             } else {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 dataBank[date] = dataBank[date].concat(metric);
             }
         });
@@ -327,11 +327,11 @@ export default {
         for (const [key, value] of Object.entries(dataBank)) {
             const result = { createdAt: key };
             const { avgTime, avgMaxTime } = calcAvgTime(value);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'avgTime' does not exist on type '{ creat... Remove this comment to see the full error message
+            
             result.avgTime = avgTime;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'avgMaxTime' does not exist on type '{ cr... Remove this comment to see the full error message
+            
             result.avgMaxTime = avgMaxTime;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
+            
             result.value = avgTime;
             finalOutput.push(result);
         }
@@ -368,10 +368,10 @@ export default {
         timeMetrics.forEach((metric: $TSFixMe) => {
             const date = moment(metric.createdAt).format();
             if (!(date in dataBank)) {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 dataBank[date] = [metric];
             } else {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 dataBank[date] = dataBank[date].concat(metric);
             }
         });
@@ -383,9 +383,9 @@ export default {
         for (const [key, value] of Object.entries(dataBank)) {
             const result = { createdAt: key };
             const { avgThroughput } = calcAvgThroughput(value);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'avgThroughput' does not exist on type '{... Remove this comment to see the full error message
+            
             result.avgThroughput = avgThroughput;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
+            
             result.value = avgThroughput;
             finalOutput.push(result);
         }
@@ -421,10 +421,10 @@ export default {
         timeMetrics.forEach((metric: $TSFixMe) => {
             const date = moment(metric.createdAt).format();
             if (!(date in dataBank)) {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 dataBank[date] = [metric];
             } else {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 dataBank[date] = dataBank[date].concat(metric);
             }
         });
@@ -436,9 +436,9 @@ export default {
         for (const [key, value] of Object.entries(dataBank)) {
             const result = { createdAt: key };
             const { avgErrorCount } = calcAvgError(value);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'avgErrorCount' does not exist on type '{... Remove this comment to see the full error message
+            
             result.avgErrorCount = avgErrorCount;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type '{ created... Remove this comment to see the full error message
+            
             result.value = avgErrorCount;
             finalOutput.push(result);
         }

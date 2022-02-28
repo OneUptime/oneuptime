@@ -39,9 +39,9 @@ export function deleteSlackLink(projectId: $TSFixMe, teamId: $TSFixMe) {
 
         return promise.then(
             function(teams) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteSlackLinkSuccess(teams.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return teams.data;
             },
             function(error) {
@@ -106,7 +106,7 @@ export function getSlackTeams(
 
         promise.then(
             function(teams) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
             function(error) {

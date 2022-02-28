@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'axios' or its corresponding ty... Remove this comment to see the full error message
+
 import axios from 'axios';
 const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
@@ -6,10 +6,10 @@ const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST
 // to make the necessary updates to the db
 module.exports.create = function(config: $TSFixMe) {
     const store = {};
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'options' does not exist on type '{}'.
+    
     store.options = config;
 
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'accounts' does not exist on type '{}'.
+    
     store.accounts = {
         setKeypair: function(opts: $TSFixMe) {
             const id =
@@ -47,7 +47,7 @@ module.exports.create = function(config: $TSFixMe) {
         options: config,
     };
 
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'certificates' does not exist on type '{}... Remove this comment to see the full error message
+    
     store.certificates = {
         setKeypair: function(opts: $TSFixMe) {
             const id =

@@ -1,5 +1,5 @@
 import utils from '../../test-utils';
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import init from '../../test-init';
 
@@ -19,11 +19,11 @@ const monitorName = utils.generateRandomString();
 const scheduledMaintenanceName = utils.generateRandomString();
 const scheduledMaintenanceDescription = utils.generateRandomString();
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Check scheduled maintenace', () => {
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,13 +32,13 @@ describe('Check scheduled maintenace', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create a status-page',
         async (done: $TSFixMe) => {
@@ -54,7 +54,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#statusPages');
             await init.pageWaitForSelector(
                 page,
@@ -64,7 +64,7 @@ describe('Check scheduled maintenace', () => {
                     timeout: init.timeout,
                 }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,
@@ -74,20 +74,20 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, 'input[id=name]', statusPageName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnCreateStatusPage');
             await init.pageWaitForSelector(page, '#statusPagesListContainer', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#viewStatusPage');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#viewStatusPage');
             await init.pageWaitForSelector(page, `#header-${statusPageName}`, {
                 visible: true,
@@ -109,7 +109,7 @@ describe('Check scheduled maintenace', () => {
         init.timeout
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create a manual monitor',
         async (done: $TSFixMe) => {
@@ -134,12 +134,12 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, 'input[id=name]', componentName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'button[type=submit]');
 
             // Create a Manual Monitor
@@ -152,19 +152,19 @@ describe('Check scheduled maintenace', () => {
                 timeout: init.timeout,
             });
             await page.focus('input[id=name]');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, 'input[id=name]', monitorName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '[data-testId=type_manual]');
             await init.pageWaitForSelector(page, '#description', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#description');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#description', 'My Manual Monitor');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'button[type=submit]');
 
             // To confirm the manual monitor is created
@@ -182,7 +182,7 @@ describe('Check scheduled maintenace', () => {
         init.timeout
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should add monitor to status-page',
         async (done: $TSFixMe) => {
@@ -194,7 +194,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#statusPages');
             await init.pageWaitForSelector(page, '#statusPagesListContainer', {
                 visible: true,
@@ -204,37 +204,37 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#viewStatusPage');
             await init.pageWaitForSelector(page, '#addMoreMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addMoreMonitors');
             await init.selectDropdownValue(
                 '#monitor-name-0',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#monitor-description-0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(
                 page,
                 '#monitor-description-0',
                 'Status Page Description'
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#manual-monitor-checkbox-0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let link = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
@@ -258,7 +258,7 @@ describe('Check scheduled maintenace', () => {
         init.timeout
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create a scheduled maintenance',
         async (done: $TSFixMe) => {
@@ -270,13 +270,13 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#scheduledMaintenance');
             await init.pageWaitForSelector(page, '#addScheduledEventButton', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addScheduledEventButton');
 
             await init.pageWaitForSelector(page, '#scheduledEventForm', {
@@ -287,14 +287,14 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', scheduledMaintenanceName);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#description');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(
                 page,
                 '#description',
@@ -304,9 +304,9 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'input[name=startDate]');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 'div.MuiDialogActions-root button:nth-child(2)'
@@ -316,21 +316,21 @@ describe('Check scheduled maintenace', () => {
                 'div.MuiDialogActions-root button:nth-child(2)',
                 { hidden: true }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'input[name=endDate]');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.MuiPickersDay-daySelected'); // To select the current date but pick the last hour
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 'span.MuiTypography-body1:nth-child(14)'
             ); // This selects '11'
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 'span.MuiPickersClockNumber-clockNumber:nth-child(15)'
             ); // This selects '55'. 11:55 is the highest possible value from the clock library html elements
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 'div.MuiDialogActions-root button:nth-child(2)'
@@ -340,7 +340,7 @@ describe('Check scheduled maintenace', () => {
                 'div.MuiDialogActions-root button:nth-child(2)',
                 { hidden: true }
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#createScheduledEventButton');
             await init.pageWaitForSelector(page, '#scheduledEventForm', {
                 hidden: true,
@@ -364,7 +364,7 @@ describe('Check scheduled maintenace', () => {
         init.timeout
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should view scheduled maintenance details in status-page',
         async (done: $TSFixMe) => {
@@ -372,7 +372,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#statusPages');
             await init.pageWaitForSelector(page, '#statusPagesListContainer', {
                 visible: true,
@@ -382,14 +382,14 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#viewStatusPage');
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let link = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
@@ -399,7 +399,7 @@ describe('Check scheduled maintenace', () => {
             await page.goto(link);
 
             // To confirm scheduled maintenance name
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(
                 page,
                 `#event-name-${scheduledMaintenanceName}`

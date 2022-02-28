@@ -5,7 +5,7 @@ import {
     GET_VERSION_SUCCESS,
 } from '../constants/version';
 
-// @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../../package.json'. Consider ... Remove this comment to see the full error message
+
 import { version } from '../../package.json';
 
 const initialState = {

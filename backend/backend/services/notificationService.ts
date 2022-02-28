@@ -68,15 +68,15 @@ export default {
             const selectNotification =
                 'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
             let notification = new NotificationModel();
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+            
             notification.projectId = projectId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'message' does not exist on type 'Documen... Remove this comment to see the full error message
+            
             notification.message = message;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'icon' does not exist on type 'Document<a... Remove this comment to see the full error message
+            
             notification.icon = icon;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdBy' does not exist on type 'Docum... Remove this comment to see the full error message
+            
             notification.createdBy = userId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'meta' does not exist on type 'Document<a... Remove this comment to see the full error message
+            
             notification.meta = meta;
             notification = await notification.save();
             const populatedNotification = await this.findOneBy({

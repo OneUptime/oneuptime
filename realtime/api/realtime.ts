@@ -1,11 +1,11 @@
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'expr... Remove this comment to see the full error message
+
 import express from 'express';
 const router = express.Router();
 const {
     sendErrorResponse,
     sendEmptyResponse,
 } = require('../middlewares/response');
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/serviceAuthorization"' has... Remove this comment to see the full error message
+
 import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 import RealtimeService from '../services/realtimeService';
 

@@ -1,15 +1,15 @@
 export default {
     create: async function(data: $TSFixMe) {
         const smsTemplateModel = new SmsTemplateModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         smsTemplateModel.projectId = data.projectId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         smsTemplateModel.body = data.body || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsType' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         smsTemplateModel.smsType = data.smsType || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'allowedVariables' does not exist on type... Remove this comment to see the full error message
+        
         smsTemplateModel.allowedVariables =
-            // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
+            
             smsTemplateVariables[[data.smsType]];
         const smsTemplate = await smsTemplateModel.save();
 
@@ -18,7 +18,7 @@ export default {
 
     createMany: async function(allData: $TSFixMe) {
         allData = allData.map((data: $TSFixMe) => {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             data.allowedVariables = smsTemplateVariables[data.smsType];
             return data;
         });

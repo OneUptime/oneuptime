@@ -44,7 +44,7 @@ export function fetchSchedules(
         );
         promise.then(
             function(schedule) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(scheduleSuccess(schedule.data));
             },
             function(error) {
@@ -101,11 +101,11 @@ export function fetchSubProjectSchedules(projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(`schedule/${projectId}/schedules`);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(subProjectScheduleRequest());
         promise.then(
             function(schedule) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
             function(error) {
@@ -168,7 +168,7 @@ export function fetchProjectSchedule(
         );
         promise.then(
             function(schedule) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const data = schedule.data;
                 data.projectId = projectId;
                 dispatch(projectScheduleSuccess(data));
@@ -224,7 +224,7 @@ export function createSchedule(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(schedule) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createScheduleSuccess(schedule.data));
             },
             function(error) {
@@ -351,7 +351,7 @@ export function deleteScheduleError(error: $TSFixMe) {
 
 export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(`schedule/${projectId}/${scheduleId}`);
 
         dispatch(deleteScheduleRequest());
@@ -362,10 +362,10 @@ export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
                     const data = Object.assign(
                         {},
                         { scheduleId },
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         schedule.data
                     );
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+                    
                     dispatch(fetchSchedules(projectId));
                     return dispatch(deleteScheduleSuccess({ data }));
                 },
@@ -603,7 +603,7 @@ export function getEscalation(projectId: $TSFixMe, scheduleId: $TSFixMe) {
 
         promise.then(
             function(escalation) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(escalationSuccess(escalation.data));
             },
             function(error) {
@@ -689,7 +689,7 @@ export function fetchUserSchedule(projectId: $TSFixMe, userId: $TSFixMe) {
 
         promise.then(
             function(schedule) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(userScheduleSuccess(schedule.data));
             },
             function(error) {

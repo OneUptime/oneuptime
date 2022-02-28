@@ -33,24 +33,24 @@ export const resetProbe = () => {
 
 // Gets project Probes
 export function getProbes(skip = 0, limit = 10) {
-    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+    
     skip = parseInt(skip);
-    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+    
     limit = parseInt(limit);
 
     return function(dispatch: $TSFixMe) {
         let promise = null;
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         promise = getApi(`probe/?skip=${skip}&limit=${limit}`);
         dispatch(probeRequest(promise));
 
         promise.then(
             function(probes) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 probes.data.skip = skip || 0;
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 probes.data.limit = limit || 10;
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(probeSuccess(probes.data));
             },
             function(error) {
@@ -104,7 +104,7 @@ export const deleteProbe = (probeId: $TSFixMe) => async (
     dispatch(deleteProbeRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(`probe/${probeId}`);
         dispatch(deleteProbeSuccess(probeId));
         return response;
@@ -164,9 +164,9 @@ export const addProbe = (probeKey: $TSFixMe, probeName: $TSFixMe) => async (
     dispatch(addProbeRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi('probe/', { probeKey, probeName });
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
         dispatch(addProbeSuccess(data));
         return 'ok';
@@ -224,7 +224,7 @@ export const updateProbe = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
         data.append('id', values.id);
 
         const response = await putApi('probe/update/image', data);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const resp = response.data;
         if (Object.keys(resp).length > 0) {
             dispatch(updateProbeSuccess(resp));

@@ -37,7 +37,7 @@ export function getVersion() {
 
         promise.then(
             function(versions) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(getVersionSuccess(versions.data));
             },
             function(error) {

@@ -1,12 +1,12 @@
 export default {
     sendCreatedIncident: ({ projectId, incident }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`incidentCreated-${projectId}`, incident);
@@ -18,12 +18,12 @@ export default {
 
     sendIncidentTimeline: ({ projectId, data }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`incidentTimeline-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendIncidentTimeline', error);
@@ -33,12 +33,12 @@ export default {
 
     sendSlaCountDown: ({ projectId, incident, countDown }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`slaCountDown-${projectId}`, {
                 incident,
                 countDown,
@@ -51,12 +51,12 @@ export default {
 
     deleteIncident: ({ projectId, incident }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`deleteIncident-${projectId}`, incident);
@@ -68,12 +68,12 @@ export default {
 
     addIncidentNote: ({ projectId, incidentNote }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`addIncidentNote-${projectId}`, incidentNote);
@@ -85,12 +85,12 @@ export default {
 
     updateIncidentNote: ({ projectId, incidentNote }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`updateIncidentNote-${projectId}`, incidentNote);
@@ -102,12 +102,12 @@ export default {
 
     updateIncidentTimeline: ({ incidentTimeline, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`updateIncidentTimeline-${projectId}`, incidentTimeline);
@@ -119,12 +119,12 @@ export default {
 
     updateIncident: ({ incident, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`updateIncident-${projectId}`, incident);
@@ -136,12 +136,12 @@ export default {
 
     deleteIncidentNote: ({ incidentNote, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`deleteIncidentNote-${projectId}`, incidentNote);
@@ -153,12 +153,12 @@ export default {
 
     addScheduledEvent: ({ event, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`addScheduledEvent-${projectId}`, event);
@@ -170,12 +170,12 @@ export default {
 
     deleteScheduledEvent: ({ event, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`deleteScheduledEvent-${projectId}`, event);
@@ -187,12 +187,12 @@ export default {
 
     updateScheduledEvent: ({ event, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`updateScheduledEvent-${projectId}`, event);
@@ -204,12 +204,12 @@ export default {
 
     resolveScheduledEvent: ({ event, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`resolveScheduledEvent-${projectId}`, event);
@@ -221,12 +221,12 @@ export default {
 
     addScheduledEventInternalNote: ({ note, scheduledEventId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(scheduledEventId)
                 .emit(
@@ -248,19 +248,19 @@ export default {
         scheduledEventId,
     }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(scheduledEventId)
                 .emit(
                     `addScheduledEventInvestigationNote-${scheduledEventId}`,
                     note
                 );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`addEventNote-${projectId}`, note); // realtime update on status page
         } catch (error) {
             ErrorService.log(
@@ -276,12 +276,12 @@ export default {
         scheduledEventId,
     }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(scheduledEventId)
                 .emit(
@@ -303,19 +303,19 @@ export default {
         scheduledEventId,
     }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(scheduledEventId)
                 .emit(
                     `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
                     note
                 );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`deleteEventNote-${projectId}`, note); // realtime update on status page
         } catch (error) {
             ErrorService.log(
@@ -331,12 +331,12 @@ export default {
         scheduledEventId,
     }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(scheduledEventId)
                 .emit(
@@ -358,19 +358,19 @@ export default {
         scheduledEventId,
     }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(scheduledEventId)
                 .emit(
                     `updateScheduledEventInvestigationNote-${scheduledEventId}`,
                     note
                 );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`updateEventNote-${projectId}`, note);
         } catch (error) {
             ErrorService.log(
@@ -383,12 +383,12 @@ export default {
 
     sendComponentCreated: ({ component, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`createComponent-${projectId}`, component);
@@ -400,12 +400,12 @@ export default {
 
     sendMonitorCreated: ({ monitor, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`createMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realtimeService.sendMonitorCreated', error);
@@ -415,12 +415,12 @@ export default {
 
     sendComponentDelete: ({ component, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`deleteComponent-${projectId}`, component);
@@ -432,12 +432,12 @@ export default {
 
     sendMonitorDelete: ({ monitor, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`deleteMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realtimeService.sendMonitorDelete', error);
@@ -447,12 +447,12 @@ export default {
 
     incidentResolved: ({ incident, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`incidentResolved-${projectId}`, incident);
@@ -464,12 +464,12 @@ export default {
 
     incidentAcknowledged: ({ incident, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`incidentAcknowledged-${projectId}`, incident);
@@ -481,12 +481,12 @@ export default {
 
     statusPageEdit: ({ statusPage, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`updateStatusPage-${projectId}`, statusPage);
@@ -498,12 +498,12 @@ export default {
 
     componentEdit: ({ component, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`updateComponent-${projectId}`, component);
@@ -515,12 +515,12 @@ export default {
 
     monitorEdit: ({ monitor, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`updateMonitor-${projectId}`, monitor);
         } catch (error) {
             ErrorService.log('realtimeService.monitorEdit', error);
@@ -530,12 +530,12 @@ export default {
 
     updateMonitorLog: ({ data, logData, projectId, monitorId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`updateMonitorLog-${projectId}`, {
                 projectId,
                 monitorId,
@@ -550,12 +550,12 @@ export default {
 
     updateLighthouseLog: ({ data, projectId, monitorId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`updateLighthouseLog-${projectId}`, {
                 projectId,
                 monitorId,
@@ -569,12 +569,12 @@ export default {
 
     updateAllLighthouseLog: ({ projectId, data, monitorId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`updateAllLighthouseLog-${projectId}`, {
@@ -590,12 +590,12 @@ export default {
 
     updateMonitorStatus: ({ data, projectId, monitorId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`updateMonitorStatus-${projectId}`, {
                 projectId,
                 monitorId,
@@ -609,12 +609,12 @@ export default {
 
     updateTweets: ({ tweets, statusPageId, _projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(_projectId).emit(`updateTweets-${_projectId}`, {
                 tweets,
                 statusPageId,
@@ -627,12 +627,12 @@ export default {
 
     updateProbe: ({ data }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.emit(`updateProbe`, data);
         } catch (error) {
             ErrorService.log('realtimeService.updateProbe', error);
@@ -642,12 +642,12 @@ export default {
 
     sendNotification: ({ data, projectId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`NewNotification-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendNotification', error);
@@ -657,12 +657,12 @@ export default {
 
     updateTeamMemberRole: ({ projectId, data }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(projectId)
                 .emit(`TeamMemberRoleUpdate-${projectId}`, data);
@@ -674,12 +674,12 @@ export default {
 
     createTeamMember: ({ projectId, data }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`TeamMemberCreate-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.createTeamMember', error);
@@ -689,12 +689,12 @@ export default {
 
     deleteTeamMember: ({ projectId, data }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(projectId).emit(`TeamMemberDelete-${projectId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.deleteTeamMember', error);
@@ -704,12 +704,12 @@ export default {
 
     sendApplicationLogCreated: ({ applicationLog, componentId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(componentId)
                 .emit(`createApplicationLog-${componentId}`, applicationLog);
@@ -723,12 +723,12 @@ export default {
     },
     sendApplicationLogDelete: ({ applicationLog, componentId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(componentId)
                 .emit(`deleteApplicationLog-${componentId}`, applicationLog);
@@ -739,12 +739,12 @@ export default {
     },
     sendLogCreated: ({ contentLog, applicationLogId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(applicationLogId)
                 .emit(`createLog-${applicationLogId}`, contentLog);
@@ -755,12 +755,12 @@ export default {
     },
     applicationLogKeyReset: ({ applicationLog, componentId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(componentId)
                 .emit(`applicationLogKeyReset-${componentId}`, applicationLog);
@@ -774,12 +774,12 @@ export default {
         componentId,
     }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(componentId)
                 .emit(
@@ -799,12 +799,12 @@ export default {
         componentId,
     }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(componentId)
                 .emit(
@@ -821,12 +821,12 @@ export default {
     },
     sendErrorTrackerCreated: ({ errorTracker, componentId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(componentId)
                 .emit(`createErrorTracker-${componentId}`, errorTracker);
@@ -837,12 +837,12 @@ export default {
     },
     sendErrorTrackerDelete: ({ errorTracker, componentId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(componentId)
                 .emit(`deleteErrorTracker-${componentId}`, errorTracker);
@@ -853,12 +853,12 @@ export default {
     },
     errorTrackerKeyReset: ({ errorTracker, componentId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(componentId)
                 .emit(`errorTrackerKeyReset-${componentId}`, errorTracker);
@@ -869,12 +869,12 @@ export default {
     },
     sendErrorEventCreated: ({ data, errorTrackerId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(errorTrackerId)
                 .emit(`createErrorEvent-${errorTrackerId}`, data);
@@ -885,12 +885,12 @@ export default {
     },
     sendIssueStatusChange: ({ issue, type, errorTrackerId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(errorTrackerId)
                 .emit(`${type}Issue-${errorTrackerId}`, issue);
@@ -901,12 +901,12 @@ export default {
     },
     sendErrorTrackerIssueDelete: ({ issue, errorTrackerId }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(errorTrackerId)
                 .emit(`deleteErrorTrackerIssue-${errorTrackerId}`, issue);
@@ -920,12 +920,12 @@ export default {
     },
     sendTimeMetrics: ({ appId, data }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(appId).emit(`timeMetrics-${appId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendTimeMetrics', error);
@@ -934,12 +934,12 @@ export default {
     },
     sendThroughputMetrics: ({ appId, data }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(appId).emit(`throughputMetrics-${appId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendThroughputMetrics', error);
@@ -948,12 +948,12 @@ export default {
     },
     sendErrorMetrics: ({ appId, data }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io.to(appId).emit(`errorMetrics-${appId}`, data);
         } catch (error) {
             ErrorService.log('realtimeService.sendErrorMetrics', error);
@@ -962,12 +962,12 @@ export default {
     },
     handleScanning: ({ security }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(security._id)
                 .emit(`security_${security._id}`, security);
@@ -978,12 +978,12 @@ export default {
     },
     handleLog: ({ securityId, securityLog }: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             if (!global || !global.io) {
                 return;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'io' does not exist on type 'Global & typ... Remove this comment to see the full error message
+            
             global.io
                 .to(securityId)
                 .emit(`securityLog_${securityId}`, securityLog);

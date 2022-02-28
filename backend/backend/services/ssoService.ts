@@ -55,17 +55,17 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const sso = new SsoModel();
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         sso['saml-enabled'] = data['saml-enabled'] || false;
 
         if (data.projectId) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+            
             sso.projectId = data.projectId;
         }
 
         if (!data.domain) {
             const error = new Error('Domain must be defined.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -75,44 +75,44 @@ export default {
         });
         if (domainExists) {
             const error = new Error('Domain already exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type 'Document... Remove this comment to see the full error message
+        
         sso.domain = data.domain;
 
         if (!data.entityId) {
             const error = new Error('Application ID must be defined');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'entityId' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         sso.entityId = data.entityId;
 
         if (!data.remoteLoginUrl) {
             const error = new Error('Remote Login Url must be defined.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'remoteLoginUrl' does not exist on type '... Remove this comment to see the full error message
+        
         sso.remoteLoginUrl = data.remoteLoginUrl;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'certificateFingerprint' does not exist o... Remove this comment to see the full error message
+        
         sso.certificateFingerprint = data.certificateFingerprint;
 
         if (!data.remoteLogoutUrl) {
             const error = new Error('Remote Logout URL must be defined.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'remoteLogoutUrl' does not exist on type ... Remove this comment to see the full error message
+        
         sso.remoteLogoutUrl = data.remoteLogoutUrl;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipRanges' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         sso.ipRanges = data.ipRanges;
 
         const savedSso = await sso.save();
@@ -156,7 +156,7 @@ export default {
 
         if (domainExists) {
             const error = new Error('Domain already exist');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -196,7 +196,7 @@ export default {
         const stringifiedXml = String(xml);
         // eslint-disable-next-line no-control-regex
         const regex = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gi;
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+        
         return stringifiedXml.match(regex)[0];
     },
 };

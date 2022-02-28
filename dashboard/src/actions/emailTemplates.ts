@@ -39,7 +39,7 @@ export function getEmailTemplates(projectId: $TSFixMe) {
 
         promise.then(
             function(emails) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(emailTemplatesSuccess(emails.data));
             },
             function(error) {
@@ -94,7 +94,7 @@ export function editEmailTemplates(projectId: $TSFixMe, data: $TSFixMe) {
 
         promise.then(
             function(emailTemplate) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editEmailTemplateSuccess(emailTemplate.data));
             },
             error => {
@@ -147,7 +147,7 @@ export function resetEmailTemplates(projectId: $TSFixMe, templateId: $TSFixMe) {
 
         promise.then(
             function(emails) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(resetEmailTemplatesSuccess(emails.data));
             },
             function(error) {
@@ -196,7 +196,7 @@ export function getSmtpConfig(projectId: $TSFixMe) {
 
         promise.then(
             function(data) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -208,7 +208,7 @@ export function getSmtpConfig(projectId: $TSFixMe) {
                         payload: false,
                     });
                 }
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(smtpConfigSuccess(data.data));
             },
             function(error) {
@@ -235,9 +235,9 @@ export function postSmtpConfig(projectId: $TSFixMe, data: $TSFixMe) {
 
         promise.then(
             function(data) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(smtpConfigSuccess(data.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -299,9 +299,9 @@ export function deleteSmtpConfig(
 
         promise.then(
             function(data) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteSmtpConfigSuccess(data.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -342,9 +342,9 @@ export function updateSmtpConfig(
 
         promise.then(
             function(data) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(smtpConfigSuccess(data.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,

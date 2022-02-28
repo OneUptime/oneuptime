@@ -4,7 +4,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/serviceAuthorization"' has... Remove this comment to see the full error message
+
 import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 
 const router = express.Router();
@@ -116,16 +116,16 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
 
         // aggregate data for logging
         data = req.body;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type '{}'.
+        
         data.status = status;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+        
         data.reason = reason;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'matchedCriterion' does not exist on type... Remove this comment to see the full error message
+        
         data.matchedCriterion = matchedCriterion;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseStatus' does not exist on type '... Remove this comment to see the full error message
+        
         data.responseStatus = resp && resp.status ? resp.status : null;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scriptMetadata' does not exist on type '... Remove this comment to see the full error message
+        
         data.scriptMetadata = {
             executionTime: resp.executionTime,
             consoleLogs: resp.consoleLogs,
@@ -133,27 +133,27 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             statusText: resp.statusText,
         };
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
+        
         data.monitorId = req.params.monitorId || monitor._id;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+        
         data.reason =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+            
             data && data.reason && data.reason.length
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                ? 
                   data.reason.filter(
                       (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
                           self.indexOf(item) === pos
                   )
-                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'reason' does not exist on type '{}'.
+                : 
                   data.reason;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'matchedUpCriterion' does not exist on ty... Remove this comment to see the full error message
+        
         data.matchedUpCriterion =
             monitor && monitor.criteria && monitor.criteria.up;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'matchedDownCriterion' does not exist on ... Remove this comment to see the full error message
+        
         data.matchedDownCriterion =
             monitor && monitor.criteria && monitor.criteria.down;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'matchedDegradedCriterion' does not exist... Remove this comment to see the full error message
+        
         data.matchedDegradedCriterion =
             monitor && monitor.criteria && monitor.criteria.degraded;
 

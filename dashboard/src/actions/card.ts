@@ -24,14 +24,14 @@ export function addCardSuccess(card: $TSFixMe) {
 
 export function addCard(userId: $TSFixMe, token: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = postApi(`stripe/${userId}/creditCard/${token}`);
 
         dispatch(addCardRequest(promise));
 
         promise.then(
             function(card) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(addCardSuccess(card.data));
             },
             function(error) {
@@ -80,7 +80,7 @@ export function fetchCards(userId: $TSFixMe) {
 
         promise.then(
             function(cards) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchCardsSuccess(cards.data.data));
             },
             function(error) {
@@ -124,14 +124,14 @@ export function deleteCardSuccess(card: $TSFixMe) {
 
 export function deleteCard(userId: $TSFixMe, cardId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(`stripe/${userId}/creditCard/${cardId}`);
 
         dispatch(deleteCardRequest(promise));
 
         promise.then(
             function(card) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteCardSuccess(card.data));
             },
             function(error) {
@@ -178,14 +178,14 @@ export function setDefaultCardSuccess(card: $TSFixMe) {
 
 export function setDefaultCard(userId: $TSFixMe, cardId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = putApi(`stripe/${userId}/creditCard/${cardId}`);
 
         dispatch(setDefaultCardRequest(promise, cardId));
 
         promise.then(
             function(card) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(setDefaultCardSuccess(card.data));
                 dispatch(fetchCards(userId));
             },

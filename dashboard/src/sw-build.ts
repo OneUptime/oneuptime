@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'work... Remove this comment to see the full error message
+
 import workboxBuild from 'workbox-build';
 
 // NOTE: This should be run *AFTER* all your assets are built

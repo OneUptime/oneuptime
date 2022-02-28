@@ -6,21 +6,21 @@ export default {
     create: async function({ securityId, componentId, data }: $TSFixMe) {
         if (!securityId) {
             const error = new Error('Security ID is required');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
 
         if (!componentId) {
             const error = new Error('Component ID is required');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
 
         if (!data) {
             const error = new Error('Please provide a scan log');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -38,7 +38,7 @@ export default {
             });
         } else {
             securityLog = await this.updateOneBy(
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 { _id: securityLog._id },
                 data
             );
@@ -101,7 +101,7 @@ export default {
             const error = new Error(
                 'Container Security Log not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -115,7 +115,7 @@ export default {
             const error = new Error(
                 'Container Security Log not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

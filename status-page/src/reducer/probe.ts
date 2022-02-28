@@ -108,7 +108,7 @@ export default function probes(state = INITIAL_STATE, action: $TSFixMe) {
                 probes:
                     state.probes.length > 0
                         ? state.probes.map(probe => {
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                              
                               return probe._id === action.payload._id
                                   ? action.payload
                                   : probe;

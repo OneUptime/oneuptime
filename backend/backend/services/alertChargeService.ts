@@ -10,21 +10,21 @@ export default {
         subscriberId: $TSFixMe
     ) {
         const alertCharge = new AlertChargeModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         alertCharge.projectId = projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'chargeAmount' does not exist on type 'Do... Remove this comment to see the full error message
+        
         alertCharge.chargeAmount = chargeAmount;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closingAccountBalance' does not exist on... Remove this comment to see the full error message
+        
         alertCharge.closingAccountBalance = balanceAfterAlertSent;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertId' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         alertCharge.alertId = alertId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         alertCharge.monitorId = monitorId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         alertCharge.incidentId = incidentId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sentTo' does not exist on type 'Document... Remove this comment to see the full error message
+        
         alertCharge.sentTo = sentTo;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscriberAlertId' does not exist on typ... Remove this comment to see the full error message
+        
         alertCharge.subscriberAlertId = subscriberId || null;
         alertCharge.save();
         return alertCharge;

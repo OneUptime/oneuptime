@@ -36,7 +36,7 @@ export function fetchIncidentPriorities(
         promise.then(
             function(incidentsPriorities) {
                 dispatch(
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     fetchIncidentPrioritiesSuccess(incidentsPriorities.data)
                 );
             },
@@ -63,7 +63,7 @@ export function createIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(createIncidentPriorityRequest());
         promise.then(
             function(incidentPriority) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createIncidentPrioritySuccess(incidentPriority.data));
             },
             function(error) {
@@ -110,7 +110,7 @@ export function updateIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(updateIncidentPriorityRequest());
         promise.then(
             function(incidentPriority) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
             },
             function(error) {
@@ -157,7 +157,7 @@ export function deleteIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(deleteIncidentPriorityRequest());
         promise.then(
             function(incidentPriority) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
             },
             function(error) {

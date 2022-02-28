@@ -1,6 +1,6 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
-// @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.IS_SAAS_SERVICE = true;
 import chai from 'chai';
 const expect = require('chai').expect;
@@ -9,10 +9,10 @@ import gitCredential from './data/gitCredential';
 import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import UserService from '../backend/services/userService';
@@ -23,7 +23,7 @@ import ApplicationSecurities from '../backend/services/applicationSecurityServic
 import ApplicationSecurityLogService from '../backend/services/applicationSecurityLogService';
 import AirtableService from '../backend/services/airtableService';
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Application Security API', function() {
     const timeout = 300000;
     let projectId: $TSFixMe,
@@ -34,7 +34,7 @@ describe('Application Security API', function() {
         credentialId: $TSFixMe;
 
     this.timeout(timeout);
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(
@@ -91,7 +91,7 @@ describe('Application Security API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -105,7 +105,7 @@ describe('Application Security API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create an application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -114,12 +114,12 @@ describe('Application Security API', function() {
             gitPassword: gitCredential.gitPassword,
             projectId,
         }).then(function(credential) {
-            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+            
             credentialId = credential._id;
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 gitCredential: credential._id,
             };
 
@@ -143,7 +143,7 @@ describe('Application Security API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should update an application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const update = { name: 'newname' };
@@ -161,7 +161,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get a particular application security in a component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -182,7 +182,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get all the application security in a component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -196,7 +196,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get all the application security with a particular credential', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -210,7 +210,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should scan an application security', function(done: $TSFixMe) {
         this.timeout(300000);
         const authorization = `Basic ${token}`;
@@ -226,7 +226,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create an application security if name already exist in the component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -249,7 +249,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create an application security if git repository url already exist in the component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -272,7 +272,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a particular application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -288,7 +288,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create an application security if name is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -311,7 +311,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create an application security if git repository url is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -334,7 +334,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create an application security if git credential is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -357,7 +357,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not scan an application security if it does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -376,7 +376,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not delete a non-existing application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -395,7 +395,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not get a non-existing application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -414,7 +414,7 @@ describe('Application Security API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create an application security if git credential does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 

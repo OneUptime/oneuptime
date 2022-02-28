@@ -25,16 +25,16 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
+
 import express from 'express';
 const app = express();
-// @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'createServer'.
+
 import http from 'http';
 http.createServer(app);
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'cors' or its corresponding typ... Remove this comment to see the full error message
+
 import cors from 'cors';
 import Main from './workers/main';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
+
 import cron from 'node-cron';
 import config from './utils/config';
 
@@ -43,7 +43,7 @@ const cronMinuteStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3015);
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.get(['/lighthouse/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -56,7 +56,7 @@ app.get(['/lighthouse/status', '/status'], function(req, res) {
 });
 
 //App Version
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'req' implicitly has an 'any' type.
+
 app.get(['/lighthouse/version', '/version'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ lighthouseVersion: process.env.npm_package_version });
@@ -69,7 +69,7 @@ cron.schedule('*/30 * * * *', () => {
     }, cronMinuteStartTime * 1000);
 });
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'listen' does not exist on type 'typeof i... Remove this comment to see the full error message
+
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(

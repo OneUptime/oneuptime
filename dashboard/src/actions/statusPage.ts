@@ -53,7 +53,7 @@ export function uploadCertFile(projectId: $TSFixMe, file: $TSFixMe) {
             dispatch(uploadCertFileRequest());
             promise.then(
                 function(response) {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     const data = response.data;
                     dispatch(uploadCertFileSuccess(data.cert));
                     return data;
@@ -118,7 +118,7 @@ export function uploadPrivateKey(projectId: $TSFixMe, file: $TSFixMe) {
             dispatch(uploadPrivateKeyRequest());
             promise.then(
                 function(response) {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     const data = response.data;
                     dispatch(uploadPrivateKeySuccess(data.privateKey));
                     return data;
@@ -172,10 +172,10 @@ export function updateStatusPageSetting(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(updateStatusPageSettingRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageSettingSuccess(statusPage));
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
+                
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
             function(error) {
@@ -230,7 +230,7 @@ export function updateStatusPageMonitors(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageMonitorsSuccess(statusPage));
             },
@@ -282,7 +282,7 @@ export function updatePrivateStatusPage(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updatePrivateStatusPageSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
@@ -336,7 +336,7 @@ export function updateStatusPageLanguage(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageLanguageSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
@@ -387,7 +387,7 @@ export function updateSubscriberOption(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateSubscriberOptionSuccess(statusPage));
             },
@@ -512,7 +512,7 @@ export function updateStatusPageBranding(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageBrandingSuccess(statusPage));
             },
@@ -542,7 +542,7 @@ export function updateTheme(projectId: $TSFixMe, data: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageThemeSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
@@ -573,7 +573,7 @@ export function updateStatusPageName(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageNameSuccess(statusPage));
             },
@@ -625,7 +625,7 @@ export function updateStatusPageLinks(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageLinksSuccess(statusPage));
             },
@@ -680,7 +680,7 @@ export function updateStatusPageCustomHTML(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageCustomHTMLSuccess(statusPage));
             },
@@ -745,7 +745,7 @@ export function fetchProjectStatusPage(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const data = response.data;
                 data.projectId = projectId;
                 dispatch(fetchProjectStatusPageSuccess(data));
@@ -807,7 +807,7 @@ export function fetchSubProjectStatusPages(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const data = response.data;
                 dispatch(fetchSubProjectStatusPagesSuccess(data));
             },
@@ -870,7 +870,7 @@ export function fetchIncidentStatusPages(
 
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchIncidentStatusPagesSuccess(response.data));
             },
             function(error) {
@@ -925,7 +925,7 @@ export function resetStatusBubbleId(
         dispatch(resetStatusBubbleIdRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(resetStatusBubbleIdSuccess(statusPage));
             },
@@ -987,7 +987,7 @@ export function deleteStatusPage(
         dispatch(deleteStatusPageRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const data = response.data;
                 dispatch(deleteStatusPageSuccess(data));
             },
@@ -1032,12 +1032,12 @@ export function duplicateStatusPageError(error: $TSFixMe) {
 
 export function readStatusPage(statusPageSlug: $TSFixMe, data: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
+        
         const promise = getApi(`status-page/${statusPageSlug}`, data);
         dispatch(duplicateStatusPageRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPageData = response.data;
                 delete statusPageData._id;
                 delete statusPageData.slug;
@@ -1100,11 +1100,11 @@ export function fetchStatusPage(statusPageSlug: $TSFixMe) {
         const promise = getApi(`status-page/${statusPageSlug}`);
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPageData = response.data;
                 dispatch(duplicateStatusPageSuccess(statusPageData));
                 dispatch(
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
+                    
                     fetchProjectStatusPage(statusPageData.projectId._id, true)
                 );
             },
@@ -1164,10 +1164,10 @@ export function updateStatusPageEmbeddedCss(
         dispatch(updateStatusPageEmbeddedCssRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageEmbeddedCssSuccess(statusPage));
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
+                
                 dispatch(fetchProjectStatusPage(projectId, true));
                 dispatch(updateStatusSuccess(statusPage));
             },
@@ -1217,14 +1217,14 @@ export function resetBrandingColors(
     statusPageId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = putApi(
             `status-page/${projectId}/${statusPageId}/resetColors`
         );
         dispatch(resetBrandingColorsRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const colors = response.data;
                 dispatch(resetBrandingColorsSuccess(colors));
             },
@@ -1279,10 +1279,10 @@ export function resetStatusPageEmbeddedCss(
         dispatch(resetStatusPageEmbeddedCssRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(resetStatusPageEmbeddedCssSuccess(statusPage));
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
+                
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
             function(error) {
@@ -1330,10 +1330,10 @@ export function updateStatusPageLayout(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(updateStatusPageLayoutRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const statusPage = response.data;
                 dispatch(updateStatusPageLayoutSuccess(statusPage));
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
+                
                 dispatch(fetchProjectStatusPage(projectId, true));
                 dispatch(updateStatusSuccess(statusPage));
             },
@@ -1389,7 +1389,7 @@ export function fetchStatusPageSubscribers(
         dispatch(fetchSubscriberRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchSubscriberSuccess(response.data));
             },
             function(error) {
@@ -1443,9 +1443,9 @@ export function createExternalStatusPage(
         dispatch(createExternalStatusPageRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createExternalStatusPageSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -1501,9 +1501,9 @@ export function updateExternalStatusPage(
         dispatch(updateExternalStatusPageRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(updateExternalStatusPageSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -1557,9 +1557,9 @@ export function fetchExternalStatusPages(
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -1607,16 +1607,16 @@ export function deleteExternalStatusPage(
     externalStatusPageId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = postApi(
             `status-page/${projectId}/deleteExternalstatus-page/${externalStatusPageId}`
         );
         dispatch(deleteExternalStatusPageRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteExternalStatusPageSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -1672,9 +1672,9 @@ export function createAnnouncement(
         dispatch(createAnnouncementRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createAnnouncementSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -1711,9 +1711,9 @@ export function updateAnnouncement(
         dispatch(createAnnouncementRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createAnnouncementSuccess(response.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return response.data;
             },
             function(error) {
@@ -1769,7 +1769,7 @@ export function fetchAnnouncements(
         dispatch(fetchAnnouncementRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchAnnouncementSuccess(response.data));
             },
             function(error) {
@@ -1823,7 +1823,7 @@ export function fetchAnnouncementLogs(
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
             function(error) {
@@ -1869,7 +1869,7 @@ export function fetchSingleAnnouncement(
         );
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchSingleAnnouncementSuccess(response.data));
             },
             function(error) {
@@ -1941,14 +1941,14 @@ export function deleteAnnouncement(
     announcementId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(
             `status-page/${projectId}/announcement/${announcementId}/delete`
         );
         dispatch(deleteAnnouncementRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
             function(error) {
@@ -1974,14 +1974,14 @@ export function deleteAnnouncementLog(
     announcementLogId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(
             `status-page/${projectId}/announcementLog/${announcementLogId}/delete`
         );
         dispatch(deleteAnnouncementRequest());
         promise.then(
             function(response) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
             function(error) {

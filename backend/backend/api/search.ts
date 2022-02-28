@@ -13,7 +13,7 @@ import IncidentService from '../services/incidentService';
 import ErrorTrackerService from '../services/errorTrackerService';
 import LogContainerService from '../services/applicationLogService';
 import PerformanceTracker from '../services/performanceTrackerService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/subProject"' has no export... Remove this comment to see the full error message
+
 import { getSubProjects } from '../middlewares/subProject';
 
 const router = express.Router();
@@ -22,9 +22,9 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
     try {
         const val = req.body.search;
         const parentProjectId = req.params.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const subProjectIds = req.user.subProjects
-            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            ? 
               req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
 
@@ -45,7 +45,7 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
             getComponents(subProjectIds, val, parentProjectId),
             getMonitors(subProjectIds, val, parentProjectId),
             getStatusPages(subProjectIds, val, parentProjectId),
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 3.
+            
             getUsers(subProjectIds, val, parentProjectId),
             getOnCallDuty(subProjectIds, val, parentProjectId),
             getSchedultEvent(subProjectIds, val, parentProjectId),
@@ -217,11 +217,11 @@ const getStatusPages = async (
         select: selectStatusPage,
         populate: populateStatusPage,
     });
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type '{}'.
+    
     if (statusPages.length > 0) {
         const resultObj = {
             title: 'Status Pages',
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'map' does not exist on type '{}'.
+            
             values: statusPages.map((statusPage: $TSFixMe) => ({
                 name: statusPage.name,
                 statusPageSlug: statusPage.slug,
@@ -243,7 +243,7 @@ const getStatusPages = async (
 const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe) => {
     //get project users id so as to search for only users in a project and its subproject
     const projectUsers: $TSFixMe = [];
-    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: { $in: any; }; }... Remove this comment to see the full error message
+    
     const projects = await ProjectService.findBy({
         query: { _id: { $in: projectIds } },
         select: 'users',

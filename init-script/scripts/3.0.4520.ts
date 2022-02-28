@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../util/db"' has no exported member 'find... Remove this comment to see the full error message
+
 import { find, update, removeField } from '../util/db';
 
 const scheduledEventNoteCollection = 'scheduledeventnotes';

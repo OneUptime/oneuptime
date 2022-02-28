@@ -21,7 +21,7 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -46,7 +46,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 message: "values can't be null",
             });
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         data.createdById = req.user ? req.user.id : null;
 
         if (!data.name) {
@@ -68,14 +68,14 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         const component = await ComponentService.create(data);
 
         const user = await UserService.findOneBy({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             query: { _id: req.user.id },
             select: 'name _id',
         });
 
         if (component) {
             try {
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+                
                 NotificationService.create(
                     component.projectId._id || component.projectId,
                     `A New Component was Created with name ${component.name} by ${user.name}`,
@@ -205,9 +205,9 @@ router.get(
     async function(req, res) {
         try {
             const type = req.query.type;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
@@ -250,9 +250,9 @@ router.get(
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
@@ -288,9 +288,9 @@ router.post(
         try {
             const { startDate, endDate } = req.body;
             const componentId = req.params.componentId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
@@ -349,9 +349,9 @@ router.post(
                             const monitorUptime =
                                 uptimePercents.reduce(
                                     (a, b) =>
-                                        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+                                        
                                         parseFloat(a || 100) +
-                                        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+                                        
                                         parseFloat(b || 100)
                                 ) / uptimePercents.length;
 
@@ -391,9 +391,9 @@ router.get(
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
@@ -704,9 +704,9 @@ router.get(
     getSubProjects,
     async function(req, res) {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
@@ -719,7 +719,7 @@ router.get(
             let allComponents: $TSFixMe = [];
 
             components.map(component => {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 allComponents = [...allComponents, ...component.components];
                 return component;
             });
@@ -736,7 +736,7 @@ router.get(
                 { path: 'resourceCategory', select: 'name' },
             ];
             await Promise.all(
-                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'component' implicitly has an 'any' type... Remove this comment to see the full error message
+                
                 allComponents.map(async component => {
                     const componentErrorTrackers = await ErrorTrackerService.findBy(
                         {
@@ -778,7 +778,7 @@ router.delete(
                     componentId: componentId,
                     projectId: projectId,
                 },
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                
                 req.user.id
             );
             const component = await ComponentService.deleteBy(
@@ -786,7 +786,7 @@ router.delete(
                     _id: componentId,
                     projectId: projectId,
                 },
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                
                 req.user.id
             );
             if (component) {

@@ -18,7 +18,7 @@ export function createApplicationLog(
 
         promise.then(
             function(applicationLog) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
             function(error) {
@@ -82,7 +82,7 @@ export function fetchApplicationLogs(
 
         promise.then(
             function(applicationLogs) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
             function(error) {
@@ -149,7 +149,7 @@ export function deleteApplicationLog(
 
         promise.then(
             function(applicationLog) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
             function(error) {
@@ -234,13 +234,13 @@ export function fetchLogs(
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         logs: response.data.data.logs,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         dateRange: response.data.data.dateRange,
                         skip,
                         limit,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         count: response.data.count,
                     })
                 );
@@ -298,7 +298,7 @@ export function resetApplicationLogKey(
     applicationLogId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
         );
@@ -306,7 +306,7 @@ export function resetApplicationLogKey(
 
         promise.then(
             function(applicationLog) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
             function(error) {
@@ -375,7 +375,7 @@ export function editApplicationLog(
 
         promise.then(
             function(applicationLog) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editApplicationLogSuccess(applicationLog.data));
             },
             function(error) {
@@ -435,7 +435,7 @@ export function fetchStats(
                 dispatch(
                     fetchStatsSuccess({
                         applicationLogId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         stats: logs.data.data,
                     })
                 );
@@ -513,9 +513,9 @@ export function searchLog(
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         logs: response.data.searchedLogs,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         count: response.data.totalSearchCount,
                     })
                 );

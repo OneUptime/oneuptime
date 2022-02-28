@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import chai from 'chai'
@@ -7,16 +7,16 @@ chai.use(chaihttp);
 chai.use(require(..set'));
 import app from '../server'
 import userData from './data/user'
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./data/project"' has no exported member '... Remove this comment to see the full error message
+
 import { newProject } from './data/project'
 import gitCredential from './data/gitCredential'
 import dockerCredential from './data/dockerCredential'
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp'
 import VerificationTokenModel from '../backend/models/verificationToken'
 import UserService from '../backend/services/userService'
 import ProjectService from '../backend/services/projectService'
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
 import ProbeService from '../backend/services/probeService'
 import MonitorService from '../backend/services/monitorService'
@@ -46,11 +46,11 @@ const probeServerRequestHeader = ({
 });
 let probeServerName1: $TSFixMe, probeServerName2: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Probe API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
@@ -85,7 +85,7 @@ describe('Probe API', function() {
         return Promise.resolve();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProbeService.hardDeleteBy({ _id: probeId });
@@ -112,7 +112,7 @@ describe('Probe API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add a probe by admin', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
@@ -131,7 +131,7 @@ describe('Probe API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not add a probe if not admin', function(done: $TSFixMe) {
         const probeName = generateRandomString();
         createUser(request, userData.newUser, function(err: $TSFixMe, res: $TSFixMe) {
@@ -169,7 +169,7 @@ describe('Probe API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should reject a probe if same name already exists', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
@@ -196,7 +196,7 @@ describe('Probe API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get probes', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -209,7 +209,7 @@ describe('Probe API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should delete a probe by admin', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
@@ -234,7 +234,7 @@ describe('Probe API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async function() {
         probeServerName1 = generateRandomString();
         const res = await request.get('/probe/monitors').set(
@@ -246,7 +246,7 @@ describe('Probe API', function() {
         );
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { probeName: any; }; se... Remove this comment to see the full error message
+        
         const probe = await ProbeService.findOneBy({
             query: { probeName: probeServerName1 },
             select: '_id',
@@ -254,7 +254,7 @@ describe('Probe API', function() {
         expect(probe).to.not.eql(null);
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ', async function() {
         this.timeout(100000);
         const monitor = await MonitorService.create({
@@ -337,7 +337,7 @@ describe('Probe API', function() {
         await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min', async function() {
         this.timeout(100000);
         const monitor = await MonitorService.create({
@@ -421,7 +421,7 @@ describe('Probe API', function() {
         await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get application securities yet to be scanned or scanned 24hrs ago', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = 'US';
@@ -436,7 +436,7 @@ describe('Probe API', function() {
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                
                 gitCredential: credential._id,
             };
 
@@ -461,7 +461,7 @@ describe('Probe API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get container securities yet to be scanned or scanned 24hrs ago', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = 'US';

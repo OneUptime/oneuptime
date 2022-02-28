@@ -58,7 +58,7 @@ export const testSmtp = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(testSmtpRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi('emailSmtp/test', payload);
         dispatch(testSmtpSuccess(response));
         return response;
@@ -81,7 +81,7 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(testTwilioRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi('twilio/sms/test', payload);
         dispatch(testTwilioSuccess(response));
         return response;
@@ -103,9 +103,9 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
 export const fetchSettings = (type: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(requestingSettings());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(`globalConfig/${type}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data || { value: {} };
         if (type === 'smtp') {
             data.value = { 'smtp-secure': false, ...data.value };
@@ -141,12 +141,12 @@ export const saveSettings = (type: $TSFixMe, settings: $TSFixMe) => async (
 ) => {
     dispatch(requestingSettings());
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi(`globalConfig`, {
             name: type,
             value: settings,
         });
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data || { value: {} };
         dispatch(requestingSettingsSucceeded(data.value, type));
         return response;

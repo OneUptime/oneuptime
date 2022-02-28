@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -20,13 +20,13 @@ const user = {
     password,
 };
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Schedule API With SubProjects', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -40,9 +40,9 @@ describe('Schedule API With SubProjects', () => {
 
         // add sub-project
         await init.addSubProject(subProjectName, page);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, '#projectFilterToggle');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageClick(page, `#project-${subProjectName}`);
         // Create Component
         await init.addComponent(componentName, page);
@@ -69,13 +69,13 @@ describe('Schedule API With SubProjects', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should not display create schedule button for subproject `member` role.',
         async (done: $TSFixMe) => {
@@ -84,14 +84,14 @@ describe('Schedule API With SubProjects', () => {
                 page
             ); // This is for subproject
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectFilterToggle');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#project-${subProjectName}`);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#onCallDuty');
 
             const createButton = await init.page$(
@@ -107,16 +107,16 @@ describe('Schedule API With SubProjects', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should create a schedule in sub-project for sub-project `admin`',
         async (done: $TSFixMe) => {
             const scheduleName = utils.generateRandomString();
 
             await init.loginUser(user, page);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectFilterToggle');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#project-${subProjectName}`);
             await init.addScheduleToProject(scheduleName, subProjectName, page);
             await init.pageWaitForSelector(
@@ -145,16 +145,16 @@ describe('Schedule API With SubProjects', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should get list schedules in sub-projects and paginate schedules in sub-project',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectFilterToggle');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#project-${subProjectName}`);
             // add 10 more schedules to sub-project to test for pagination
             for (let i = 0; i < 10; i++) {
@@ -166,14 +166,14 @@ describe('Schedule API With SubProjects', () => {
                 );
             }
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             let countSchedules = scheduleRows.length;
 
@@ -186,10 +186,10 @@ describe('Schedule API With SubProjects', () => {
             });
 
             // await nextSelector.click();
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#btnNext-${subProjectName}`);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             countSchedules = scheduleRows.length;
             expect(countSchedules).toEqual(1);
@@ -199,11 +199,11 @@ describe('Schedule API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#btnPrev-${subProjectName}`);
             //await prevSelector.click();
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             countSchedules = scheduleRows.length;
             expect(countSchedules).toEqual(10);
@@ -213,38 +213,38 @@ describe('Schedule API With SubProjects', () => {
         init.timeout
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should add monitor to sub-project schedule',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectFilterToggle');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#project-${subProjectName}`);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'tr.scheduleListItem');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(
                 page,
                 `span[title="${subProjectMonitorName}"]`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(
                 page,
                 `span[title="${subProjectMonitorName}"]`
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#btnSaveMonitors');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnSaveMonitors');
 
             const monitorSelectValue = await init.page$Eval(
@@ -259,45 +259,45 @@ describe('Schedule API With SubProjects', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should delete sub-project schedule',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectFilterToggle');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#project-${subProjectName}`);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, 'tr.scheduleListItem');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#delete');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#delete');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#confirmDelete');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#confirmDelete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#onCallDuty');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             const countSchedules = scheduleRows.length;
 

@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'express' or its corresponding ... Remove this comment to see the full error message
+
 import express from 'express';
 const router = express.Router();
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;

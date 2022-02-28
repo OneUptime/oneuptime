@@ -2,17 +2,17 @@ export default {
     create: async function(data: $TSFixMe) {
         let incidentMessage = new IncidentMessageModel();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         incidentMessage.content = data.content;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         incidentMessage.incidentId = data.incidentId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         incidentMessage.createdById = data.createdById;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         incidentMessage.type = data.type;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
+        
         incidentMessage.incident_state = data.incident_state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'postOnStatusPage' does not exist on type... Remove this comment to see the full error message
+        
         incidentMessage.postOnStatusPage = data.post_statuspage;
 
         incidentMessage = await incidentMessage.save();
@@ -35,7 +35,7 @@ export default {
             populate,
         });
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'postOnStatusPage' does not exist on type... Remove this comment to see the full error message
+        
         if (incidentMessage && incidentMessage.postOnStatusPage) {
             // run in the background
             RealTimeService.addIncidentNote(incidentMessage);

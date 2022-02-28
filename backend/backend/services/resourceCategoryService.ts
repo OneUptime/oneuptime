@@ -8,16 +8,16 @@ export default {
             const error = new Error(
                 'A resource category with that name already exists.'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
         let resourceCategory = new ResourceCategoryModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         resourceCategory.projectId = data.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         resourceCategory.createdById = data.createdById;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         resourceCategory.name = data.name;
         resourceCategory = await resourceCategory.save();
         return resourceCategory;
@@ -134,7 +134,7 @@ export default {
             const error = new Error(
                 'A resource category with that name already exists.'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

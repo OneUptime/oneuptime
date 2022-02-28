@@ -16,7 +16,7 @@ async function handleFetchingDomains() {
         select: 'domains',
     });
 
-    // @ts-expect-error ts-migrate(2488) FIXME: Type '{}' must have a '[Symbol.iterator]()' method... Remove this comment to see the full error message
+    
     for (const statusPage of statusPages) {
         for (const domain of statusPage.domains) {
             if (
@@ -42,7 +42,7 @@ async function handleFetchingDomains() {
 export default async function() {
     try {
         const domains = await handleFetchingDomains();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'greenlock' does not exist on type 'Globa... Remove this comment to see the full error message
+        
         const greenlock = global.greenlock;
         if (greenlock) {
             for (const domain of domains) {

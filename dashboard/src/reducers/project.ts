@@ -190,7 +190,7 @@ export default function project(state = initialState, action: $TSFixMe) {
 
         case types.CREATE_PROJECT_SUCCESS:
             newProjects = Object.assign([], state.projects.projects);
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+            
             newProjects.push(action.payload);
             return Object.assign({}, state, {
                 newProject: {
@@ -229,10 +229,10 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.RESET_PROJECT_TOKEN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 project => project._id !== action.payload._id
             );
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+            
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
@@ -279,10 +279,10 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.RENAME_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 project => project._id !== action.payload._id
             );
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+            
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
@@ -344,7 +344,7 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.GET_PROJECT_BALANCE_SUCCESS:
             return Object.assign({}, state, {
                 currentProject: {
-                    // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                    
                     ...state.currentProject,
                     balance: action.payload.balance,
                 },
@@ -357,7 +357,7 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.DELETE_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 project => project._id !== action.payload
             );
             return Object.assign({}, state, {
@@ -405,7 +405,7 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.MARK_PROJECT_DELETE_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 project => project._id !== action.payload
             );
             return Object.assign({}, state, {
@@ -502,10 +502,10 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.CHANGE_PLAN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 project => project._id !== action.payload._id
             );
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any' is not assignable to parame... Remove this comment to see the full error message
+            
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
@@ -585,7 +585,7 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.CHANGE_PROJECT_ROLES:
             return Object.assign({}, state, {
                 currentProject: {
-                    // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                    
                     ...state.currentProject,
                     users: action.payload.find(
                         team => team.projectId === state.currentProject._id
@@ -601,7 +601,7 @@ export default function project(state = initialState, action: $TSFixMe) {
                     project: action.payload,
                 },
                 currentProject: {
-                    // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                    
                     ...state.currentProject,
                     alertEnable: action.payload.alertEnable,
                     alertOptions: action.payload.alertOptions,

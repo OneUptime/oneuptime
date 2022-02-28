@@ -33,25 +33,25 @@ export default {
     ) {
         const _this = this;
         const integrationModel = new IntegrationModel(data);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         integrationModel.projectId = projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         integrationModel.createdById = userId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         integrationModel.data = data;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'integrationType' does not exist on type ... Remove this comment to see the full error message
+        
         integrationModel.integrationType = integrationType;
         data.monitors =
             data.monitors &&
             data.monitors.map((monitor: $TSFixMe) => ({
                 monitorId: monitor,
             }));
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         integrationModel.monitorId = data.monitorId || null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         integrationModel.monitors = data.monitors || [];
         if (notificationOptions) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationOptions' does not exist on t... Remove this comment to see the full error message
+            
             integrationModel.notificationOptions = notificationOptions;
         }
 
@@ -121,7 +121,7 @@ export default {
         }
 
         if (!data._id) {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+            
             const integration = await _this.create(
                 data.projectId,
                 data.userId,
@@ -202,7 +202,7 @@ export default {
         if (monitorId) {
             query = { monitorId: monitorId };
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleted' does not exist on type '{}'.
+        
         query.deleted = false;
         const integrations = await IntegrationModel.updateMany(query, {
             $set: {

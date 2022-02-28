@@ -7,11 +7,11 @@ import ErrorService from '../utils/errorService';
 export default {
     ping: async (monitor: $TSFixMe) => {
         try {
-            // @ts-expect-error ts-migrate(7009) FIXME: 'new' expression, whose target lacks a construct s... Remove this comment to see the full error message
+            
             const newDate = new moment();
             const resDate = new Date();
             if (monitor && monitor.type) {
-                // @ts-expect-error ts-migrate(7009) FIXME: 'new' expression, whose target lacks a construct s... Remove this comment to see the full error message
+                
                 const d = new moment(monitor.lastPingTime);
 
                 if (newDate.diff(d, 'minutes') > 3) {

@@ -13,11 +13,11 @@ export default {
 
         if (existingComponentCount && existingComponentCount > 0) {
             const error = new Error('Component with that name already exists.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+        
         let project = await ProjectService.findOneBy({
             query: { _id: data.projectId },
             select: 'parentProjectId _id stripePlanId seats',
@@ -31,18 +31,18 @@ export default {
                 const error = new Error(
                     'Component with that name already exists.'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             project = await ProjectService.findOneBy({
                 query: { _id: project.parentProjectId },
                 select: '_id stripePlanId seats',
             });
         }
         let subProjectIds = [];
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+        
         const subProjects = await ProjectService.findBy({
             query: { parentProjectId: project._id },
             select: '_id',
@@ -56,7 +56,7 @@ export default {
         });
         let plan = Plans.getPlanById(project.stripePlanId);
         // null plan => enterprise plan
-        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ category: string; planId: string; type: st... Remove this comment to see the full error message
+        
         plan = plan && plan.category ? plan : { category: 'Enterprise' };
 
         let projectSeats = project.seats;
@@ -65,16 +65,16 @@ export default {
         }
         if (!plan && IS_SAAS_SERVICE) {
             const error = new Error('Invalid project plan.');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         } else {
             const unlimitedComponent = ['Scale', 'Enterprise'];
             const componentCount =
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                
                 plan.category === 'Startup'
                     ? 5
-                    : // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    : 
                     plan.category === 'Growth'
                     ? 10
                     : 0;
@@ -82,20 +82,20 @@ export default {
             if (
                 count < projectSeats * componentCount ||
                 !IS_SAAS_SERVICE ||
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                
                 unlimitedComponent.includes(plan.category)
             ) {
                 const component = new ComponentModel();
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+                
                 component.name = data.name;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+                
                 component.createdById = data.createdById;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'visibleOnStatusPage' does not exist on t... Remove this comment to see the full error message
+                
                 component.visibleOnStatusPage = data.visibleOnStatusPage;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+                
                 component.projectId = data.projectId;
                 if (data && data.name) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Document<a... Remove this comment to see the full error message
+                    
                     component.slug = getSlug(data.name);
                 }
                 const savedComponent = await component.save();
@@ -119,7 +119,7 @@ export default {
                 const error = new Error(
                     "You can't add any more components. Please add an extra seat to add more components."
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -280,14 +280,14 @@ export default {
 
         if (component) {
             let subProject = null;
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+            
             let project = await ProjectService.findOneBy({
                 query: { _id: component.projectId },
                 select: 'parentProjectId _id seats stripeSubscriptionId',
             });
             if (project.parentProjectId) {
                 subProject = project;
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { _id: any; }; select: ... Remove this comment to see the full error message
+                
                 project = await ProjectService.findOneBy({
                     query: { _id: subProject.parentProjectId },
                     select: '_id seats stripeSubscriptionId',
@@ -295,7 +295,7 @@ export default {
             }
 
             let subProjectIds = [];
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+            
             const subProjects = await ProjectService.findBy({
                 query: { parentProjectId: project._id },
                 select: '_id',
@@ -345,7 +345,7 @@ export default {
             for (const monitor of monitors) {
                 await MonitorService.deleteBy({ _id: monitor._id }, userId);
             }
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+            
             NotificationService.create(
                 component.projectId,
                 `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
@@ -427,7 +427,7 @@ export default {
     },
 
     addSeat: async function(query: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: any; select: string; }'... Remove this comment to see the full error message
+        
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -474,7 +474,7 @@ export default {
             const components = await Promise.all(
                 component.map(async (component: $TSFixMe) => {
                     const componentId = component._id;
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                    
                     component = await _this.updateOneBy(
                         { _id: componentId, deleted: true },
                         {
@@ -495,7 +495,7 @@ export default {
             component = component[0];
             if (component) {
                 const componentId = component._id;
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                
                 component = await _this.updateOneBy(
                     { _id: componentId, deleted: true },
                     {
@@ -536,7 +536,7 @@ import MonitorService from './monitorService';
 import TeamService from './teamService';
 // import moment from 'moment'
 // import _ from 'lodash'
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../config/server"' has no exported member... Remove this comment to see the full error message
+
 import { IS_SAAS_SERVICE } from '../config/server';
 import getSlug from '../utils/getSlug';
 import handleSelect from '../utils/select';

@@ -1,13 +1,13 @@
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'db' does not exist on type 'Global & typ... Remove this comment to see the full error message
+
 const lighthouseLogCollection = global.db.collection('lighthouselogs');
 import probeService from './probeService';
 import ErrorService from './errorService';
 import { ObjectId } from 'mongodb';
 import MonitorService from './monitorService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/api"' has no exported member 'po... Remove this comment to see the full error message
+
 import { postApi } from '../utils/api';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../utils/config"' has no exported member ... Remove this comment to see the full error message
+
 import { realtimeUrl } from '../utils/config';
 import ProjectService from './projectService';
 
@@ -30,14 +30,14 @@ export default {
                 createdAt: new Date(moment().format()),
             });
             const savedLog = await this.findOneBy({
-                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                
                 _id: ObjectId(result.insertedId),
             });
 
             await this.sendLighthouseLog(savedLog);
 
             if (data.probeId && data.monitorId) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'sendProbe' does not exist on type '{ cre... Remove this comment to see the full error message
+                
                 await probeService.sendProbe(data.probeId, data.monitorId);
             }
 
@@ -72,14 +72,14 @@ export default {
     async sendLighthouseLog(data: $TSFixMe) {
         try {
             const monitor = await MonitorService.findOneBy({
-                // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                
                 query: { _id: ObjectId(data.monitorId) },
             });
 
             if (monitor && monitor.projectId) {
                 const project = await ProjectService.findOneBy({
                     query: {
-                        // @ts-expect-error ts-migrate(2348) FIXME: Value of type 'typeof ObjectId' is not callable. D... Remove this comment to see the full error message
+                        
                         _id: ObjectId(
                             monitor.projectId._id || monitor.projectId
                         ),

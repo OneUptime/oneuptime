@@ -25,44 +25,44 @@ export default {
         }
 
         let globalConfig = new GlobalConfigModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         globalConfig.name = name;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+        
         globalConfig.value = value;
         globalConfig = await globalConfig.save();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+        
         if (globalConfig.name === 'twilio') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+            
             globalConfig.value[
                 'authentication-token'
             ] = await EncryptDecrypt.decrypt(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+                
                 globalConfig.value['authentication-token'],
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+                
                 globalConfig.value['iv']
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+            
             delete globalConfig.value['iv'];
         }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Document<a... Remove this comment to see the full error message
+            
             globalConfig.name === 'smtp' &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+            
             (!globalConfig.value.internalSmtp ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+                
                 (globalConfig.value.internalSmtp &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+                    
                     globalConfig.value.customSmtp))
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+            
             globalConfig.value['password'] = await EncryptDecrypt.decrypt(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+                
                 globalConfig.value['password'],
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+                
                 globalConfig.value['iv']
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Document<... Remove this comment to see the full error message
+            
             delete globalConfig.value['iv'];
         }
 

@@ -24,7 +24,7 @@ export const createGroup = (projectId: $TSFixMe, data: $TSFixMe) => async (
 
     try {
         const response = await postApi(`group/${projectId}`, data);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(addGroupSuccess(response.data));
         dispatch(getGroups());
         return response;
@@ -67,7 +67,7 @@ export const updateGroup = (
 
     try {
         const response = await putApi(`group/${projectId}/${groupId}`, data);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(updateGroupSuccess(response.data));
         return response;
     } catch (error) {
@@ -104,7 +104,7 @@ export const getGroups = () => async (dispatch: $TSFixMe) => {
     const projectId = User.getCurrentProjectId();
     try {
         const response = await getApi(`group/${projectId}/groups`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getGroupsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -144,7 +144,7 @@ export const getProjectGroups = (
         const response = await getApi(
             `group/${projectId}?skip=${skip}&limit=${limit}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getProjectGroupsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -180,9 +180,9 @@ export const deleteGroup = (projectId: $TSFixMe, groupId: $TSFixMe) => async (
     dispatch(deleteGroupRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await deleteApi(`group/${projectId}/${groupId}`);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(deleteGroupSuccess(response.data));
         dispatch(getGroups());
         return response;

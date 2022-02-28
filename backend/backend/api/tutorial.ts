@@ -9,7 +9,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.get('/', getUser, async function(req, res) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         const user = await UserService.findOneBy({
             query: { _id: userId },
@@ -28,7 +28,7 @@ router.get('/', getUser, async function(req, res) {
 
 router.put('/', getUser, async function(req, res) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         let user = await UserService.findOneBy({
             query: { _id: userId },

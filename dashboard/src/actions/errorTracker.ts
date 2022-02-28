@@ -19,7 +19,7 @@ export function createErrorTracker(
 
         promise.then(
             function(errorTracker) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createErrorTrackerSuccess(errorTracker.data));
             },
             function(error) {
@@ -71,13 +71,13 @@ export function resetCreateErrorTracker() {
 export function fetchErrorTrackersByProject(projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(`component/${projectId}/issues`);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+        
         dispatch(fetchErrorTrackersRequest());
 
         promise.then(
             function(errorTrackers) {
                 dispatch(
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     fetchErrorTrackersSuccess(errorTrackers.data.errorTrackers)
                 );
             },
@@ -115,7 +115,7 @@ export function fetchErrorTrackers(
 
         promise.then(
             function(errorTrackers) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchErrorTrackersSuccess(errorTrackers.data));
             },
             function(error) {
@@ -187,13 +187,13 @@ export function fetchErrorTrackerIssues(
                     fetchErrorTrackerIssuesSuccess({
                         errorTrackerId,
                         errorTrackerIssues:
-                            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                            
                             response.data.data.errorTrackerIssues,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         dateRange: response.data.data.dateRange,
                         skip,
                         limit,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         count: response.data.data.count,
                     })
                 );
@@ -251,7 +251,7 @@ export function fetchErrorEvent(
     errorEventId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = postApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/error-events/${errorEventId}`
         );
@@ -263,13 +263,13 @@ export function fetchErrorEvent(
                     fetchErrorEventSuccess({
                         errorTrackerId,
                         errorEventId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         errorEvent: response.data.errorEvent,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         previous: response.data.previous,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         next: response.data.next,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         totalEvents: response.data.totalEvents,
                     })
                 );
@@ -338,7 +338,7 @@ export function deleteErrorTracker(
     errorTrackerId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}`
         );
@@ -346,7 +346,7 @@ export function deleteErrorTracker(
 
         promise.then(
             function(errorTracker) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteErrorTrackerSuccess(errorTracker.data._id));
             },
             function(error) {
@@ -416,7 +416,7 @@ export function editErrorTracker(
 
         promise.then(
             function(errorTracker) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editErrorTrackerSuccess(errorTracker.data));
             },
             function(error) {
@@ -465,7 +465,7 @@ export function resetErrorTrackerKey(
     errorTrackerId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = postApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/reset-key`
         );
@@ -473,7 +473,7 @@ export function resetErrorTrackerKey(
 
         promise.then(
             function(errorTracker) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(resetErrorTrackerKeySuccess(errorTracker.data));
             },
             function(error) {
@@ -540,7 +540,7 @@ export function ignoreErrorEvent(
                 dispatch(
                     ignoreErrorEventSuccess({
                         errorTrackerId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         ignoredIssues: response.data.issues,
                     })
                 );
@@ -557,7 +557,7 @@ export function ignoreErrorEvent(
                     error = 'Network Error';
                 }
                 dispatch(
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+                    
                     ignoreErrorEventFailure(errors(error, errorTrackerId))
                 );
             }
@@ -616,7 +616,7 @@ export function unresolveErrorEvent(
                 dispatch(
                     unresolveErrorEventSuccess({
                         errorTrackerId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         unresolvedIssues: response.data.issues,
                     })
                 );
@@ -633,7 +633,7 @@ export function unresolveErrorEvent(
                     error = 'Network Error';
                 }
                 dispatch(
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+                    
                     unresolveErrorEventFailure(errors(error, errorTrackerId))
                 );
             }
@@ -692,7 +692,7 @@ export function resolveErrorEvent(
                 dispatch(
                     resolveErrorEventSuccess({
                         errorTrackerId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         resolvedIssues: response.data.issues,
                     })
                 );
@@ -709,7 +709,7 @@ export function resolveErrorEvent(
                     error = 'Network Error';
                 }
                 dispatch(
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+                    
                     resolveErrorEventFailure(errors(error, errorTrackerId))
                 );
             }
@@ -776,7 +776,7 @@ export function updateErrorEventMember(
                     updateErrorEventMemberSuccess({
                         errorTrackerId,
                         issueId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         members: response.data.members,
                     })
                 );
@@ -842,7 +842,7 @@ export function deleteErrorTrackerIssue(
     issueId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issue/${issueId}`
         );
@@ -850,7 +850,7 @@ export function deleteErrorTrackerIssue(
 
         promise.then(
             function(errorTracker) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteErrorTrackerIssueSuccess(errorTracker.data));
             },
             function(error) {

@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-// @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
 const validDate = new Date(moment(new Date()).add(10, 'days'))
     .toISOString()
     .split('T')[0];

@@ -2,25 +2,25 @@ export default {
     create: async function(data: $TSFixMe) {
         let incidentTimeline = new IncidentTimelineModel();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentId' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         incidentTimeline.incidentId = data.incidentId;
         if (data.createdById) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type 'Doc... Remove this comment to see the full error message
+            
             incidentTimeline.createdById = data.createdById;
         }
         if (data.probeId) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeId' does not exist on type 'Documen... Remove this comment to see the full error message
+            
             incidentTimeline.probeId = data.probeId;
         }
         if (data.incident_state) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
+            
             incidentTimeline.incident_state = data.incident_state;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdByZapier' does not exist on type ... Remove this comment to see the full error message
+        
         incidentTimeline.createdByZapier = data.createdByZapier || false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdByApi' does not exist on type 'Do... Remove this comment to see the full error message
+        
         incidentTimeline.createdByApi = data.createdByApi || false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Document... Remove this comment to see the full error message
+        
         incidentTimeline.status = data.status;
 
         incidentTimeline = await incidentTimeline.save();
@@ -210,7 +210,7 @@ export default {
             })
         );
 
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any[]' is not assignable to type '[unknown, ... Remove this comment to see the full error message
+        
         timelines = flattenArray(timelines);
         return timelines;
     },

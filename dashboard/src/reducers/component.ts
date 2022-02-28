@@ -89,7 +89,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case CREATE_COMPONENT_SUCCESS:
             isExistingComponent = state.componentList.components.find(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                
                 component => component._id === action.payload.projectId._id
             );
             return Object.assign({}, state, {
@@ -112,7 +112,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                         ? state.componentList.components.length > 0
                             ? state.componentList.components.map(
                                   subProjectComponents => {
-                                      // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                      
                                       return subProjectComponents._id ===
                                           action.payload.projectId._id
                                           ? {
@@ -121,17 +121,17 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                                                         ._id,
                                                 components: [
                                                     action.payload,
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'neve... Remove this comment to see the full error message
+                                                    
                                                     ...subProjectComponents.components,
                                                 ],
                                                 count:
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                                                    
                                                     subProjectComponents.count +
                                                     1,
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'never'.
+                                                
                                                 skip: subProjectComponents.skip,
                                                 limit:
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'never'.
+                                                    
                                                     subProjectComponents.limit,
                                             }
                                           : subProjectComponents;
@@ -205,9 +205,9 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
         case FETCH_PAGINATED_COMPONENTS_SUCCESS: {
             const updatedComponents = state.componentList.components.map(
                 componentObj => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     if (componentObj._id === action.payload._id) {
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'any' is not assignable to type 'never'.
+                        
                         componentObj = action.payload;
                     }
                     return componentObj;
@@ -285,9 +285,9 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     components: state.componentList.components.map(project => {
                         const subProject = Object.assign({}, project);
                         const subProjectComponents =
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'neve... Remove this comment to see the full error message
+                            
                             subProject.components &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'neve... Remove this comment to see the full error message
+                            
                             subProject.components.slice();
 
                         const newComponent = Object.assign({}, action.payload);
@@ -300,7 +300,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                             );
                         const isSubProjectComponent = componentIndex > -1;
 
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         if (subProject._id === newComponent.projectId._id) {
                             if (isSubProjectComponent) {
                                 const oldComponent = Object.assign(
@@ -324,18 +324,18 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                                 newComponent.count = 0;
 
                                 subProjectComponents.unshift(newComponent);
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                                
                                 subProject.count += 1;
                             }
                         } else {
                             if (isSubProjectComponent) {
                                 subProjectComponents.splice(componentIndex, 1);
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                                
                                 subProject.count -= 1;
                             }
                         }
 
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'neve... Remove this comment to see the full error message
+                        
                         subProject.components = subProjectComponents;
                         return subProject;
                     }),
@@ -383,7 +383,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     components: state.componentList.components.map(
                         component => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'neve... Remove this comment to see the full error message
+                            
                             component.components = component.components.map(
                                 (component: $TSFixMe, i: $TSFixMe) => {
                                     if (
@@ -420,7 +420,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     components: state.componentList.components.map(
                         subProjectComponent => {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'neve... Remove this comment to see the full error message
+                            
                             subProjectComponent.components = subProjectComponent.components.filter(
                                 ({ _id }: $TSFixMe) => _id !== action.payload
                             );
@@ -456,7 +456,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
         case DELETE_PROJECT_COMPONENTS:
             components = Object.assign([], state.componentList.components);
             components = components.filter(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'never... Remove this comment to see the full error message
+                
                 component => action.payload !== component.projectId
             );
 
@@ -526,7 +526,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     action.payload.componentId
                 ]
                     ? {
-                          // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                          
                           ...state.componentResourceList[
                               action.payload.componentId
                           ],
@@ -555,7 +555,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     action.payload.componentId
                 ]
                     ? {
-                          // @ts-expect-error ts-migrate(2698) FIXME: Spread types may only be created from object types... Remove this comment to see the full error message
+                          
                           ...state.componentResourceList[
                               action.payload.componentId
                           ],

@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./api"' has no exported member 'postApi'.... Remove this comment to see the full error message
+
 import { postApi } from './api';
 const SLACK_URL = process.env.SLACK_BILLING_WEBHOOK;
 

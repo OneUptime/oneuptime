@@ -1,9 +1,9 @@
 import OneUptimeListener from './listener';
 import Util from './util';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
-// @ts-expect-error ts-migrate(2732) FIXME: Cannot find module '../package.json'. Consider usi... Remove this comment to see the full error message
+
 import { name, version } from '../package.json';
 
 class ErrorTracker {
@@ -76,7 +76,7 @@ class ErrorTracker {
                     // set max timeline properly after checking conditions
                     if (
                         key === 'maxTimeline' &&
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         (value > this.MAX_ITEMS_ALLOWED_IN_STACK || value < 1)
                     ) {
                         this.options[key] = this.MAX_ITEMS_ALLOWED_IN_STACK;
@@ -157,9 +157,9 @@ class ErrorTracker {
             const errorEvent = { message, file, line, col, error };
 
             const string = errorEvent.message
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLowerCase' does not exist on type 'str... Remove this comment to see the full error message
+                ? 
                   errorEvent.message.toLowerCase()
-                : // @ts-expect-error ts-migrate(2339) FIXME: Property 'toLowerCase' does not exist on type '{ m... Remove this comment to see the full error message
+                : 
                   errorEvent.toLowerCase();
             const substring = 'script error';
             if (string.indexOf(substring) > -1) {
@@ -192,7 +192,7 @@ class ErrorTracker {
             })
             .on('unhandledRejection', err => {
                 // display this for the user
-                // @ts-expect-error ts-migrate(2533) FIXME: Object is possibly 'null' or 'undefined'.
+                
                 // eslint-disable-next-line no-console
                 console.log(`UnhandledPromiseRejectionWarning: ${err.stack}`);
                 // any unhandled promise error

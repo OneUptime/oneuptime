@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user';
@@ -7,9 +7,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 import GlobalConfig from './utils/globalConfig';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createEnterpriseUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
@@ -19,11 +19,11 @@ let projectId: $TSFixMe,
     userRole: $TSFixMe,
     token: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Enterprise User API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -49,7 +49,7 @@ describe('Enterprise User API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -65,12 +65,12 @@ describe('Enterprise User API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should sign up initial user as `master-admin`', function() {
         expect(userRole).to.equal('master-admin');
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should confirm that `master-admin` exists', function(done: $TSFixMe) {
         request
             .get('/user/masterAdminExists')
@@ -83,7 +83,7 @@ describe('Enterprise User API', function() {
     });
 
     // 'post /user/signup'
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should register `user` without stripeToken, stripePlanId', function(done: $TSFixMe) {
         createEnterpriseUser(request, data.newUser, function(
             err: $TSFixMe,
@@ -100,7 +100,7 @@ describe('Enterprise User API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should login with valid credentials', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -118,7 +118,7 @@ describe('Enterprise User API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should login with valid credentials, and return sent redirect url', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -138,7 +138,7 @@ describe('Enterprise User API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get list of users without their hashed passwords', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -159,7 +159,7 @@ describe('Enterprise User API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should turn off 2fa for a user', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -195,7 +195,7 @@ describe('Enterprise User API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not turn off 2fa for a user if loged in user is not admin', function(done: $TSFixMe) {
         request
             .post('/user/login')

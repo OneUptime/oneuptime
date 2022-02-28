@@ -14,14 +14,14 @@ export default (select: $TSFixMe, query: $TSFixMe) => {
             const error = new Error(
                 'Select should be a string containing column to show or hide'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
 
         if (!select || !select.trim()) {
             const error = new Error('Please specify fields to select');
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -32,7 +32,7 @@ export default (select: $TSFixMe, query: $TSFixMe) => {
             const error = new Error(
                 'Negated columns are not allowed, only select the fields you need'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }

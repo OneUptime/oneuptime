@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import { isNumber } from 'lodash';
 
 const format = (number: $TSFixMe) => {
@@ -21,7 +21,7 @@ const format = (number: $TSFixMe) => {
 
         let val = (number / currentFormat.value).toFixed(2);
         const remainder = number % currentFormat.value;
-        // @ts-expect-error ts-migrate(2365) FIXME: Operator '<' cannot be applied to types 'string' a... Remove this comment to see the full error message
+        
         const isValueLessThanOne = val < 1;
         let formattedRemainder = '';
 
@@ -44,7 +44,7 @@ const format = (number: $TSFixMe) => {
                 }
             }
             // parse value to integer to get whole number
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'number' is not assignable to type 'string'.
+            
             val = parseInt(number / currentFormat.value);
 
             // prepare the final value with the whole number, remainder and indicator

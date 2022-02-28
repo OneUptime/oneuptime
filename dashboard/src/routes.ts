@@ -798,12 +798,12 @@ export const allRoutes = groups
                 }
                 return newSubRoutes;
             })
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(acc: never[] | undefined, curr:... Remove this comment to see the full error message
+            
             .reduce(joinFn);
-        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+        
         return newRoutes.concat(subRoutes);
     })
-    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '(acc: never[] | undefined, curr:... Remove this comment to see the full error message
+    
     .reduce(joinFn);
 
 export const getGroups = () => groups;

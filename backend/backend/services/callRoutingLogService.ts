@@ -26,15 +26,15 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const callRoutingLogModel = new CallRoutingLogModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callRoutingId' does not exist on type 'D... Remove this comment to see the full error message
+        
         callRoutingLogModel.callRoutingId = data.callRoutingId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'calledFrom' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         callRoutingLogModel.calledFrom = data.calledFrom;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'calledTo' does not exist on type 'Docume... Remove this comment to see the full error message
+        
         callRoutingLogModel.calledTo = data.calledTo;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callSid' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         callRoutingLogModel.callSid = data.callSid;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'dialTo' does not exist on type 'Document... Remove this comment to see the full error message
+        
         callRoutingLogModel.dialTo = data.dialTo;
 
         const logs = await callRoutingLogModel.save();

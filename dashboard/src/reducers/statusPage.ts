@@ -553,7 +553,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case CREATE_EXTERNAL_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'cexternalStatusPages' does not exist on ... Remove this comment to see the full error message
+                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -585,7 +585,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case UPDATE_EXTERNAL_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'cexternalStatusPages' does not exist on ... Remove this comment to see the full error message
+                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -617,7 +617,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case FETCH_EXTERNAL_STATUSPAGES_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'cexternalStatusPages' does not exist on ... Remove this comment to see the full error message
+                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -649,7 +649,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case DELETE_EXTERNAL_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    // @ts-expect-error ts-migrate(2551) FIXME: Property 'cexternalStatusPages' does not exist on ... Remove this comment to see the full error message
+                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -706,9 +706,9 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case CREATE_STATUSPAGE_SUCCESS:
             isExistingStatusPage = state.subProjectStatusPages.find(
                 statusPage =>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     statusPage._id === action.payload.projectId ||
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                    
                     statusPage._id === action.payload.projectId._id
             );
             return Object.assign({}, state, {
@@ -721,10 +721,10 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                 subProjectStatusPages: isExistingStatusPage
                     ? state.subProjectStatusPages.length > 0
                         ? state.subProjectStatusPages.map(statusPage => {
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                              
                               return statusPage._id ===
                                   action.payload.projectId ||
-                                  // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                                  
                                   statusPage._id ===
                                       action.payload.projectId._id
                                   ? {
@@ -733,7 +733,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                                             : action.payload.projectId,
                                         statusPages: [
                                             action.payload,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPages' does not exist on type 'nev... Remove this comment to see the full error message
+                                            
                                             ...statusPage.statusPages.filter(
                                                 (
                                                     status: $TSFixMe,
@@ -741,11 +741,11 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                                                 ) => index < 9
                                             ),
                                         ],
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'never'.
+                                        
                                         count: statusPage.count + 1,
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'never'.
+                                        
                                         skip: statusPage.skip,
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'never'.
+                                        
                                         limit: statusPage.limit,
                                     }
                                   : statusPage;
@@ -761,7 +761,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                                   limit: 0,
                               },
                           ]
-                    : // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+                    : 
                       state.subProjectStatusPages.concat([
                           {
                               _id: action.payload.projectId._id
@@ -960,7 +960,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
 
         case VERIFY_DOMAIN_SUCCESS: {
             const updateDomains = JSON.parse(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type '{}'.
+                
                 JSON.stringify(state.status.domains)
             ); // deep clone to avoid mutation of state
             updateDomains.forEach(({ domainVerificationToken }: $TSFixMe) => {
@@ -1054,11 +1054,11 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
             });
 
         case 'DELETE_MONITOR_BY_SOCKET': {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+            
             if (state.status._id) {
                 const status = {
                     ...state.status,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+                    
                     monitors: state.status.monitors.filter(
                         (monitorData: $TSFixMe) =>
                             String(monitorData.monitor) !==
@@ -1360,7 +1360,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
 
         case FETCH_STATUSPAGE_RESET:
             return Object.assign({}, state, {
-                // @ts-expect-error ts-migrate(2551) FIXME: Property 'statusPage' does not exist on type '{ ad... Remove this comment to see the full error message
+                
                 status: INITIAL_STATE.statusPage,
             });
 
@@ -1519,9 +1519,9 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
             return Object.assign({}, state, {
                 subProjectStatusPages: state.subProjectStatusPages.map(
                     statusPage => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                        
                         return statusPage._id === action.payload.projectId ||
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type 'never'.
+                            
                             statusPage._id === action.payload.projectId._id
                             ? {
                                   _id: action.payload.projectId._id
@@ -1547,7 +1547,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
             });
 
         case DELETE_PROJECT_STATUSPAGES:
-            // @ts-expect-error ts-migrate(2551) FIXME: Property 'statusPage' does not exist on type '{ ad... Remove this comment to see the full error message
+            
             statusPage = Object.assign([], state.statusPage);
             statusPage = statusPage.filter(
                 (status: $TSFixMe) => status.projectId !== action.payload
@@ -1568,7 +1568,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                 ),
                 subProjectStatusPages: state.subProjectStatusPages.map(
                     subProjectStatusPage => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPages' does not exist on type 'nev... Remove this comment to see the full error message
+                        
                         subProjectStatusPage.statusPages = subProjectStatusPage.statusPages.filter(
                             ({ _id }: $TSFixMe) => _id !== action.payload._id
                         );

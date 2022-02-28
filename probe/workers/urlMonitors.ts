@@ -15,7 +15,7 @@ export default {
                     let retry = true;
                     let retryCount = 0;
                     while (retry || retryCount > 2) {
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 1.
+                        
                         const { res, resp, rawResp } = await pingfetch(
                             monitor.data.url
                         );

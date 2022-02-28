@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
+
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user';
@@ -7,9 +7,9 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
+
 const request = chai.request.agent(app);
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
+
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
@@ -19,11 +19,11 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import GlobalConfig from './utils/globalConfig';
 let projectId: $TSFixMe, userId: $TSFixMe, token: $TSFixMe;
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Global Config API', function() {
     this.timeout(20000);
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
+    
     before(function(done: $TSFixMe) {
         this.timeout(100000);
         GlobalConfig.initTestConfig().then(function() {
@@ -64,7 +64,7 @@ describe('Global Config API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
+    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -79,7 +79,7 @@ describe('Global Config API', function() {
         });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create global config when name and value are valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const globalConfig = {
@@ -98,7 +98,7 @@ describe('Global Config API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should create multiple global configs when details are valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const globalConfigs = [
@@ -132,7 +132,7 @@ describe('Global Config API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should not create global config when name and value are not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const globalConfig = { name: null };
@@ -146,7 +146,7 @@ describe('Global Config API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get multiple global configs when names are provided', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const globalConfigs = ['TestName', 'Other TestName'];
@@ -169,7 +169,7 @@ describe('Global Config API', function() {
             });
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should get global config by name', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -181,7 +181,7 @@ describe('Global Config API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should retrieve global config for audit Log status', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -194,7 +194,7 @@ describe('Global Config API', function() {
                 done();
             });
     });
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
+    
     it('should toggle global config for audit Log status', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

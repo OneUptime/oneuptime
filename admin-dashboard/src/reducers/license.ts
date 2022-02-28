@@ -39,7 +39,7 @@ export default (state = initialState, action: $TSFixMe) => {
             const data = {};
             for (const config of action.payload.data) {
                 const { name, value } = config;
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 data[name] = value;
             }
             return Object.assign({}, state, {
@@ -48,11 +48,11 @@ export default (state = initialState, action: $TSFixMe) => {
                     requesting: false,
                     success: true,
                     data: {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'licenseKey' does not exist on type '{}'.
+                        
                         license: data.licenseKey,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'licenseEmail' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         email: data.licenseEmail,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'licenseToken' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         token: data.licenseToken,
                     },
                 },
@@ -92,7 +92,7 @@ export default (state = initialState, action: $TSFixMe) => {
             const data = {};
             for (const config of action.payload.data) {
                 const { name, value } = config;
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                
                 data[name] = value;
             }
             return Object.assign({}, state, {
@@ -101,11 +101,11 @@ export default (state = initialState, action: $TSFixMe) => {
                     requesting: false,
                     success: true,
                     data: {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'licenseKey' does not exist on type '{}'.
+                        
                         license: data.licenseKey,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'licenseEmail' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         email: data.licenseEmail,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'licenseToken' does not exist on type '{}... Remove this comment to see the full error message
+                        
                         token: data.licenseToken,
                     },
                 },

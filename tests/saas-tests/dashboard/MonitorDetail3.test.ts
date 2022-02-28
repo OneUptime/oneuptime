@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +15,13 @@ const newWebHookName = utils.generateRandomString();
 const webhookEndpoint = utils.generateRandomWebsite();
 const priorityName = utils.generateRandomString();
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -41,13 +41,13 @@ describe('Monitor Detail API', () => {
         await init.addIncidentPriority(priorityName, page);
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should navigate to monitor details and create a slack webhook',
         async (done: $TSFixMe) => {
@@ -58,26 +58,26 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.integrations-tab');
 
             const addButtonSelector = '#addSlackButton';
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, addButtonSelector);
             await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                 e.click()
             );
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#endpoint');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#webHookName', webHookName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#endpoint', webhookEndpoint);
 
             await page.evaluate(() => {
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                
                 document.querySelector('input[name=incidentCreated]').click();
             });
 
@@ -90,7 +90,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#createSlack', {
                 hidden: true,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
             const createdWebhookName = await init.page$Eval(
@@ -104,7 +104,7 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should navigate to monitor details and update a Slack webhook',
         async (done: $TSFixMe) => {
@@ -115,12 +115,12 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.integrations-tab');
 
             const existingWebhookSelector = `#name_slack_${webHookName}`;
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
             const existingWebhookName = await init.page$Eval(
@@ -140,10 +140,10 @@ describe('Monitor Detail API', () => {
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
             await init.pageClick(page, '#webHookName', { clickCount: 3 });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#webHookName', newWebHookName);
             await init.pageClick(page, '#endpoint', { clickCount: 3 });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
             await init.page$Eval(page, '#slackUpdate', (e: $TSFixMe) =>
                 e.click()
@@ -151,7 +151,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#slackUpdate', {
                 hidden: true,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(
                 page,
                 `#name_slack_${newWebHookName}`
@@ -167,7 +167,7 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should navigate to monitor details and delete a slack webhook',
         async (done: $TSFixMe) => {
@@ -178,13 +178,13 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.integrations-tab');
             const createdWebhookSelector = '.slack-list';
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const webhookRows = await init.page$$(page, createdWebhookSelector);
             const countWebhooks = webhookRows.length;
 
@@ -197,7 +197,7 @@ describe('Monitor Detail API', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#slackDelete');
             await init.page$Eval(page, '#slackDelete', (e: $TSFixMe) =>
                 e.click()
@@ -206,7 +206,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let newWebhookRows = await init.pageWaitForSelector(
                 page,
                 '#No_SlackTeam'
@@ -221,7 +221,7 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should navigate to monitor details and get list of slack webhooks and paginate them',
         async (done: $TSFixMe) => {
@@ -232,36 +232,36 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.integrations-tab');
             const addButtonSelector = '#addSlackButton';
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i = 0; i < 11; i++) {
                 await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                     e.click()
                 );
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                
                 await init.pageWaitForSelector(page, '#endpoint');
 
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+                
                 await init.pageType(
                     page,
                     '#webHookName',
                     utils.generateRandomString()
                 );
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+                
                 await init.pageType(
                     page,
                     '#endpoint',
                     utils.generateRandomWebsite()
                 );
                 await page.evaluate(() => {
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    
                     document
                         .querySelector('input[name=incidentCreated]')
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
+                        
                         .click();
                 });
                 await init.page$Eval(page, '#createSlack', (e: $TSFixMe) =>
@@ -277,42 +277,42 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '.integrations-tab');
 
             const createdWebhookSelector = '.slack-list';
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let webhookRows = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const nextSelector = await init.page$(page, '#btnNextSlack');
 
             await nextSelector.click();
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const prevSelector = await init.page$(page, '#btnPrevSlack');
 
             await prevSelector.click();
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 

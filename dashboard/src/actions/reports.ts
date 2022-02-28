@@ -37,7 +37,7 @@ export const getActiveMembers = (
         );
         dispatch(getActiveMembersRequest(promise));
         const members = await promise;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getActiveMembersSuccess(members.data));
     } catch (error) {
         let newerror = error;
@@ -90,7 +90,7 @@ export const getActiveMonitors = (
         );
         dispatch(getActiveMonitorsRequest(promise));
         const monitors = await promise;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getActiveMonitorsSuccess(monitors.data));
     } catch (error) {
         let newerror = error;
@@ -141,7 +141,7 @@ export const getIncidents = (
         );
         dispatch(getIncidentsRequest(promise));
         const reports = await promise;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getIncidentsSuccess(reports.data));
     } catch (error) {
         let newerror = error;
@@ -192,7 +192,7 @@ export const getResolveTime = (
         );
         dispatch(getResolveTimeRequest(promise));
         const reports = await promise;
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(getResolveTimeSuccess(reports.data));
     } catch (error) {
         let newerror = error;

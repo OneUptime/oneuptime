@@ -7,7 +7,7 @@
  */
 
 import axios from 'axios';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./config"' has no exported member 'API_UR... Remove this comment to see the full error message
+
 import { API_URL } from './config';
 import logger from './logger';
 
@@ -53,7 +53,7 @@ const get = (
     success: $TSFixMe,
     error = defaultErrorHandler
 ) => {
-    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    
     headers['apiKey'] = key;
 
     return axios({
@@ -81,7 +81,7 @@ const post = (
     success: $TSFixMe,
     error = defaultErrorHandler
 ) => {
-    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    
     headers['apiKey'] = key;
 
     return axios({

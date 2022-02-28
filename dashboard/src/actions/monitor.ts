@@ -1,7 +1,7 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/monitor';
 import errors from '../errors';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { change, autofill } from 'redux-form';
 //import { PricingPlan } from '../config';
 //import { User } from '../config';
@@ -18,7 +18,7 @@ export function fetchMonitors(projectId: $TSFixMe, skip = 0, limit = 0) {
 
         promise.then(
             function(monitors) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchMonitorsSuccess(monitors.data));
             },
             function(error) {
@@ -86,7 +86,7 @@ export function fetchPaginatedMonitors({
 
         promise.then(
             function(monitors) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchPaginatedMonitorsSuccess(monitors.data));
             },
             function(error) {
@@ -138,10 +138,10 @@ export function createMonitor(projectId: $TSFixMe, values: $TSFixMe) {
         const promise = postApi(`monitor/${projectId}`, values);
         promise.then(
             function(monitor) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createMonitorSuccess(monitor.data));
                 dispatch(resetFile());
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 return monitor.data;
             },
             function(error) {
@@ -174,7 +174,7 @@ export function uploadIdentityFile(projectId: $TSFixMe, file: $TSFixMe) {
             dispatch(uploadIdentityFileRequest());
             promise.then(
                 function(response) {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     const data = response.data;
                     dispatch(logFile(data.identityFile));
                     return data;
@@ -258,7 +258,7 @@ export function uploadConfigurationFile(projectId: $TSFixMe, file: $TSFixMe) {
             dispatch(uploadConfigurationFileRequest());
             promise.then(
                 function(response) {
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     const data = response.data;
                     dispatch(logConfigFile(data.configurationFile));
                     return data;
@@ -338,7 +338,7 @@ export function editMonitor(projectId: $TSFixMe, values: $TSFixMe) {
         }
         promise.then(
             function(monitor) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editMonitorSuccess(monitor.data));
             },
             function(error) {
@@ -363,7 +363,7 @@ export function editMonitor(projectId: $TSFixMe, values: $TSFixMe) {
 
 export function editMonitorSuccess(newMonitor: $TSFixMe) {
     if (newMonitor.lighthouseScanStatus === 'scanning') {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 4.
+        
         fetchLighthouseLogs(newMonitor.projectId._id, newMonitor._id, 0, 5);
     }
     return {
@@ -413,7 +413,7 @@ export function addSiteUrl(
 
         promise.then(
             function(monitor) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editMonitorSuccess(monitor.data));
             },
             function(error) {
@@ -449,7 +449,7 @@ export function deleteSiteUrl(
 
         promise.then(
             function(monitor) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(editMonitorSuccess(monitor.data));
             },
             function(error) {
@@ -476,13 +476,13 @@ export function deleteSiteUrl(
 //props -> {name: '', type, data -> { data.url}}
 export function deleteMonitor(monitorId: $TSFixMe, projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const promise = deleteApi(`monitor/${projectId}/${monitorId}`);
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(
             function(monitor) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(deleteMonitorSuccess(monitor.data._id));
             },
             function(error) {
@@ -549,9 +549,9 @@ export function disableMonitor(monitorId: $TSFixMe, projectId: $TSFixMe) {
             function(monitor) {
                 dispatch(
                     disableMonitorSuccess({
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         monitorId: monitor.data._id,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         disable: monitor.data.disabled,
                     })
                 );
@@ -616,9 +616,9 @@ export const changeMonitorComponent = (
 
             dispatch(
                 changeMonitorComponentSuccess({
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     monitorId: monitor.data._id,
-                    // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                    
                     newComponentId: monitor.data.componentId,
                 })
             );
@@ -691,11 +691,11 @@ export function fetchMonitorsIncidents(
                     fetchMonitorsIncidentsSuccess({
                         projectId,
                         monitorId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         incidents: monitors.data,
                         skip,
                         limit,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         count: monitors.data.count,
                     })
                 );
@@ -759,11 +759,11 @@ export function fetchMonitorsSubscribers(
                     fetchMonitorsSubscribersSuccess({
                         projectId,
                         monitorId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         subscribers: subscribers.data,
                         skip: skip,
                         limit: limit,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         count: subscribers.data.count,
                     })
                 );
@@ -829,7 +829,7 @@ export function fetchMonitorLogs(
                     fetchMonitorLogsSuccess({
                         projectId,
                         monitorId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         logs: monitorLogs.data,
                     })
                 );
@@ -902,7 +902,7 @@ export function fetchMonitorStatuses(
                     fetchMonitorStatusesSuccess({
                         projectId,
                         monitorId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         statuses: monitorStatuses.data,
                     })
                 );
@@ -1054,11 +1054,11 @@ export function getMonitorLogs(
                 dispatch(
                     getMonitorLogsSuccess({
                         monitorId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         logs: monitors.data.data,
                         skip,
                         limit,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         count: monitors.data.count,
                     })
                 );
@@ -1126,11 +1126,11 @@ export function fetchLighthouseLogs(
                     fetchLighthouseLogsSuccess({
                         projectId,
                         monitorId,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         logs: lighthouseLogs.data,
                         skip,
                         limit,
-                        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                        
                         count: lighthouseLogs.data.count,
                     })
                 );
@@ -1184,7 +1184,7 @@ export function fetchMonitorIssue(projectId: $TSFixMe, issueId: $TSFixMe) {
 
         promise.then(
             function(monitorIssue) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
             },
             function(error) {
@@ -1233,9 +1233,9 @@ export function addSeat(projectId: $TSFixMe) {
 
         promise.then(
             function(monitor) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(createMonitorFailure(monitor.data));
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 dispatch(addSeatSuccess(monitor.data));
             },
             function(error) {
@@ -1343,11 +1343,11 @@ export const closeBreachedMonitorSla = (
     try {
         dispatch(closeBreachedMonitorSlaRequest());
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await postApi(
             `monitor/${projectId}/closeSla/${monitorId}`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(closeBreachedMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -1385,7 +1385,7 @@ export const fetchBreachedMonitorSla = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `monitor/${projectId}/monitorSlaBreaches`
         );
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         dispatch(fetchBreachedMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =

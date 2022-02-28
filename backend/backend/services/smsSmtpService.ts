@@ -3,29 +3,29 @@ export default {
         const iv = Crypto.randomBytes(16);
         data.authToken = await EncryptDecrypt.encrypt(data.authToken, iv);
         const twilioModel = new TwilioModel();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         twilioModel.projectId = data.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountSid' does not exist on type 'Docu... Remove this comment to see the full error message
+        
         twilioModel.accountSid = data.accountSid;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         twilioModel.authToken = data.authToken;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type 'Doc... Remove this comment to see the full error message
+        
         twilioModel.phoneNumber = data.phoneNumber;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
+        
         twilioModel.iv = iv;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enabled' does not exist on type 'Documen... Remove this comment to see the full error message
+        
         twilioModel.enabled = true;
         const twilioSettings = await twilioModel.save();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type 'Docum... Remove this comment to see the full error message
+        
         if (twilioSettings && twilioSettings.authToken && twilioSettings.iv) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type 'Docum... Remove this comment to see the full error message
+            
             twilioSettings.authToken = await EncryptDecrypt.decrypt(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type 'Docum... Remove this comment to see the full error message
+                
                 twilioSettings.authToken,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
+                
                 twilioSettings.iv
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'iv' does not exist on type 'Document<any... Remove this comment to see the full error message
+            
             delete twilioSettings.iv;
         }
         return twilioSettings;

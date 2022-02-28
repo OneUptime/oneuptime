@@ -27,7 +27,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
                 select: selectDefaultRoleSso,
                 populate: populateDefaultRoleSso,
             }),
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+            
             SsoDefaultRolesService.countBy(),
         ]);
         return sendListResponse(req, res, ssos, count);
@@ -74,7 +74,7 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
         });
         if (!sso) {
             const error = new Error("Requested resource doesn't exist.");
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 404;
             throw error;
         }

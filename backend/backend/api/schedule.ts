@@ -4,7 +4,7 @@ const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
@@ -16,7 +16,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 ) {
     try {
         const data = req.body;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         data.createdById = userId;
         data.projectId = req.params.projectId;
@@ -88,9 +88,9 @@ router.get(
     getSubProjects,
     async function(req, res) {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const schedules = await ScheduleService.getSubProjectSchedules(
@@ -173,7 +173,7 @@ router.delete(
     async function(req, res) {
         try {
             const scheduleId = req.params.scheduleId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
 
             if (!scheduleId) {
@@ -200,9 +200,9 @@ router.get(
     getSubProjects,
     async (req, res) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const subProjectIds = req.user.subProjects
-                ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                ? 
                   req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const userId = req.params.userId;
@@ -244,7 +244,7 @@ router.post(
     isUserAdmin,
     async (req, res) => {
         try {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
             const scheduleId = req.params.scheduleId;
             const escalations = [];
@@ -406,39 +406,39 @@ router.post(
                     value.firstRotationOn = new Date(value.firstRotationOn);
                 }
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'callReminders' does not exist on type '{... Remove this comment to see the full error message
+                
                 storagevalue.callReminders = value.callReminders;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsReminders' does not exist on type '{}... Remove this comment to see the full error message
+                
                 storagevalue.smsReminders = value.smsReminders;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailReminders' does not exist on type '... Remove this comment to see the full error message
+                
                 storagevalue.emailReminders = value.emailReminders;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushReminders' does not exist on type '{... Remove this comment to see the full error message
+                
                 storagevalue.pushReminders = value.pushReminders;
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'rotateBy' does not exist on type '{}'.
+                
                 storagevalue.rotateBy = value.rotateBy;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'rotationInterval' does not exist on type... Remove this comment to see the full error message
+                
                 storagevalue.rotationInterval = value.rotationInterval;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'firstRotationOn' does not exist on type ... Remove this comment to see the full error message
+                
                 storagevalue.firstRotationOn = value.firstRotationOn;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'rotationTimezone' does not exist on type... Remove this comment to see the full error message
+                
                 storagevalue.rotationTimezone = value.rotationTimezone;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
+                
                 storagevalue.email = value.email;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'call' does not exist on type '{}'.
+                
                 storagevalue.call = value.call;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'sms' does not exist on type '{}'.
+                
                 storagevalue.sms = value.sms;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'push' does not exist on type '{}'.
+                
                 storagevalue.push = value.push;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+                
                 storagevalue.projectId = req.params.projectId;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type '{}'.
+                
                 storagevalue.scheduleId = scheduleId;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 storagevalue.createdById = userId;
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+                
                 if (value._id) storagevalue._id = value._id;
 
                 for (const team of value.teams) {
@@ -507,34 +507,34 @@ router.post(
                             teamMember.endTime = new Date(teamMember.endTime);
                         }
                         if (teamMember.userId) {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type '{}'.
+                            
                             data.userId = teamMember.userId;
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startTime' does not exist on type '{}'.
+                            
                             data.startTime = teamMember.startTime;
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endTime' does not exist on type '{}'.
+                            
                             data.endTime = teamMember.endTime;
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'timezone' does not exist on type '{}'.
+                            
                             data.timezone = teamMember.timezone;
                             teamMembers.push(data);
                         }
                         if (teamMember.groupId) {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupId' does not exist on type '{}'.
+                            
                             data.groupId = teamMember.groupId;
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startTime' does not exist on type '{}'.
+                            
                             data.startTime = teamMember.startTime;
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endTime' does not exist on type '{}'.
+                            
                             data.endTime = teamMember.endTime;
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'timezone' does not exist on type '{}'.
+                            
                             data.timezone = teamMember.timezone;
                             teamMembers.push(data);
                         }
                     }
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMembers' does not exist on type '{}'... Remove this comment to see the full error message
+                    
                     rotationData.teamMembers = teamMembers;
                     tempTeam.push(rotationData);
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'teams' does not exist on type '{}'.
+                
                 storagevalue.teams = tempTeam;
                 escalations.push(storagevalue);
             }

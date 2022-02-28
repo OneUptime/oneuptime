@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,13 +13,13 @@ const user = {
     email,
     password,
 };
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Alert Warning', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -30,13 +30,13 @@ describe('Alert Warning', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should show a warning alert if call and sms alerts are disabled',
         async (done: $TSFixMe) => {
@@ -47,13 +47,13 @@ describe('Alert Warning', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing');
 
             const element = await init.pageWaitForSelector(
@@ -70,7 +70,7 @@ describe('Alert Warning', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should not show any warning alert if call and sms alerts are enabled',
         async (done: $TSFixMe) => {
@@ -81,13 +81,13 @@ describe('Alert Warning', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#billing a');
             await init.pageWaitForSelector(page, '#alertEnable', {
                 visible: true,
@@ -104,9 +104,9 @@ describe('Alert Warning', () => {
                 // enable sms and call alerts
                 // check the box
                 await page.evaluate(() => {
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    
                     document.querySelector('#alertEnable').click();
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                    
                     document.querySelector('#alertOptionSave').click();
                 });
             }

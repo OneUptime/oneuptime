@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"./api"' has no exported member 'getApi'. ... Remove this comment to see the full error message
+
 import { getApi, postApi } from './api';
 
 export default {

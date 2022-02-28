@@ -46,7 +46,7 @@ export function search(projectId: $TSFixMe, values: $TSFixMe) {
         const promise = postApi(`search/${projectId}`, values);
         promise.then(
             function(result) {
-                // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+                
                 const search = result.data;
                 dispatch(searchSuccess(search.data));
             },

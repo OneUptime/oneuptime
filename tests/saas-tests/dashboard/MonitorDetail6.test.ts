@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,13 +11,13 @@ const password = '1234567890';
 const urlMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async () => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -36,13 +36,13 @@ describe('Monitor Detail API', () => {
         await init.addMonitorToComponent(componentName, urlMonitorName, page);
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test('Should navigate to monitor details and trigger website scan', async (done: $TSFixMe) => {
         // Navigate to Monitor details
         await init.navigateToMonitorDetails(
@@ -58,16 +58,16 @@ describe('Monitor Detail API', () => {
             `#lighthouse-performance-${urlMonitorName}`,
             { visible: true, timeout: 600000 }
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#website_postscan');
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, `#scanWebsites_${urlMonitorName}`);
         await init.page$Eval(
             page,
             `#scanWebsites_${urlMonitorName}`,
             (e: $TSFixMe) => e.click()
         );
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         await init.pageWaitForSelector(page, '#website_prescan');
         await init.pageWaitForSelector(page, '#website_scanning', {
             timeout: 600000,
@@ -88,7 +88,7 @@ describe('Monitor Detail API', () => {
         done();
     }, 600000);
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should display multiple probes and monitor chart on refresh',
         async (done: $TSFixMe) => {
@@ -103,9 +103,9 @@ describe('Monitor Detail API', () => {
                 waitUntil: ['networkidle0', 'domcontentloaded'],
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const probe0 = await init.pageWaitForSelector(page, '#probes-btn0');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const probe1 = await init.pageWaitForSelector(page, '#probes-btn1');
 
             expect(probe0).toBeDefined();
@@ -129,7 +129,7 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'Should navigate to monitor details and get lighthouse scores and website issues',
         async (done: $TSFixMe) => {
@@ -140,7 +140,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#website_postscan');
 
             let lighthousePerformanceElement = await init.pageWaitForSelector(
@@ -198,15 +198,15 @@ describe('Monitor Detail API', () => {
             lighthousePwaElement = await lighthousePwaElement.jsonValue();
             lighthousePwaElement.should.endWith('%');
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, `#lighthouseUrl_${urlMonitorName}_0`);
 
             const websiteIssuesSelector =
                 '#performance #websiteIssuesList > tbody >tr.websiteIssuesListItem';
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, websiteIssuesSelector);
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const websiteIssuesRows = await init.page$$(
                 page,
                 websiteIssuesSelector

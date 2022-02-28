@@ -31,7 +31,7 @@ export const loadDashboard = () => async (dispatch: $TSFixMe) => {
     dispatch(dashboardLoadRequest());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+        
         const response = await getApi(`user/users?skip=${skip}&limit=${limit}`);
         dispatch(dashboardLoadSuccess());
 

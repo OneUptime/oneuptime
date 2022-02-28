@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 
 const router = express.Router();
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
@@ -19,7 +19,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         const data = req.body;
         data.projectId = projectId;
@@ -43,9 +43,9 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     res
 ) {
     try {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const subProjectIds = req.user.subProjects
-            ? // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            ? 
               req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
         const alerts = await alertService.getSubProjectAlerts(subProjectIds);
@@ -168,7 +168,7 @@ router.get('/:projectId/:alertId/viewed', async function(req, res) {
 router.delete('/:projectId', getUser, isUserOwner, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user.id;
         const alert = await alertService.deleteBy(
             { projectId: projectId },

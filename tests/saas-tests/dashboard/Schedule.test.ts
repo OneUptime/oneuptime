@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'puppeteer' or its correspondin... Remove this comment to see the full error message
+
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,13 +17,13 @@ const user = {
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 
-// @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
+
 describe('Schedule', () => {
     const operationTimeOut = init.timeout;
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'beforeAll'.
+    
     beforeAll(async (done: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'jest'.
+        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -35,19 +35,19 @@ describe('Schedule', () => {
         done();
     });
 
-    // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'afterAll'.
+    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show pricing plan modal when enable team rotation is clicked',
         async (done: $TSFixMe) => {
             const projectName = 'newproject';
             const newScheduleName = 'test';
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '"newproject"' is not assignable ... Remove this comment to see the full error message
+            
             await init.addProject(page, projectName);
 
             await init.pageWaitForSelector(page, '#onCallDuty', {
@@ -66,24 +66,24 @@ describe('Schedule', () => {
                 elem.click()
             );
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', newScheduleName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnCreateSchedule');
             await init.pageWaitForSelector(page, '#name', { hidden: true });
 
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
-                // @ts-expect-error ts-migrate(2741) FIXME: Property 'item' is missing in type 'Element[]' but... Remove this comment to see the full error message
+                
                 elem = Array.from(elem);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
+                
                 elem[0].click();
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#enableTeamRotation');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#enableTeamRotation');
 
             const modal = await init.pageWaitForSelector(
@@ -100,7 +100,7 @@ describe('Schedule', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show pricing plan modal when add on-call duty times is clicked',
         async (done: $TSFixMe) => {
@@ -118,14 +118,14 @@ describe('Schedule', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element[]' is not assignable to type 'NodeLi... Remove this comment to see the full error message
+                
                 elem = Array.from(elem);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
+                
                 elem[0].click();
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#addOnCallDutyTimes');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#addOnCallDutyTimes');
 
             const modal = await init.pageWaitForSelector(
@@ -143,7 +143,7 @@ describe('Schedule', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'should show the component name on the monitors',
         async (done: $TSFixMe) => {
@@ -152,7 +152,7 @@ describe('Schedule', () => {
                 null,
                 monitorName,
                 page,
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 4.
+                
                 componentName
             );
             await page.goto(utils.DASHBOARD_URL, {
@@ -169,13 +169,13 @@ describe('Schedule', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element[]' is not assignable to type 'NodeLi... Remove this comment to see the full error message
+                
                 elem = Array.from(elem);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
+                
                 elem[0].click();
             });
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             let monitor = await init.page$(
                 page,
                 `label[id=scheduleMonitor_0] > div.Checkbox-label > span > span[title=${monitorName}]`
@@ -188,13 +188,13 @@ describe('Schedule', () => {
         operationTimeOut
     );
 
-    // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'test'. Do you need to install ty... Remove this comment to see the full error message
+    
     test(
         'it should navigate to the oncall schedule details page from the oncall schedule list when the view schedule button is clicked',
         async (done: $TSFixMe) => {
             const projectName = 'newproject1';
             const newScheduleName = 'test';
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '"newproject1"' is not assignable... Remove this comment to see the full error message
+            
             await init.addProject(page, projectName);
 
             await init.pageWaitForSelector(page, '#onCallDuty', {
@@ -213,17 +213,17 @@ describe('Schedule', () => {
                 elem.click()
             );
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageWaitForSelector(page, '#name');
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 3.
+            
             await init.pageType(page, '#name', newScheduleName);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#btnCreateSchedule');
             await init.pageWaitForSelector(page, '#viewOnCallSchedule', {
                 visible: true,
                 timeout: init.timeout,
             });
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             await init.pageClick(page, '#viewOnCallSchedule');
             await init.pageWaitForSelector(page, `#cb${newScheduleName}`, {
                 visible: true,

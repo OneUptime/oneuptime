@@ -33,18 +33,18 @@ export const resetFetchLicense = () => {
 
 // Calls the API to fetch license
 export const fetchLicense = () => async (dispatch: $TSFixMe) => {
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+    
     dispatch(fetchLicenseRequest());
     dispatch(resetConfirmLicense());
 
     try {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+        
         const response = await postApi('globalConfig/configs', [
             'licenseKey',
             'licenseEmail',
             'licenseToken',
         ]);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         const data = response.data;
         dispatch(fetchLicenseSuccess(data));
         return data;
@@ -98,21 +98,21 @@ export const resetConfirmLicense = () => {
 export const confirmLicense = (values: $TSFixMe) => async (
     dispatch: $TSFixMe
 ) => {
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+    
     dispatch(confirmLicenseRequest());
 
     try {
         const response = await postApi('license/validate/', values, true);
-        // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+        
         let data = response.data;
         if (data.token) {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+            
             const response = await postApi('globalConfig/', [
                 { name: 'licenseKey', value: values.license },
                 { name: 'licenseEmail', value: values.email },
                 { name: 'licenseToken', value: data.token },
             ]);
-            // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
+            
             data = response.data;
         }
         dispatch(confirmLicenseSuccess(data));

@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
@@ -23,7 +23,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         const [IncidentPriorities, count] = await Promise.all([
             IncidentPrioritiesService.findBy(
                 { query: { projectId }, select: selectIncPriority },
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 3.
+                
                 limit,
                 skip
             ),

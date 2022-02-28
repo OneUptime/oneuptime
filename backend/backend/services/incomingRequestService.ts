@@ -4,12 +4,12 @@ import MonitorService from '../services/monitorService';
 import AlertService from '../services/alertService';
 import ErrorService from 'common-server/utils/error';
 import ProjectService from '../services/projectService';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'domp... Remove this comment to see the full error message
+
 import createDOMPurify from 'dompurify';
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import { isEmpty } from 'lodash';
 import IncidentMessageService from '../services/incidentMessageService';
 import IncidentPrioritiesService from '../services/incidentPrioritiesService';
@@ -46,7 +46,7 @@ export default {
             const error = new Error(
                 'You need at least one monitor to create an incoming request'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -59,7 +59,7 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of a monitor'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -145,7 +145,7 @@ export default {
         // create a unique request url
         // update incomingRequest collection with the new url
         const _this = this;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+        
         const requestUrl = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
         const updatedIncomingRequest = await _this.updateOneBy(
             { requestId, projectId },
@@ -176,7 +176,7 @@ export default {
                 const error = new Error(
                     'You need at least one monitor to update a scheduled event'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -185,7 +185,7 @@ export default {
                 const error = new Error(
                     'You cannot have multiple selection of a monitor'
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+                
                 error.code = 400;
                 throw error;
             }
@@ -329,7 +329,7 @@ export default {
             const error = new Error(
                 'Incoming request not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -421,7 +421,7 @@ export default {
             const error = new Error(
                 'Incoming request not found or does not exist'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'code' does not exist on type 'Error'.
+            
             error.code = 400;
             throw error;
         }
@@ -617,7 +617,7 @@ export default {
 
             let monitors = [];
             if (incomingRequest.selectAllMonitors) {
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+                
                 const projectIds = await ProjectService.findBy({
                     query: { parentProjectId: data.projectId },
                     select: '_id',
@@ -797,13 +797,13 @@ export default {
                     ).toLowerCase();
                     const priorityObj = {};
                     incidentPriorities.forEach(
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         (priority: $TSFixMe) =>
                             (priorityObj[priority.name.toLowerCase()] =
                                 priority._id)
                     );
                     data.incidentPriority =
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
@@ -902,13 +902,13 @@ export default {
                     ).toLowerCase();
                     const priorityObj = {};
                     incidentPriorities.forEach(
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         (priority: $TSFixMe) =>
                             (priorityObj[priority.name.toLowerCase()] =
                                 priority._id)
                     );
                     data.incidentPriority =
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
@@ -941,7 +941,7 @@ export default {
             let created_incidents = new Set(
                 incidentResponse.map(response => response.idNumber)
             );
-            // @ts-expect-error ts-migrate(2740) FIXME: Type 'any[]' is missing the following properties f... Remove this comment to see the full error message
+            
             created_incidents = [...created_incidents];
             return {
                 status: 'success',
@@ -956,7 +956,7 @@ export default {
                 incomingRequest.updateInternalNote)
         ) {
             let subProjectIds = [];
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+            
             const subProjects = await ProjectService.findBy({
                 query: {
                     parentProjectId:
@@ -1301,7 +1301,7 @@ export default {
                         fieldType: 'string',
                     });
 
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'filter' implicitly has an 'any' type.
+                    
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
                             const filterCriteria = filter.filterCriteria,
@@ -1490,7 +1490,7 @@ export default {
                 incomingRequest.resolveIncident)
         ) {
             let subProjectIds = [];
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: { parentProjectId: any;... Remove this comment to see the full error message
+            
             const subProjects = await ProjectService.findBy({
                 query: {
                     parentProjectId:
@@ -1845,7 +1845,7 @@ export default {
                         fieldType: 'string',
                     });
 
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'filter' implicitly has an 'any' type.
+                    
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
                             const filterCriteria = filter.filterCriteria,

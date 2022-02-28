@@ -85,9 +85,9 @@ export default {
             };
             arr.push(result);
         }
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         wrapper['members'] = arr;
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     },
@@ -176,9 +176,9 @@ export default {
             };
             arr.push(monitorObj);
         }
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         wrapper['monitors'] = arr;
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     },
@@ -301,7 +301,7 @@ export default {
                     10
                 ),
             };
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             data[filter] = moment(period._id[filter], inputFormat).format(
                 outputFormat
             );
@@ -408,7 +408,7 @@ export default {
             const data = {
                 incidents: period.count,
             };
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             data[filter] = moment(period._id[filter], inputFormat).format(
                 outputFormat
             );

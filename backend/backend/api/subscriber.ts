@@ -18,11 +18,11 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
     try {
         const body = req.body;
         const data = {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+        
         data.projectId = req.params.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+        
         data.statusPageId = req.params.statusPageId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationType' does not exist on type... Remove this comment to see the full error message
+        
         data.notificationType = body.notificationType;
 
         if (!body.userDetails) {
@@ -64,7 +64,7 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                 });
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+            
             data.contactEmail = body.userDetails.email;
         } else if (body.userDetails.method === 'sms') {
             if (!body.userDetails.phone_number) {
@@ -101,9 +101,9 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                 });
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactPhone' does not exist on type '{}... Remove this comment to see the full error message
+            
             data.contactPhone = body.userDetails.phone_number;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'countryCode' does not exist on type '{}'... Remove this comment to see the full error message
+            
             data.countryCode = body.userDetails.country;
         } else if (body.userDetails.method === 'webhook') {
             if (!body.userDetails.endpoint) {
@@ -140,14 +140,14 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                 });
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactWebhook' does not exist on type '... Remove this comment to see the full error message
+            
             data.contactWebhook = body.userDetails.endpoint;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+            
             data.contactEmail = body.userDetails.email;
         }
 
         const monitors = body.monitors;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertVia' does not exist on type '{}'.
+        
         data.alertVia = body.userDetails.method;
 
         const subscriber = await SubscriberService.subscribe(data, monitors);
@@ -369,7 +369,7 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
 
         const subscriptions = await SubscriberService.findBy({
             query: {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'contactEmail' does not exist on type '{}... Remove this comment to see the full error message
+                
                 contactEmail: subscriber[0].contactEmail,
                 subscribed: true,
             },
@@ -377,7 +377,7 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         });
 
         const monitorIds = subscriptions.map(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
+            
             subscription => subscription.monitorId
         );
 
@@ -391,7 +391,7 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         subscriptions.map(subscription => {
             return subscriberMonitors.map((subscriberMonitor: $TSFixMe) => {
                 if (
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type '{}'.
+                    
                     String(subscription.monitorId) ===
                     String(subscriberMonitor._id)
                 ) {
@@ -453,7 +453,7 @@ router.put('/unsubscribe/:monitorId/:email', async function(req, res) {
 router.delete('/:projectId/:subscriberId', getUser, async function(req, res) {
     try {
         const subscriberId = req.params.subscriberId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         const subscriber = await SubscriberService.deleteBy(
             { _id: subscriberId },

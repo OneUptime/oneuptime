@@ -1,6 +1,6 @@
 import Http from 'http';
 import Https from 'https';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { getRoutes } from 'get-routes';
 import UrlPattern from 'url-pattern';
@@ -10,7 +10,7 @@ class IncomingListener {
     private end;
     private store;
     private app;
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'start' implicitly has an 'any' type.
+    
     constructor(start, end, store, app) {
         this.start = start;
         this.end = end;
@@ -22,10 +22,10 @@ class IncomingListener {
         override(Http);
         override(Https);
         const _this = this;
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'module' implicitly has an 'any' type.
+        
         function override(module) {
             const emit = module.Server.prototype.emit;
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'type' implicitly has an 'any' type.
+            
             module.Server.prototype.emit = function(type, req, res) {
                 if (type === 'request') {
                     const path = req.pathname || req.path || req.url || '/';

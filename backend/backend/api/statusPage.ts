@@ -8,28 +8,28 @@ import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
 
 const router = express.Router();
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'vali... Remove this comment to see the full error message
+
 import validUrl from 'valid-url';
 import multer from 'multer';
 import ErrorService from 'common-server/utils/error';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'jsto... Remove this comment to see the full error message
+
 import { toXML } from 'jstoxml';
 import moment from 'moment';
 
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/user"' has no exported mem... Remove this comment to see the full error message
+
 import { getUser, checkUser } from '../middlewares/user';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/project"' has no exported ... Remove this comment to see the full error message
+
 import { isUserAdmin } from '../middlewares/project';
 import storage from '../middlewares/upload';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/authorization"' has no exp... Remove this comment to see the full error message
+
 import { isAuthorized } from '../middlewares/authorization';
 import IncidentTimelineService from '../services/incidentTimelineService';
-// @ts-expect-error ts-migrate(2614) FIXME: Module '"../middlewares/ipHandler"' has no exporte... Remove this comment to see the full error message
+
 import { ipWhitelist } from '../middlewares/ipHandler';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import uuid from 'uuid';
 import defaultStatusPageColors from '../config/statusPageColors';
 import SubscriberService from '../services/subscriberService';
@@ -133,7 +133,7 @@ router.put(
 
             const updatedStatusPage = await StatusPageService.getStatusPage({
                 query: { _id: statusPage._id },
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                
                 userId: req.user.id,
                 populate: populateStatusPage,
                 select: selectStatusPage,
@@ -184,7 +184,7 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
 
         const updatedStatusPage = await StatusPageService.getStatusPage({
             query: { _id: statusPage._id },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             userId: req.user.id,
             populate: populateStatusPage,
             select: selectStatusPage,
@@ -364,9 +364,9 @@ router.post('/:projectId/certFile', async function(req, res) {
             if (error) {
                 return sendErrorResponse(req, res, error);
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'cert' does not exist on type '{ [fieldna... Remove this comment to see the full error message
+            
             if (req.files && req.files.cert && req.files.cert[0].filename) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'cert' does not exist on type '{ [fieldna... Remove this comment to see the full error message
+                
                 cert = req.files.cert[0].filename;
             }
             return sendItemResponse(req, res, { cert });
@@ -393,12 +393,12 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
             }
             if (
                 req.files &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKey' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 req.files.privateKey &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKey' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 req.files.privateKey[0].filename
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKey' does not exist on type '{ [f... Remove this comment to see the full error message
+                
                 privateKey = req.files.privateKey[0].filename;
             }
             return sendItemResponse(req, res, { privateKey });
@@ -413,7 +413,7 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
 router.get('/tlsCredential', async function(req, res) {
     try {
         const { domain } = req.query;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{}... Remove this comment to see the full error message
+        
         const user = req.user;
 
         if (!domain) {
@@ -445,15 +445,15 @@ router.get('/tlsCredential', async function(req, res) {
             });
 
         return sendItemResponse(req, res, {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'cert' does not exist on type '{}'.
+            
             cert: domainObj.cert,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'privateKey' does not exist on type '{}'.
+            
             privateKey: domainObj.privateKey,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoProvisioning' does not exist on type... Remove this comment to see the full error message
+            
             autoProvisioning: domainObj.autoProvisioning,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableHttps' does not exist on type '{}'... Remove this comment to see the full error message
+            
             enableHttps: domainObj.enableHttps,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type '{}'.
+            
             domain: domainObj.domain,
         });
     } catch (error) {
@@ -568,10 +568,10 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         const files = req.files || {};
         const data = req.body;
         data.projectId = req.params.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type '{ ... Remove this comment to see the full error message
+        
         data.subProjectId = req.params.subProjectId;
         if (error) {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
+            
             ErrorService.log(error);
             return sendErrorResponse(req, res, error);
         }
@@ -583,11 +583,11 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 select: 'faviconPath logoPath bannerPath',
             });
             const imagesPath = {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconPath' does not exist on type '{}'... Remove this comment to see the full error message
+                
                 faviconPath: statusPage.faviconPath,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'logoPath' does not exist on type '{}'.
+                
                 logoPath: statusPage.logoPath,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'bannerPath' does not exist on type '{}'.
+                
                 bannerPath: statusPage.bannerPath,
             };
             if (
@@ -607,20 +607,20 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     data.bannerPath = null;
                 }
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'favicon' does not exist on type '{ [fiel... Remove this comment to see the full error message
+                
                 if (files && files.favicon && files.favicon[0].filename) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'favicon' does not exist on type '{ [fiel... Remove this comment to see the full error message
+                    
                     data.faviconPath = files.favicon[0].filename;
                 }
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'logo' does not exist on type '{ [fieldna... Remove this comment to see the full error message
+                
                 if (files && files.logo && files.logo[0].filename) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'logo' does not exist on type '{ [fieldna... Remove this comment to see the full error message
+                    
                     data.logoPath = files.logo[0].filename;
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'banner' does not exist on type '{ [field... Remove this comment to see the full error message
+                
                 if (files && files.banner && files.banner[0].filename) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'banner' does not exist on type '{ [field... Remove this comment to see the full error message
+                    
                     data.bannerPath = files.banner[0].filename;
                 }
             }
@@ -660,7 +660,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
             const updatedStatusPage = await StatusPageService.getStatusPage({
                 query: { _id: statusPage._id },
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+                
                 userId: req.user.id,
                 populate: populateStatusPage,
                 select: selectStatusPage,
@@ -700,7 +700,7 @@ router.get('/statusBubble', async function(req, res) {
     try {
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: {}; limit: number; skip... Remove this comment to see the full error message
+        
         const probes = await ProbeService.findBy({
             query: {},
             limit: 0,
@@ -748,7 +748,7 @@ router.get('/statusBubble', async function(req, res) {
             populate: populateStatusPage,
             select: selectStatusPage,
         });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'length' does not exist on type '{}'.
+        
         if (!(statusPages && statusPages.length)) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -892,7 +892,7 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
 ) {
     const statusPageSlug = req.params.statusPageSlug;
     const url = req.query.url;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+    
     const user = req.user;
     let statusPage = {};
     const populateStatusPage = [
@@ -941,7 +941,7 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
             });
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isPrivate' does not exist on type '{}'.
+        
         if (statusPage.isPrivate && !req.user) {
             return sendErrorResponse(req, res, {
                 code: 401,
@@ -975,7 +975,7 @@ router.post(
             let statusPageProjectId = projectId;
             let filterMonitors = false;
             if (subProjectId) {
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | string[] | ParsedQs | ParsedQs[]' i... Remove this comment to see the full error message
+                
                 statusPageProjectId = subProjectId;
                 filterMonitors = true;
             }
@@ -997,7 +997,7 @@ router.post(
 router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+    
     const user = req.user;
     let statusPage = {};
 
@@ -1022,7 +1022,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
             });
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isPrivate' does not exist on type '{}'.
+        
         if (statusPage.isPrivate && !req.user) {
             return sendErrorResponse(req, res, {
                 code: 401,
@@ -1037,7 +1037,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 refinedIncidents.push({
                     item: {
                         title: incident.title,
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+                        
                         guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
                         pubDate: new Date(incident.createdAt).toUTCString(),
                         description: `<![CDATA[Description: ${
@@ -1069,7 +1069,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 _content: {
                     channel: [
                         {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+                            
                             title: `Incidents for status page ${statusPage.name}`,
                         },
                         {
@@ -1077,7 +1077,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                                 'RSS feed for all incidents related to monitors attached to status page',
                         },
                         {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'apiHost' does not exist on type 'Global ... Remove this comment to see the full error message
+                            
                             link: `${global.apiHost}/status-page/${statusPageId}/rss`,
                         },
                         {
@@ -1137,7 +1137,7 @@ router.get(
                         });
                     }
                 }
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+                
                 result = formatNotes(updatedNotes, days);
                 result = checkDuplicateDates(result);
             } else {
@@ -1201,26 +1201,26 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     res
 ) {
     let date = req.query.date;
-    // @ts-expect-error ts-migrate(2322) FIXME: Type 'Date' is not assignable to type 'string | st... Remove this comment to see the full error message
+    
     date = new Date(date);
     const theme = req.query.theme;
     const start = new Date(
-        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+        
         date.getFullYear(),
-        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+        
         date.getMonth(),
-        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+        
         date.getDate(),
         0,
         0,
         0
     );
     const end = new Date(
-        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+        
         date.getFullYear(),
-        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+        
         date.getMonth(),
-        // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+        
         date.getDate(),
         23,
         59,
@@ -1286,7 +1286,7 @@ router.get(
                 { slug: statusPageSlug },
                 skip,
                 limit,
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 4.
+                
                 theme
             );
 
@@ -1359,7 +1359,7 @@ const fetchNotes = async (events: $TSFixMe, limit: $TSFixMe) => {
     const updatedEvents = [];
     if (events.length > 0) {
         for (const event of events) {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+            
             const statusPageEvent = await StatusPageService.getEventNotes({
                 scheduledEventId: event._id,
                 type: 'investigation',
@@ -1370,7 +1370,7 @@ const fetchNotes = async (events: $TSFixMe, limit: $TSFixMe) => {
             });
         }
 
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+        
         events = formatNotes(updatedEvents, limit);
         events = checkDuplicateDates(events);
         return events;
@@ -1408,7 +1408,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
     res
 ) {
     let date = req.query.date;
-    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+    
     date = moment(date)
         .endOf('day')
         .format();
@@ -1441,7 +1441,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
             const updatedEvents = [];
             if (events.length > 0) {
                 for (const event of events) {
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+                    
                     const statusPageEvent = await StatusPageService.getEventNotes(
                         { scheduledEventId: event._id, type: 'investigation' }
                     );
@@ -1547,7 +1547,7 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
         const [probes, count] = await Promise.all([
-            // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: {}; limit: string | num... Remove this comment to see the full error message
+            
             ProbeService.findBy({
                 query: {},
                 limit,
@@ -1569,7 +1569,7 @@ router.delete(
     isUserAdmin,
     async function(req, res) {
         const statusPageSlug = req.params.statusPageSlug;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         const userId = req.user ? req.user.id : null;
         try {
             // Call the StatusPageService.
@@ -1629,7 +1629,7 @@ router.get(
         try {
             const { statusPageSlug } = req.params;
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+            
             const incidents = await StatusPageService.getNotes({
                 slug: statusPageSlug,
             });
@@ -1664,7 +1664,7 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
             populate: populateStatusPage,
         });
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+        
         const monitors = statusPage.monitors.map(
             (mon: $TSFixMe) => mon.monitor._id
         );
@@ -1705,9 +1705,9 @@ router.post(
             const { name, url } = req.body;
             const data = {};
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+            
             data.name = name;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
+            
             data.url = url;
 
             if (!data) {
@@ -1717,14 +1717,14 @@ router.post(
                 });
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+            
             if (!data.name || !data.name.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'External Status Page Name is required.',
                 });
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
+            
             if (!data.url || !data.url.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1741,11 +1741,11 @@ router.post(
             // To confirm the name and url is not created already
             const nameQuery = { name };
             const urlQuery = { url };
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+            
             const existingExternalStatusPageId = await StatusPageService.getExternalStatusPage(
                 nameQuery
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+            
             const existingExternalStatusPageUrl = await StatusPageService.getExternalStatusPage(
                 urlQuery
             );
@@ -1763,7 +1763,7 @@ router.post(
             }
             // This scrapes the External Status Page
             try {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
+                
                 const res = await axios.get(`${data.url}`);
                 const $ = cheerio.load(res.data);
                 const status = $('span.status.font-large')
@@ -1779,7 +1779,7 @@ router.post(
                     });
                 }
                 if (status === 'All Systems Operational') {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+                    
                     data.description = status;
                 } else {
                     $('div.component-container.border-color').each((i, el) => {
@@ -1788,7 +1788,7 @@ router.post(
                             .text()
                             .replace(/\s\s+/g, '');
                         if (componentStatus !== 'Operational') {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+                            
                             data.description = componentStatus;
                         }
                     });
@@ -1800,15 +1800,15 @@ router.post(
                 });
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type '{}'... Remove this comment to see the full error message
+            
             data.createdById = req.user ? req.user.id : null;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{}'.
+            
             data.projectId = projectId;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+            
             data.statusPageId = statusPageId;
 
             await StatusPageService.createExternalStatusPage(data);
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 0.
+            
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -1825,9 +1825,9 @@ router.post(
             const { projectId, externalStatusPageId } = req.params;
             const { name, url } = req.body;
             const data = {};
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+            
             data.name = name;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
+            
             data.url = url;
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -1835,14 +1835,14 @@ router.post(
                     message: "Values can't be null",
                 });
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+            
             if (!data.name || !data.name.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'External Status Page Name is required.',
                 });
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
+            
             if (!data.url || !data.url.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1863,7 +1863,7 @@ router.post(
             }
             // This scrapes the External Status Page
             try {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
+                
                 const res = await axios.get(`${data.url}`);
                 const $ = cheerio.load(res.data);
                 const status = $('span.status.font-large')
@@ -1879,7 +1879,7 @@ router.post(
                     });
                 }
                 if (status === 'All Systems Operational') {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+                    
                     data.description = status;
                 } else {
                     $('div.component-container.border-color').each((i, el) => {
@@ -1888,7 +1888,7 @@ router.post(
                             .text()
                             .replace(/\s\s+/g, '');
                         if (componentStatus !== 'Operational') {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+                            
                             data.description = componentStatus;
                         }
                     });
@@ -1905,7 +1905,7 @@ router.post(
                 externalStatusPageId,
                 data
             );
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 0.
+            
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -1937,7 +1937,7 @@ router.get(
             // To fetch all created external statuspages
             const query = { projectId, statusPageId };
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+            
             const response = await StatusPageService.getExternalStatusPage(
                 query
             );
@@ -1955,7 +1955,7 @@ router.post(
     async function(req, res) {
         try {
             const { projectId, externalStatusPageId } = req.params;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
 
             if (!projectId) {
@@ -1978,7 +1978,7 @@ router.post(
                 userId
             );
 
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 0.
+            
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -1994,7 +1994,7 @@ router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
     try {
         const { projectId, statusPageId } = req.params;
         const { data } = req.body;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+        
         data.createdById = req.user ? req.user.id : null;
 
         if (!data) {
@@ -2043,7 +2043,7 @@ router.put(
         try {
             const { projectId, statusPageId, announcementId } = req.params;
             const { data } = req.body;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             data.createdById = req.user ? req.user.id : null;
 
             if (!data.announcementToggle) {
@@ -2091,27 +2091,27 @@ router.put(
             if (response && data.announcementToggle) {
                 const date = new Date();
                 const log = {};
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type '{}... Remove this comment to see the full error message
+                
                 log.statusPageId = statusPageId;
                 if (data.hideAnnouncement) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type '{}'.
+                    
                     log.endDate = date;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatedById' does not exist on type '{}'... Remove this comment to see the full error message
+                    
                     log.updatedById = data.createdById;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'active' does not exist on type '{}'.
+                    
                     log.active = false;
                     await StatusPageService.updateAnnouncementLog(
                         { active: true },
                         log
                     );
                 } else {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcementId' does not exist on type '... Remove this comment to see the full error message
+                    
                     log.announcementId = announcementId;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createdById' does not exist on type '{}'... Remove this comment to see the full error message
+                    
                     log.createdById = data.createdById;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type '{}'.
+                    
                     log.startDate = date;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'active' does not exist on type '{}'.
+                    
                     log.active = true;
                     await StatusPageService.createAnnouncementLog(log);
                 }
@@ -2150,7 +2150,7 @@ router.get(
                 for (const log of announcementLogs) {
                     updatedLogs.push({ ...log });
                 }
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+                
                 announcementLogs = formatNotes(updatedLogs, 20);
                 announcementLogs = checkDuplicateDates(announcementLogs);
             }
@@ -2175,7 +2175,7 @@ router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
         const { projectId, statusPageId } = req.params;
         const { skip, limit, show } = req.query;
         const query = { projectId, statusPageId };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideAnnouncement' does not exist on type... Remove this comment to see the full error message
+        
         if (show) query.hideAnnouncement = false;
 
         const [allAnnouncements, count] = await Promise.all([
@@ -2200,7 +2200,7 @@ router.get(
     async function(req, res) {
         try {
             const { projectId, statusPageSlug, announcementSlug } = req.params;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+            
             const { _id } = await StatusPageService.findOneBy({
                 query: { slug: statusPageSlug },
                 select: '_id',
@@ -2223,7 +2223,7 @@ router.delete(
     async function(req, res) {
         try {
             const { projectId, announcementId } = req.params;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
             const response = await StatusPageService.deleteAnnouncement(
                 {
@@ -2245,7 +2245,7 @@ router.delete(
     async function(req, res) {
         try {
             const { announcementLogId } = req.params;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Request<{ ... Remove this comment to see the full error message
+            
             const userId = req.user ? req.user.id : null;
             const response = await StatusPageService.deleteAnnouncementLog(
                 {
@@ -2299,10 +2299,10 @@ function checkDuplicateDates(items: $TSFixMe) {
     for (const item of items) {
         const date = String(item.createdAt).slice(0, 10);
 
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         if (!track[date]) {
             item.style = true;
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             track[date] = date;
         } else {
             item.style = false;
@@ -2340,15 +2340,15 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
             const ongoingEvents = await getOngoingScheduledEvents(
                 req,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type '{}'.
+                
                 statusPage.slug
             );
 
@@ -2369,13 +2369,13 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type '{}'.
+            
             const futureEvents = await getFutureEvents(req, statusPage.slug);
 
             return sendItemResponse(req, res, futureEvents);
@@ -2395,13 +2395,13 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type '{}'.
+            
             const pastEvents = await getPastEvents(req, statusPage.slug);
 
             return sendItemResponse(req, res, pastEvents);
@@ -2421,9 +2421,9 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
@@ -2446,13 +2446,13 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            
             const monitorLogs = await getMonitorLogs(req, statusPage.monitors);
 
             return sendItemResponse(req, res, monitorLogs);
@@ -2472,13 +2472,13 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+            
             const { _id: statusPageId, projectId } = statusPage;
 
             const announcements = await getAnnouncements(
@@ -2504,9 +2504,9 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
@@ -2529,13 +2529,13 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type '{}'.
+            
             const timelines = await getMonitorTimelines(statusPage.slug);
 
             return sendItemResponse(req, res, timelines);
@@ -2555,17 +2555,17 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
             const statusPageNote = await getStatusPageNote(
                 req,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type '{}'.
+                
                 statusPage.slug,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type '{}'.
+                
                 statusPage.theme
             );
 
@@ -2587,28 +2587,28 @@ router.get(
             const response = {};
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type '{}'.
+            
             if (statusPage.error) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type '{}'.
+                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+            
             const { monitors } = statusPage;
 
             const monitorStatus = await getMonitorStatuses(req, monitors);
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStatus' does not exist on type '{... Remove this comment to see the full error message
+            
             response.monitorStatus = monitorStatus || {};
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsData' does not exist on type '{}... Remove this comment to see the full error message
+            
             statusPage.monitorsData.map((data: $TSFixMe) => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStatus' does not exist on type '{... Remove this comment to see the full error message
+                
                 data.statuses = response.monitorStatus[data._id];
                 return data;
             });
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPages' does not exist on type '{}'... Remove this comment to see the full error message
+            
             response.statusPages = statusPage;
 
             const probes = await getProbes(req);
@@ -2620,7 +2620,7 @@ router.get(
                 range
             );
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'time' does not exist on type '{}'.
+            
             response.time = time || {};
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -2681,7 +2681,7 @@ async function getStatusPage(req: $TSFixMe, statusPageSlug: $TSFixMe) {
         };
     }
 
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isPrivate' does not exist on type '{}'.
+    
     if (statusPage.isPrivate && !req.user) {
         return {
             error: true,
@@ -2705,7 +2705,7 @@ async function getOngoingScheduledEvents(
         { slug: statusPageSlug },
         skip,
         limit,
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 4.
+        
         theme
     );
 
@@ -2750,7 +2750,7 @@ async function getProbes(req: $TSFixMe) {
     const limit = req.query.limit || 0;
     const selectProbe =
         'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ query: {}; limit: any; skip: a... Remove this comment to see the full error message
+    
     const probes = await ProbeService.findBy({
         query: {},
         limit,
@@ -2820,7 +2820,7 @@ async function getAnnouncements(
 ) {
     const { skip, limit, show = true } = req.query;
     const query = { projectId, statusPageId };
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideAnnouncement' does not exist on type... Remove this comment to see the full error message
+    
     if (show) query.hideAnnouncement = false;
 
     const allAnnouncements = await StatusPageService.getAnnouncements(
@@ -2850,7 +2850,7 @@ async function getMonitorStatuses(req: $TSFixMe, monitors: $TSFixMe) {
             startDate,
             endDate
         );
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        
         status[monitorId] = monitorStatuses;
     }
 
@@ -2858,7 +2858,7 @@ async function getMonitorStatuses(req: $TSFixMe, monitors: $TSFixMe) {
 }
 //get timelines
 async function getMonitorTimelines(statusPageSlug: $TSFixMe) {
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+    
     const incidents = await StatusPageService.getNotes({
         slug: statusPageSlug,
     });
@@ -2904,7 +2904,7 @@ async function getStatusPageNote(
                 });
             }
         }
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+        
         result = formatNotes(updatedNotes, days);
         result = checkDuplicateDates(result);
     } else {
@@ -2930,13 +2930,13 @@ async function getAnnouncementLogs(statusPage: $TSFixMe, limit = 5, skip = 0) {
         statusPageId: statusPage._id,
     });
 
-    // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
+    
     if ((theme && typeof theme === 'boolean') || theme === 'true') {
         const updatedLogs = [];
         for (const log of announcementLogs) {
             updatedLogs.push({ ...log });
         }
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'any[]' is not assignable to para... Remove this comment to see the full error message
+        
         announcementLogs = formatNotes(updatedLogs, 20);
         announcementLogs = checkDuplicateDates(announcementLogs);
     }
@@ -2981,7 +2981,7 @@ async function calculateTime(
             );
 
             const time = await MonitorService.calcTime(statuses, start, range);
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            
             result[monitorId] = time;
         })
     );
