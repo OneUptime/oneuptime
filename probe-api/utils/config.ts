@@ -1,8 +1,7 @@
 import packageJson from '../package.json';
 
-export default {
-    clusterKey: process.env.CLUSTER_KEY,
-    fetchResourcesVersion: packageJson.version,
-    mongoUrl: process.env.MONGO_URL,
-    realtimeUrl: process.env['REALTIME_URL'],
-};
+export const clusterKey = process.env.CLUSTER_KEY;
+export const fetchResourcesVersion = packageJson.version;
+export const mongoUrl = process.env.MONGO_URL;
+export const realtimeUrl = process.env['REALTIME_URL'];
+

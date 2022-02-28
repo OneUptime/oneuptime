@@ -3,8 +3,8 @@ const { NODE_ENV } = process.env;
 import asyncSleep from 'await-sleep';
 
 if (!NODE_ENV || NODE_ENV === 'development') {
-    import customEnv from 'custom-env';
-    customEnv.env();
+    import dotenv from 'dotenv';
+   dotenv.config();
 }
 
 process.on('exit', () => {

@@ -18,7 +18,7 @@
         "common-server": "file:../common-server",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
-        "custom-env": "^2.0.1",
+        "dotenv": "^16.0.0",
         "express": "^4.17.2",
         "lodash": "^4.17.21",
         "moment": "^2.29.1",

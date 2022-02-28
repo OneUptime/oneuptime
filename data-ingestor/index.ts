@@ -2,8 +2,8 @@
 const { NODE_ENV } = process.env;
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /data-ingestor/.env
-    import customEnv from 'custom-env';
-    customEnv.env();
+    import dotenv from 'dotenv';
+   dotenv.config();
 }
 
 import express from 'express';

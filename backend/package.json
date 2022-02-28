@@ -14,7 +14,7 @@
         "cors": "^2.8.4",
         "cross-env": "^7.0.3",
         "crypto-js": "^4.0.0",
-        "custom-env": "^2.0.1",
+        "dotenv": "^16.0.0",
         "date-fns": "^2.22.1",
         "dompurify": "^2.2.9",
         "ejs": "^3.1.6",
