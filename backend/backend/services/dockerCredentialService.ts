@@ -57,7 +57,7 @@ export default {
             const error = new Error(
                 'Docker Credential already exist in this project'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -91,9 +91,8 @@ export default {
                 data.iv = iv;
             } else {
                 const password = await decrypt(
-                    
                     dockerCredential.dockerPassword,
-                    
+
                     dockerCredential.iv.buffer
                 );
                 await this.validateDockerCredential({
@@ -115,9 +114,8 @@ export default {
             'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
         dockerCredential = await this.findOneBy({
             query: {
-                
                 _id: dockerCredential._id,
-                
+
                 deleted: dockerCredential.deleted,
             },
             select,
@@ -128,7 +126,7 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -145,7 +143,7 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -173,7 +171,7 @@ export default {
         } catch (err) {
             // username or password was incorrect
             const error = new Error('Invalid docker credential');
-            
+
             error.code = 400;
             throw error;
         }

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const newUser = {
     password: '1234567890',
 };
 
-
 describe('Enterprise Team SubProject API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -33,13 +29,11 @@ describe('Enterprise Team SubProject API', () => {
         await init.adminLogout(page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should add a new user to sub-project (role -> `Member`)',
         async (done: $TSFixMe) => {
@@ -57,29 +51,29 @@ describe('Enterprise Team SubProject API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#teamMembers');
             await init.pageWaitForSelector(page, `#btn_${subProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#btn_${subProjectName}`);
             await init.pageWaitForSelector(page, `#frm_${subProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#emails_${subProjectName}`);
-            
+
             await init.pageType(
                 page,
                 `#emails_${subProjectName}`,
                 newUser.email
             );
-            
+
             await init.pageClick(page, `#${role}_${subProjectName}`);
-            
+
             await init.pageClick(page, `#btn_modal_${subProjectName}`);
             await init.pageWaitForSelector(
                 page,

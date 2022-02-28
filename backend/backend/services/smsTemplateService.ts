@@ -1,15 +1,14 @@
 export default {
     create: async function(data: $TSFixMe) {
         const smsTemplateModel = new SmsTemplateModel();
-        
+
         smsTemplateModel.projectId = data.projectId || null;
-        
+
         smsTemplateModel.body = data.body || null;
-        
+
         smsTemplateModel.smsType = data.smsType || null;
-        
+
         smsTemplateModel.allowedVariables =
-            
             smsTemplateVariables[[data.smsType]];
         const smsTemplate = await smsTemplateModel.save();
 
@@ -18,7 +17,6 @@ export default {
 
     createMany: async function(allData: $TSFixMe) {
         allData = allData.map((data: $TSFixMe) => {
-            
             data.allowedVariables = smsTemplateVariables[data.smsType];
             return data;
         });

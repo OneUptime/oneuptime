@@ -1,4 +1,3 @@
-
 import faker from 'faker';
 
 const user = faker.helpers.createCard();

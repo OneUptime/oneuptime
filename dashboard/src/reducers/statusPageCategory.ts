@@ -113,11 +113,9 @@ export default function resourceCategory(
                     categories: state.fetchStatusPageCategories.categories.map(
                         category => {
                             if (
-                                
                                 String(category._id) ===
                                 String(action.payload._id)
                             ) {
-                                
                                 category = action.payload;
                             }
                             return category;
@@ -224,7 +222,6 @@ export default function resourceCategory(
                     ...state.fetchStatusPageCategories,
                     categories: state.fetchStatusPageCategories.categories.filter(
                         category =>
-                            
                             String(category._id) !== String(action.payload._id)
                     ),
                     count: state.fetchStatusPageCategories.count - 1,
@@ -234,7 +231,6 @@ export default function resourceCategory(
             return {
                 ...state,
                 deleteStatusPageCategory: {
-                    
                     ...state.deletedStatusPageCategory,
                     requesting: false,
                     success: false,

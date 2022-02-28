@@ -46,25 +46,20 @@ export default {
         }
 
         if (list) {
-            
             response.data = list;
         }
 
         if (count) {
-            
             response.count = count;
         } else {
-            
             if (list) response.count = list.length;
         }
 
         if (req.query.skip) {
-            
             response.skip = parseInt(req.query.skip);
         }
 
         if (req.query.limit) {
-            
             response.limit = parseInt(req.query.limit);
         }
 

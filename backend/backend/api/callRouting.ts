@@ -95,9 +95,9 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
         let { skip, limit } = req.query;
         const { projectId } = req.params;
-        
+
         if (typeof skip === 'string') skip = parseInt(skip);
-        
+
         if (typeof limit === 'string') limit = parseInt(limit);
 
         const populate = [{ path: 'projectId', select: 'name slug _id' }];
@@ -214,20 +214,17 @@ router.put(
                     return sendErrorResponse(req, res, error);
                 }
                 const data = {};
-                
+
                 data.audioFieldName = audioFieldName;
-                
+
                 data.callRoutingId = callRoutingId;
                 if (
                     req.files &&
-                    
                     req.files[audioFieldName] &&
-                    
                     req.files[audioFieldName][0].filename
                 ) {
-                    
                     data.file = req.files[audioFieldName][0].filename;
-                    
+
                     data.fileName = req.files[audioFieldName][0].originalname;
                 }
                 const CallRouting = await CallRoutingService.updateRoutingSchemaAudio(
@@ -248,7 +245,7 @@ router.delete(
     async function(req, res) {
         try {
             const { projectId, callRoutingId } = req.params;
-            
+
             const userId = req.user.id;
             if (!callRoutingId) {
                 return sendErrorResponse(req, res, {
@@ -290,12 +287,10 @@ router.delete(
             routingSchema = routingSchema.routingSchema;
             const query = {};
             if (backup) {
-                
                 query.filename = routingSchema.backup_introAudio;
                 routingSchema.backup_introAudio = null;
                 routingSchema.backup_introAudioName = '';
             } else {
-                
                 query.filename = routingSchema.introAudio;
                 routingSchema.introAudio = null;
                 routingSchema.introAudioName = '';

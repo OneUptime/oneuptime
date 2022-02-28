@@ -44,35 +44,30 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const scheduleModel = new ScheduleModel();
-        
+
         scheduleModel.name = data.name || null;
-        
+
         scheduleModel.projectId = data.projectId || null;
-        
+
         scheduleModel.createdById = data.createdById || null;
 
         // if userIds is array
         if (data.userIds) {
-            
             scheduleModel.userIds = [];
             for (const userId of data.userIds) {
-                
                 scheduleModel.userIds.push(userId);
             }
         }
 
         // if monitorIds is array
         if (data.monitorIds) {
-            
             scheduleModel.monitorIds = [];
             for (const monitorId of data.monitorIds) {
-                
                 scheduleModel.userIds.push(monitorId);
             }
         }
 
         if (data && data.name) {
-            
             scheduleModel.slug = getSlug(data.name);
         }
         const schedule = await scheduleModel.save();
@@ -321,7 +316,7 @@ export default {
                     data
                 );
             }
-            
+
             escalationIds.push(escalation._id);
         }
 

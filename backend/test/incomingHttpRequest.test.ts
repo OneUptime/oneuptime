@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -33,7 +32,6 @@ const {
     acknowledgeRequest,
 } = require('./data/incomingHttpRequest');
 
-
 describe('Incoming HTTP Request API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe,
@@ -51,7 +49,7 @@ describe('Incoming HTTP Request API', function() {
         internalNoteUrl: $TSFixMe;
 
     this.timeout(timeout);
-    
+
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(
@@ -137,7 +135,6 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -153,7 +150,6 @@ describe('Incoming HTTP Request API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should create an incoming http request (Create Incident)', function(done: $TSFixMe) {
         IncidentPrioritiesService.findOne({
             query: { projectId },
@@ -178,7 +174,6 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    
     it('should create an incoming http request (Acknowledge Incident)', function(done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
@@ -193,7 +188,6 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    
     it('should create an incoming http request (Resolve Incident)', function(done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
@@ -208,7 +202,6 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    
     it('should create an incoming http request (Update incident note)', function(done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
@@ -226,7 +219,6 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    
     it('should create an incoming http request (Update internal note)', function(done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
@@ -244,7 +236,6 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    
     it('should update an incoming http request', function(done: $TSFixMe) {
         const update = {
             name: 'updateName',
@@ -261,7 +252,6 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    
     it('should list all the created incoming http request in a project', function(done: $TSFixMe) {
         incidentRequest.name = 'anotherOne';
         incidentRequest.selectAllMonitors = false;
@@ -285,7 +275,6 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    
     it('should create an incident with incoming http request url', function(done: $TSFixMe) {
         axios({
             method: 'post',
@@ -298,7 +287,6 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    
     it('should acknowledge an incident with an incoming http request url', function(done: $TSFixMe) {
         axios({
             method: 'post',
@@ -311,7 +299,6 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    
     it('should resolve an incident with an incoming http request url', function(done: $TSFixMe) {
         axios({
             method: 'post',
@@ -324,7 +311,6 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    
     it('should add incident note with an incoming http request url', function(done: $TSFixMe) {
         // it should also work for a get request
         axios({
@@ -338,7 +324,6 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    
     it('should add internal note with an incoming http request url', function(done: $TSFixMe) {
         axios({
             method: 'get',
@@ -351,7 +336,6 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    
     it('should delete an incoming http request in project', function(done: $TSFixMe) {
         request
             .delete(`/incoming-request/${projectId}/remove/${requestId}`)

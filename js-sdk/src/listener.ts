@@ -16,7 +16,7 @@ class OneUptimeListener {
         this.options = options;
         this.isWindow = isWindow;
         this.timelineObj = new OneUptimeTimelineManager(options);
-        
+
         this.utilObj = new Util();
         this.currentEventId = eventId;
         this.BASE_URL = 'http://localhost:3002/api'; // TODO proper base url config
@@ -80,7 +80,7 @@ class OneUptimeListener {
             };
         })(global.console);
         //Then redefine the old console
-        
+
         global.console = console;
     }
     // set up dom listener
@@ -142,7 +142,7 @@ class OneUptimeListener {
             });
 
             // set up how to send this log to the server to take this log
-            
+
             return open.apply(this, arguments);
         }
 
@@ -162,14 +162,13 @@ class OneUptimeListener {
             // Do something with the promise
             promise.then(
                 res => {
-                    
                     obj.status_code = res.status;
                 },
                 err => {
                     obj.status_code = err.status;
                 }
             );
-            
+
             if (!url.startsWith(_this.BASE_URL)) {
                 _this._logFetchEvent(obj, _this.utilObj.getErrorType().INFO);
             }
@@ -363,7 +362,7 @@ class OneUptimeListener {
             current = current + 1;
         }
         let path = fullPath.reverse();
-        
+
         path = path.join(' > ');
         return { tree, path }; // return the final tree which contains a max of 5 elements
     }
@@ -373,13 +372,11 @@ class OneUptimeListener {
         const excludedAttributes = ['class', 'value']; // exclude items that are nnot needed
         // eslint-disable-next-line no-unused-vars
         for (const [key, value] of Object.entries(elementAtrributes)) {
-            
             if (!excludedAttributes.includes(value.name)) {
                 // if each attribute doesnt exist in the excluded one, we get the value and make an object
-                
+
                 const attribute = elem[value.name];
                 attributes.push({
-                    
                     key: value.name,
                     value: attribute,
                 });

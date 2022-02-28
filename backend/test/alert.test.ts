@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 process.env.NODE_ENV = 'development';
 const expect = require('chai').expect;
@@ -8,7 +7,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-
 
 const request = chai.request.agent(app);
 
@@ -39,17 +37,14 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-
 describe('Alert API', function() {
-    
     after(async function() {
         await UserService.hardDeleteBy({});
     });
-    
+
     describe('Alert API without subprojects', function() {
         this.timeout(30000);
 
-        
         before(function(done: $TSFixMe) {
             this.timeout(30000);
             GlobalConfig.initTestConfig().then(function() {
@@ -116,7 +111,6 @@ describe('Alert API', function() {
             });
         });
 
-        
         after(async function() {
             await StatusPageService.hardDeleteBy({ projectId: projectId });
             await NotificationService.hardDeleteBy({ projectId: projectId });
@@ -129,7 +123,7 @@ describe('Alert API', function() {
         });
 
         // 'post /:projectId'
-        
+
         it('should register with valid projectId, monitorId, incidentId, alertVia', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -157,7 +151,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should get an array of alerts by valid projectId', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -172,7 +165,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should get an array alerts of by valid incidentId', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -187,7 +179,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should deleted alert', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -199,7 +190,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should not delete alert with non-existing projectId', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -214,10 +204,9 @@ describe('Alert API', function() {
 
     let newUserToken: $TSFixMe;
 
-    
     describe('Alert API with Sub-Projects', function() {
         this.timeout(40000);
-        
+
         before(function(done: $TSFixMe) {
             this.timeout(30000);
             const authorization = `Basic ${token}`;
@@ -275,7 +264,6 @@ describe('Alert API', function() {
             });
         });
 
-        
         after(async function() {
             await ProjectService.hardDeleteBy({
                 _id: { $in: [projectId, subProjectId] },
@@ -295,7 +283,6 @@ describe('Alert API', function() {
             await GlobalConfig.removeTestConfig();
         });
 
-        
         it('should not create alert for user not in the project.', function(done: $TSFixMe) {
             createUser(request, userData.anotherUser, function(
                 err: $TSFixMe,
@@ -339,7 +326,6 @@ describe('Alert API', function() {
             });
         });
 
-        
         it('should create alert in parent project', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -359,7 +345,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should create alert in sub-project', function(done: $TSFixMe) {
             const authorization = `Basic ${newUserToken}`;
             request
@@ -378,7 +363,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should get only sub-project alerts for valid user.', function(done: $TSFixMe) {
             const authorization = `Basic ${newUserToken}`;
             request
@@ -393,7 +377,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should get both project and sub-project alerts for valid user.', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -410,7 +393,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should delete sub-project alert', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -422,7 +404,6 @@ describe('Alert API', function() {
                 });
         });
 
-        
         it('should delete project alert', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request

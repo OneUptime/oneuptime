@@ -9,7 +9,7 @@ export default {
         const file = await gfs.files.findOne(query);
         if (!file) {
             const error = new Error('File is not found.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -27,7 +27,7 @@ export default {
             return 'file deleted successfully';
         } else {
             const error = new Error('Id is required.');
-            
+
             error.code = 400;
             throw error;
         }

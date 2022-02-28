@@ -6,21 +6,21 @@ export default {
     create: async function({ securityId, componentId, data }: $TSFixMe) {
         if (!securityId) {
             const error = new Error('Security ID is required');
-            
+
             error.code = 400;
             throw error;
         }
 
         if (!componentId) {
             const error = new Error('Component ID is required');
-            
+
             error.code = 400;
             throw error;
         }
 
         if (!data) {
             const error = new Error('Please provide a scan log');
-            
+
             error.code = 400;
             throw error;
         }
@@ -38,7 +38,6 @@ export default {
             });
         } else {
             securityLog = await this.updateOneBy(
-                
                 { _id: securityLog._id },
                 data
             );
@@ -101,7 +100,7 @@ export default {
             const error = new Error(
                 'Container Security Log not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -115,7 +114,7 @@ export default {
             const error = new Error(
                 'Container Security Log not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }

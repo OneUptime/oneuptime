@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -6,7 +5,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-
 
 const request = chai.request.agent(app);
 
@@ -45,11 +43,9 @@ const slackPayload = {
     type: 'slack',
 };
 
-
 describe('Webhook API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -105,7 +101,6 @@ describe('Webhook API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -126,7 +121,7 @@ describe('Webhook API', function() {
     });
 
     //MS Teams
-    
+
     it('should prevent unauthenticated users from creating webhooks.', function(done: $TSFixMe) {
         request
             .post(`/webhook/${projectId}/create`)
@@ -136,11 +131,10 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should reject requests missing the endpoint.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
-        
+
         delete payload.endpoint;
         request
             .post(`/webhook/${projectId}/create`)
@@ -152,11 +146,10 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should reject requests missing the monitorId.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
-        
+
         delete payload.monitorId;
         request
             .post(`/webhook/${projectId}/create`)
@@ -168,11 +161,10 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should reject requests missing the integration type.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
-        
+
         delete payload.type;
         request
             .post(`/webhook/${projectId}/create`)
@@ -184,7 +176,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should create msteams webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -203,7 +194,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should not create msteams webhook, with the same integration type and endpoint, for the same monitorId.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -216,7 +206,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should create msteams webhook with a different endpoint.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
@@ -237,7 +226,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should update the msteams webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
@@ -257,7 +245,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should return the list of msteams webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -273,7 +260,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should delete msteams webhooks.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -291,7 +277,7 @@ describe('Webhook API', function() {
             });
     });
     //Slack
-    
+
     it('should create slack webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -310,7 +296,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should not create slack webhook, with the same integration type and endpoint, for the same monitorId.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -323,7 +308,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should create slack webhook with a different endpoint.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...slackPayload };
@@ -344,7 +328,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should update the slack webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const payload = { ...slackPayload };
@@ -364,7 +347,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should return the list of slack webhook.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -380,7 +362,6 @@ describe('Webhook API', function() {
             });
     });
 
-    
     it('should delete slack webhooks.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

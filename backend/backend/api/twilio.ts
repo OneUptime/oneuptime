@@ -37,7 +37,7 @@ router.get('/voice/status', async (req, res) => {
             query: { _id: incidentId },
             select: 'acknowledged',
         });
-        
+
         const newRedialCount = parseInt(redialCount) + 1;
 
         switch (CallStatus) {
@@ -108,7 +108,7 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
 ) {
     try {
         const { to } = req.body;
-        
+
         const userId = req.user ? req.user.id : null;
         const projectId = req.query.projectId;
         const validationResult = await SmsCountService.validateResend(userId);
@@ -133,7 +133,7 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
 router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     try {
         const { to, code } = req.body;
-        
+
         const userId = req.user ? req.user.id : null;
         if (!to) {
             sendErrorResponse(req, res, {

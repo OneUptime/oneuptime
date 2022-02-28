@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -13,18 +12,15 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-
 const request = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
 let token: $TSFixMe, projectId: $TSFixMe, refreshToken: $TSFixMe, userId;
 
-
 describe('Jwt Token API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -62,7 +58,6 @@ describe('Jwt Token API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -78,7 +73,6 @@ describe('Jwt Token API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should get new access and refresh token when provided a valid jwtRefreshToken', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -10,13 +9,10 @@ const password = '1234567890';
 let subProjectName = utils.generateRandomString();
 const newSubProjectName = utils.generateRandomString();
 
-
 describe('Sub-Project API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -35,32 +31,26 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not create a sub-project with no name',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
 
-            
             await init.pageClick(page, '#projectSettings');
 
-            
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
 
-            
             await init.pageClick(page, '#btn_Add_SubProjects');
 
-            
             await init.pageClick(page, '#btnAddSubProjects');
 
             const spanSelector = await init.pageWaitForSelector(
@@ -79,7 +69,6 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create a new sub-project',
         async (done: $TSFixMe) => {
@@ -87,19 +76,18 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
-            
+
             await init.pageClick(page, '#btn_Add_SubProjects');
-            
+
             await init.pageWaitForSelector(page, '#title');
-            
+
             await init.pageType(page, '#title', subProjectName);
-            
+
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
             const subProjectSelector = await init.pageWaitForSelector(
@@ -118,7 +106,6 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should rename a sub-project',
         async (done: $TSFixMe) => {
@@ -126,18 +113,17 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
             const editSubProjectName = utils.generateRandomString();
-            
+
             await init.pageClick(page, `#sub_project_edit_${subProjectName}`);
-            
+
             const input = await init.page$(page, '#title');
             await input.click({ clickCount: 3 });
             await input.type(editSubProjectName);
-            
+
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
             const subProjectSelector = await init.pageWaitForSelector(
@@ -157,24 +143,23 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not create a sub-project with an existing sub-project name',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#btn_Add_SubProjects');
-            
+
             const input = await init.page$(page, '#title');
             await input.click({ clickCount: 3 });
             await input.type(subProjectName);
-            
+
             await init.pageClick(page, '#btnAddSubProjects');
             const spanSelector = await init.pageWaitForSelector(
                 page,
@@ -192,27 +177,26 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete a sub-project',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#sub_project_delete_${subProjectName}`
             );
-            
+
             await init.pageClick(page, `#sub_project_delete_${subProjectName}`);
-            
+
             await init.pageWaitForSelector(page, '#removeSubProject');
-            
+
             await init.pageClick(page, '#removeSubProject');
             const subProjectSelector = await init.pageWaitForSelector(
                 page,
@@ -226,7 +210,6 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should display confirmation message before resetting the sub project API Key',
         async (done: $TSFixMe) => {
@@ -234,29 +217,28 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
-            
+
             await init.pageClick(page, '#btn_Add_SubProjects');
-            
+
             await init.pageWaitForSelector(page, '#title');
-            
+
             await init.pageType(page, '#title', newSubProjectName);
-            
+
             await init.pageClick(page, '#btnAddSubProjects');
-            
+
             await init.pageWaitForSelector(page, 'button[title=apiKey]');
-            
+
             await init.pageClick(page, 'button[title=apiKey]');
-            
+
             await init.pageWaitForSelector(page, 'button[id=removeSubProject]');
-            
+
             await init.pageClick(page, 'button[id=removeSubProject]');
-            
+
             let modalTitle = await init.page$(page, 'span#modalTitle');
             modalTitle = await modalTitle.getProperty('innerText');
             modalTitle = await modalTitle.jsonValue();
@@ -266,7 +248,6 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should reset the sub project API Key',
         async (done: $TSFixMe) => {
@@ -274,47 +255,45 @@ describe('Sub-Project API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, 'button[title=apiKey]');
-            
+
             await init.pageClick(page, 'button[title=apiKey]');
-            
+
             await init.pageWaitForSelector(page, 'span#apiKey');
-            
+
             await init.pageClick(page, 'span#apiKey');
-            
+
             let oldApiKey = await init.page$(page, 'span#apiKey');
             oldApiKey = await oldApiKey.getProperty('innerText');
             oldApiKey = await oldApiKey.jsonValue();
 
-            
             await init.pageWaitForSelector(page, 'button[id=removeSubProject]');
-            
+
             await init.pageClick(page, 'button[id=removeSubProject]');
-            
+
             await init.pageWaitForSelector(page, 'button[id=confirmResetKey]');
-            
+
             await init.pageClick(page, 'button[id=confirmResetKey]');
-            
+
             await init.pageWaitForSelector(page, 'button[title=apiKey]');
-            
+
             await init.pageClick(page, 'button[title=apiKey]');
-            
+
             await init.pageWaitForSelector(
                 page,
                 'button[id=sub_project_api_key_0]'
             );
-            
+
             await init.pageClick(page, 'button[id=sub_project_api_key_0]');
-            
+
             await init.pageWaitForSelector(page, 'span#apiKey');
-            
+
             await init.pageClick(page, 'span#apiKey');
-            
+
             let newApiKey = await init.page$(page, 'span#apiKey');
             newApiKey = await newApiKey.getProperty('innerText');
             newApiKey = await newApiKey.jsonValue();

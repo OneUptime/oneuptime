@@ -34,7 +34,7 @@ router.post(
                     message: "values can't be null",
                 });
             }
-            
+
             data.createdById = req.user ? req.user.id : null;
             if (!data.name) {
                 return sendErrorResponse(req, res, {
@@ -50,13 +50,11 @@ router.post(
             );
 
             try {
-                
                 NotificationService.create(
-                    
                     performanceTracker.componentId.projectId._id,
-                    
+
                     `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
-                    
+
                     performanceTracker.createdById._id,
                     'performanceTrackeraddremove'
                 );
@@ -137,7 +135,7 @@ router.get(
                 const error = new Error(
                     'Please specify the performance tracker ID or attach the slug as a query parameter'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -161,7 +159,7 @@ router.delete(
                 {
                     _id: performanceTrackerId,
                 },
-                
+
                 req.user.id
             );
             if (performanceTracker) {
@@ -321,11 +319,9 @@ router.put(
 
         const performanceTrackerData = {};
         if (data.name) {
-            
             performanceTrackerData.name = data.name;
         }
         if (data.showQuickStart !== undefined) {
-            
             performanceTrackerData.showQuickStart = data.showQuickStart;
         }
 
@@ -351,9 +347,9 @@ router.get(
         try {
             const { performanceTrackerId } = req.params;
             let { startDate, endDate } = req.query;
-            
+
             startDate = decode(startDate);
-            
+
             endDate = decode(endDate);
 
             // get each of the individual metrics
@@ -378,17 +374,15 @@ router.get(
 
             const result = {
                 performanceTrackerId,
-                
+
                 time: time.length > 0 ? time[time.length - 1].value : 0,
                 throughput:
                     throughput.length > 0
-                        ? 
-                          throughput[throughput.length - 1].value
+                        ? throughput[throughput.length - 1].value
                         : 0,
                 errorRate:
                     errorRate.length > 0
-                        ? 
-                          errorRate[errorRate.length - 1].value
+                        ? errorRate[errorRate.length - 1].value
                         : 0,
             };
             return sendItemResponse(req, res, result);

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,13 +11,10 @@ const password = '1234567890';
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 
-
 describe('Monitor API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -33,13 +29,11 @@ describe('Monitor API', () => {
         await init.addMonitorToComponent(componentName, monitorName, page); // This creates a default component and a monitor. The monitor created here will be used by other tests as required
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test('should display lighthouse scores', async (done: $TSFixMe) => {
         // Navigate to Component details
         // This navigates to the monitor created alongside the created component
@@ -118,7 +112,6 @@ describe('Monitor API', () => {
         done();
     }, 600000);
 
-    
     test(
         'should display multiple probes and monitor chart on refresh',
         async (done: $TSFixMe) => {
@@ -130,20 +123,18 @@ describe('Monitor API', () => {
                 page
             );
 
-            
             const probe0 = await init.pageWaitForSelector(page, '#probes-btn0');
-            
+
             const probe1 = await init.pageWaitForSelector(page, '#probes-btn1');
 
             expect(probe0).toBeDefined();
             expect(probe1).toBeDefined();
 
-            
             const monitorStatus = await init.pageWaitForSelector(
                 page,
                 `#monitor-status-${monitorName}`
             );
-            
+
             const sslStatus = await init.pageWaitForSelector(
                 page,
                 `#ssl-status-${monitorName}`

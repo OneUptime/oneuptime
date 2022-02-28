@@ -19,13 +19,11 @@ export default {
             .skip(skip);
     },
     countBy: async function(query = {}) {
-        
         if (!query.deleted) query.deleted = false;
 
         return await IncidentNoteTemplateModel.countDocuments(query);
     },
     findOneBy: async function(query = {}) {
-        
         if (!query.deleted) query.deleted = false;
 
         const incidentNoteTemplate = await IncidentNoteTemplateModel.findOne(
@@ -43,7 +41,7 @@ export default {
             const error = new Error(
                 'Incident note template with this name already exist in this project'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -67,7 +65,7 @@ export default {
             const error = new Error(
                 'Incident note template with this name already exist in this project'
             );
-            
+
             error.code = 400;
             throw error;
         }

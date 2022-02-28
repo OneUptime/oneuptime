@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -18,13 +17,10 @@ const webHookEndpoint = utils.generateRandomWebsite();
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -41,41 +37,39 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the integrations page and confirm there are no errors',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#integrations');
-            
+
             await init.pageClick(page, '#addWebhookButton');
-            
+
             await init.pageType(page, '#endpoint', webHookEndpoint);
-            
+
             await init.pageClick(page, '#monitorDropdown');
-            
+
             await init.pageClick(page, `#${monitorName}`);
-            
+
             await init.pageClick(page, 'label[for=monitorId]');
             await init.selectDropdownValue('#endpointType', 'GET', page);
-            
+
             await init.pageClick(page, '#createWebhook');
             await init.pageWaitForSelector(page, '#createWebhook', {
                 hidden: true,
             });
             //To confirm no errors and stays on the same page on reload
-            
+
             await init.pageWaitForSelector(page, '#webhook_name');
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, '#cbIntegrations', {

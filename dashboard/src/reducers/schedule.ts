@@ -215,7 +215,6 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                     success: true,
                 },
                 subProjectSchedules: state.subProjectSchedules.map(schedule => {
-                    
                     return schedule._id === action.payload.projectId
                         ? {
                               _id: action.payload.projectId,
@@ -253,7 +252,6 @@ export default function schedule(state = initialState, action: $TSFixMe) {
 
         case CREATE_SCHEDULE_SUCCESS:
             isExistingSchedule = state.subProjectSchedules.find(
-                
                 schedule => schedule._id === action.payload.projectId._id
             );
             return Object.assign({}, state, {
@@ -265,14 +263,13 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                 subProjectSchedules: isExistingSchedule
                     ? state.subProjectSchedules.length > 0
                         ? state.subProjectSchedules.map(schedule => {
-                              
                               return schedule._id ===
                                   action.payload.projectId._id
                                   ? {
                                         _id: action.payload.projectId._id,
                                         schedules: [
                                             action.payload,
-                                            
+
                                             ...schedule.schedules.filter(
                                                 (
                                                     status: $TSFixMe,
@@ -280,11 +277,11 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                                                 ) => index < 9
                                             ),
                                         ],
-                                        
+
                                         count: schedule.count + 1,
-                                        
+
                                         skip: schedule.skip,
-                                        
+
                                         limit: schedule.limit,
                                     }
                                   : schedule;
@@ -298,8 +295,7 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                                   limit: 0,
                               },
                           ]
-                    : 
-                      state.subProjectSchedules.concat([
+                    : state.subProjectSchedules.concat([
                           {
                               _id: action.payload.projectId._id,
                               schedules: [action.payload],
@@ -345,22 +341,21 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                     error: null,
                 },
                 subProjectSchedules: state.subProjectSchedules.map(schedule => {
-                    
                     return schedule._id === action.payload[0].projectId._id
                         ? {
                               _id: action.payload[0].projectId._id,
-                              
+
                               schedules: schedule.schedules.map(
                                   (schedule: $TSFixMe) =>
                                       schedule._id === action.payload[0]._id
                                           ? action.payload[0]
                                           : schedule
                               ),
-                              
+
                               count: schedule.count,
-                              
+
                               skip: schedule.skip,
-                              
+
                               limit: schedule.limit,
                           }
                         : schedule;
@@ -397,7 +392,6 @@ export default function schedule(state = initialState, action: $TSFixMe) {
         case DELETE_SCHEDULE_SUCCESS:
             data = Object.assign([], state.schedules.data);
             index = data.findIndex(
-                
                 schedule => schedule._id === action.payload.scheduleId
             );
             action.payload.n === 1 &&
@@ -421,7 +415,6 @@ export default function schedule(state = initialState, action: $TSFixMe) {
         case DELETE_PROJECT_SCHEDULES:
             data = Object.assign([], state.schedules.data);
             data = data.filter(
-                
                 schedule => action.payload !== schedule.projectId
             );
 
@@ -464,7 +457,6 @@ export default function schedule(state = initialState, action: $TSFixMe) {
         case ADD_MONITOR_SUCCESS:
             data = Object.assign([], state.schedules.data);
             data = data.map(schedule => {
-                
                 return schedule._id === action.payload[0]._id
                     ? action.payload[0]
                     : schedule;
@@ -483,22 +475,21 @@ export default function schedule(state = initialState, action: $TSFixMe) {
                     data,
                 },
                 subProjectSchedules: state.subProjectSchedules.map(schedule => {
-                    
                     return schedule._id === action.payload[0].projectId._id
                         ? {
                               _id: action.payload[0].projectId._id,
-                              
+
                               schedules: schedule.schedules.map(
                                   (schedule: $TSFixMe) =>
                                       schedule._id === action.payload[0]._id
                                           ? action.payload[0]
                                           : schedule
                               ),
-                              
+
                               count: schedule.count,
-                              
+
                               skip: schedule.skip,
-                              
+
                               limit: schedule.limit,
                           }
                         : schedule;
@@ -535,10 +526,9 @@ export default function schedule(state = initialState, action: $TSFixMe) {
         case ADD_USER_SUCCESS:
             data = Object.assign([], state.schedules.data);
             index = data.findIndex(
-                
                 schedule => schedule._id === action.payload._id
             );
-            
+
             data[index] = action.payload;
 
             return Object.assign({}, state, {

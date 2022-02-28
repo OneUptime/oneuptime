@@ -47,39 +47,39 @@ export default {
     create: async function(data: $TSFixMe) {
         if (!data.domain) {
             const error = new Error('Domain must be defined.');
-            
+
             error.code = 400;
             throw error;
         }
         if (!mongoose.Types.ObjectId.isValid(data.domain)) {
             const error = new Error("Domain id isn't valid.");
-            
+
             error.code = 400;
             throw error;
         }
 
         if (!data.project) {
             const error = new Error('Project  must be defined.');
-            
+
             error.code = 400;
             throw error;
         }
         if (!mongoose.Types.ObjectId.isValid(data.domain)) {
             const error = new Error("Domain id isn't valid.");
-            
+
             error.code = 400;
             throw error;
         }
 
         if (!data.role) {
             const error = new Error('Role must be defined.');
-            
+
             error.code = 400;
             throw error;
         }
         if (!['Administrator', 'Member', 'Viewer'].includes(data.role)) {
             const error = new Error('Invalid role.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -93,19 +93,18 @@ export default {
         });
         if (!sso) {
             const error = new Error("Domain doesn't exist.");
-            
+
             error.code = 400;
             throw error;
         }
 
-        
         const projectObj = await ProjectService.findOneBy({
             query: { _id: project },
             select: 'users _id',
         });
         if (!projectObj) {
             const error = new Error("Project doesn't exist.");
-            
+
             error.code = 400;
             throw error;
         }
@@ -116,17 +115,17 @@ export default {
             const error = new Error(
                 '[Domain-Project] are already associated to a default role.'
             );
-            
+
             error.code = 400;
             throw error;
         }
 
         const ssoDefaultRole = new ssoDefaultRolesModel();
-        
+
         ssoDefaultRole.domain = data.domain;
-        
+
         ssoDefaultRole.project = data.project;
-        
+
         ssoDefaultRole.role = data.role;
         const savedSso = await ssoDefaultRole.save();
         //Add existing users to the project.
@@ -148,7 +147,7 @@ export default {
             }
             users.push({
                 userId: ssoUser._id,
-                
+
                 role: ssoDefaultRole.role,
             });
             await ProjectService.updateOneBy({ _id: projectId }, { users });
@@ -177,7 +176,7 @@ export default {
     updateById: async function(id: $TSFixMe, data: $TSFixMe) {
         if (!id) {
             const error = new Error('Id must be defined.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -191,39 +190,39 @@ export default {
 
         if (!domain) {
             const error = new Error('Domain must be defined.');
-            
+
             error.code = 400;
             throw error;
         }
         if (!mongoose.Types.ObjectId.isValid(domain)) {
             const error = new Error("Domain id isn't valid.");
-            
+
             error.code = 400;
             throw error;
         }
 
         if (!project) {
             const error = new Error('Project must be defined.');
-            
+
             error.code = 400;
             throw error;
         }
         if (!mongoose.Types.ObjectId.isValid(project)) {
             const error = new Error("Project id isn't valid.");
-            
+
             error.code = 400;
             throw error;
         }
 
         if (!role) {
             const error = new Error('Role must be defined.');
-            
+
             error.code = 400;
             throw error;
         }
         if (!['Administrator', 'Member', 'Viewer'].includes(role)) {
             const error = new Error('Invalid role.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -235,14 +234,14 @@ export default {
 
         if (!search) {
             const error = new Error("Record doesn't exist.");
-            
+
             error.code = 400;
             throw error;
         }
 
         if (String(search._id) !== String(query._id)) {
             const error = new Error('Domain has a default role.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -293,7 +292,7 @@ export default {
         for (const ssoDefaultRole of ssoDefaultRoles) {
             const { project, role } = ssoDefaultRole;
             const { _id: projectId } = project;
-            
+
             const projectObj = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'users',

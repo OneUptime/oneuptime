@@ -76,7 +76,6 @@ class ErrorTracker {
                     // set max timeline properly after checking conditions
                     if (
                         key === 'maxTimeline' &&
-                        
                         (value > this.MAX_ITEMS_ALLOWED_IN_STACK || value < 1)
                     ) {
                         this.options[key] = this.MAX_ITEMS_ALLOWED_IN_STACK;
@@ -157,10 +156,8 @@ class ErrorTracker {
             const errorEvent = { message, file, line, col, error };
 
             const string = errorEvent.message
-                ? 
-                  errorEvent.message.toLowerCase()
-                : 
-                  errorEvent.toLowerCase();
+                ? errorEvent.message.toLowerCase()
+                : errorEvent.toLowerCase();
             const substring = 'script error';
             if (string.indexOf(substring) > -1) {
                 return; // third party error
@@ -192,7 +189,7 @@ class ErrorTracker {
             })
             .on('unhandledRejection', err => {
                 // display this for the user
-                
+
                 // eslint-disable-next-line no-console
                 console.log(`UnhandledPromiseRejectionWarning: ${err.stack}`);
                 // any unhandled promise error

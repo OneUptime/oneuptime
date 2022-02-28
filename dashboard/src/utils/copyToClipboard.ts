@@ -16,10 +16,8 @@ export default function(text: $TSFixMe) {
     // Check if there is any content selected previously
     // Store selection if found
     const selected =
-        
         document.getSelection().rangeCount > 0
-            ? 
-              document.getSelection().getRangeAt(0)
+            ? document.getSelection().getRangeAt(0)
             : false;
 
     el.select();
@@ -32,9 +30,8 @@ export default function(text: $TSFixMe) {
     Unselect everything on the HTML document;
     Restore the original selection */
     if (selected) {
-        
         document.getSelection().removeAllRanges();
-        
+
         document.getSelection().addRange(selected);
     }
 }

@@ -63,7 +63,7 @@ router.post(
                 const error = new Error(
                     'Please specify a name for the incoming request'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -87,7 +87,7 @@ router.post(
                 const error = new Error(
                     'Incoming request with this name already exist'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -120,7 +120,7 @@ router.put(
                 const error = new Error(
                     'Please specify a name for the incoming request'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -148,12 +148,11 @@ router.put(
                 const error = new Error(
                     'Incoming request with this name already exist'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
 
-            
             incomingRequest = await IncomingRequestService.updateOneBy(
                 { requestId, projectId },
                 data
@@ -260,12 +259,11 @@ router.post(
                 const error = new Error(
                     'Incoming request with this name already exist'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
 
-            
             incomingRequest = await IncomingRequestService.updateOneBy(
                 { requestId, projectId },
                 data

@@ -15,25 +15,25 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!name) {
             const error = new Error('Name must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!incidentState) {
             const error = new Error('Incident state must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!incidentNote) {
             const error = new Error('Incident note must be present');
-            
+
             error.code = 400;
             throw error;
         }
@@ -61,7 +61,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
-            
+
             error.code = 400;
             throw error;
         }
@@ -92,7 +92,7 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
-            
+
             error.code = 400;
             throw error;
         }
@@ -100,25 +100,25 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Incident note template Id must be present'
             );
-            
+
             error.code = 400;
             throw error;
         }
         if (!name) {
             const error = new Error('Name must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!incidentState) {
             const error = new Error('Incident state must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!incidentNote) {
             const error = new Error('Incident note must be present');
-            
+
             error.code = 400;
             throw error;
         }
@@ -144,7 +144,7 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
-            
+
             error.code = 400;
             throw error;
         }
@@ -152,7 +152,7 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Incident note template Id must be present'
             );
-            
+
             error.code = 400;
             throw error;
         }

@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -56,7 +55,7 @@ describe('Slack API', function() {
     });
 
     // 'post /slack/:projectId/monitor'
-    
+
     it('The purchase', function(done: $TSFixMe) {
         request
             .get(`/team/${projectId}/team`)
@@ -69,7 +68,6 @@ describe('Slack API', function() {
             });
     });
 
-    
     it.skip('The purchase', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

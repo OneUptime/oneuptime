@@ -58,7 +58,6 @@ export const testSmtp = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(testSmtpRequest());
 
     try {
-        
         const response = await postApi('emailSmtp/test', payload);
         dispatch(testSmtpSuccess(response));
         return response;
@@ -81,7 +80,6 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(testTwilioRequest());
 
     try {
-        
         const response = await postApi('twilio/sms/test', payload);
         dispatch(testTwilioSuccess(response));
         return response;
@@ -103,9 +101,8 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
 export const fetchSettings = (type: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(requestingSettings());
     try {
-        
         const response = await getApi(`globalConfig/${type}`);
-        
+
         const data = response.data || { value: {} };
         if (type === 'smtp') {
             data.value = { 'smtp-secure': false, ...data.value };
@@ -141,12 +138,11 @@ export const saveSettings = (type: $TSFixMe, settings: $TSFixMe) => async (
 ) => {
     dispatch(requestingSettings());
     try {
-        
         const response = await postApi(`globalConfig`, {
             name: type,
             value: settings,
         });
-        
+
         const data = response.data || { value: {} };
         dispatch(requestingSettingsSucceeded(data.value, type));
         return response;

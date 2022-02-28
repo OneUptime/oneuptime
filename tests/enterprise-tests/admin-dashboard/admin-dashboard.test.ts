@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,11 +14,8 @@ const user = {
     password,
 };
 
-
 describe('Enterprise Admin Dashboard API', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -28,13 +24,11 @@ describe('Enterprise Admin Dashboard API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     it(
         'Should login to admin dashboard and create a new user with correct details',
         async (done: $TSFixMe) => {
@@ -44,7 +38,7 @@ describe('Enterprise Admin Dashboard API', () => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    
+
                     json[key] = localStorage.getItem(key);
                 }
                 return json;

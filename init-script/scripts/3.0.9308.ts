@@ -1,4 +1,3 @@
-
 import { find, update } from '../util/db';
 import { ObjectId } from 'mongodb';
 
@@ -16,17 +15,15 @@ async function run() {
         };
 
         if (incident.monitorId) {
-            
             const monitors = [{ monitorId: ObjectId(incident.monitorId) }];
-            
+
             data.monitors = monitors;
         }
         if (incident.notificationId) {
             const notifications = [
-                
                 { notificationId: ObjectId(incident.notificationId) },
             ];
-            
+
             data.notifications = notifications;
         }
 

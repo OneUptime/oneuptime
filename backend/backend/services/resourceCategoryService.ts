@@ -8,16 +8,16 @@ export default {
             const error = new Error(
                 'A resource category with that name already exists.'
             );
-            
+
             error.code = 400;
             throw error;
         }
         let resourceCategory = new ResourceCategoryModel();
-        
+
         resourceCategory.projectId = data.projectId;
-        
+
         resourceCategory.createdById = data.createdById;
-        
+
         resourceCategory.name = data.name;
         resourceCategory = await resourceCategory.save();
         return resourceCategory;
@@ -134,7 +134,7 @@ export default {
             const error = new Error(
                 'A resource category with that name already exists.'
             );
-            
+
             error.code = 400;
             throw error;
         }

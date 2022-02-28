@@ -7,17 +7,14 @@ const MonitorService = require('../services/monitorService'),
 export default {
     checkAllDeviceMonitor: async () => {
         try {
-            
             const newDate = new moment();
             const resDate = new Date();
             const monitors = await MonitorService.getDeviceMonitorsPing();
             if (monitors) {
                 monitors.forEach(async (monitor: $TSFixMe) => {
-                    
                     const d = new moment(monitor.lastPingTime);
 
                     if (newDate.diff(d, 'minutes') > 3) {
-                        
                         await job(monitor);
                     } else {
                         const res = new Date().getTime() - resDate.getTime();

@@ -1,4 +1,3 @@
-
 import { updateMany } from '../util/db';
 
 const projectCollection = 'projects';

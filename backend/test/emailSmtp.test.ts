@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user';
@@ -22,11 +21,9 @@ import smtpCredential from './data/smtpCredential';
 
 let projectId: $TSFixMe, jwtToken: $TSFixMe, emailSmtpId: $TSFixMe;
 
-
 describe('Email SMTP Api Test', function() {
     this.timeout(200000);
 
-    
     before(async function() {
         this.timeout(400000);
         await GlobalConfig.initTestConfig();
@@ -52,7 +49,6 @@ describe('Email SMTP Api Test', function() {
         jwtToken = res1.body.tokens.jwtAccessToken;
     });
 
-    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -66,7 +62,6 @@ describe('Email SMTP Api Test', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should confirm that `master-admin` exists', async () => {
         const res = await request.get('/user/masterAdminExists');
         expect(res).to.have.status(200);
@@ -74,7 +69,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.result).to.eql(true);
     });
 
-    
     it('should send test smtp email to the provided email address', async () => {
         const authorization = `Basic ${jwtToken}`;
         const { value } = await GlobalConfigService.findOneBy({
@@ -100,7 +94,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body).to.be.an('object');
     });
 
-    
     it('should not send test smtp email when user or pass is not valid', async () => {
         const authorization = `Basic ${jwtToken}`;
         const { value } = await GlobalConfigService.findOneBy({
@@ -126,7 +119,6 @@ describe('Email SMTP Api Test', function() {
         expect(res).to.have.status(400);
     });
 
-    
     it('should not send test smtp email when host or port is invalid', async () => {
         const authorization = `Basic ${jwtToken}`;
         const { value } = await GlobalConfigService.findOneBy({
@@ -153,7 +145,6 @@ describe('Email SMTP Api Test', function() {
         expect(res).to.have.status(400);
     });
 
-    
     it('should save custom SMTP settings', async () => {
         const authorization = `Basic ${jwtToken}`;
         const data = {
@@ -170,7 +161,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.user).to.be.equal(data.user);
     });
 
-    
     it('should not save custom SMTP settings if user name is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let user;
@@ -187,7 +177,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('User Name is required.');
     });
 
-    
     it('should not save custom SMTP settings if password is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let pass;
@@ -204,7 +193,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('Password is required.');
     });
 
-    
     it('should not save custom SMTP settings if host is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let host;
@@ -221,7 +209,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('host is required.');
     });
 
-    
     it('should not save custom SMTP settings if port is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let port;
@@ -237,7 +224,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('port is required.');
     });
 
-    
     it('should not save custom SMTP settings if from is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let from;
@@ -253,7 +239,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('from is required.');
     });
 
-    
     it('should not save custom SMTP settings if name is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let name;
@@ -269,7 +254,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('name is required.');
     });
 
-    
     it('should update a custom SMTP settings', async () => {
         const authorization = `Basic ${jwtToken}`;
         const data = { ...smtpCredential, from: 'info@gmail.com' };
@@ -281,7 +265,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.from).to.be.equal(data.from);
     });
 
-    
     it('should not update custom SMTP settings if user name is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let user;
@@ -297,7 +280,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('User Name is required.');
     });
 
-    
     it('should not update custom SMTP settings if password is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let pass;
@@ -314,7 +296,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('Password is required.');
     });
 
-    
     it('should not update custom SMTP settings if host is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let host;
@@ -332,7 +313,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('host is required.');
     });
 
-    
     it('should not update custom SMTP settings if port is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let port;
@@ -349,7 +329,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('port is required.');
     });
 
-    
     it('should not update custom SMTP settings if from is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let from;
@@ -365,7 +344,6 @@ describe('Email SMTP Api Test', function() {
         expect(res.body.message).to.be.equal('from is required.');
     });
 
-    
     it('should not update custom SMTP settings if name is missing', async () => {
         const authorization = `Basic ${jwtToken}`;
         let name;

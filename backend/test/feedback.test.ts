@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -22,11 +21,9 @@ const selectEmailStatus =
 
 let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 
-
 describe('Feedback API', function() {
     this.timeout(50000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -69,7 +66,6 @@ describe('Feedback API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -81,12 +77,11 @@ describe('Feedback API', function() {
                 ],
             },
         });
-        
+
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should create feedback and check the sent emails to oneuptime team and user', async function() {
         const authorization = `Basic ${token}`;
         const testFeedback = {

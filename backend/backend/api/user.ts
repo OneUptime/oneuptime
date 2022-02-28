@@ -325,7 +325,7 @@ router.get('/sso/login', async function(req, res) {
     }
 
     const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
-    
+
     const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
 
     if (!matchedTokens) {
@@ -516,7 +516,6 @@ router.post('/sso/callback', async function(req, res) {
         };
 
         return res.redirect(
-            
             `${global.accountsHost}` +
                 `/ssologin?id=${authUserObj.id}` +
                 `&name=${authUserObj.name}` +
@@ -763,7 +762,6 @@ router.post('/verify/backupCode', async function(req, res) {
 // None
 // Return: return the new list of backup codes.
 router.post('/generate/backupCode', getUser, async function(req, res) {
-    
     const userId = req.user.id || null;
     const user = await UserService.findOneBy({
         query: { _id: userId },
@@ -865,7 +863,7 @@ router.post('/forgot-password', async function(req, res) {
         }
         // Call the UserService.
         const user = await UserService.forgotPassword(data.email);
-        
+
         const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
         try {
             // Call the MailService.
@@ -975,7 +973,7 @@ router.post('/isInvited', async function(req, res) {
 // I used to validate token given to redirected urls such as status page
 router.post('/isAuthenticated', getUser, async (req, res) => {
     // request will get here if user is authenticated.
-    
+
     return sendItemResponse(req, res, { authenticated: true, user: req.user });
 });
 
@@ -995,7 +993,6 @@ router.put('/profile', getUser, async function(req, res) {
             },
         ]);
         upload(req, res, async function(error: $TSFixMe) {
-            
             const userId = req.user ? req.user.id : null;
             const data = req.body;
 
@@ -1004,12 +1001,9 @@ router.put('/profile', getUser, async function(req, res) {
             }
             if (
                 req.files &&
-                
                 req.files.profilePic &&
-                
                 req.files.profilePic[0].filename
             ) {
-                
                 data.profilePic = req.files.profilePic[0].filename;
             }
             const userData = await UserService.findOneBy({
@@ -1041,7 +1035,6 @@ router.put('/profile', getUser, async function(req, res) {
 // Returns: 200: Success, 400: Error; 500: Server Error.
 router.put('/push-notification', getUser, async function(req, res) {
     try {
-        
         const userId = req.user ? req.user.id : null;
         const data = req.body;
         const user = await UserService.updatePush({ userId, data });
@@ -1102,12 +1095,9 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function(
 
             if (
                 req.files &&
-                
                 req.files.profilePic &&
-                
                 req.files.profilePic[0].filename
             ) {
-                
                 data.profilePic = req.files.profilePic[0].filename;
             }
 
@@ -1128,7 +1118,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function(
 router.put('/changePassword', getUser, async function(req, res) {
     try {
         const data = req.body;
-        
+
         const userId = req.user ? req.user.id : null;
         data._id = userId;
 
@@ -1219,7 +1209,6 @@ router.put('/changePassword', getUser, async function(req, res) {
 // Returns: 200: Success, 400: Error; 500: Server Error.
 router.get('/profile', getUser, async function(req, res) {
     try {
-        
         const userId = req.user ? req.user.id : null;
 
         if (!userId) {
@@ -1283,7 +1272,6 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             if (!token) {
                 return res.redirect(
-                    
                     global.accountsHost +
                         '/user-verify/resend?status=link-expired'
                 );
@@ -1293,7 +1281,6 @@ router.get('/confirmation/:token', async function(req, res) {
             });
             if (!user) {
                 return res.redirect(
-                    
                     global.accountsHost + '/register?status=user-not-found'
                 );
             }
@@ -1303,7 +1290,6 @@ router.get('/confirmation/:token', async function(req, res) {
                     (user.tempEmail && user.tempEmail === user.email))
             ) {
                 return res.redirect(
-                    
                     global.accountsHost + '/login?status=already-verified'
                 );
             }
@@ -1311,7 +1297,7 @@ router.get('/confirmation/:token', async function(req, res) {
             if (user.tempEmail && user.tempEmail !== user.email) {
                 dataUpdate = {
                     isVerified: true,
-                    
+
                     email: user.tempEmail,
                     tempEmail: null,
                 };
@@ -1319,11 +1305,10 @@ router.get('/confirmation/:token', async function(req, res) {
             await UserModel.findByIdAndUpdate(user._id, {
                 $set: dataUpdate,
             });
-            
+
             return res.redirect(global.accountsHost + '/login?status=verified');
         } else {
             return res.redirect(
-                
                 global.accountsHost +
                     '/user-verify/resend?status=invalid-verification-link'
             );
@@ -1421,17 +1406,17 @@ router.get('/users/:userId', getUser, isUserMasterAdmin, async function(
 router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const userId = req.params.userId;
-        
+
         const authUserId = req.user.id;
         if (userId === authUserId) {
             const err = new Error(
                 "Invalid operation! You can't perform this operation on your own account"
             );
-            
+
             err.code = 400;
             throw err;
         }
-        
+
         const masterUserId = req.user.id || null;
         const user = await UserService.deleteBy({ _id: userId }, masterUserId);
         return sendItemResponse(req, res, user);
@@ -1446,13 +1431,13 @@ router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
-        
+
         const authUserId = req.user.id;
         if (userId === authUserId) {
             const err = new Error(
                 "Invalid operation! You can't perform this operation on your own account"
             );
-            
+
             err.code = 400;
             throw err;
         }
@@ -1472,13 +1457,13 @@ router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
-        
+
         const authUserId = req.user.id;
         if (userId === authUserId) {
             const err = new Error(
                 "Invalid operation! You can't perform this operation on your own account"
             );
-            
+
             err.code = 400;
             throw err;
         }
@@ -1498,13 +1483,13 @@ router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
-        
+
         const authUserId = req.user.id;
         if (userId === authUserId) {
             const err = new Error(
                 "Invalid operation! You can't perform this operation on your own account"
             );
-            
+
             err.code = 400;
             throw err;
         }
@@ -1530,13 +1515,13 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.params.userId;
-            
+
             const authUserId = req.user.id;
             if (userId === authUserId) {
                 const err = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
-                
+
                 err.code = 400;
                 throw err;
             }
@@ -1564,13 +1549,13 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.params.userId;
-            
+
             const authUserId = req.user.id;
             if (userId === authUserId) {
                 const err = new Error(
                     "Invalid operation! You can't perform this operation on your own account"
                 );
-                
+
                 err.code = 400;
                 throw err;
             }
@@ -1675,14 +1660,13 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function(
 // Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
 router.delete('/:userId/delete', getUser, async function(req, res) {
     try {
-        
         if (req.params.userId !== req.user.id) {
             return sendErrorResponse(req, res, {
                 code: 401,
                 message: 'You are unauthorized to access the page',
             });
         }
-        
+
         const userId = req.user.id;
         const user = await UserService.findOneBy({
             query: { _id: userId },
@@ -1714,7 +1698,7 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
             })
             .forEach(async (project: $TSFixMe) => {
                 const { _id: projectId } = project;
-                
+
                 await ProjectService.exitProject(projectId, userId);
             });
 
@@ -1740,7 +1724,6 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
                             userId
                         );
                     } else {
-                        
                         await ProjectService.exitProject(projectId, userId);
                     }
                 }

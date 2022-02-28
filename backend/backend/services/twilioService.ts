@@ -29,7 +29,7 @@ const _this = {
     getClient: (accountSid: $TSFixMe, authToken: $TSFixMe) => {
         if (!accountSid || !authToken) {
             const error = new Error('Twilio credentials not found.');
-            
+
             error.code = 400;
             return error;
         }
@@ -46,7 +46,7 @@ const _this = {
         }
 
         const error = new Error('Twilio settings not found.');
-        
+
         error.code = 400;
         throw error;
     },
@@ -82,16 +82,15 @@ const _this = {
                 populate: [{ path: 'projectId', select: 'name' }],
             });
             if (customTwilioSettings) {
-                
                 options.from = customTwilioSettings.phoneNumber;
                 const incidentSMSAction = new incidentSMSActionModel();
-                
+
                 incidentSMSAction.incidentId = incidentId;
-                
+
                 incidentSMSAction.userId = userId;
-                
+
                 incidentSMSAction.number = number;
-                
+
                 incidentSMSAction.name = name;
                 await incidentSMSAction.save();
 
@@ -99,9 +98,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     userId,
                     number,
@@ -119,7 +118,7 @@ const _this = {
 
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         userId,
@@ -135,22 +134,21 @@ const _this = {
                     projectId
                 );
                 if (alertLimit) {
-                    
                     options.from = creds.phone;
                     // create incidentSMSAction entry for matching sms from twilio.
                     const incidentSMSAction = new incidentSMSActionModel();
-                    
+
                     incidentSMSAction.incidentId = incidentId;
-                    
+
                     incidentSMSAction.userId = userId;
-                    
+
                     incidentSMSAction.number = number;
-                    
+
                     incidentSMSAction.name = name;
                     await incidentSMSAction.save();
-                    
+
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         userId,
                         number,
@@ -163,7 +161,7 @@ const _this = {
                     const error = new Error(
                         'Alerts limit reached for the day.'
                     );
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         userId,
@@ -216,7 +214,7 @@ const _this = {
                 statusPageUrl,
                 ...customFields,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -238,9 +236,8 @@ const _this = {
                     customTwilioSettings.authToken
                 );
 
-                
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -253,7 +250,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -281,9 +278,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -304,7 +300,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -351,7 +347,7 @@ const _this = {
                 ...customFields,
                 incidentNote: note,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -371,9 +367,8 @@ const _this = {
                     customTwilioSettings.authToken
                 );
 
-                
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -386,7 +381,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -414,9 +409,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -437,7 +431,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -485,7 +479,7 @@ const _this = {
                 ...customFields,
                 length,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -505,9 +499,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -520,7 +514,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -548,9 +542,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -571,7 +564,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -619,7 +612,7 @@ const _this = {
                 ...customFields,
                 length,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -639,9 +632,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -654,7 +647,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -682,9 +675,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -705,7 +697,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -736,9 +728,8 @@ const _this = {
                 data.authToken
             );
 
-            
             const message = await twilioClient.messages.create(options);
-            
+
             await SmsCountService.create(
                 null,
                 options.to,
@@ -784,7 +775,7 @@ const _this = {
                 eventEndTime: schedule.endDate,
                 projectName,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -802,9 +793,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -817,7 +808,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -845,9 +836,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -868,7 +858,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -908,7 +898,7 @@ const _this = {
                 eventNoteType: message.type,
                 projectName,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -926,9 +916,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -941,7 +931,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -969,9 +959,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -992,7 +981,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -1029,7 +1018,7 @@ const _this = {
                 eventResolveTime: schedule.resolvedAt,
                 projectName,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -1047,9 +1036,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -1062,7 +1051,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -1090,9 +1079,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -1113,7 +1101,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -1149,7 +1137,7 @@ const _this = {
                 eventCancelTime: schedule.cancelledAt,
                 projectName,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -1167,9 +1155,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -1182,7 +1170,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -1210,9 +1198,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -1233,7 +1220,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -1271,7 +1258,7 @@ const _this = {
                 announcementDescription: description,
                 projectName,
             };
-            
+
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
@@ -1289,9 +1276,9 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const message = await twilioClient.messages.create(options);
-                
+
                 await SmsCountService.create(
                     null,
                     number,
@@ -1304,7 +1291,7 @@ const _this = {
                 const creds = await _this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
-                    
+
                     error.code = 400;
                     await SmsCountService.create(
                         null,
@@ -1332,9 +1319,8 @@ const _this = {
                 );
 
                 if (alertLimit) {
-                    
                     const message = await twilioClient.messages.create(options);
-                    
+
                     await SmsCountService.create(
                         null,
                         number,
@@ -1355,7 +1341,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     return error;
                 }
@@ -1412,15 +1398,14 @@ const _this = {
             });
 
             if (customTwilioSettings) {
-                
                 options.from = customTwilioSettings.phoneNumber;
                 const twilioClient = _this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 const call = await twilioClient.calls.create(options);
-                
+
                 await CallLogsService.create(
                     '+15005550006',
                     number,
@@ -1437,7 +1422,7 @@ const _this = {
                 );
                 if (!creds['call-enabled']) {
                     const error = new Error('Call Not Enabled');
-                    
+
                     error.code = 400;
                     await CallLogsService.create(
                         '+15005550006',
@@ -1454,12 +1439,10 @@ const _this = {
                     projectId
                 );
                 if (alertLimit) {
-                    
                     options.from = creds.phone;
                     if (twilioClient) {
-                        
                         const call = await twilioClient.calls.create(options);
-                        
+
                         await CallLogsService.create(
                             '+15005550006',
                             number,
@@ -1473,7 +1456,7 @@ const _this = {
                     const error = new Error(
                         'Alerts limit reached for the day.'
                     );
-                    
+
                     error.code = 400;
                     await CallLogsService.create(
                         '+15005550006',
@@ -1590,7 +1573,7 @@ const _this = {
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
-                
+
                 await twilioClient.messages.create(options);
                 await UserService.updateOneBy(
                     { _id: userId },
@@ -1617,7 +1600,7 @@ const _this = {
                 if (alertLimit) {
                     if (!creds['sms-enabled']) {
                         const error = new Error('SMS Not Enabled');
-                        
+
                         error.code = 400;
                         throw error;
                     }
@@ -1628,10 +1611,9 @@ const _this = {
                         from: creds.phone,
                         to,
                     };
-                    
+
                     await twilioClient.messages.create(options);
                     await Promise.all([
-                        
                         SmsCountService.create(
                             userId,
                             to,
@@ -1662,7 +1644,7 @@ const _this = {
                         'Error',
                         error.message
                     );
-                    
+
                     error.code = 400;
                     throw error;
                 }
@@ -1710,7 +1692,7 @@ const _this = {
             authToken = creds['authentication-token'];
         }
         const twilioClient = _this.getClient(accountSid, authToken);
-        
+
         const priceList = await twilioClient.pricing.v1.phoneNumbers
             .countries(countryCode)
             .fetch();
@@ -1721,19 +1703,16 @@ const _this = {
             priceList.phoneNumberPrices &&
             priceList.phoneNumberPrices.map((p: $TSFixMe) => {
                 if (p.number_type && p.number_type === 'local') {
-                    
                     localPrice.basePrice = p.base_price;
-                    
+
                     localPrice.currentPrice = p.current_price;
                 } else if (p.number_type && p.number_type === 'toll free') {
-                    
                     mobilePrice.basePrice = p.base_price;
-                    
+
                     mobilePrice.currentPrice = p.current_price;
                 } else if (p.number_type && p.number_type === 'mobile') {
-                    
                     tollFreePrice.basePrice = p.base_price;
-                    
+
                     tollFreePrice.currentPrice = p.current_price;
                 }
                 return p;
@@ -1743,38 +1722,35 @@ const _this = {
 
         if (numberType === 'Local') {
             numbers = await twilioClient
-                
+
                 .availablePhoneNumbers(countryCode)
                 .local.list({ limit: 1 });
-            
+
             data.price = await _this.calculatePrice(
-                
                 localPrice.currentPrice,
-                
+
                 localPrice.basePrice
             );
         } else if (numberType === 'Mobile') {
             numbers = await twilioClient
-                
+
                 .availablePhoneNumbers(countryCode)
                 .mobile.list({ limit: 1 });
-            
+
             data.price = await _this.calculatePrice(
-                
                 mobilePrice.currentPrice,
-                
+
                 mobilePrice.basePrice
             );
         } else if (numberType === 'TollFree') {
             numbers = await twilioClient
-                
+
                 .availablePhoneNumbers(countryCode)
                 .tollFree.list({ limit: 1 });
-            
+
             data.price = await _this.calculatePrice(
-                
                 tollFreePrice.currentPrice,
-                
+
                 tollFreePrice.basePrice
             );
         }
@@ -1806,13 +1782,12 @@ const _this = {
         }
         const twilioClient = _this.getClient(accountSid, authToken);
 
-        
         const numbers = await twilioClient.incomingPhoneNumbers.create({
             phoneNumber: phoneNumber,
-            
+
             voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
             voiceMethod: 'POST',
-            
+
             statusCallback: `${global.apiHost}/callRouting/statusCallback`,
             statusCallbackMethod: 'POST',
         });
@@ -1836,7 +1811,6 @@ const _this = {
         }
         const twilioClient = _this.getClient(accountSid, authToken);
 
-        
         const numbers = await twilioClient.incomingPhoneNumbers(sid).remove();
         return numbers;
     },
@@ -1858,7 +1832,6 @@ const _this = {
         }
         const twilioClient = _this.getClient(accountSid, authToken);
 
-        
         const details = await twilioClient.calls(CallSid).fetch();
         return details;
     },

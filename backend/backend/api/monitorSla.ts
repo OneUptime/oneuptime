@@ -46,28 +46,28 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!name || !name.trim()) {
             const error = new Error('SLA name is required');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!monitorUptime || !monitorUptime.trim()) {
             const error = new Error('Monitor uptime is required');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (frequency && isNaN(frequency)) {
             const error = new Error('Please use numeric values for frequency');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (frequency && Number(frequency) < 1) {
             const error = new Error('At lease a single day is needed');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -76,7 +76,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Please use numeric values for monitor uptime'
             );
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -85,7 +85,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Monitor Uptime less than 1 is not allowed'
             );
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -94,7 +94,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Monitor Uptime greater than 100 is not allowed'
             );
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -118,28 +118,28 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
 
         if (!handleDefault && (!name || !name.trim())) {
             const error = new Error('SLA name is required');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && (!monitorUptime || !monitorUptime.trim())) {
             const error = new Error('Monitor uptime is required');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && frequency && isNaN(frequency)) {
             const error = new Error('Please use numeric values for frequency');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && frequency && Number(frequency) < 1) {
             const error = new Error('At lease a single day is needed');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -148,7 +148,7 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Please use numeric values for monitor uptime'
             );
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -157,7 +157,7 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Monitor Uptime less than 1 is not allowed'
             );
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -166,7 +166,7 @@ router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Monitor Uptime greater than 100 is not allowed'
             );
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }

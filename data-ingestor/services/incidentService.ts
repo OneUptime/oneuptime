@@ -83,7 +83,6 @@ export default {
 
             const _this = this;
             const oldIncident = await _this.findOneBy({
-                
                 query: { _id: ObjectId(query._id), deleted: { $ne: null } },
             });
 
@@ -337,7 +336,6 @@ export default {
 
             const project = await ProjectService.findOneBy({
                 query: {
-                    
                     _id: ObjectId(
                         updatedIncident.projectId._id ||
                             updatedIncident.projectId

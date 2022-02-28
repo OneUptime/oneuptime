@@ -19,7 +19,6 @@ export function createErrorTracker(
 
         promise.then(
             function(errorTracker) {
-                
                 dispatch(createErrorTrackerSuccess(errorTracker.data));
             },
             function(error) {
@@ -71,13 +70,12 @@ export function resetCreateErrorTracker() {
 export function fetchErrorTrackersByProject(projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(`component/${projectId}/issues`);
-        
+
         dispatch(fetchErrorTrackersRequest());
 
         promise.then(
             function(errorTrackers) {
                 dispatch(
-                    
                     fetchErrorTrackersSuccess(errorTrackers.data.errorTrackers)
                 );
             },
@@ -115,7 +113,6 @@ export function fetchErrorTrackers(
 
         promise.then(
             function(errorTrackers) {
-                
                 dispatch(fetchErrorTrackersSuccess(errorTrackers.data));
             },
             function(error) {
@@ -187,13 +184,12 @@ export function fetchErrorTrackerIssues(
                     fetchErrorTrackerIssuesSuccess({
                         errorTrackerId,
                         errorTrackerIssues:
-                            
                             response.data.data.errorTrackerIssues,
-                        
+
                         dateRange: response.data.data.dateRange,
                         skip,
                         limit,
-                        
+
                         count: response.data.data.count,
                     })
                 );
@@ -251,7 +247,6 @@ export function fetchErrorEvent(
     errorEventId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = postApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/error-events/${errorEventId}`
         );
@@ -263,13 +258,13 @@ export function fetchErrorEvent(
                     fetchErrorEventSuccess({
                         errorTrackerId,
                         errorEventId,
-                        
+
                         errorEvent: response.data.errorEvent,
-                        
+
                         previous: response.data.previous,
-                        
+
                         next: response.data.next,
-                        
+
                         totalEvents: response.data.totalEvents,
                     })
                 );
@@ -338,7 +333,6 @@ export function deleteErrorTracker(
     errorTrackerId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = deleteApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}`
         );
@@ -346,7 +340,6 @@ export function deleteErrorTracker(
 
         promise.then(
             function(errorTracker) {
-                
                 dispatch(deleteErrorTrackerSuccess(errorTracker.data._id));
             },
             function(error) {
@@ -416,7 +409,6 @@ export function editErrorTracker(
 
         promise.then(
             function(errorTracker) {
-                
                 dispatch(editErrorTrackerSuccess(errorTracker.data));
             },
             function(error) {
@@ -465,7 +457,6 @@ export function resetErrorTrackerKey(
     errorTrackerId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = postApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/reset-key`
         );
@@ -473,7 +464,6 @@ export function resetErrorTrackerKey(
 
         promise.then(
             function(errorTracker) {
-                
                 dispatch(resetErrorTrackerKeySuccess(errorTracker.data));
             },
             function(error) {
@@ -540,7 +530,7 @@ export function ignoreErrorEvent(
                 dispatch(
                     ignoreErrorEventSuccess({
                         errorTrackerId,
-                        
+
                         ignoredIssues: response.data.issues,
                     })
                 );
@@ -557,7 +547,6 @@ export function ignoreErrorEvent(
                     error = 'Network Error';
                 }
                 dispatch(
-                    
                     ignoreErrorEventFailure(errors(error, errorTrackerId))
                 );
             }
@@ -616,7 +605,7 @@ export function unresolveErrorEvent(
                 dispatch(
                     unresolveErrorEventSuccess({
                         errorTrackerId,
-                        
+
                         unresolvedIssues: response.data.issues,
                     })
                 );
@@ -633,7 +622,6 @@ export function unresolveErrorEvent(
                     error = 'Network Error';
                 }
                 dispatch(
-                    
                     unresolveErrorEventFailure(errors(error, errorTrackerId))
                 );
             }
@@ -692,7 +680,7 @@ export function resolveErrorEvent(
                 dispatch(
                     resolveErrorEventSuccess({
                         errorTrackerId,
-                        
+
                         resolvedIssues: response.data.issues,
                     })
                 );
@@ -709,7 +697,6 @@ export function resolveErrorEvent(
                     error = 'Network Error';
                 }
                 dispatch(
-                    
                     resolveErrorEventFailure(errors(error, errorTrackerId))
                 );
             }
@@ -776,7 +763,7 @@ export function updateErrorEventMember(
                     updateErrorEventMemberSuccess({
                         errorTrackerId,
                         issueId,
-                        
+
                         members: response.data.members,
                     })
                 );
@@ -842,7 +829,6 @@ export function deleteErrorTrackerIssue(
     issueId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = deleteApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issue/${issueId}`
         );
@@ -850,7 +836,6 @@ export function deleteErrorTrackerIssue(
 
         promise.then(
             function(errorTracker) {
-                
                 dispatch(deleteErrorTrackerIssueSuccess(errorTracker.data));
             },
             function(error) {

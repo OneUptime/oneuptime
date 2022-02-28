@@ -1,4 +1,3 @@
-
 import { getApi, postApi } from './api';
 
 export default {

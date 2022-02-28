@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const newEmail = utils.generateRandomBusinessEmail();
 const newPassword = '1234567890';
 const subProjectName = utils.generateRandomString();
 
-
 describe('Monitor API With SubProjects', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -42,9 +38,9 @@ describe('Monitor API With SubProjects', () => {
 
         // add sub-project
         await init.addSubProject(subProjectName, page);
-        
+
         await init.pageClick(page, '#projectFilterToggle');
-        
+
         await init.pageClick(page, `#project-${subProjectName}`);
         // Create component
         await init.addComponent(componentName, page);
@@ -66,13 +62,11 @@ describe('Monitor API With SubProjects', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not display new monitor form for user that is not `admin` in sub-project.',
         async (done: $TSFixMe) => {
@@ -81,15 +75,14 @@ describe('Monitor API With SubProjects', () => {
             await init.saasLogout(page);
             await init.registerAndLoggingTeamMember(user, page); // SubProject User registration and login
 
-            
             await init.pageClick(page, '#projectFilterToggle');
-            
+
             await init.pageClick(page, `#project-${subProjectName}`);
             await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
             const newComponentForm = await init.page$(
                 page,
@@ -109,43 +102,42 @@ describe('Monitor API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create a monitor in sub-project for valid `admin`',
         async (done: $TSFixMe) => {
             const user = { email: email, password };
             await init.loginUser(user, page);
             // Navigate to details page of component created
-            
+
             await init.pageClick(page, '#projectFilterToggle');
-            
+
             await init.pageClick(page, `#project-${subProjectName}`);
             await init.navigateToComponentDetails(componentName, page);
             // switch to invited project for new user
-            
+
             await init.pageWaitForSelector(page, '#monitors');
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', subProjectMonitorName);
-            
+
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(page, '#url', 'https://google.com');
-            
+
             await init.pageClick(page, 'button[type=submit]');
             let spanElement = await init.pageWaitForSelector(
                 page,
@@ -162,7 +154,6 @@ describe('Monitor API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create a monitor in parent project for valid `admin`',
         async (done: $TSFixMe) => {
@@ -174,9 +165,8 @@ describe('Monitor API With SubProjects', () => {
 
             await init.navigateToComponentDetails(componentName, page);
 
-            
             await init.pageWaitForSelector(page, '#cbMonitors');
-            
+
             await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
@@ -186,14 +176,14 @@ describe('Monitor API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
-            
+
             await init.pageClick(page, '[data-testId=type_manual]');
-            
+
             await init.pageClick(page, 'button[type=submit]');
             let spanElement = await init.pageWaitForSelector(
                 page,
@@ -210,7 +200,6 @@ describe('Monitor API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         // eslint-disable-next-line quotes
         "should get only sub-project's monitors for valid sub-project user",
@@ -222,13 +211,13 @@ describe('Monitor API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             /* UI CHANGES */
 
             // This confirms that we have switched to the Subproject section
-            
+
             let subProject = await init.pageWaitForSelector(
                 page,
                 '#projectFilterToggle'
@@ -237,7 +226,6 @@ describe('Monitor API With SubProjects', () => {
             subProject = await subProject.jsonValue();
             expect(subProject).toEqual(subProjectName);
 
-            
             let subProjectComponent = await init.pageWaitForSelector(
                 page,
                 `#component-title-${componentName}`
@@ -253,7 +241,6 @@ describe('Monitor API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should get both project and sub-project monitors for valid parent project user.',
         async (done: $TSFixMe) => {
@@ -263,24 +250,24 @@ describe('Monitor API With SubProjects', () => {
             });
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
-            
+
             await init.pageWaitForSelector(page, '#cbMonitors');
-            
+
             await init.pageClick(page, '#newFormId');
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
-            
+
             await init.pageClick(page, '[data-testId=type_manual]');
-            
+
             await init.pageClick(page, '#addMonitorButton');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -289,9 +276,9 @@ describe('Monitor API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#cbMonitors');
-            
+
             await init.pageClick(page, '#newFormId');
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
@@ -301,14 +288,14 @@ describe('Monitor API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', `${monitorName}1`);
-            
+
             await init.pageClick(page, '[data-testId=type_manual]');
-            
+
             await init.pageClick(page, '#addMonitorButton');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -317,17 +304,17 @@ describe('Monitor API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#cbMonitors');
             /* UI CHANGES: Badge has been removed! */
-            
+
             const additionalMonitor1 = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
 
             expect(additionalMonitor1).toBeDefined();
-            
+
             const additionalMonitor2 = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}1`

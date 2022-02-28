@@ -1,4 +1,3 @@
-
 import cron from 'node-cron';
 //import iotMonitorCron from './iotMonitor'
 import escalationPolicy from './escalationPolicy';
@@ -31,7 +30,6 @@ cron.schedule('* * * * *', () => {
 
 cron.schedule('0 0 * * *', () => {
     setTimeout(
-        
         () => subscription.handleUnpaidSubscription(),
         subscriptionCronMinutesStartTime * 1000
     );

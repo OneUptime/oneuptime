@@ -17,14 +17,14 @@ export default {
         const token = 'oneuptime=' + randomChar();
 
         // all domain should be tied to parentProject only
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
         });
         if (!project) {
             const error = new Error('Project not found or does not exist');
-            
+
             error.code = 400;
             throw error;
         }
@@ -86,7 +86,6 @@ export default {
 
         // fetch subproject
         if (query.projectId) {
-            
             let subProjects = await ProjectService.findBy({
                 query: { parentProjectId: query.projectId },
                 select: '_id',
@@ -203,7 +202,7 @@ export default {
         // ensure that a particular domain is available to all project and subProject
         // domain added to a project should be available for both project and subProjects
         // domain added to a subProject should be available to other subProjects and project
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: '_id parentProjectId',
@@ -216,7 +215,7 @@ export default {
             );
 
             // find all the subProjects attached to this parent project
-            
+
             subProjects = await ProjectService.findBy({
                 query: {
                     parentProjectId:
@@ -225,7 +224,6 @@ export default {
                 select: '_id',
             });
         } else {
-            
             subProjects = await ProjectService.findBy({
                 query: { parentProjectId: project._id },
                 select: '_id',
@@ -269,7 +267,7 @@ export default {
 
         if (!domainCount || domainCount === 0) {
             const error = new Error('Domain not found or does not exist');
-            
+
             error.code = 400;
             throw error;
         }
@@ -291,7 +289,7 @@ export default {
         // making this synchronous is intentional
         // so we don't have a delay in deleting domains from project settings
         // while all custom domains is deleted gradually in the background
-        
+
         for (const statusPage of statusPages) {
             const statusPageId = statusPage._id;
             for (const eachDomain of statusPage.domains) {
@@ -341,7 +339,6 @@ export default {
 
         // fetch subproject
         if (query.projectId) {
-            
             let subProjects = await ProjectService.findBy({
                 query: { parentProjectId: query.projectId },
                 select: '_id',

@@ -347,7 +347,7 @@ const methods = {
         let firstIdpResponse;
         try {
             const response = await chai
-                
+
                 .request(SAMLRequest)
                 .get('')
                 .redirects(0);
@@ -364,7 +364,7 @@ const methods = {
         const [postSubmissionUrl, AuthState] = location.split('AuthState=');
 
         const samlResponsePage = await chai
-            
+
             .request(postSubmissionUrl)
             .post('')
             .set('Referer', SAMLRequest)
@@ -379,7 +379,7 @@ const methods = {
         const {
             res: { text: html },
         } = samlResponsePage;
-        
+
         import { parse } from 'node-html-parser';
         const root = parse(html);
         const input = root.querySelectorAll('input')[1];
@@ -390,22 +390,18 @@ const methods = {
 };
 
 const proxy = new Proxy(methods, {
-    
     shared: {},
     setShared: function(args: $TSFixMe) {
-        
         this.shared = { ...this.shared, ...args };
         return this.shared;
     },
     unsetShared: function(attribute: $TSFixMe) {
-        
         if (this.shared[attribute]) delete this.shared[attribute];
         return this.shared;
     },
     get: function(target, prop) {
-        
         if (this[prop]) return (args = {}) => this[prop](args);
-        
+
         return (args = {}) => target[prop]({ ...this.shared, ...args });
     },
 });

@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -9,7 +8,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-
 
 const request = chai.request.agent(app);
 
@@ -69,10 +67,9 @@ const testServerMonitor = {
     data: { url: HTTP_TEST_SERVER_URL },
 };
 
-
 describe('Incident API', function() {
     this.timeout(500000);
-    
+
     before(async function() {
         this.timeout(90000);
         await GlobalConfig.initTestConfig();
@@ -146,7 +143,6 @@ describe('Incident API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
@@ -157,23 +153,22 @@ describe('Incident API', function() {
         await IncidentService.hardDeleteBy({ projectId: projectId });
     });
 
-    
     it('should create an incident', async function() {
         const authorization = `Basic ${token}`;
         const test1 = await chai
-            
+
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/msteams');
         expect(test1).to.have.status(404);
         const test2 = await chai
-            
+
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/slack');
         expect(test2).to.have.status(404);
 
         // no external subscriber's webhook notification shall be sent when there's no incident
         const webhookTest = await chai
-            
+
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/external_subscriber');
         expect(webhookTest).to.have.status(404);
@@ -188,26 +183,25 @@ describe('Incident API', function() {
         expect(res.body).to.be.an('object');
 
         const msTeamsEndpoint = await chai
-            
+
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/msteams');
         expect(msTeamsEndpoint).to.have.status(200);
 
         const slackEndpoint = await chai
-            
+
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/slack');
         expect(slackEndpoint).to.have.status(200);
 
         // a webhook notification shall be received after an incident
         const webhookTestAfterIncident = await chai
-            
+
             .request('http://127.0.0.1:3010')
             .get('/api/webhooks/external_subscriber');
         expect(webhookTestAfterIncident).to.have.status(200);
     });
 
-    
     it('should create an incident with multi-probes and add to incident timeline', async function() {
         const authorization = `Basic ${token}`;
         await testServer.post('/api/settings').send({
@@ -240,7 +234,6 @@ describe('Incident API', function() {
         expect(res2.body.data[1].status).to.be.equal('offline');
     });
 
-    
     it('should auto-resolve an incident with multi-probes and add to incident timeline', async function() {
         const authorization = `Basic ${token}`;
         await testServer.post('/api/settings').send({
@@ -277,7 +270,6 @@ describe('Incident API', function() {
         expect(res1.body.data[5].status).to.be.equal('resolved');
     });
 
-    
     it('should get incidents belonging to a monitor', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -289,7 +281,6 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('count');
     });
 
-    
     it('should get all incidents in a project', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -301,7 +292,6 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('count');
     });
 
-    
     it('should get an incident by incidentId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -312,7 +302,6 @@ describe('Incident API', function() {
         expect(res.body._id).to.be.equal(incidentId);
     });
 
-    
     it('should acknowledge an incident and send email to users', async function() {
         const date = moment().subtract(1, 'minutes');
         const authorization = `Basic ${token}`;
@@ -335,7 +324,6 @@ describe('Incident API', function() {
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
-    
     it('should resolve an incident and send email to users', async function() {
         const date = moment().subtract(1, 'minutes');
         const authorization = `Basic ${token}`;
@@ -355,7 +343,6 @@ describe('Incident API', function() {
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
-    
     it('should update incident details.', async function() {
         const authorization = `Basic ${token}`;
         const incidentTitle = 'New incident title';
@@ -374,7 +361,6 @@ describe('Incident API', function() {
         expect(res.body.description).to.be.equal(incidentDescription);
     });
 
-    
     it('should get incident timeline by incidentId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -397,7 +383,6 @@ describe('Incident API', function() {
         ).to.equal(res.body.data);
     });
 
-    
     it('should require an incident state', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -411,7 +396,6 @@ describe('Incident API', function() {
         expect(res.body.message).to.be.equal('Incident State is required.');
     });
 
-    
     it('should require a valid incident message type', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -428,7 +412,6 @@ describe('Incident API', function() {
         );
     });
 
-    
     it('should add an investigation incident message', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -446,7 +429,6 @@ describe('Incident API', function() {
         expect(res.body.incident_state).to.be.equal('investigation');
     });
 
-    
     it('should add an internal incident message', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -466,7 +448,6 @@ describe('Incident API', function() {
         expect(res.body.data[0].incident_state).to.be.equal('just test');
     });
 
-    
     it('should update an investigation incident message', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -485,7 +466,6 @@ describe('Incident API', function() {
         expect(res.body.incident_state).to.be.equal('automated');
     });
 
-    
     it('should update an internal incident message', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -505,7 +485,6 @@ describe('Incident API', function() {
         expect(res.body.incident_state).to.be.equal('update');
     });
 
-    
     it('should fetch list of investigation incident messages', async function() {
         const authorization = `Basic ${token}`;
         const type = 'investigation';
@@ -522,7 +501,6 @@ describe('Incident API', function() {
         expect(res.body.data[0].type).to.be.equal(type);
     });
 
-    
     it('should fetch list of status pages for the incident', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -534,7 +512,6 @@ describe('Incident API', function() {
         expect(res.body).to.have.property('count');
     });
 
-    
     it('should fetch list of internal incident messages', async function() {
         const authorization = `Basic ${token}`;
         const type = 'internal';
@@ -554,7 +531,6 @@ describe('Incident API', function() {
         expect(sameType[0].type).to.be.equal(type);
     });
 
-    
     it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function() {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
@@ -660,7 +636,6 @@ describe('Incident API', function() {
         );
     });
 
-    
     it('should not create an alert charge when an alert is not sent to a user.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -673,7 +648,6 @@ describe('Incident API', function() {
         expect(res.body.data.length).to.be.equal(0);
     });
 
-    
     it('should send incident alert when balance is above minimum amount', async function() {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
@@ -702,7 +676,7 @@ describe('Incident API', function() {
         expect(callAlert.alertStatus).to.be.equal('Success');
         expect(callAlert.error).to.be.equal(false);
     });
-    
+
     it('should create an alert charge when an alert is sent to a user.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -721,10 +695,9 @@ let subProjectId: $TSFixMe,
     newUserToken: $TSFixMe,
     subProjectIncidentId: $TSFixMe;
 
-
 describe('Incident API with Sub-Projects', function() {
     this.timeout(60000);
-    
+
     before(async function() {
         this.timeout(60000);
 
@@ -763,7 +736,6 @@ describe('Incident API with Sub-Projects', function() {
             });
     });
 
-    
     after(async function() {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
@@ -781,7 +753,6 @@ describe('Incident API with Sub-Projects', function() {
         await MonitorService.hardDeleteBy({ _id: monitorId });
     });
 
-    
     it('should not create an incident for user not present in project', async function() {
         const res = await createUser(request, userData.anotherUser);
         const verificationToken = await VerificationTokenModel.findOne({
@@ -806,7 +777,6 @@ describe('Incident API with Sub-Projects', function() {
         );
     });
 
-    
     it('should create an incident in parent project.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -818,7 +788,6 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body).to.be.an('object');
     });
 
-    
     it('should create an incident in sub-project.', async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await request
@@ -830,7 +799,6 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body).to.be.an('object');
     });
 
-    
     it("should get only sub-project's incidents for valid sub-project user", async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await request
@@ -844,7 +812,6 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body.data[0]._id).to.be.equal(subProjectIncidentId);
     });
 
-    
     it('should get both project and sub-project incidents for valid parent project user.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -858,7 +825,6 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body[1]._id).to.be.equal(projectId);
     });
 
-    
     it('should acknowledge subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await markSubprojectIncidentAsAcknowledged({
@@ -873,7 +839,6 @@ describe('Incident API with Sub-Projects', function() {
         expect(res.body.incident.acknowledged).to.be.equal(true);
     });
 
-    
     it('should resolve subproject incident', async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await markSubprojectIncidentAsResolved({

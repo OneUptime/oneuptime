@@ -13,11 +13,9 @@ router.get('/:userId', getUser, isAuthorized, async function(req, res) {
         const userId = req.params.userId;
         let { skip, limit } = req.query;
         if (!skip) {
-            
             skip = 0;
         }
         if (!limit) {
-            
             limit = 10;
         }
         const select = 'userId createdAt ipLocation device status';

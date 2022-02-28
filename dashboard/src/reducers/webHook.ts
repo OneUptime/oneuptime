@@ -110,10 +110,10 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case DELETE_WEB_HOOK_SUCCESS:
             webHooks = Object.assign([], state.webHook.webHooks);
-            
+
             index = webHooks.findIndex(team => team._id === action.payload._id);
             webHooks.splice(index, 1);
-            
+
             count = state.webHook.count - 1;
             return Object.assign({}, state, {
                 deleteWebHook: {
@@ -161,9 +161,9 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case CREATE_WEB_HOOK_SUCCESS:
             webHooks = Object.assign([], state.webHook.webHooks);
-            
+
             action.payload._id && webHooks.push(action.payload);
-            
+
             count = state.webHook.count + 1;
 
             return Object.assign({}, state, {
@@ -212,9 +212,9 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case UPDATE_WEB_HOOK_SUCCESS:
             webHooks = Object.assign([], state.webHook.webHooks);
-            
+
             index = webHooks.findIndex(hook => hook._id === action.payload._id);
-            
+
             webHooks[index] = action.payload;
 
             return Object.assign({}, state, {

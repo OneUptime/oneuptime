@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -6,7 +5,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-
 
 const request = chai.request.agent(app);
 
@@ -31,11 +29,9 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-
 describe('Twilio API', function() {
     this.timeout(20000);
 
-    
     before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
@@ -78,7 +74,6 @@ describe('Twilio API', function() {
         expect(res.body).to.be.an('object');
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -97,7 +92,6 @@ describe('Twilio API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should send verification sms code for adding alert phone number', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -109,7 +103,6 @@ describe('Twilio API', function() {
         expect(res).to.have.status(200);
     });
 
-    
     it('should send test sms to the provided phone number', async function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
@@ -133,7 +126,6 @@ describe('Twilio API', function() {
         expect(res.body).to.have.property('message');
     });
 
-    
     it('should return status code 400 when any of the payload field is missing', async function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
@@ -155,7 +147,6 @@ describe('Twilio API', function() {
         expect(res).to.have.status(400);
     });
 
-    
     it('should return status code 400 when accountSid is invalid', async function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
@@ -179,7 +170,6 @@ describe('Twilio API', function() {
         expect(res).to.have.status(400);
     });
 
-    
     it('should return status code 400 when authToken is invalid', async function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({

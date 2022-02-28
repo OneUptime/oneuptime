@@ -55,7 +55,6 @@ class ServiceBase {
             const countQuery = {};
 
             if (byProject) {
-                
                 countQuery.projectId = data.projectId;
             }
 
@@ -78,20 +77,17 @@ class ServiceBase {
                         ','
                     )} already exists.`
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
         }
 
         for (const key in data) {
-            
             item[key] = data[key];
         }
 
-        
         if (slugifyField && data[slugifyField]) {
-            
             item.slug = getSlug(data[slugifyField]);
         }
 
@@ -99,7 +95,6 @@ class ServiceBase {
     }
 
     async countBy({ query = {} }) {
-        
         query.deleted = false;
         const count = await this.model.countDocuments(query);
         return count;
@@ -256,7 +251,6 @@ class ServiceBase {
 
         if (typeof limit === 'string') limit = parseInt(limit);
 
-        
         query.deleted = false;
 
         let functionToCall = 'find';
@@ -301,7 +295,6 @@ class ServiceBase {
             query = {};
         }
 
-        
         if (!query.deleted) query.deleted = false;
 
         let functionToCall = 'updateMany';
@@ -318,7 +311,6 @@ class ServiceBase {
     }
 
     async updateOneBy({ query = {}, updatedValues = {} }) {
-        
         return await this.updateBy({ query, updatedValues, updateOne: true });
     }
 }

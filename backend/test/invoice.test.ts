@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -8,7 +7,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-
 
 const request = chai.request.agent(app);
 import UserService from '../backend/services/userService';
@@ -20,27 +18,22 @@ import payment from '../backend/config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
 
-
 let token, userId, projectId, stripeCustomerId, testPlan;
 
-
 describe('Invoice API', function() {
-    
     this.timeout(200000);
 
-    
     before(async function() {
-        
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
         const checkCardData = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
-            
+
             email: userData.email,
-            
+
             companyName: userData.companyName,
         });
-        
+
         const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
             checkCardData.body.id
         );
@@ -79,7 +72,6 @@ describe('Invoice API', function() {
         });
         stripeCustomerId = user.stripeCustomerId;
 
-        
         testPlan = await stripe.plans.create({
             amount: 5000,
             interval: 'month',
@@ -90,7 +82,6 @@ describe('Invoice API', function() {
             currency: 'usd',
         });
 
-        
         await stripe.subscriptions.create({
             customer: stripeCustomerId,
             items: [
@@ -102,7 +93,6 @@ describe('Invoice API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -114,21 +104,19 @@ describe('Invoice API', function() {
                 ],
             },
         });
-        
+
         await ProjectService.hardDeleteBy({ _id: projectId });
-        
+
         await stripe.plans.del(testPlan.id);
-        
+
         await stripe.products.del(testPlan.product);
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should return invoices', async function() {
-        
         const authorization = `Basic ${token}`;
         const invoices = await request
-            
+
             .post(`/invoice/${userId}`)
             .set('Authorization', authorization);
         expect(invoices.status).to.be.equal(200);
@@ -146,27 +134,23 @@ describe('Invoice API', function() {
         expect(invoices.body.data.data[0].total).to.be.equal(5000);
     });
 
-    
     it('should paginate invoices', async function() {
         for (let i = 0; i < 10; i++) {
-            
             await stripe.subscriptions.create({
-                
                 customer: stripeCustomerId,
                 items: [
                     {
                         quantity: 1,
-                        
+
                         plan: testPlan.id,
                     },
                 ],
             });
         }
 
-        
         const authorization = `Basic ${token}`;
         let invoices = await request
-            
+
             .post(`/invoice/${userId}`)
             .set('Authorization', authorization);
         expect(invoices.status).to.be.equal(200);
@@ -184,7 +168,6 @@ describe('Invoice API', function() {
         expect(invoices.body.data.has_more).to.be.equal(true);
         invoices = await request
             .post(
-                
                 `/invoice/${userId}?startingAfter=${invoices.body.data.data[9].id}`
             )
             .set('Authorization', authorization);

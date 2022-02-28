@@ -6,7 +6,6 @@ const mongoUri = process.env['MONGO_URL'];
 // Description: Generating random name of files.
 // Returns: fileinfo, error.
 export default new GridFsStorage({
-    
     url: mongoUri,
     options: {
         useNewUrlParser: true,

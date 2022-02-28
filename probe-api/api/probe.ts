@@ -1,4 +1,3 @@
-
 import express from 'express';
 import MonitorService from '../services/monitorService';
 const router = express.Router();

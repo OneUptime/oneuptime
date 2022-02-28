@@ -12,7 +12,7 @@ export default {
                     functionName: String(functionName),
                     stack: new Error().stack,
                 },
-                
+
                 0,
                 2
             )

@@ -1,4 +1,3 @@
-
 import packageJson from '../package.json';
 
 const COMMAND = {

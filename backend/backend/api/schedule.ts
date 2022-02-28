@@ -16,7 +16,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 ) {
     try {
         const data = req.body;
-        
+
         const userId = req.user ? req.user.id : null;
         data.createdById = userId;
         data.projectId = req.params.projectId;
@@ -88,10 +88,8 @@ router.get(
     getSubProjects,
     async function(req, res) {
         try {
-            
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const schedules = await ScheduleService.getSubProjectSchedules(
                 subProjectIds
@@ -173,7 +171,7 @@ router.delete(
     async function(req, res) {
         try {
             const scheduleId = req.params.scheduleId;
-            
+
             const userId = req.user ? req.user.id : null;
 
             if (!scheduleId) {
@@ -200,10 +198,8 @@ router.get(
     getSubProjects,
     async (req, res) => {
         try {
-            
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const userId = req.params.userId;
             const escalations = await ScheduleService.getUserEscalations(
@@ -244,7 +240,6 @@ router.post(
     isUserAdmin,
     async (req, res) => {
         try {
-            
             const userId = req.user ? req.user.id : null;
             const scheduleId = req.params.scheduleId;
             const escalations = [];
@@ -406,39 +401,36 @@ router.post(
                     value.firstRotationOn = new Date(value.firstRotationOn);
                 }
 
-                
                 storagevalue.callReminders = value.callReminders;
-                
+
                 storagevalue.smsReminders = value.smsReminders;
-                
+
                 storagevalue.emailReminders = value.emailReminders;
-                
+
                 storagevalue.pushReminders = value.pushReminders;
 
-                
                 storagevalue.rotateBy = value.rotateBy;
-                
+
                 storagevalue.rotationInterval = value.rotationInterval;
-                
+
                 storagevalue.firstRotationOn = value.firstRotationOn;
-                
+
                 storagevalue.rotationTimezone = value.rotationTimezone;
-                
+
                 storagevalue.email = value.email;
-                
+
                 storagevalue.call = value.call;
-                
+
                 storagevalue.sms = value.sms;
-                
+
                 storagevalue.push = value.push;
-                
+
                 storagevalue.projectId = req.params.projectId;
-                
+
                 storagevalue.scheduleId = scheduleId;
-                
+
                 storagevalue.createdById = userId;
 
-                
                 if (value._id) storagevalue._id = value._id;
 
                 for (const team of value.teams) {
@@ -507,34 +499,31 @@ router.post(
                             teamMember.endTime = new Date(teamMember.endTime);
                         }
                         if (teamMember.userId) {
-                            
                             data.userId = teamMember.userId;
-                            
+
                             data.startTime = teamMember.startTime;
-                            
+
                             data.endTime = teamMember.endTime;
-                            
+
                             data.timezone = teamMember.timezone;
                             teamMembers.push(data);
                         }
                         if (teamMember.groupId) {
-                            
                             data.groupId = teamMember.groupId;
-                            
+
                             data.startTime = teamMember.startTime;
-                            
+
                             data.endTime = teamMember.endTime;
-                            
+
                             data.timezone = teamMember.timezone;
                             teamMembers.push(data);
                         }
                     }
 
-                    
                     rotationData.teamMembers = teamMembers;
                     tempTeam.push(rotationData);
                 }
-                
+
                 storagevalue.teams = tempTeam;
                 escalations.push(storagevalue);
             }

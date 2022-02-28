@@ -15,7 +15,7 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
         const { name, teams } = req.body;
         const { projectId } = req.params;
-        
+
         const userId = req.user.id;
 
         if (!name) {
@@ -43,17 +43,14 @@ router.get(
     isAuthorized,
     getSubProjects,
     async (req, res) => {
-        
         const subProjectIds = req.user.subProjects
-            ? 
-              req.user.subProjects.map((project: $TSFixMe) => {
+            ? req.user.subProjects.map((project: $TSFixMe) => {
                   return { id: project._id, name: project.name };
               })
             : null;
         try {
             const groups = await Promise.all(
                 subProjectIds.map(async (project: $TSFixMe) => {
-                    
                     const groups = await GroupService.findBy({
                         projectId: project.id,
                     });
@@ -94,11 +91,9 @@ router.put('/:projectId/:groupId', getUser, isAuthorized, async (req, res) => {
 
         const data = {};
         if (name) {
-            
             data.name = name;
         }
         if (teams) {
-            
             data.teams = teams;
         }
 
@@ -120,7 +115,7 @@ router.delete(
     async (req, res) => {
         try {
             const { groupId, projectId } = req.params;
-            
+
             const userId = req.user.id;
 
             const [deleteGroup] = await Promise.all([

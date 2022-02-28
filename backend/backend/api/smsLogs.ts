@@ -75,7 +75,7 @@ router.post('/', getUser, isUserMasterAdmin, async (req, res) => {
                 message: 'SMS Log Content is required',
             });
         }
-        
+
         const smsLog = await SmsLogsService.create(data);
         return sendItemResponse(req, res, smsLog);
     } catch (error) {

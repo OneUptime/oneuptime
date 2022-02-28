@@ -181,12 +181,11 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
         case FETCH_ISSUES_FAILURE:
             temporaryIssues = {
                 ...state.errorTrackerIssues,
-                
+
                 [action.payload.errorTrackerId]: state.errorTrackerIssues[
                     action.payload.errorTrackerId
                 ]
                     ? {
-                          
                           ...state.errorTrackerIssues[
                               action.payload.errorTrackerId
                           ],
@@ -215,10 +214,9 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
         case FETCH_ISSUES_REQUEST:
             temporaryIssues = {
                 ...state.errorTrackerIssues,
-                
+
                 [action.payload]: state.errorTrackerIssues[action.payload]
                     ? {
-                          
                           ...state.errorTrackerIssues[action.payload],
                           requesting: true,
                       }
@@ -242,12 +240,11 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
             // if it does, update the requesting
             temporaryErrorEvents = {
                 ...state.errorEvents,
-                
+
                 [action.payload.errorEventId]: state.errorEvents[
                     action.payload.errorEventId
                 ]
                     ? {
-                          
                           ...state.errorEvents[action.payload.errorEventId],
                           requesting: true,
                       }
@@ -282,12 +279,11 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
         case FETCH_ERROR_EVENT_FAILURE:
             temporaryErrorEvents = {
                 ...state.errorEvents,
-                
+
                 [action.payload.errorEventId]: state.errorEvents[
                     action.payload.errorEventId
                 ]
                     ? {
-                          
                           ...state.errorEvents[action.payload.errorEventId],
                           error: action.payload.error,
                       }
@@ -350,16 +346,11 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
         case EDIT_ERROR_TRACKER_SWITCH:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
                 errorTracker => {
-                    
                     if (errorTracker._id === action.payload) {
-                        
                         if (!errorTracker.editMode)
-                            
                             errorTracker.editMode = true;
-                        
                         else errorTracker.editMode = false;
                     } else {
-                        
                         errorTracker.editMode = false;
                     }
                     return errorTracker;
@@ -382,9 +373,7 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
         case EDIT_ERROR_TRACKER_SUCCESS:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
                 errorTracker => {
-                    
                     if (errorTracker._id === action.payload._id) {
-                        
                         errorTracker = action.payload;
                     }
                     return errorTracker;
@@ -424,9 +413,7 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
         case RESET_ERROR_TRACKER_KEY_SUCCESS:
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
                 errorTracker => {
-                    
                     if (errorTracker._id === action.payload._id) {
-                        
                         errorTracker = action.payload;
                     }
                     return errorTracker;
@@ -467,12 +454,10 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 },
             });
         case IGNORE_ERROR_EVENT_SUCCESS:
-            
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
-                ? 
-                  state.errorTrackerIssues[action.payload.errorTrackerId]
+                ? state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.ignoredIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
@@ -493,7 +478,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorTrackerId]: {
-                        
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
@@ -543,12 +527,10 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
             });
         case UNRESOLVE_ERROR_EVENT_SUCCESS:
-            
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
-                ? 
-                  state.errorTrackerIssues[action.payload.errorTrackerId]
+                ? state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.unresolvedIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
@@ -569,7 +551,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorTrackerId]: {
-                        
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
@@ -619,12 +600,10 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerStatus: INITIAL_STATE.errorTrackerStatus,
             });
         case RESOLVE_ERROR_EVENT_SUCCESS:
-            
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ]
-                ? 
-                  state.errorTrackerIssues[action.payload.errorTrackerId]
+                ? state.errorTrackerIssues[action.payload.errorTrackerId]
                       .errorTrackerIssues
                 : [...action.payload.resolvedIssues];
             temporaryIssues.map((errorTrackerIssues: $TSFixMe) => {
@@ -645,7 +624,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorTrackerId]: {
-                        
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
@@ -699,7 +677,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerIssueMembers: {
                     ...state.errorTrackerIssueMembers,
                     [action.payload.issueId]: {
-                        
                         ...state.errorTrackerIssueMembers[
                             action.payload.issueId
                         ],
@@ -715,7 +692,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerIssueMembers: {
                     ...state.errorTrackerIssueMembers,
                     [action.payload.issueId]: {
-                        
                         ...state.errorTrackerIssueMembers[
                             action.payload.issueId
                         ],
@@ -731,7 +707,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerIssueMembers: {
                     ...state.errorTrackerIssueMembers,
                     [action.payload.issueId]: {
-                        
                         ...state.errorTrackerIssueMembers[
                             action.payload.issueId
                         ],
@@ -743,7 +718,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 },
             });
         case UPDATE_ERROR_EVENT_MEMBER_SUCCESS:
-            
             temporaryIssues = state.errorTrackerIssues[
                 action.payload.errorTrackerId
             ].errorTrackerIssues.map((issue: $TSFixMe) => {
@@ -756,7 +730,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorTrackerId]: {
-                        
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],
@@ -770,7 +743,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
             });
         case NEW_ERROR_EVENT_SUCCESS:
             temporaryIssues =
-                
                 state.errorTrackerIssues[
                     action.payload.errorEvent.errorTrackerId
                 ].errorTrackerIssues;
@@ -783,7 +755,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 temporaryIssue.length > 0 &&
                 temporaryIssue[0].latestId !== action.payload.errorEvent._id
             ) {
-                
                 temporaryIssues = state.errorTrackerIssues[
                     action.payload.errorEvent.errorTrackerId
                 ].errorTrackerIssues.map((issue: $TSFixMe) => {
@@ -794,7 +765,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 });
             } else if (temporaryIssue.length < 1) {
                 temporaryIssues = [action.payload.issue].concat(
-                    
                     state.errorTrackerIssues[
                         action.payload.errorEvent.errorTrackerId
                     ].errorTrackerIssues
@@ -805,7 +775,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,
                     [action.payload.errorEvent.errorTrackerId]: {
-                        
                         ...state.errorTrackerIssues[
                             action.payload.errorEvent.errorTrackerId
                         ],
@@ -815,7 +784,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
             });
         case DELETE_ERROR_TRACKER_ISSUE_SUCCESS:
             temporaryIssues =
-                
                 state.errorTrackerIssues[action.payload.errorTrackerId]
                     .errorTrackerIssues;
 
@@ -829,7 +797,6 @@ export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     [action.payload.errorTrackerId]: {
-                        
                         ...state.errorTrackerIssues[
                             action.payload.errorTrackerId
                         ],

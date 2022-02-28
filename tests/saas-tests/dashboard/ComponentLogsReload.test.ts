@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +15,10 @@ const logName = utils.generateRandomString();
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,13 +30,11 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the component logs page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -49,7 +43,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#form-new-application-log', {
                 visible: true,
@@ -59,13 +53,13 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageType(page, 'input[name=name]', logName);
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addApplicationLogButton');
             let spanElement;
             spanElement = await init.pageWaitForSelector(

@@ -13,7 +13,6 @@ async function run() {
 
         if (
             process.env['IS_SAAS_SERVICE'] === 'true' ||
-            
             process.env['IS_SAAS_SERVICE'] === true
         ) {
             // if SaaS Service create master admin user automatically.

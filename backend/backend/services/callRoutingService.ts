@@ -26,27 +26,27 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const callRoutingModel = new CallRoutingModel();
-        
+
         callRoutingModel.projectId = data.projectId;
-        
+
         callRoutingModel.phoneNumber = data.phoneNumber;
-        
+
         callRoutingModel.locality = data.locality;
-        
+
         callRoutingModel.region = data.region;
-        
+
         callRoutingModel.capabilities = data.capabilities;
-        
+
         callRoutingModel.price = data.price;
-        
+
         callRoutingModel.priceUnit = data.priceUnit;
-        
+
         callRoutingModel.countryCode = data.countryCode;
-        
+
         callRoutingModel.numberType = data.numberType;
-        
+
         callRoutingModel.stripeSubscriptionId = data.stripeSubscriptionId;
-        
+
         callRoutingModel.sid = data.sid;
 
         const numbers = await callRoutingModel.save();
@@ -148,7 +148,6 @@ export default {
             projectId
         );
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'users',
@@ -174,7 +173,7 @@ export default {
                 data.stripeSubscriptionId = stripeSubscription.id;
             } else {
                 const error = new Error('Error Creating Subscription.');
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -307,7 +306,7 @@ export default {
                         forwardingNumber: null,
                         error:
                             'Active team have not added their phone number yet',
-                        
+
                         userId: user && user._id ? user._id : null,
                     };
                 }
@@ -315,7 +314,7 @@ export default {
                 return {
                     forwardingNumber: null,
                     error: 'Active team unavailable',
-                    
+
                     userId: user && user._id ? user._id : null,
                 };
             }
@@ -340,7 +339,6 @@ export default {
                 projectId
             );
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
-                
                 const project = await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'users',
@@ -399,7 +397,6 @@ export default {
         const callStatus = body['CallStatus'] || null;
         const dialCallStatus = body['DialCallStatus'] || null;
 
-        
         const project = await ProjectService.findOneBy({
             query: { _id: data.projectId },
             select: 'balance alertOptions',
@@ -417,9 +414,8 @@ export default {
             : isBalanceMoreThanMinimum;
 
         if (!hasEnoughBalance) {
-            
             response.reject();
-            
+
             return response;
         }
 
@@ -458,7 +454,6 @@ export default {
             response.say(backup_introtext);
         }
         if (!backup && showAdvance && introAudio && introAudio.length) {
-            
             response.play(`${global.apiHost}/file/${introAudio}`);
         }
         if (
@@ -467,18 +462,17 @@ export default {
             backup_introAudio &&
             backup_introAudio.length
         ) {
-            
             response.play(`${global.apiHost}/file/${backup_introAudio}`);
         }
 
         if (type && !backup) {
             if (id && id.length && type !== 'PhoneNumber') {
                 const result = await this.findTeamMember(type, id);
-                
+
                 forwardingNumber = result.forwardingNumber;
-                
+
                 error = result.error;
-                
+
                 userId = result.userId;
                 scheduleId = type === 'Schedule' ? id : null;
                 if (userId) {
@@ -503,11 +497,11 @@ export default {
                     backup_type,
                     backup_id
                 );
-                
+
                 forwardingNumber = result.forwardingNumber;
-                
+
                 error = result.error;
-                
+
                 userId = result.userId;
                 scheduleId = backup_type === 'Schedule' ? backup_id : null;
                 if (userId) {
@@ -546,7 +540,6 @@ export default {
         ) {
             response.dial(
                 {
-                    
                     action: `${global.apiHost}/callRouting/routeBackupCall`,
                 },
                 forwardingNumber

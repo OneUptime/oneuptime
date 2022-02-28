@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,9 +15,7 @@ const masterAdmin = {
 describe('Enterprise User API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -30,19 +27,17 @@ describe('Enterprise User API', () => {
             password: password,
         };
         // user
-        
+
         await init.registerEnterpriseUser(user, page, false);
         await browser.close();
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should create a new user with correct details',
         async (done: $TSFixMe) => {
@@ -54,51 +49,48 @@ describe('Enterprise User API', () => {
 
             await init.loginAdminUser(masterAdmin, page);
 
-            
             await init.pageWaitForSelector(page, '#add_user');
-            
+
             await init.pageClick(page, '#add_user');
 
-            
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(page, 'input[name=email]', newEmail);
-            
+
             await init.pageClick(page, 'input[name=name]');
-            
+
             await init.pageType(page, 'input[name=name]', 'Test Name');
-            
+
             await init.pageClick(page, 'input[name=companyName]');
-            
+
             await init.pageType(page, 'input[name=companyName]', 'Test Name');
-            
+
             await init.pageClick(page, 'input[name=companyPhoneNumber]');
-            
+
             await init.pageType(
                 page,
                 'input[name=companyPhoneNumber]',
                 '99105688'
             );
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', '1234567890');
-            
+
             await init.pageClick(page, 'input[name=confirmPassword]');
-            
+
             await init.pageType(
                 page,
                 'input[name=confirmPassword]',
                 '1234567890'
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(page, 'a.db-UserListRow');
 
-            
             const userRows = await init.page$$(page, 'a.db-UserListRow');
             const countUsers = userRows.length;
 
@@ -110,7 +102,6 @@ describe('Enterprise User API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should get list of users and paginate for users',
         async (done: $TSFixMe) => {
@@ -125,79 +116,73 @@ describe('Enterprise User API', () => {
                 await page.goto(utils.ADMIN_DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
                 });
-                
+
                 await init.pageWaitForSelector(page, '#add_user');
-                
+
                 await init.pageClick(page, '#add_user');
 
-                
                 await init.pageWaitForSelector(page, '#email');
-                
+
                 await init.pageClick(page, 'input[name=email]');
-                
+
                 await init.pageType(
                     page,
                     'input[name=email]',
                     utils.generateRandomBusinessEmail()
                 );
-                
+
                 await init.pageClick(page, 'input[name=name]');
-                
+
                 await init.pageType(page, 'input[name=name]', 'Test Name');
-                
+
                 await init.pageClick(page, 'input[name=companyName]');
-                
+
                 await init.pageType(
                     page,
                     'input[name=companyName]',
                     'Test Name'
                 );
-                
+
                 await init.pageClick(page, 'input[name=companyPhoneNumber]');
-                
+
                 await init.pageType(
                     page,
                     'input[name=companyPhoneNumber]',
                     '99105688'
                 );
-                
+
                 await init.pageClick(page, 'input[name=password]');
-                
+
                 await init.pageType(page, 'input[name=password]', '1234567890');
-                
+
                 await init.pageClick(page, 'input[name=confirmPassword]');
-                
+
                 await init.pageType(
                     page,
                     'input[name=confirmPassword]',
                     '1234567890'
                 );
-                
+
                 await init.pageClick(page, 'button[type=submit]');
             }
 
-            
             let userRows = await init.page$$(page, 'a.db-UserListRow');
             let countUsers = userRows.length;
 
             expect(countUsers).toEqual(10);
 
-            
             const nextSelector = await init.page$(page, '#btnNext');
 
             await nextSelector.click();
 
-            
             userRows = await init.page$$(page, 'a.db-UserListRow');
             countUsers = userRows.length;
             expect(countUsers).toBeGreaterThanOrEqual(2);
 
-            
             const prevSelector = await init.page$(page, '#btnPrev');
 
             await prevSelector.click();
 
-            
             userRows = await init.page$$(page, 'a.db-UserListRow');
             countUsers = userRows.length;
             expect(countUsers).toEqual(10);
@@ -208,7 +193,6 @@ describe('Enterprise User API', () => {
         init.timeout
     );
 
-    
     test(
         'Should not create a user with incorrect details',
         async (done: $TSFixMe) => {
@@ -218,51 +202,50 @@ describe('Enterprise User API', () => {
 
             await init.loginAdminUser(masterAdmin, page);
 
-            
             await init.pageWaitForSelector(page, '#add_user');
-            
+
             await init.pageClick(page, '#add_user');
 
             // user with non-business email
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(
                 page,
                 'input[name=email]',
                 'oneuptime@gmail.com'
             );
-            
+
             await init.pageClick(page, 'input[name=name]');
-            
+
             await init.pageType(page, 'input[name=name]', 'Test Name');
-            
+
             await init.pageClick(page, 'input[name=companyName]');
-            
+
             await init.pageType(page, 'input[name=companyName]', 'Test Name');
-            
+
             await init.pageClick(page, 'input[name=companyPhoneNumber]');
-            
+
             await init.pageType(
                 page,
                 'input[name=companyPhoneNumber]',
                 '99105688'
             );
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', '1234567890');
-            
+
             await init.pageClick(page, 'input[name=confirmPassword]');
-            
+
             await init.pageType(
                 page,
                 'input[name=confirmPassword]',
                 '1234567890'
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             const html = await init.page$Eval(

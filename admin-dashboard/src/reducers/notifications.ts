@@ -75,7 +75,7 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case 'ADD_NOTIFICATION_BY_SOCKET': {
             const notify = state.notifications.notifications;
-            
+
             notify.unshift(action.payload);
             return Object.assign({}, state, {
                 notifications: {
@@ -94,12 +94,10 @@ export default (state = initialState, action: $TSFixMe) => {
                     notifications: state.notifications.notifications.map(
                         notification => {
                             if (
-                                
                                 notification._id ===
                                 action.payload.notificationId._id
                             ) {
                                 return {
-                                    
                                     ...notification,
                                     read: notification.read.concat([
                                         action.payload.userId,

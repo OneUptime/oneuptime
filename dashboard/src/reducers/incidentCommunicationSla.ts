@@ -76,7 +76,6 @@ export default function incidentCommunicationSla(
 
         case types.DELETE_COMMUNICATION_SLA_SUCCESS: {
             const incidentSlas = state.incidentCommunicationSlas.incidentSlas.filter(
-                
                 sla => String(sla._id) !== String(action.payload._id)
             );
             return {
@@ -188,16 +187,12 @@ export default function incidentCommunicationSla(
                 sla => {
                     if (
                         action.payload.isDefault &&
-                        
                         String(sla._id) !== String(action.payload._id)
                     ) {
-                        
                         sla.isDefault = false;
                     }
 
-                    
                     if (String(sla._id) === String(action.payload._id)) {
-                        
                         sla = action.payload;
                     }
 

@@ -104,17 +104,14 @@ router.put(
             const data = {};
 
             if (name) {
-                
                 data.name = name;
             }
 
             if (gitRepositoryUrl) {
-                
                 data.gitRepositoryUrl = gitRepositoryUrl;
             }
 
             if (gitCredential) {
-                
                 data.gitCredential = gitCredential;
             }
             let unsetData;
@@ -127,7 +124,6 @@ router.put(
                     }
                 );
                 if (resourceCategoryCount && resourceCategoryCount) {
-                    
                     data.resourceCategory = resourceCategory;
                 } else {
                     unsetData = { resourceCategory: '' };
@@ -137,7 +133,7 @@ router.put(
             const applicationSecurity = await ApplicationSecurityService.updateOneBy(
                 { _id: applicationSecurityId, componentId },
                 data,
-                
+
                 unsetData
             );
             return sendItemResponse(req, res, applicationSecurity);
@@ -392,7 +388,7 @@ router.post(
                 const error = new Error(
                     'Application Security not found or does not exist'
                 );
-                
+
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }

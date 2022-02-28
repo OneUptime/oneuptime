@@ -35,12 +35,11 @@ router.get('/auth/redirect', function(req, res) {
         });
     }
     // hack that gets the user authToken and project ID, not very secure, but sufficient for now
-    
+
     state = state.split(',', 2);
 
-    
     const projectId = state[0];
-    
+
     const userToken = state[1];
 
     const options = {
@@ -65,7 +64,7 @@ router.get('/auth/redirect', function(req, res) {
 router.post('/:projectId/link', getUser, isUserAdmin, async function(req, res) {
     const projectId = req.params.projectId;
     const code = req.query.code;
-    
+
     const userId = req.user ? req.user.id : null;
     const slug = req.body.slug;
 
@@ -139,7 +138,7 @@ router.delete(
     async function(req, res) {
         const projectId = req.params.projectId;
         const teamId = req.params.teamId;
-        
+
         const userId = req.user ? req.user.id : null;
 
         const integrationType = 'slack';

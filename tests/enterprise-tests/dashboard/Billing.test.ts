@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -14,13 +13,10 @@ const user = {
     password,
 };
 
-
 describe('Enterprise Disabled Billing API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -31,13 +27,11 @@ describe('Enterprise Disabled Billing API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should not display project billing page after login',
         async (done: $TSFixMe) => {
@@ -47,7 +41,7 @@ describe('Enterprise Disabled Billing API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
 
             const projectBilling = await page.$('#billingSetting');
@@ -57,7 +51,6 @@ describe('Enterprise Disabled Billing API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not display profile billing on profile menu',
         async (done: $TSFixMe) => {
@@ -68,7 +61,7 @@ describe('Enterprise Disabled Billing API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#profile-menu');
 
             const profileBilling = await page.$('#cbBilling');

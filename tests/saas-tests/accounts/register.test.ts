@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,23 +14,18 @@ const user = {
     password,
 };
 
-
 describe('Registration API', () => {
-    
     beforeAll(async () => {
-        
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     it(
         'User cannot register with invalid email',
         async () => {
@@ -39,48 +33,47 @@ describe('Registration API', () => {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(page, 'input[name=email]', invalidEmail);
-            
+
             await init.pageClick(page, 'input[name=name]');
-            
+
             await init.pageType(page, 'input[name=name]', utils.user.name);
-            
+
             await init.pageClick(page, 'input[name=companyName]');
-            
+
             await init.pageType(
                 page,
                 'input[name=companyName]',
                 utils.user.company.name
             );
-            
+
             await init.pageClick(page, 'input[name=companyPhoneNumber]');
-            
+
             await init.pageType(
                 page,
                 'input[name=companyPhoneNumber]',
                 utils.user.phone
             );
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', user.password);
-            
+
             await init.pageClick(page, 'input[name=confirmPassword]');
-            
+
             await init.pageType(
                 page,
                 'input[name=confirmPassword]',
                 user.password
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
-            
             await init.pageWaitForSelector(page, '#email_error');
             const errorMsg = await init.page$Eval(
                 page,
@@ -92,7 +85,6 @@ describe('Registration API', () => {
         init.timeout
     );
 
-    
     it(
         'User cannot register with personal email',
         async () => {
@@ -113,60 +105,57 @@ describe('Registration API', () => {
         init.timeout
     );
 
-    
     test(
         'Registration form fields should be cleaned if the user moves to the login form and returns back.',
         async () => {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(page, 'input[name=email]', user.email);
-            
+
             await init.pageClick(page, 'input[name=name]');
-            
+
             await init.pageType(page, 'input[name=name]', utils.user.name);
-            
+
             await init.pageClick(page, 'input[name=companyName]');
-            
+
             await init.pageType(
                 page,
                 'input[name=companyName]',
                 utils.user.company.name
             );
-            
+
             await init.pageClick(page, 'input[name=companyPhoneNumber]');
-            
+
             await init.pageType(
                 page,
                 'input[name=companyPhoneNumber]',
                 '1234567890'
             );
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', '1234567890');
-            
+
             await init.pageClick(page, 'input[name=confirmPassword]');
-            
+
             await init.pageType(
                 page,
                 'input[name=confirmPassword]',
                 '1234567890'
             );
 
-            
             await init.pageClick(page, '#loginLink a');
-            
+
             await init.pageWaitForSelector(page, '#signUpLink a');
-            
+
             await init.pageClick(page, '#signUpLink a');
 
-            
             await init.pageWaitForSelector(page, 'input[name=email]');
             const email = await init.page$Eval(
                 page,
@@ -178,69 +167,65 @@ describe('Registration API', () => {
         init.timeout
     );
 
-    
     test(
         'Registration form fields should be cleaned if the user moves from card form to the login form and returns back.',
         async () => {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(page, 'input[name=email]', user.email);
-            
+
             await init.pageClick(page, 'input[name=name]');
-            
+
             await init.pageType(page, 'input[name=name]', utils.user.name);
-            
+
             await init.pageClick(page, 'input[name=companyName]');
-            
+
             await init.pageType(
                 page,
                 'input[name=companyName]',
                 utils.user.company.name
             );
-            
+
             await init.pageClick(page, 'input[name=companyPhoneNumber]');
-            
+
             await init.pageType(
                 page,
                 'input[name=companyPhoneNumber]',
                 '1234567890'
             );
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', '1234567890');
-            
+
             await init.pageClick(page, 'input[name=confirmPassword]');
-            
+
             await init.pageType(
                 page,
                 'input[name=confirmPassword]',
                 '1234567890'
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
-            
             await init.pageWaitForSelector(page, 'input[name=cardName]');
-            
+
             await init.pageClick(page, 'input[name=cardName]');
-            
+
             await init.pageType(page, 'input[name=cardName]', 'Test name');
 
-            
             await init.pageClick(page, '#loginLink a');
-            
+
             await init.pageWaitForSelector(page, '#signUpLink a');
-            
+
             await init.pageClick(page, '#signUpLink a');
 
-            
             await init.pageWaitForSelector(page, 'input[name=email]');
             const email = await init.page$Eval(
                 page,
@@ -252,13 +237,11 @@ describe('Registration API', () => {
         init.timeout
     );
 
-    
     it(
         'Should register User with valid details',
         async () => {
             await init.registerUser(user, page);
 
-            
             await init.pageWaitForSelector(page, '#titleText');
             const innerText = await init.page$Eval(
                 page,

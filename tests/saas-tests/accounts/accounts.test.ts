@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,11 +14,8 @@ const user = {
     password,
 };
 
-
 describe('Login API', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -28,13 +24,11 @@ describe('Login API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     it(
         'Should login valid User',
         async (done: $TSFixMe) => {
@@ -46,7 +40,7 @@ describe('Login API', () => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    
+
                     json[key] = localStorage.getItem(key);
                 }
                 return json;

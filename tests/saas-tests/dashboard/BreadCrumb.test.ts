@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const user = {
     password,
 };
 
-
 describe('BreadCrumb Component test', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,13 +28,11 @@ describe('BreadCrumb Component test', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should navigate between pages from the breadcrumbs',
         async (done: $TSFixMe) => {
@@ -57,14 +51,14 @@ describe('BreadCrumb Component test', () => {
                     visible: true,
                 }
             );
-            
+
             const componentBreadcrumb = await init.pageWaitForSelector(
                 page,
                 '#cbMonitors'
             );
             expect(monitorBreadcrumb).toBeDefined();
             expect(componentBreadcrumb).toBeDefined();
-            
+
             await init.pageClick(page, '#cbMonitors');
 
             const monitorTitle = await init.pageWaitForSelector(
@@ -78,7 +72,6 @@ describe('BreadCrumb Component test', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not go to the landing page when the project breadcrumb item is clicked',
         async (done: $TSFixMe) => {
@@ -89,7 +82,7 @@ describe('BreadCrumb Component test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#cbUnnamedProject');
             let currentPage = await init.pageWaitForSelector(
                 page,

@@ -5,11 +5,10 @@ export default {
         // prepare issue timeline model
         const issueTimeline = new IssueTimelineModel();
 
-        
         issueTimeline.status = data.status;
-        
+
         issueTimeline.issueId = data.issueId;
-        
+
         issueTimeline.createdById = data.createdById;
 
         let savedIssueTimeline = await issueTimeline.save();

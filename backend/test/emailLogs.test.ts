@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 import chai from 'chai';
 const expect = require('chai').expect;
@@ -21,11 +20,9 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
 
-
 describe('Email Logs API', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         testSuiteStartTime = new Date();
         this.timeout(40000);
@@ -62,7 +59,6 @@ describe('Email Logs API', function() {
         });
     });
 
-    
     after(async function() {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -93,12 +89,10 @@ describe('Email Logs API', function() {
         await EmailLogsService.hardDeleteBy({ query: deleteQuery });
     });
 
-    
     beforeEach(async function() {
         testCaseStartTime = new Date();
     });
 
-    
     afterEach(async function() {
         // Deleting any emailLogs created between each test case in this suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some email logs dont contain specific 'userId'. (Ex. /login)
@@ -126,7 +120,6 @@ describe('Email Logs API', function() {
         });
     });
 
-    
     it('should reject get email logs request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .get('/email-logs')
@@ -137,7 +130,6 @@ describe('Email Logs API', function() {
             });
     });
 
-    
     it('should reject get email logs request of NON master-admin user', async function() {
         const authorization = `Basic ${token}`;
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Assigning user role
@@ -150,7 +142,6 @@ describe('Email Logs API', function() {
         expect(res).to.have.status(400);
     });
 
-    
     it('should send get email logs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
@@ -168,7 +159,6 @@ describe('Email Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    
     it('should send appopriate data set when limit is provided', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
@@ -192,7 +182,6 @@ describe('Email Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    
     it('should send appopriate data set when skip is provided', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
@@ -219,7 +208,6 @@ describe('Email Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    
     it('should reject search request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post('/email-logs/search')
@@ -230,7 +218,6 @@ describe('Email Logs API', function() {
             });
     });
 
-    
     it('should reject search request of NON master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Resetting user to normal USER.
         const authorization = `Basic ${token}`;
@@ -245,7 +232,6 @@ describe('Email Logs API', function() {
         }
     });
 
-    
     it('should send Searched EmailLogs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
@@ -263,7 +249,6 @@ describe('Email Logs API', function() {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    
     it('should send only matched result to provided search string when searched.', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;

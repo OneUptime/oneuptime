@@ -22,7 +22,6 @@ const headers = {
 
 export function postApi(url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
 
@@ -41,7 +40,7 @@ export function postApi(url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                
+
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -56,7 +55,6 @@ export function postApi(url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) {
 
 export function getApi(url: $TSFixMe, licensing: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -73,7 +71,7 @@ export function getApi(url: $TSFixMe, licensing: $TSFixMe) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                
+
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -89,7 +87,6 @@ export function getApi(url: $TSFixMe, licensing: $TSFixMe) {
 
 export function putApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -107,7 +104,7 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                
+
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -123,7 +120,6 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
 
 export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -141,7 +137,7 @@ export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                
+
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -157,7 +153,6 @@ export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
 
 export function getApiDocs(url: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -174,7 +169,7 @@ export function getApiDocs(url: $TSFixMe) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                
+
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -190,7 +185,6 @@ export function getApiDocs(url: $TSFixMe) {
 
 export function getApiHelm(url: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -207,7 +201,7 @@ export function getApiHelm(url: $TSFixMe) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                
+
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)
@@ -223,7 +217,6 @@ export function getApiHelm(url: $TSFixMe) {
 
 export function getApiDashboard(url: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -240,7 +233,7 @@ export function getApiDashboard(url: $TSFixMe) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                
+
                 window.location = ACCOUNTS_URL + '/login';
             }
             if (error && error.response && error.response.data)

@@ -39,9 +39,8 @@ export function deleteWebHook(projectId: $TSFixMe, webhookId: $TSFixMe) {
 
         return promise.then(
             function(webhook) {
-                
                 dispatch(deleteWebHookSuccess(webhook.data));
-                
+
                 return webhook.data;
             },
             function(error) {
@@ -102,7 +101,6 @@ export function getWebHook(
 
         promise.then(
             function(webhooks) {
-                
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function(error) {
@@ -140,7 +138,6 @@ export function getWebHookMonitor(
 
         promise.then(
             function(webhooks) {
-                
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function(error) {
@@ -197,9 +194,8 @@ export function createWebHook(projectId: $TSFixMe, data: $TSFixMe) {
 
         return promise.then(
             function(webhook) {
-                
                 dispatch(createWebHookSuccess(webhook.data));
-                
+
                 return webhook.data;
             },
             function(error) {
@@ -258,9 +254,8 @@ export function updateWebHook(
 
         return promise.then(
             function(webhook) {
-                
                 dispatch(updateWebHookSuccess(webhook.data));
-                
+
                 return webhook.data;
             },
             function(error) {

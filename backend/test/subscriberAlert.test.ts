@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -38,11 +37,9 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-
 describe('Subcriber Alert API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -115,7 +112,6 @@ describe('Subcriber Alert API', function() {
         });
     });
 
-    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -136,7 +132,6 @@ describe('Subcriber Alert API', function() {
         await EmailSmtpService.hardDeleteBy({ projectId });
     });
 
-    
     it('should create subscriber alert with valid incidentId, alertVia', (done: $TSFixMe) => {
         // update user to a master admin
         UserService.updateOneBy({ _id: userId }, { role: 'master-admin' }).then(
@@ -185,7 +180,6 @@ describe('Subcriber Alert API', function() {
         );
     });
 
-    
     it('should not create subscriber alert with invalid alertVia', (done: $TSFixMe) => {
         request
             .post(`/subscriberAlert/${projectId}/${subscriberId}`)
@@ -200,7 +194,6 @@ describe('Subcriber Alert API', function() {
             });
     });
 
-    
     it('should get subscriber alerts by projectId', (done: $TSFixMe) => {
         request
             .get(`/subscriberAlert/${projectId}`)
@@ -213,7 +206,6 @@ describe('Subcriber Alert API', function() {
             });
     });
 
-    
     it('should get subscriber alerts by incidentId', (done: $TSFixMe) => {
         request
             .get(`/subscriberAlert/${projectId}/incident/${idNumber}`)

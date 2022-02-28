@@ -119,7 +119,7 @@ export default function subProject(state = initialState, action: $TSFixMe) {
                     subProjects: state.subProjects.subProjects.concat(
                         action.payload
                     ),
-                    
+
                     count: state.subProjects.count + 1,
                     skip: state.subProjects.skip,
                     limit: state.subProjects.limit,
@@ -147,10 +147,9 @@ export default function subProject(state = initialState, action: $TSFixMe) {
         case types.RESET_SUBPROJECT_TOKEN_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
             index = subProjects.findIndex(
-                
                 subProject => subProject._id === action.payload._id
             );
-            
+
             subProjects[index] = action.payload;
             return Object.assign({}, state, {
                 subProjects: {
@@ -200,10 +199,9 @@ export default function subProject(state = initialState, action: $TSFixMe) {
         case types.RENAME_SUBPROJECT_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
             index = subProjects.findIndex(
-                
                 subProject => subProject._id === action.payload._id
             );
-            
+
             subProjects[index] = action.payload;
             return Object.assign({}, state, {
                 subProjects: {
@@ -252,7 +250,6 @@ export default function subProject(state = initialState, action: $TSFixMe) {
         case types.DELETE_SUBPROJECT_SUCCESS:
             subProjects = Object.assign([], state.subProjects.subProjects);
             subProjects = subProjects.filter(
-                
                 subProject => subProject._id !== action.payload
             );
             return Object.assign({}, state, {
@@ -266,7 +263,7 @@ export default function subProject(state = initialState, action: $TSFixMe) {
                     error: null,
                     success: false,
                     subProjects,
-                    
+
                     count: state.subProjects.count - 1,
                     skip: state.subProjects.skip,
                     limit: state.subProjects.limit,
@@ -331,7 +328,6 @@ export default function subProject(state = initialState, action: $TSFixMe) {
         case types.CHANGE_SUBPROJECT_ROLES:
             return Object.assign({}, state, {
                 currentSubProject: {
-                    
                     ...state.currentSubProject,
                     users: action.payload,
                 },

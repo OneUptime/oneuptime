@@ -33,7 +33,6 @@ export const getStatusPage = (statusPageSlug: $TSFixMe, url: $TSFixMe) => {
 
         promise.then(
             Data => {
-                
                 dispatch(statusPageSuccess(Data.data));
             },
             error => {
@@ -43,7 +42,6 @@ export const getStatusPage = (statusPageSlug: $TSFixMe, url: $TSFixMe) => {
                     error.response.status &&
                     error.response.status === 401
                 ) {
-                    
                     dispatch(loginRequired(statusPageSlug));
                 }
                 if (error && error.response && error.response.data)
@@ -136,14 +134,14 @@ export const getAllStatusPageResource = (
 
         dispatch(statusPageRequest());
         dispatch(getAnnouncementsRequest());
-        
+
         dispatch(fetchMonitorStatusesRequest());
-        
+
         dispatch(fetchMonitorLogsRequest());
         dispatch(fetchLastIncidentTimelinesRequest());
         dispatch(statusPageNoteRequest());
         dispatch(fetchAnnouncementLogsRequest());
-        
+
         dispatch(probeRequest());
         dispatch(ongoingEventRequest());
         dispatch(futureEventsRequest());
@@ -163,25 +161,24 @@ export const getAllStatusPageResource = (
                 monitorStatuses,
             ]) => {
                 const data = {
-                    
                     ongoingEvents: ongoingEvents.data,
-                    
+
                     futureEvents: futureEvents.data,
-                    
+
                     pastEvents: pastEvents.data,
-                    
+
                     probes: probes.data,
-                    
+
                     monitorLogs: monitorLogs.data,
-                    
+
                     announcement: announcement.data,
-                    
+
                     announcementLogs: announcementLogs.data,
-                    
+
                     timelines: timelines.data,
-                    
+
                     statusPageNote: statusPageNote.data,
-                    
+
                     ...monitorStatuses.data,
                 };
                 dispatch(getAllStatusPageSuccess(data));
@@ -193,7 +190,6 @@ export const getAllStatusPageResource = (
                     error.response.status &&
                     error.response.status === 401
                 ) {
-                    
                     dispatch(loginRequired(statusPageSlug));
                 }
 
@@ -296,9 +292,8 @@ export const getStatusPageNote = (
 
         promise.then(
             Data => {
-                
                 dispatch(statusPageNoteSuccess(Data.data));
-                
+
                 dispatch(newThemeIncidentNote(Data.data));
                 dispatch(individualNoteDisable());
             },
@@ -337,11 +332,9 @@ export const getStatusPageIndividualNote = (
 
         promise.then(
             Data => {
-                
                 dispatch(statusPageNoteSuccess(Data.data));
                 dispatch(
                     individualNoteEnable({
-                        
                         message: Data.data.message,
                         name: {
                             _id: monitorId,
@@ -412,7 +405,6 @@ export const getScheduledEvent = (
 
         promise.then(
             Data => {
-                
                 dispatch(scheduledEventSuccess(Data.data));
             },
             error => {
@@ -476,7 +468,6 @@ export const getOngoingScheduledEvent = (
 
         promise.then(
             Data => {
-                
                 dispatch(ongoingEventSuccess(Data.data));
             },
 
@@ -530,7 +521,6 @@ export const getIndividualEvent = (
             Data => {
                 dispatch(
                     individualEventsSuccess({
-                        
                         ...Data.data,
                         date,
                         monitorName: name,
@@ -581,7 +571,7 @@ export const fetchFutureEvents = (
         const response = await getApi(
             `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
         );
-        
+
         dispatch(futureEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -622,7 +612,7 @@ export const fetchPastEvents = (
         const response = await getApi(
             `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
         );
-        
+
         dispatch(pastEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -691,7 +681,6 @@ export const getMoreNote = (
         dispatch(moreNoteRequest());
         promise.then(
             Data => {
-                
                 dispatch(moreNoteSuccess(Data.data));
             },
             error => {
@@ -745,7 +734,6 @@ export const getMoreEvent = (
         dispatch(moreEventRequest());
         promise.then(
             Data => {
-                
                 dispatch(moreEventSuccess(Data.data));
             },
             error => {
@@ -791,7 +779,7 @@ export const fetchMoreFutureEvents = (
         const response = await getApi(
             `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
         );
-        
+
         dispatch(moreFutureEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -830,7 +818,7 @@ export const fetchMorePastEvents = (
         const response = await getApi(
             `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
         );
-        
+
         dispatch(morePastEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -875,7 +863,7 @@ export function fetchMonitorStatuses(
                     fetchMonitorStatusesSuccess({
                         projectId,
                         monitorId,
-                        
+
                         statuses: monitorStatuses.data,
                     })
                 );
@@ -938,7 +926,7 @@ export function fetchMonitorLogs(
                 dispatch(
                     fetchMonitorLogsSuccess({
                         monitorId,
-                        
+
                         logs: monitorLogs.data,
                     })
                 );
@@ -1012,7 +1000,7 @@ export function fetchEvent(projectId: $TSFixMe, scheduledEventId: $TSFixMe) {
             const response = await getApi(
                 `status-page/${projectId}/scheduledEvent/${scheduledEventId}`
             );
-            
+
             dispatch(fetchEventSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1061,7 +1049,7 @@ export function fetchEventNote(
             const response = await getApi(
                 `status-page/${projectId}/notes/${scheduledEventSlug}?type=${type}`
             );
-            
+
             dispatch(fetchEventNoteSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1110,7 +1098,7 @@ export function moreEventNote(
             const response = await getApi(
                 `status-page/${projectId}/notes/${scheduledEventId}?type=${type}&skip=${skip}`
             );
-            
+
             dispatch(moreEventNoteSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1155,7 +1143,6 @@ export function fetchIncident(projectId: $TSFixMe, incidentSlug: $TSFixMe) {
                 `status-page/${projectId}/incident/${incidentSlug}`
             );
 
-            
             dispatch(fetchIncidentSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1203,7 +1190,7 @@ export function fetchIncidentNotes(
             const response = await getApi(
                 `status-page/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}`
             );
-            
+
             dispatch(fetchIncidentNotesSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1252,7 +1239,7 @@ export function moreIncidentNotes(
             const response = await getApi(
                 `status-page/${projectId}/${incidentSlug}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
             );
-            
+
             dispatch(moreIncidentNotesSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1299,7 +1286,7 @@ export function fetchLastIncidentTimeline(
             const response = await getApi(
                 `status-page/${projectId}/timeline/${incidentSlug}`
             );
-            
+
             dispatch(fetchLastIncidentTimelineSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1346,7 +1333,7 @@ export function fetchLastIncidentTimelines(
             const response = await getApi(
                 `status-page/${projectId}/${statusPageSlug}/timelines`
             );
-            
+
             dispatch(fetchLastIncidentTimelinesSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1403,7 +1390,6 @@ export function getAnnouncements(
         dispatch(getAnnouncementsRequest());
         promise.then(
             function(response) {
-                
                 dispatch(getAnnouncementsSuccess(response.data));
             },
             function(error) {
@@ -1454,7 +1440,6 @@ export function getSingleAnnouncement(
         dispatch(getSingleAnnouncementRequest());
         promise.then(
             function(response) {
-                
                 dispatch(getSingleAnnouncementSuccess(response.data));
             },
             function(error) {
@@ -1506,7 +1491,6 @@ export function fetchAnnouncementLogs(
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
             function(response) {
-                
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
             function(error) {
@@ -1563,7 +1547,6 @@ export function calculateTime(
         dispatch(calculateTimeRequest(monitorId));
         promise.then(
             function(response) {
-                
                 dispatch(calculateTimeSuccess(response.data));
             },
             function(error) {
@@ -1611,11 +1594,9 @@ export function fetchTweets(handle: $TSFixMe, projectId: $TSFixMe) {
             handle,
         });
 
-        
         dispatch(fetchTweetsRequest());
         promise.then(
             function(response) {
-                
                 dispatch(fetchTweetsSuccess(response.data));
             },
             function(error) {
@@ -1668,7 +1649,6 @@ export function fetchExternalStatusPages(
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
             function(response) {
-                
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
             },
             function(error) {

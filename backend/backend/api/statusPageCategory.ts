@@ -18,7 +18,7 @@ router.post(
         try {
             const { statusPageCategoryName } = req.body;
             const { statusPageId } = req.params;
-            
+
             const userId = req.user ? req.user.id : null;
 
             if (!statusPageCategoryName || !statusPageCategoryName.trim()) {
@@ -70,7 +70,6 @@ router.delete(
         try {
             const { statusPageCategoryId } = req.params;
 
-            
             const userId = req.user ? req.user.id : null;
 
             if (!statusPageCategoryId || !statusPageCategoryId.trim()) {

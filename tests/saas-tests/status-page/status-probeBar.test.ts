@@ -15,11 +15,8 @@ const user = {
 const projectName = utils.generateRandomString();
 const statusPageName = utils.generateRandomString();
 
-
 describe('Probe bar test', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -28,13 +25,11 @@ describe('Probe bar test', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Probe bar should not show by default',
         async (done: $TSFixMe) => {
@@ -47,41 +42,40 @@ describe('Probe bar test', () => {
                 waitUntil: 'networkidle2',
             });
 
-            
             await init.pageWaitForSelector(page, '#statusPages');
-            
+
             await init.pageClick(page, '#statusPages');
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#btnCreateStatusPage_${projectName}`
             );
-            
+
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, '#name');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', statusPageName);
-            
+
             await init.pageClick(page, '#btnCreateStatusPage');
-            
+
             await init.pageWaitForSelector(page, '#statusPagesListContainer');
-            
+
             await init.pageWaitForSelector(page, '#viewStatusPage');
-            
+
             await init.pageClick(page, '#viewStatusPage');
-            
+
             await init.pageWaitForSelector(page, `#header-${statusPageName}`);
-            
+
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
-            
+
             let link = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
@@ -93,7 +87,7 @@ describe('Probe bar test', () => {
             // To confirm if the probe shows after creating a status.
             const probeBar = await page.evaluate(() => {
                 const el = document.querySelector('.bs-probes');
-                
+
                 return el ? el.innerText : '';
             });
             expect(probeBar).toMatch('');

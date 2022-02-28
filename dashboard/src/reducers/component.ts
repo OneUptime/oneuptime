@@ -89,7 +89,6 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case CREATE_COMPONENT_SUCCESS:
             isExistingComponent = state.componentList.components.find(
-                
                 component => component._id === action.payload.projectId._id
             );
             return Object.assign({}, state, {
@@ -112,7 +111,6 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                         ? state.componentList.components.length > 0
                             ? state.componentList.components.map(
                                   subProjectComponents => {
-                                      
                                       return subProjectComponents._id ===
                                           action.payload.projectId._id
                                           ? {
@@ -121,17 +119,15 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                                                         ._id,
                                                 components: [
                                                     action.payload,
-                                                    
+
                                                     ...subProjectComponents.components,
                                                 ],
                                                 count:
-                                                    
                                                     subProjectComponents.count +
                                                     1,
-                                                
+
                                                 skip: subProjectComponents.skip,
                                                 limit:
-                                                    
                                                     subProjectComponents.limit,
                                             }
                                           : subProjectComponents;
@@ -205,9 +201,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
         case FETCH_PAGINATED_COMPONENTS_SUCCESS: {
             const updatedComponents = state.componentList.components.map(
                 componentObj => {
-                    
                     if (componentObj._id === action.payload._id) {
-                        
                         componentObj = action.payload;
                     }
                     return componentObj;
@@ -285,9 +279,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     components: state.componentList.components.map(project => {
                         const subProject = Object.assign({}, project);
                         const subProjectComponents =
-                            
                             subProject.components &&
-                            
                             subProject.components.slice();
 
                         const newComponent = Object.assign({}, action.payload);
@@ -300,7 +292,6 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                             );
                         const isSubProjectComponent = componentIndex > -1;
 
-                        
                         if (subProject._id === newComponent.projectId._id) {
                             if (isSubProjectComponent) {
                                 const oldComponent = Object.assign(
@@ -324,18 +315,17 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                                 newComponent.count = 0;
 
                                 subProjectComponents.unshift(newComponent);
-                                
+
                                 subProject.count += 1;
                             }
                         } else {
                             if (isSubProjectComponent) {
                                 subProjectComponents.splice(componentIndex, 1);
-                                
+
                                 subProject.count -= 1;
                             }
                         }
 
-                        
                         subProject.components = subProjectComponents;
                         return subProject;
                     }),
@@ -383,7 +373,6 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     components: state.componentList.components.map(
                         component => {
-                            
                             component.components = component.components.map(
                                 (component: $TSFixMe, i: $TSFixMe) => {
                                     if (
@@ -420,7 +409,6 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     components: state.componentList.components.map(
                         subProjectComponent => {
-                            
                             subProjectComponent.components = subProjectComponent.components.filter(
                                 ({ _id }: $TSFixMe) => _id !== action.payload
                             );
@@ -456,7 +444,6 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
         case DELETE_PROJECT_COMPONENTS:
             components = Object.assign([], state.componentList.components);
             components = components.filter(
-                
                 component => action.payload !== component.projectId
             );
 
@@ -526,7 +513,6 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     action.payload.componentId
                 ]
                     ? {
-                          
                           ...state.componentResourceList[
                               action.payload.componentId
                           ],
@@ -555,7 +541,6 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     action.payload.componentId
                 ]
                     ? {
-                          
                           ...state.componentResourceList[
                               action.payload.componentId
                           ],

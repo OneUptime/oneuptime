@@ -9,7 +9,6 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 router.get('/', getUser, async function(req, res) {
     try {
-        
         const userId = req.user ? req.user.id : null;
         const user = await UserService.findOneBy({
             query: { _id: userId },
@@ -28,7 +27,6 @@ router.get('/', getUser, async function(req, res) {
 
 router.put('/', getUser, async function(req, res) {
     try {
-        
         const userId = req.user ? req.user.id : null;
         let user = await UserService.findOneBy({
             query: { _id: userId },

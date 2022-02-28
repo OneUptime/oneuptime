@@ -1,4 +1,3 @@
-
 import { find, update, findOne } from '../util/db';
 
 const monitorCollection = 'monitors';

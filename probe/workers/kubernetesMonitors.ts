@@ -12,7 +12,6 @@ import { serverUrl } from '../utils/config';
 import { deleteFile } from '../utils/fsHandlers';
 
 export default {
-    
     run: async function({ monitor }) {
         try {
             if (
@@ -32,7 +31,7 @@ export default {
                 await fetch(`${serverUrl}/file/${configurationFile}`).then(
                     res => {
                         const dest = fs.createWriteStream(configPath);
-                        
+
                         res.body.pipe(dest);
                         // at this point, writing to the specified file is complete
                         dest.on('finish', async () => {
@@ -61,22 +60,17 @@ export default {
                                     statefulsetOutput
                                 ) {
                                     // handle pod output
-                                    
+
                                     const healthyPods = [],
-                                        
                                         healthyPodData = [],
-                                        
                                         unhealthyPods = [],
-                                        
                                         unhealthyPodData = [],
-                                        
                                         allPods = [],
-                                        
                                         allPodData = [];
                                     let runningPods = 0,
                                         completedPods = 0,
                                         failedPods = 0;
-                                    
+
                                     podOutput.items.forEach(item => {
                                         /**
                                          *  https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#podstatus-v1-core
@@ -247,37 +241,32 @@ export default {
                                             runningPods,
                                             completedPods,
                                             failedPods,
-                                            
+
                                             totalPods: podOutput.items.length,
                                         },
-                                        
+
                                         healthyPods,
-                                        
+
                                         unhealthyPods,
-                                        
+
                                         allPods,
-                                        
+
                                         healthyPodData,
-                                        
+
                                         unhealthyPodData,
-                                        
+
                                         allPodData,
                                     };
 
                                     // handle job output
-                                    
+
                                     const runningJobs = [],
-                                        
                                         succeededJobs = [],
-                                        
                                         failedJobs = [],
-                                        
                                         runningJobData = [],
-                                        
                                         succeededJobData = [],
-                                        
                                         failedJobData = [];
-                                    
+
                                     jobOutput.items.forEach(item => {
                                         /**
                                          * https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#job-v1-batch
@@ -415,69 +404,59 @@ export default {
                                                 succeededJobs.length,
                                             unhealthy: failedJobs.length,
                                         },
-                                        
+
                                         runningJobs,
-                                        
+
                                         succeededJobs,
-                                        
+
                                         failedJobs,
                                         allJobs: [
-                                            
                                             ...runningJobs,
-                                            
+
                                             ...succeededJobs,
-                                            
+
                                             ...failedJobs,
                                         ],
                                         allJobData: [
-                                            
                                             ...runningJobData,
-                                            
+
                                             ...succeededJobData,
-                                            
+
                                             ...failedJobData,
                                         ],
                                         healthyJobs: [
-                                            
                                             ...runningJobs,
-                                            
+
                                             ...succeededJobs,
                                         ],
                                         healthyJobData: [
-                                            
                                             ...runningJobData,
-                                            
+
                                             ...succeededJobData,
                                         ],
-                                        
+
                                         unhealthyJobs: [...failedJobs],
-                                        
+
                                         unhealthyJobData: [...failedJobData],
                                     };
 
                                     // handle services output
                                     const serviceData = {
                                         runningServices:
-                                            
                                             serviceOutput.items.length,
                                     };
 
                                     // handle deployment output
                                     let desiredDeployment = 0,
                                         readyDeployment = 0;
-                                    
+
                                     const unhealthyDeployments = [],
-                                        
                                         healthyDeployments = [],
-                                        
                                         allDeployments = [],
-                                        
                                         unhealthyDeploymentData = [],
-                                        
                                         healthyDeploymentData = [],
-                                        
                                         allDeploymentData = [];
-                                    
+
                                     deploymentOutput.items.forEach(item => {
                                         if (item.status.readyReplicas) {
                                             readyDeployment +=
@@ -600,38 +579,33 @@ export default {
                                     const deploymentData = {
                                         desiredDeployment,
                                         readyDeployment,
-                                        
+
                                         healthyDeployments,
-                                        
+
                                         unhealthyDeployments,
-                                        
+
                                         allDeployments,
                                         healthy: healthyDeployments.length,
                                         unhealthy: unhealthyDeployments.length,
-                                        
+
                                         healthyDeploymentData,
-                                        
+
                                         unhealthyDeploymentData,
-                                        
+
                                         allDeploymentData,
                                     };
 
                                     // handle statefulset output
                                     let desiredStatefulsets = 0,
                                         readyStatefulsets = 0;
-                                    
+
                                     const healthyStatefulsets = [],
-                                        
                                         unhealthyStatefulsets = [],
-                                        
                                         allStatefulset = [],
-                                        
                                         healthyStatefulsetData = [],
-                                        
                                         unhealthyStatefulsetData = [],
-                                        
                                         allStatefulsetData = [];
-                                    
+
                                     statefulsetOutput.items.forEach(item => {
                                         if (item.status.readyReplicas) {
                                             readyStatefulsets +=
@@ -748,19 +722,19 @@ export default {
                                     const statefulsetData = {
                                         readyStatefulsets,
                                         desiredStatefulsets,
-                                        
+
                                         healthyStatefulsets,
-                                        
+
                                         unhealthyStatefulsets,
-                                        
+
                                         allStatefulset,
                                         healthy: healthyStatefulsets.length,
                                         unhealthy: unhealthyStatefulsets.length,
-                                        
+
                                         healthyStatefulsetData,
-                                        
+
                                         unhealthyStatefulsetData,
-                                        
+
                                         allStatefulsetData,
                                     };
 
@@ -801,7 +775,6 @@ export default {
     },
 };
 
-
 function loadPodOutput(configPath, namespace) {
     return new Promise(resolve => {
         let podOutput = '';
@@ -824,7 +797,6 @@ function loadPodOutput(configPath, namespace) {
         });
     });
 }
-
 
 function loadJobOutput(configPath, namespace) {
     return new Promise(resolve => {
@@ -849,7 +821,6 @@ function loadJobOutput(configPath, namespace) {
     });
 }
 
-
 function loadServiceOutput(configPath, namespace) {
     return new Promise(resolve => {
         let serviceOutput = '';
@@ -873,7 +844,6 @@ function loadServiceOutput(configPath, namespace) {
     });
 }
 
-
 function loadDeploymentOutput(configPath, namespace) {
     return new Promise(resolve => {
         let deploymentOutput = '';
@@ -896,7 +866,6 @@ function loadDeploymentOutput(configPath, namespace) {
         });
     });
 }
-
 
 function loadStatefulsetOutput(configPath, namespace) {
     return new Promise(resolve => {

@@ -27,7 +27,6 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-
 import express from 'express';
 const app = express();
 
@@ -44,7 +43,6 @@ const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
 app.set('port', process.env.PORT || 3005);
-
 
 app.get(['/application/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
@@ -70,7 +68,6 @@ cron.schedule('*/5 * * * *', () => {
         Main.runApplicationScan();
     }, cronApplicationSecurityStartTime * 1000);
 });
-
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line

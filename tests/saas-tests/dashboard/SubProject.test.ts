@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,13 +11,10 @@ const password = '1234567890';
 const newProjectName = 'Test';
 const subProjectName = 'Trial';
 
-
 describe('Sub-Project API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -35,26 +31,24 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should show pricing plan modal for project not on Growth plan and above',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects');
-            
+
             await init.pageClick(page, '#btn_Add_SubProjects');
 
             const pricingPlanModal = await init.pageWaitForSelector(
@@ -70,13 +64,10 @@ describe('Sub-Project API', () => {
     );
 });
 
-
 describe('Member Restriction', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -102,13 +93,11 @@ describe('Member Restriction', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should show unauthorised modal to a team member who is not an admin or owner of the project',
         async (done: $TSFixMe) => {
@@ -124,13 +113,13 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#btn_Add_SubProjects');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,
@@ -145,7 +134,6 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    
     test(
         'should show unauthorised modal to a team member who is not an admin of the project trying to perform any action subproject list',
         async (done: $TSFixMe) => {
@@ -164,14 +152,14 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
             await init.pageWaitForSelector(page, deleteSubProjectBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, deleteSubProjectBtn);
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,

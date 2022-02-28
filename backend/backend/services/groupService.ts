@@ -27,13 +27,13 @@ export default {
                 }),
             GroupModel.countDocuments(query),
         ]);
-        
+
         response.groups = groups;
-        
+
         response.count = count;
-        
+
         response.skip = skip;
-        
+
         response.limit = limit;
         return response;
     },
@@ -63,7 +63,7 @@ export default {
 
         if (groupExist) {
             const error = new Error('Group already exist in this project');
-            
+
             error.code = 400;
             throw error;
         }
@@ -123,7 +123,7 @@ export default {
 
         if (groupExist && String(groupExist._id) !== String(query._id)) {
             const error = new Error('Group already exist in this project');
-            
+
             error.code = 400;
             throw error;
         }
@@ -144,7 +144,7 @@ export default {
         const group = await _this.findOneBy({ _id: groupId });
         const teamMembers = group.teams;
         const data = teamMembers.filter((id: $TSFixMe) => id !== memberId);
-        
+
         const newGroup = await _this.updateOneBy(
             { _id: groupId },
             { teams: data }

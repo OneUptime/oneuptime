@@ -110,10 +110,8 @@ export default (state = initialState, action: $TSFixMe) => {
                     ...state.noteTemplates,
                     templates: state.noteTemplates.templates.map(template => {
                         if (
-                            
                             String(template._id) === String(action.payload._id)
                         ) {
-                            
                             template = action.payload;
                         }
                         return template;

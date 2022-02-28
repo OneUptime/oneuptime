@@ -13,11 +13,11 @@ export default {
 
         if (existingComponentCount && existingComponentCount > 0) {
             const error = new Error('Component with that name already exists.');
-            
+
             error.code = 400;
             throw error;
         }
-        
+
         let project = await ProjectService.findOneBy({
             query: { _id: data.projectId },
             select: 'parentProjectId _id stripePlanId seats',
@@ -31,18 +31,18 @@ export default {
                 const error = new Error(
                     'Component with that name already exists.'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
-            
+
             project = await ProjectService.findOneBy({
                 query: { _id: project.parentProjectId },
                 select: '_id stripePlanId seats',
             });
         }
         let subProjectIds = [];
-        
+
         const subProjects = await ProjectService.findBy({
             query: { parentProjectId: project._id },
             select: '_id',
@@ -56,7 +56,7 @@ export default {
         });
         let plan = Plans.getPlanById(project.stripePlanId);
         // null plan => enterprise plan
-        
+
         plan = plan && plan.category ? plan : { category: 'Enterprise' };
 
         let projectSeats = project.seats;
@@ -65,37 +65,33 @@ export default {
         }
         if (!plan && IS_SAAS_SERVICE) {
             const error = new Error('Invalid project plan.');
-            
+
             error.code = 400;
             throw error;
         } else {
             const unlimitedComponent = ['Scale', 'Enterprise'];
             const componentCount =
-                
                 plan.category === 'Startup'
                     ? 5
-                    : 
-                    plan.category === 'Growth'
+                    : plan.category === 'Growth'
                     ? 10
                     : 0;
 
             if (
                 count < projectSeats * componentCount ||
                 !IS_SAAS_SERVICE ||
-                
                 unlimitedComponent.includes(plan.category)
             ) {
                 const component = new ComponentModel();
-                
+
                 component.name = data.name;
-                
+
                 component.createdById = data.createdById;
-                
+
                 component.visibleOnStatusPage = data.visibleOnStatusPage;
-                
+
                 component.projectId = data.projectId;
                 if (data && data.name) {
-                    
                     component.slug = getSlug(data.name);
                 }
                 const savedComponent = await component.save();
@@ -119,7 +115,7 @@ export default {
                 const error = new Error(
                     "You can't add any more components. Please add an extra seat to add more components."
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -280,14 +276,14 @@ export default {
 
         if (component) {
             let subProject = null;
-            
+
             let project = await ProjectService.findOneBy({
                 query: { _id: component.projectId },
                 select: 'parentProjectId _id seats stripeSubscriptionId',
             });
             if (project.parentProjectId) {
                 subProject = project;
-                
+
                 project = await ProjectService.findOneBy({
                     query: { _id: subProject.parentProjectId },
                     select: '_id seats stripeSubscriptionId',
@@ -295,7 +291,7 @@ export default {
             }
 
             let subProjectIds = [];
-            
+
             const subProjects = await ProjectService.findBy({
                 query: { parentProjectId: project._id },
                 select: '_id',
@@ -345,7 +341,7 @@ export default {
             for (const monitor of monitors) {
                 await MonitorService.deleteBy({ _id: monitor._id }, userId);
             }
-            
+
             NotificationService.create(
                 component.projectId,
                 `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
@@ -427,7 +423,6 @@ export default {
     },
 
     addSeat: async function(query: $TSFixMe) {
-        
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -474,7 +469,7 @@ export default {
             const components = await Promise.all(
                 component.map(async (component: $TSFixMe) => {
                     const componentId = component._id;
-                    
+
                     component = await _this.updateOneBy(
                         { _id: componentId, deleted: true },
                         {
@@ -495,7 +490,7 @@ export default {
             component = component[0];
             if (component) {
                 const componentId = component._id;
-                
+
                 component = await _this.updateOneBy(
                     { _id: componentId, deleted: true },
                     {

@@ -11,7 +11,7 @@ export const fetchscheduledEvent = (
         const response = await getApi(
             `scheduledEvent/${projectId}/${scheduledEventId}`
         );
-        
+
         dispatch(fetchscheduledEventSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -64,17 +64,15 @@ export const fetchscheduledEvents = (
     try {
         let response = {};
         if (!skip && !limit) {
-            
             response = await getApi(
                 `scheduledEvent/${projectId}?skip=${0}&limit=${10}`
             );
         } else {
-            
             response = await getApi(
                 `scheduledEvent/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
-        
+
         const { data, count } = response.data;
         dispatch(fetchscheduledEventsSuccess({ data, count, skip, limit }));
     } catch (error) {
@@ -138,7 +136,7 @@ export const fetchSubProjectScheduledEvents = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `scheduledEvent/${projectId}/scheduledEvents/all`
         );
-        
+
         dispatch(fetchSubProjectScheduledEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -176,7 +174,7 @@ export const fetchOngoingScheduledEvents = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `scheduledEvent/${projectId}/ongoingEvent`
         );
-        
+
         dispatch(fetchOngoingScheduledEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -217,7 +215,7 @@ export const fetchSubProjectOngoingScheduledEvents = (
         const response = await getApi(
             `scheduledEvent/${projectId}/ongoingEvent/all`
         );
-        
+
         dispatch(fetchSubProjectOngoingScheduledEventsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -240,7 +238,7 @@ export const createScheduledEvent = (
         dispatch(createScheduledEventRequest());
 
         const response = await postApi(`scheduledEvent/${projectId}`, values);
-        
+
         dispatch(createScheduledEventSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -282,11 +280,10 @@ export const deleteScheduledEvent = (
     try {
         dispatch(deleteScheduledEventRequest());
 
-        
         const response = await deleteApi(
             `scheduledEvent/${projectId}/${scheduledEventId}`
         );
-        
+
         dispatch(deleteScheduledEventSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -332,12 +329,10 @@ export const cancelScheduledEvent = (
     try {
         dispatch(cancelScheduledEventRequest());
 
-        
         const response = await putApi(
             `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
         );
 
-        
         dispatch(cancelScheduledEventSuccess(response.data));
         closeModal({ id: modalId });
         history.push(redirect);
@@ -388,7 +383,6 @@ export function updateScheduledEvent(
 
         promise.then(
             function(scheduledEvent) {
-                
                 dispatch(updateScheduledEventSuccess(scheduledEvent.data));
             },
             function(error) {
@@ -457,18 +451,15 @@ export const fetchScheduledEventNotesInternal = (
 
         let response = {};
         if (skip >= 0 && limit >= 0) {
-            
             response = await getApi(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}&type=${type}`
             );
         } else {
-            
             response = await getApi(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes?`
             );
         }
 
-        
         const { data, count } = response.data;
         dispatch(
             fetchScheduledEventNotesInternalSuccess({
@@ -518,7 +509,6 @@ export const createScheduledEventNote = (
             data
         );
 
-        
         dispatch(createScheduledEventNoteSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -560,7 +550,6 @@ export const updateScheduledEventNoteInternal = (
             data
         );
 
-        
         dispatch(updateScheduledEventNoteInternalSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -607,7 +596,6 @@ export const updateScheduledEventNoteInvestigation = (
             data
         );
 
-        
         dispatch(updateScheduledEventNoteInvestigationSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -644,11 +632,10 @@ export const deleteScheduledEventNote = (
     try {
         dispatch(deleteScheduledEventNoteRequest());
 
-        
         const response = await deleteApi(
             `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`
         );
-        
+
         dispatch(deleteScheduledEventNoteSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -684,11 +671,10 @@ export const resolveScheduledEvent = (
     try {
         dispatch(resolveScheduledEventRequest());
 
-        
         const response = await putApi(
             `scheduledEvent/${projectId}/resolve/${scheduledEventId}`
         );
-        
+
         dispatch(resolveScheduledEventSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -742,7 +728,6 @@ export function fetchScheduledEvent(projectId: $TSFixMe, slug: $TSFixMe) {
 
         promise.then(
             function(component) {
-                
                 dispatch(fetchScheduledEventSuccess(component.data));
             },
             function(error) {

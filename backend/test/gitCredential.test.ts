@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -19,13 +18,12 @@ import ProjectService from '../backend/services/projectService';
 import GitCredentialService from '../backend/services/gitCredentialService';
 import AirtableService from '../backend/services/airtableService';
 
-
 describe('Git Credential API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe, userId, token: $TSFixMe, credentialId: $TSFixMe;
 
     this.timeout(timeout);
-    
+
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(
@@ -60,7 +58,6 @@ describe('Git Credential API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -73,7 +70,6 @@ describe('Git Credential API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should add git credential', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const gitUsername = 'username';
@@ -94,7 +90,6 @@ describe('Git Credential API', function() {
             });
     });
 
-    
     it('should update a git credential', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const newGitUsername = 'newusername';
@@ -112,7 +107,6 @@ describe('Git Credential API', function() {
             });
     });
 
-    
     it('should get all the git credentials in a project', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const gitUsername = 'anotherUsername';
@@ -137,7 +131,6 @@ describe('Git Credential API', function() {
             });
     });
 
-    
     it('should remove a git credential', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -152,7 +145,6 @@ describe('Git Credential API', function() {
             });
     });
 
-    
     it('should not create git credential with an existing git user in a project', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const gitUsername = 'anotherUsername'; // an existing username
@@ -174,7 +166,6 @@ describe('Git Credential API', function() {
             });
     });
 
-    
     it('should not create git credential if git username is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const gitUsername = '';
@@ -196,7 +187,6 @@ describe('Git Credential API', function() {
             });
     });
 
-    
     it('should not create git credential if git password is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const gitUsername = 'username';
@@ -216,7 +206,6 @@ describe('Git Credential API', function() {
             });
     });
 
-    
     it('should not remove a non-existing git credential', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const credentialId = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id

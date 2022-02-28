@@ -63,14 +63,13 @@ router.post('/events', async function(req, res) {
 
 router.get('/:userId/charges', getUser, async function(req, res) {
     try {
-        
         const userId = req.user.id;
         if (userId) {
             const charges = await StripeService.charges(userId);
             return sendListResponse(req, res, charges);
         }
         const error = new Error('User is required');
-        
+
         error.code = 400;
         throw error;
     } catch (error) {
@@ -81,14 +80,14 @@ router.get('/:userId/charges', getUser, async function(req, res) {
 router.post('/:userId/creditCard/:token/pi', getUser, async function(req, res) {
     try {
         const { token } = req.params;
-        
+
         const userId = req.user.id;
         if (token && userId) {
             const item = await StripeService.creditCard.create(token, userId);
             return sendItemResponse(req, res, item);
         }
         const error = new Error('Both user and token are required');
-        
+
         error.code = 400;
         throw error;
     } catch (error) {
@@ -99,14 +98,14 @@ router.post('/:userId/creditCard/:token/pi', getUser, async function(req, res) {
 router.put('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
         const { cardId } = req.params;
-        
+
         const userId = req.user.id;
         if (cardId && userId) {
             const card = await StripeService.creditCard.update(userId, cardId);
             return sendItemResponse(req, res, card);
         }
         const error = new Error('Both user and card are required');
-        
+
         error.code = 400;
         throw error;
     } catch (error) {
@@ -117,14 +116,14 @@ router.put('/:userId/creditCard/:cardId', getUser, async function(req, res) {
 router.delete('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
         const { cardId } = req.params;
-        
+
         const userId = req.user.id;
         if (cardId && userId) {
             const card = await StripeService.creditCard.delete(cardId, userId);
             return sendItemResponse(req, res, card);
         }
         const error = new Error('Both user and card are required');
-        
+
         error.code = 400;
         throw error;
     } catch (error) {
@@ -134,15 +133,13 @@ router.delete('/:userId/creditCard/:cardId', getUser, async function(req, res) {
 
 router.get('/:userId/creditCard', getUser, async function(req, res) {
     try {
-        
         const userId = req.user.id;
         if (userId) {
-            
             const cards = await StripeService.creditCard.get(userId);
             return sendItemResponse(req, res, cards);
         }
         const error = new Error('User is required');
-        
+
         error.code = 400;
         throw error;
     } catch (error) {
@@ -153,14 +150,14 @@ router.get('/:userId/creditCard', getUser, async function(req, res) {
 router.get('/:userId/creditCard/:cardId', getUser, async function(req, res) {
     try {
         const { cardId } = req.params;
-        
+
         const userId = req.user.id;
         if (userId && cardId) {
             const card = await StripeService.creditCard.get(userId, cardId);
             return sendItemResponse(req, res, card);
         }
         const error = new Error('Both user and card are required');
-        
+
         error.code = 400;
         throw error;
     } catch (error) {
@@ -175,7 +172,6 @@ router.post(
     isUserOwner,
     async function(req, res) {
         try {
-            
             const userId = req.user ? req.user.id : null;
             const { projectId } = req.params;
             let { rechargeBalanceAmount } = req.body;
@@ -231,7 +227,7 @@ router.get(
 
             if (!updatedProject) {
                 const error = new Error('Project was not updated');
-                
+
                 error.code = 400;
                 sendErrorResponse(req, res, error);
             }
@@ -259,7 +255,6 @@ router.post(
                 });
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'stripeSubscriptionId',

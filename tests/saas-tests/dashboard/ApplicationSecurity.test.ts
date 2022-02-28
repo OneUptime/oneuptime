@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,13 +10,10 @@ const password = '1234567890';
 const component = 'TestComponent';
 const applicationSecurityName = 'Test';
 
-
 describe('Application Security Page', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -33,13 +29,11 @@ describe('Application Security Page', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should create an application security with a resource category and ensure it redirects to the details page and has category attached',
         async (done: $TSFixMe) => {
@@ -59,58 +53,57 @@ describe('Application Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#application', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#application');
 
             await init.pageWaitForSelector(page, '#applicationSecurityForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addCredentialBtn');
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#gitUsername');
-            
+
             await init.pageType(page, '#gitUsername', gitUsername);
-            
+
             await init.pageClick(page, '#gitPassword');
-            
+
             await init.pageType(page, '#gitPassword', gitPassword);
-            
+
             await init.pageClick(page, '#addCredentialModalBtn');
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
             });
 
-            
             await init.pageClick(page, '#name');
-            
+
             await init.pageType(page, '#name', applicationSecurityName);
             // await init.selectDropdownValue(
             //     '#resourceCategory',
             //     categoryName,
             //     page
             // ); // add category
-            
+
             await init.pageClick(page, '#gitRepositoryUrl');
-            
+
             await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
-            
+
             await init.pageClick(page, '#gitCredential');
-            
+
             await init.pageType(page, '#gitCredential', gitUsername); // select the created credential
             await page.keyboard.press('Enter'); // Enter Key
-            
+
             await init.pageClick(page, '#addApplicationBtn');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -124,7 +117,7 @@ describe('Application Security Page', () => {
             expect(applicationSecurity).toBeDefined();
 
             // find the edit button which appears only on the details page
-            
+
             const editApplicationElement = await init.pageWaitForSelector(
                 page,
                 `#edit_${applicationSecurityName}`
@@ -146,33 +139,32 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    
     test('should scan an application security', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL);
         await init.pageWaitForSelector(page, '#components', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#components');
 
         await init.pageWaitForSelector(page, '#component0', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, `#more-details-${component}`);
         await init.pageWaitForSelector(page, '#security', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#security');
         await init.pageWaitForSelector(page, '#application', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#application');
         await init.pageWaitForSelector(
             page,
@@ -185,7 +177,7 @@ describe('Application Security Page', () => {
             `#scanningApplicationSecurity_${applicationSecurityName}`,
             { hidden: true, timeout: 600000 }
         );
-        
+
         await init.pageClick(
             page,
             `#moreApplicationSecurity_${applicationSecurityName}`
@@ -199,7 +191,6 @@ describe('Application Security Page', () => {
         done();
     }, 600000);
 
-    
     test(
         'should view details of security log',
         async (done: $TSFixMe) => {
@@ -208,33 +199,33 @@ describe('Application Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#application', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#application');
             await init.pageWaitForSelector(
                 page,
                 `#applicationSecurityHeader_${applicationSecurityName}`,
                 { visible: true, timeout: init.timeout }
             );
-            
+
             await init.pageClick(
                 page,
                 `#moreApplicationSecurity_${applicationSecurityName}`
@@ -255,7 +246,6 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should also view details of a security log, on clicking the issue count section',
         async (done: $TSFixMe) => {
@@ -264,33 +254,33 @@ describe('Application Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#application', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#application');
             await init.pageWaitForSelector(
                 page,
                 `#applicationSecurityHeader_${applicationSecurityName}`,
                 { visible: true, timeout: init.timeout }
             );
-            
+
             await init.pageClick(page, '#issueCount');
             const securityLog = await init.pageWaitForSelector(
                 page,
@@ -308,7 +298,6 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should display log(s) of an application security scan',
         async (done: $TSFixMe) => {
@@ -317,33 +306,33 @@ describe('Application Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#application', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#application');
             await init.pageWaitForSelector(
                 page,
                 `#applicationSecurityHeader_${applicationSecurityName}`,
                 { visible: true, timeout: init.timeout }
             );
-            
+
             await init.pageClick(
                 page,
                 `#moreApplicationSecurity_${applicationSecurityName}`
@@ -355,7 +344,7 @@ describe('Application Security Page', () => {
             });
             // make sure the added application security
             // has atleast one security vulnerability
-            
+
             const logs = await init.page$$(page, '#securityLog tbody tr');
             expect(logs.length).toBeGreaterThanOrEqual(1);
 
@@ -364,7 +353,6 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should edit an application security',
         async (done: $TSFixMe) => {
@@ -375,33 +363,33 @@ describe('Application Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#application', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#application');
             await init.pageWaitForSelector(
                 page,
                 `#applicationSecurityHeader_${applicationSecurityName}`,
                 { visible: true, timeout: init.timeout }
             );
-            
+
             await init.pageClick(
                 page,
                 `#moreApplicationSecurity_${applicationSecurityName}`
@@ -415,7 +403,7 @@ describe('Application Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, `#edit_${applicationSecurityName}`);
             await init.pageWaitForSelector(
                 page,
@@ -426,9 +414,9 @@ describe('Application Security Page', () => {
                 }
             );
             await init.pageClick(page, '#name', { clickCount: 3 });
-            
+
             await init.pageType(page, '#name', newApplicationName);
-            
+
             await init.pageClick(page, '#editApplicationBtn');
             await init.pageWaitForSelector(
                 page,
@@ -450,7 +438,6 @@ describe('Application Security Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete an application security',
         async (done: $TSFixMe) => {
@@ -461,38 +448,38 @@ describe('Application Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#application', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#application');
             await init.pageWaitForSelector(
                 page,
                 `#applicationSecurityHeader_${newApplicationName}`,
                 { visible: true, timeout: init.timeout }
             );
-            
+
             await init.pageClick(
                 page,
                 `#moreApplicationSecurity_${newApplicationName}`
             );
-            
+
             await init.pageClick(page, '.advanced-options-tab');
             await init.pageWaitForSelector(
                 page,
@@ -502,7 +489,7 @@ describe('Application Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, '#deleteApplicationSecurityBtn');
             await init.pageWaitForSelector(
                 page,
@@ -512,7 +499,7 @@ describe('Application Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, '#deleteApplicationSecurityModalBtn');
 
             const applicationSecurity = await init.pageWaitForSelector(

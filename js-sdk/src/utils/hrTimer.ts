@@ -18,12 +18,12 @@ class HrTimer {
 
     end = (id: $TSFixMe, startHrTime: $TSFixMe) => {
         let elapsedHrTime = process.hrtime(startHrTime);
-        
+
         elapsedHrTime = elapsedHrTime[0] * 1000 + elapsedHrTime[1] / 1e6;
         const originalValue = this.dataStore.getValue(id);
         if (originalValue && originalValue !== undefined) {
             originalValue.duration = elapsedHrTime;
-            
+
             this.dataStore.setData(id, originalValue);
             this.dataStore.destroy(id);
         }

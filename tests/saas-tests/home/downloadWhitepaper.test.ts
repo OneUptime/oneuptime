@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,11 +11,8 @@ const email = utils.generateRandomBusinessEmail();
 const queryString = '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
 let queryObj = {};
 
-
 describe('Download Whitepaper form', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -25,7 +21,7 @@ describe('Download Whitepaper form', () => {
         await page.goto(`${utils.HOME_URL}${queryString}`, {
             waitUntil: 'networkidle2',
         });
-        
+
         await init.pageClick(page, '#accept-cookies');
         await page.goto(`${utils.HOME_URL}/enterprise/resources`, {
             waitUntil: 'networkidle2',
@@ -43,30 +39,30 @@ describe('Download Whitepaper form', () => {
         });
         await Promise.all([
             page.waitForNavigation(),
-            
+
             init.pageClick(page, '#website-monitoring'),
         ]);
         await init.pageWaitForSelector(page, '#form-section', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageType(page, '#fullname', utils.user.name);
-        
+
         await init.pageType(page, '#email', email);
-        
+
         await init.pageType(page, '#phone', utils.user.phone);
-        
+
         await init.pageType(page, '#website', utils.user.website);
-        
+
         await init.pageClick(page, '#country');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        
+
         await init.pageClick(page, '#volume');
         await page.keyboard.press('ArrowDown');
         await page.keyboard.down('Enter');
-        
+
         await init.pageClick(page, '#request-resource-btn');
 
         const params = new URLSearchParams(queryString);
@@ -77,13 +73,11 @@ describe('Download Whitepaper form', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'redirected query string should be save as source in the leads schema',
         async (done: $TSFixMe) => {
@@ -102,7 +96,6 @@ describe('Download Whitepaper form', () => {
             const res = await axios(config);
             const sourceObj = res.data[0].source;
             for (const key in sourceObj) {
-                
                 expect(sourceObj[key]).toEqual(queryObj[key]);
             }
             done();

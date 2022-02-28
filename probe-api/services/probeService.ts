@@ -1,5 +1,4 @@
 export default {
-    
     create: async function(data) {
         try {
             const _this = this;
@@ -14,30 +13,29 @@ export default {
             });
             if (storedProbe && storedProbe.probeName) {
                 const error = new Error('Probe name already exists.');
-                
+
                 error.code = 400;
                 ErrorService.log('probe.create', error);
                 throw error;
             } else {
                 const probe = {};
-                
+
                 probe.probeKey = probeKey;
-                
+
                 probe.probeName = data.probeName;
-                
+
                 probe.version = data.probeVersion;
 
                 const now = new Date(moment().format());
-                
+
                 probe.createdAt = now;
-                
+
                 probe.lastAlive = now;
-                
+
                 probe.deleted = false;
 
                 const result = await probeCollection.insertOne(probe);
                 const savedProbe = await _this.findOneBy({
-                    
                     _id: ObjectId(result.insertedId),
                 });
                 return savedProbe;
@@ -48,7 +46,6 @@ export default {
         }
     },
 
-    
     findOneBy: async function(query) {
         try {
             if (!query) {
@@ -69,7 +66,6 @@ export default {
         }
     },
 
-    
     updateOneBy: async function(query, data) {
         try {
             if (!query) {
@@ -91,20 +87,17 @@ export default {
         }
     },
 
-    
     updateProbeStatus: async function(probeId) {
         try {
             const now = new Date(moment().format());
             await probeCollection.updateOne(
                 {
-                    
                     _id: ObjectId(probeId),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
                 { $set: { lastAlive: now } }
             );
             const probe = await this.findOneBy({
-                
                 _id: ObjectId(probeId),
             });
 
@@ -113,7 +106,6 @@ export default {
                 `${realtimeBaseUrl}/update-probe`,
                 { data: probe },
                 true
-                
             ).catch(error => {
                 ErrorService.log('probeService.updateProbeStatus', error);
             });

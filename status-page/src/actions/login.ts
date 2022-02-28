@@ -48,7 +48,6 @@ export const loginUser = (values: $TSFixMe) => {
 
         promise.then(
             function(user) {
-                
                 dispatch(loginSuccess(user.data));
             },
             function(error) {

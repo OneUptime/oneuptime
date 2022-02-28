@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const member = {
     password: '1234567890',
 };
 
-
 describe('API test', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,13 +30,11 @@ describe('API test', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should render the API page',
         async (done: $TSFixMe) => {
@@ -52,13 +46,13 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#api a');
             let elementHandle = await init.page$(page, '#boxTitle', {
                 visible: true,
@@ -73,7 +67,6 @@ describe('API test', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should display the API key when clicked',
         async (done: $TSFixMe) => {
@@ -85,13 +78,13 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#api a');
             let label = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -100,7 +93,6 @@ describe('API test', () => {
             label = await label.getProperty('innerText');
             label = await label.jsonValue();
 
-            
             await init.pageClick(page, '#apiKey');
             let newLabel = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -115,7 +107,6 @@ describe('API test', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reset the API Key',
         async (done: $TSFixMe) => {
@@ -127,16 +118,15 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#api a');
 
-            
             await init.pageClick(page, '#apiKey');
             let oldApiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -152,7 +142,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'button[id=resetApiKeySave]');
             await init.pageWaitForSelector(page, 'button[id=resetApiKeySave]', {
                 hidden: true,
@@ -172,7 +162,6 @@ describe('API test', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not access API settings if user is a member on a project',
         async (done: $TSFixMe) => {
@@ -187,7 +176,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, 'input[name=project_name]', {
                 visible: true,
@@ -196,7 +185,7 @@ describe('API test', () => {
             await init.pageClick(page, 'input[name=project_name]', {
                 clickCount: 3,
             });
-            
+
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(
                 page,
@@ -206,7 +195,7 @@ describe('API test', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, 'button[id=btnCreateProject]');
 
             // Invite member on the project
@@ -217,33 +206,33 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#teamMembers');
             await init.pageWaitForSelector(page, `#btn_${projectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#btn_${projectName}`);
             await init.pageWaitForSelector(page, 'input[name=emails]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[name=emails]');
-            
+
             await init.pageType(page, 'input[name=emails]', member.email);
             await init.pageWaitForSelector(page, `#${role}_${projectName}`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#${role}_${projectName}`);
             await init.pageWaitForSelector(page, 'button[type=submit]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, 'button[type=submit]', {
                 hidden: true,
@@ -257,13 +246,13 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#api', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#api a');
 
             let elementHandle = await init.pageWaitForSelector(

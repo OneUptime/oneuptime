@@ -80,10 +80,9 @@ export default function probes(state = initialState, action: $TSFixMe) {
                 probes: {
                     ...state.probes,
                     data: state.probes.data.filter(
-                        
                         d => d._id !== action.payload
                     ),
-                    
+
                     count: state.probes.count - 1,
                 },
                 deleteProbe: {
@@ -124,9 +123,9 @@ export default function probes(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 probes: {
                     ...state.probes,
-                    
+
                     data: state.probes.data.concat([action.payload]),
-                    
+
                     count: state.probes.count + 1,
                 },
                 addProbe: {
@@ -198,7 +197,6 @@ export default function probes(state = initialState, action: $TSFixMe) {
                     data:
                         state.probes.data.length > 0
                             ? state.probes.data.map(probe => {
-                                  
                                   return probe._id === action.payload._id
                                       ? action.payload
                                       : probe;

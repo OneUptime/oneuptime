@@ -33,25 +33,24 @@ export default {
     ) {
         const _this = this;
         const integrationModel = new IntegrationModel(data);
-        
+
         integrationModel.projectId = projectId;
-        
+
         integrationModel.createdById = userId;
-        
+
         integrationModel.data = data;
-        
+
         integrationModel.integrationType = integrationType;
         data.monitors =
             data.monitors &&
             data.monitors.map((monitor: $TSFixMe) => ({
                 monitorId: monitor,
             }));
-        
+
         integrationModel.monitorId = data.monitorId || null;
-        
+
         integrationModel.monitors = data.monitors || [];
         if (notificationOptions) {
-            
             integrationModel.notificationOptions = notificationOptions;
         }
 
@@ -121,7 +120,6 @@ export default {
         }
 
         if (!data._id) {
-            
             const integration = await _this.create(
                 data.projectId,
                 data.userId,
@@ -202,7 +200,7 @@ export default {
         if (monitorId) {
             query = { monitorId: monitorId };
         }
-        
+
         query.deleted = false;
         const integrations = await IntegrationModel.updateMany(query, {
             $set: {

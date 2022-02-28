@@ -1,15 +1,12 @@
 require('should');
 
-
 import zapier from 'zapier-platform-core';
 
 import App from '../../index';
 
 const appTester = zapier.createAppTester(App);
 
-
 describe('Resolve Trigger', () => {
-    
     it('passes authentication and returns a resolved incident object', (done: $TSFixMe) => {
         zapier.tools.env.inject();
 

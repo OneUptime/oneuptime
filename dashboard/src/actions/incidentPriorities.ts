@@ -36,7 +36,6 @@ export function fetchIncidentPriorities(
         promise.then(
             function(incidentsPriorities) {
                 dispatch(
-                    
                     fetchIncidentPrioritiesSuccess(incidentsPriorities.data)
                 );
             },
@@ -63,7 +62,6 @@ export function createIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(createIncidentPriorityRequest());
         promise.then(
             function(incidentPriority) {
-                
                 dispatch(createIncidentPrioritySuccess(incidentPriority.data));
             },
             function(error) {
@@ -110,7 +108,6 @@ export function updateIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(updateIncidentPriorityRequest());
         promise.then(
             function(incidentPriority) {
-                
                 dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
             },
             function(error) {
@@ -157,7 +154,6 @@ export function deleteIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(deleteIncidentPriorityRequest());
         promise.then(
             function(incidentPriority) {
-                
                 dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
             },
             function(error) {

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,13 +11,10 @@ const user = {
     password,
 };
 
-
 describe('Stripe cards API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -29,26 +25,24 @@ describe('Stripe cards API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should add a valid card',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            
+
             await init.pageClick(page, '#profile-menu');
-            
+
             await init.pageClick(page, '#profileBilling');
-            
+
             await init.pageWaitForSelector(page, '#cardNo_0');
-            
+
             await init.pageWaitForSelector(page, '#addCardButton');
-            
+
             await init.pageClick(page, '#addCardButton');
             await init.pageWaitForSelector(
                 page,
@@ -58,7 +52,7 @@ describe('Stripe cards API', () => {
                     timeout: operationTimeOut,
                 }
             );
-            
+
             const stripeIframe = await init.page$(
                 page,
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
@@ -75,7 +69,7 @@ describe('Stripe cards API', () => {
             await frame.type('input[name=cvc]', '100');
             frame.waitForSelector('input[name=postal]');
             await frame.type('input[name=postal]', '11234');
-            
+
             await init.pageClick(page, '#addCardButtonSubmit');
             await init.pageWaitForSelector(page, '#addCardButtonSubmit', {
                 hidden: true,
@@ -95,18 +89,17 @@ describe('Stripe cards API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete card',
         async (done: $TSFixMe) => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
-            
+
             await init.pageWaitForSelector(page, '#deleteCard1');
-            
+
             await init.pageClick(page, '#deleteCard1');
-            
+
             await init.pageWaitForSelector(page, '#deleteCardButton');
-            
+
             await init.pageClick(page, '#deleteCardButton');
             await init.pageWaitForSelector(page, '#deleteCardButton', {
                 hidden: true,
@@ -125,18 +118,17 @@ describe('Stripe cards API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not delete card when there is only one card left',
         async (done: $TSFixMe) => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
-            
+
             await init.pageWaitForSelector(page, '#deleteCard0');
-            
+
             await init.pageClick(page, '#deleteCard0');
-            
+
             await init.pageWaitForSelector(page, '#deleteCardButton');
-            
+
             await init.pageClick(page, '#deleteCardButton');
             const deleteError = await init.pageWaitForSelector(
                 page,
@@ -147,7 +139,7 @@ describe('Stripe cards API', () => {
                 }
             );
             expect(deleteError).toBeDefined();
-            
+
             await init.pageClick(page, '#deleteCardCancel');
 
             const cardsCount = await init.page$Eval(
@@ -162,14 +154,13 @@ describe('Stripe cards API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not add an invalid card',
         async (done: $TSFixMe) => {
             await page.goto(`${utils.DASHBOARD_URL}/dashboard/profile/billing`);
-            
+
             await init.pageWaitForSelector(page, '#addCardButton');
-            
+
             await init.pageClick(page, '#addCardButton');
             await init.pageWaitForSelector(
                 page,
@@ -179,7 +170,7 @@ describe('Stripe cards API', () => {
                     timeout: operationTimeOut,
                 }
             );
-            
+
             const stripeIframe = await init.page$(
                 page,
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
@@ -197,7 +188,7 @@ describe('Stripe cards API', () => {
             await frame.type('input[name=cvc]', '100');
             frame.waitForSelector('input[name=postal]');
             await frame.type('input[name=postal]', '11234');
-            
+
             await init.pageClick(page, '#addCardButtonSubmit');
             const error = await init.pageWaitForSelector(page, '#cardError', {
                 visible: true,

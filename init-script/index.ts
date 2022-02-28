@@ -82,7 +82,7 @@ async function run() {
     console.log('Connecting to MongoDB.');
 
     const connection = await util.connectToDb();
-    
+
     global.db = connection.db();
 
     // eslint-disable-next-line no-console

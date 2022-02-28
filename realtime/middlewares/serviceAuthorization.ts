@@ -4,7 +4,6 @@ import ErrorService from '../services/errorService';
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
 export default {
-    
     isAuthorizedService: async function(req, res, next) {
         try {
             let clusterKey;

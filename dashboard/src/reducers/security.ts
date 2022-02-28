@@ -97,11 +97,9 @@ export default function security(state = initialState, action: $TSFixMe) {
                     ? state.containerSecurities.securities.map(
                           containerSecurity => {
                               if (
-                                  
                                   String(containerSecurity._id) ===
                                   String(action.payload._id)
                               ) {
-                                  
                                   containerSecurity = action.payload;
                               }
                               return containerSecurity;
@@ -192,7 +190,6 @@ export default function security(state = initialState, action: $TSFixMe) {
             // update the list of container securities
             const securities = state.containerSecurities.securities.filter(
                 containerSecurity =>
-                    
                     String(containerSecurity._id) !== String(action.payload._id)
             );
             const count =
@@ -408,11 +405,9 @@ export default function security(state = initialState, action: $TSFixMe) {
                     ? state.applicationSecurities.securities.map(
                           applicationSecurity => {
                               if (
-                                  
                                   String(applicationSecurity._id) ===
                                   String(action.payload._id)
                               ) {
-                                  
                                   applicationSecurity = action.payload;
                               }
                               return applicationSecurity;
@@ -503,7 +498,6 @@ export default function security(state = initialState, action: $TSFixMe) {
             // update the list of application securities
             const securities = state.applicationSecurities.securities.filter(
                 applicationSecurity =>
-                    
                     String(applicationSecurity._id) !==
                     String(action.payload._id)
             );

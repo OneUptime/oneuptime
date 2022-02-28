@@ -25,7 +25,6 @@ export function fetchComponents({ projectId, skip = 0, limit = 3 }: $TSFixMe) {
 
         promise.then(
             function(components) {
-                
                 dispatch(fetchComponentsSuccess(components.data));
             },
             function(error) {
@@ -88,7 +87,6 @@ export function fetchPaginatedComponents({
 
         promise.then(
             function(response) {
-                
                 dispatch(fetchPaginatedComponentsSuccess(response.data));
             },
             function(error) {
@@ -144,7 +142,6 @@ export function createComponent(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(component) {
-                
                 dispatch(createComponentSuccess(component.data));
             },
             function(error) {
@@ -202,7 +199,6 @@ export function editComponent(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(component) {
-                
                 dispatch(editComponentSuccess(component.data));
             },
             function(error) {
@@ -269,7 +265,6 @@ export function deleteComponent(componentId: $TSFixMe, projectId: $TSFixMe) {
 
         promise.then(
             function(component) {
-                
                 dispatch(deleteComponentSuccess(component.data._id));
             },
             function(error) {
@@ -331,9 +326,8 @@ export function addSeat(projectId: $TSFixMe) {
 
         promise.then(
             function(component) {
-                
                 dispatch(createComponentFailure(component.data));
-                
+
                 dispatch(addSeatSuccess(component.data));
             },
             function(error) {
@@ -398,7 +392,6 @@ export function fetchComponentResources(
 
         promise.then(
             function(components) {
-                
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
             function(error) {
@@ -463,7 +456,6 @@ export function fetchComponentSummary(
 
         promise.then(
             function(components) {
-                
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
             function(error) {
@@ -546,7 +538,6 @@ export function fetchComponent(projectId: $TSFixMe, slug: $TSFixMe) {
 
         promise.then(
             function(component) {
-                
                 dispatch(fetchComponentSuccess(component.data));
             },
             function(error) {

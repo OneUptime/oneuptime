@@ -92,15 +92,12 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
         const selectApplicationSecurityLog = '_id securityId componentId data';
 
         const findLog = await ApplicationSecurityLogService.findOneBy({
-            
             query: { _id: securityLog._id },
             populate: populateApplicationSecurityLog,
             select: selectApplicationSecurityLog,
         });
 
-        
         const project = await ProjectService.findOneBy({
-            
             query: { _id: findLog.componentId.projectId },
             select: '_id name users',
         });
@@ -110,28 +107,27 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             .map((e: $TSFixMe) => ({
                 id: e.userId,
             })); // This cater for projects with multiple registered members
-        
+
         project.critical = findLog.data.vulnerabilities.critical;
-        
+
         project.high = findLog.data.vulnerabilities.high;
-        
+
         project.moderate = findLog.data.vulnerabilities.moderate;
-        
+
         project.low = findLog.data.vulnerabilities.low;
 
-        
         const critical = findLog.data.advisories
             .filter((e: $TSFixMe) => e.severity === 'critical')
             .slice(0, 10);
-        
+
         const high = findLog.data.advisories
             .filter((e: $TSFixMe) => e.severity === 'high')
             .slice(0, 10);
-        
+
         const moderate = findLog.data.advisories
             .filter((e: $TSFixMe) => e.severity === 'moderate')
             .slice(0, 10);
-        
+
         const low = findLog.data.advisories
             .filter((e: $TSFixMe) => e.severity === 'low')
             .slice(0, 10);
@@ -251,7 +247,6 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
 
         try {
             RealtimeService.handleLog({
-                
                 securityId: securityLog.securityId,
                 securityLog: findLog,
             });

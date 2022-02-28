@@ -22,10 +22,9 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
     try {
         const val = req.body.search;
         const parentProjectId = req.params.projectId;
-        
+
         const subProjectIds = req.user.subProjects
-            ? 
-              req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
 
         const searchResponse = [];
@@ -45,7 +44,7 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
             getComponents(subProjectIds, val, parentProjectId),
             getMonitors(subProjectIds, val, parentProjectId),
             getStatusPages(subProjectIds, val, parentProjectId),
-            
+
             getUsers(subProjectIds, val, parentProjectId),
             getOnCallDuty(subProjectIds, val, parentProjectId),
             getSchedultEvent(subProjectIds, val, parentProjectId),
@@ -217,11 +216,11 @@ const getStatusPages = async (
         select: selectStatusPage,
         populate: populateStatusPage,
     });
-    
+
     if (statusPages.length > 0) {
         const resultObj = {
             title: 'Status Pages',
-            
+
             values: statusPages.map((statusPage: $TSFixMe) => ({
                 name: statusPage.name,
                 statusPageSlug: statusPage.slug,
@@ -243,7 +242,7 @@ const getStatusPages = async (
 const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe) => {
     //get project users id so as to search for only users in a project and its subproject
     const projectUsers: $TSFixMe = [];
-    
+
     const projects = await ProjectService.findBy({
         query: { _id: { $in: projectIds } },
         select: 'users',

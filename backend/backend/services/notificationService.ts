@@ -68,15 +68,15 @@ export default {
             const selectNotification =
                 'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
             let notification = new NotificationModel();
-            
+
             notification.projectId = projectId;
-            
+
             notification.message = message;
-            
+
             notification.icon = icon;
-            
+
             notification.createdBy = userId;
-            
+
             notification.meta = meta;
             notification = await notification.save();
             const populatedNotification = await this.findOneBy({

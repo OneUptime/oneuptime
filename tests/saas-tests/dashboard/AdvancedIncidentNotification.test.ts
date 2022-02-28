@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,9 +15,7 @@ const user = {
 describe('Project Settings Page - (Email and SMS & Calls)', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(operationTimeOut);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -29,13 +26,11 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should enable sending email notification when incident is created, acknowledged, resolved or investigated',
         async (done: $TSFixMe) => {
@@ -47,17 +42,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -109,7 +104,6 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should disable sending email notification when incident is created',
         async (done: $TSFixMe) => {
@@ -121,17 +115,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -146,7 +140,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendCreatedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.click()
             );
-            
+
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -174,7 +168,6 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should disable sending email notification when incident is acknowledged',
         async (done: $TSFixMe) => {
@@ -186,17 +179,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -211,7 +204,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendAcknowledgedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.click()
             );
-            
+
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -239,7 +232,6 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should disable sending email notification when incident is resolved',
         async (done: $TSFixMe) => {
@@ -251,17 +243,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -276,7 +268,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendResolvedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.click()
             );
-            
+
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -304,7 +296,6 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should disable sending email notification for investigation note',
         async (done: $TSFixMe) => {
@@ -316,17 +307,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#email', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#email');
 
             await init.pageWaitForSelector(
@@ -341,7 +332,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#enableInvestigationNoteNotificationEmail',
                 (elem: $TSFixMe) => elem.click()
             );
-            
+
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -369,7 +360,6 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should enable sending sms notification when incident is created, acknowledged, resolved or investigated',
         async (done: $TSFixMe) => {
@@ -381,17 +371,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#smsCalls');
 
             await init.pageWaitForSelector(
@@ -444,7 +434,6 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should disable sending sms notification when incident is created',
         async (done: $TSFixMe) => {
@@ -456,17 +445,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#smsCalls');
 
             await init.pageWaitForSelector(
@@ -482,7 +471,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendCreatedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.click()
             );
-            
+
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -511,7 +500,6 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should disable sending sms notification when incident is acknowledged',
         async (done: $TSFixMe) => {
@@ -523,17 +511,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#smsCalls');
             await init.pageWaitForSelector(
                 page,
@@ -547,7 +535,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendAcknowledgedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.click()
             );
-            
+
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -575,7 +563,6 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should disable sending sms notification when incident is resolved',
         async (done: $TSFixMe) => {
@@ -587,21 +574,21 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#smsCalls');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(
                 page,
@@ -616,7 +603,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#sendResolvedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.click()
             );
-            
+
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -644,7 +631,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'should disable sending sms notification for investigation note',
         async (done: $TSFixMe) => {
@@ -656,17 +643,17 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#smsCalls', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#smsCalls');
 
             await init.pageWaitForSelector(
@@ -681,7 +668,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                 '#enableInvestigationNoteNotificationSMS',
                 (elem: $TSFixMe) => elem.click()
             );
-            
+
             await init.pageClick(page, '#saveIncidentNotification');
 
             await init.pageWaitForSelector(page, '.ball-beat', {

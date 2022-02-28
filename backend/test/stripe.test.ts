@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -22,11 +21,9 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 let cardId: $TSFixMe, authorization: $TSFixMe;
 
-
 describe('Stripe payment API', function() {
     this.timeout(50000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -63,7 +60,6 @@ describe('Stripe payment API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -79,7 +75,6 @@ describe('Stripe payment API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should sign up and a transaction of 1 $ should be made', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/charges`)
@@ -98,7 +93,6 @@ describe('Stripe payment API', function() {
             });
     });
 
-    
     it('should return payment intent when valid details are passed ', function(done: $TSFixMe) {
         request
             .post(`/stripe/${userId}/creditCard/${'tok_amex'}/pi`)
@@ -115,33 +109,6 @@ describe('Stripe payment API', function() {
             });
     });
 
-    
-    it('should return 2 cards attached to customer', function(done: $TSFixMe) {
-        request
-            .get(`/stripe/${userId}/creditCard`)
-            .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.have.property('data');
-                expect(res.body.data).to.be.an('array');
-                expect(res.body.data).to.have.length(2);
-                done();
-            });
-    });
-    
-    it('should update default card for customer', function(done: $TSFixMe) {
-        request
-            .put(`/stripe/${userId}/creditCard/${cardId}`)
-            .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
-                expect(res).to.have.status(200);
-                expect(res.body).to.be.an('object');
-                expect(res.body).to.have.property('default_source');
-                expect(res.body.default_source).to.be.equal(cardId);
-                done();
-            });
-    });
-    
     it('should return 2 cards attached to customer', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard`)
@@ -155,7 +122,32 @@ describe('Stripe payment API', function() {
             });
     });
 
-    
+    it('should update default card for customer', function(done: $TSFixMe) {
+        request
+            .put(`/stripe/${userId}/creditCard/${cardId}`)
+            .set('Authorization', authorization)
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('object');
+                expect(res.body).to.have.property('default_source');
+                expect(res.body.default_source).to.be.equal(cardId);
+                done();
+            });
+    });
+
+    it('should return 2 cards attached to customer', function(done: $TSFixMe) {
+        request
+            .get(`/stripe/${userId}/creditCard`)
+            .set('Authorization', authorization)
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
+                expect(res).to.have.status(200);
+                expect(res.body).to.have.property('data');
+                expect(res.body.data).to.be.an('array');
+                expect(res.body.data).to.have.length(2);
+                done();
+            });
+    });
+
     it('should fetch a single card', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard/${cardId}`)
@@ -171,7 +163,6 @@ describe('Stripe payment API', function() {
             });
     });
 
-    
     it('should delete a card', function(done: $TSFixMe) {
         request
             .delete(`/stripe/${userId}/creditCard/${cardId}`)
@@ -185,7 +176,6 @@ describe('Stripe payment API', function() {
             });
     });
 
-    
     it('should not delete a single left card', function(done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard`)
@@ -205,7 +195,6 @@ describe('Stripe payment API', function() {
             });
     });
 
-    
     it('should not create a payment intent when token(generated from client) is invalid', function(done: $TSFixMe) {
         request
             .post(`/stripe/${userId}/creditCard/${'tok_invalid'}/pi`)
@@ -218,7 +207,7 @@ describe('Stripe payment API', function() {
                 done();
             });
     });
-    
+
     it('should not add balance to customer accounts if rechargeBalanceAmount is not a valid integer', function(done: $TSFixMe) {
         request
             .post(`/stripe/${projectId}/addBalance`)
@@ -234,7 +223,7 @@ describe('Stripe payment API', function() {
                 done();
             });
     });
-    
+
     it('should return payment intent if rechargeBalanceAmount is a valid integer', function(done: $TSFixMe) {
         request
             .post(`/stripe/${projectId}/addBalance`)

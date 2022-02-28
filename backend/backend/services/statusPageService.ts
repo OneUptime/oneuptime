@@ -113,7 +113,7 @@ export default {
         return await StatusPageServiceBase.findOneBy({
             query,
             skip,
-            
+
             limit,
             populate,
             select,
@@ -134,7 +134,7 @@ export default {
 
         const statusPage = await StatusPageServiceBase.create({
             data,
-            
+
             checkDuplicatesValuesIn: ['name'],
             checkDuplicatesValuesInProject: true,
             slugifyField: 'name',
@@ -207,13 +207,13 @@ export default {
 
         if (statusPage) {
             // attach the domain id to statuspage collection and update it
-            
+
             const domain = statusPage.domains.find((domain: $TSFixMe) =>
                 domain.domain === subDomain ? true : false
             );
             if (domain) {
                 const error = new Error('Domain already exists');
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -231,7 +231,6 @@ export default {
                     select: 'id',
                 });
 
-                
                 const greenlock = global.greenlock;
                 if (!certificate && greenlock) {
                     // handle this in the background
@@ -242,9 +241,7 @@ export default {
                 }
             }
 
-            
             statusPage.domains = [
-                
                 ...statusPage.domains,
                 {
                     domain: subDomain,
@@ -253,21 +250,18 @@ export default {
                     enableHttps,
                     autoProvisioning,
                     domainVerificationToken:
-                        
                         createdDomain._id || existingBaseDomain._id,
                 },
             ];
             return await this.updateOneBy(
-                
                 { _id: statusPage._id },
                 {
-                    
                     domains: statusPage.domains,
                 }
             );
         } else {
             const error = new Error('Status page not found or does not exist');
-            
+
             error.code = 400;
             throw error;
         }
@@ -298,7 +292,6 @@ export default {
             select: '_id domains',
         });
 
-        
         for (const statusPage of statusPages) {
             const statusPageId = statusPage._id;
             const domains = [];
@@ -364,13 +357,13 @@ export default {
 
         if (!statusPage) {
             const error = new Error('Status page not found or does not exist');
-            
+
             error.code = 400;
             throw error;
         }
 
         let doesDomainExist = false;
-        
+
         const domainList = [...statusPage.domains];
         const updatedDomainList = [];
 
@@ -404,7 +397,6 @@ export default {
                         }
                     );
 
-                    
                     const greenlock = global.greenlock;
                     if (!certificate && greenlock) {
                         // handle this in the background
@@ -415,7 +407,6 @@ export default {
                     }
                 }
                 eachDomain.domainVerificationToken =
-                    
                     createdDomain._id || existingBaseDomain._id;
             }
 
@@ -426,18 +417,16 @@ export default {
             const error = new Error(
                 `This custom domain ${newDomain} already exist`
             );
-            
+
             error.code = 400;
             throw error;
         }
 
-        
         statusPage.domains = updatedDomainList;
 
         const result = await this.updateOneBy(
-            
             { _id: statusPage._id },
-            
+
             { domains: statusPage.domains }
         );
         return result;
@@ -458,13 +447,13 @@ export default {
 
         if (!statusPage) {
             const error = new Error('Status page not found or does not exist');
-            
+
             error.code = 400;
             throw error;
         }
 
         let deletedDomain: $TSFixMe = null;
-        
+
         const remainingDomains = statusPage.domains.filter(
             (domain: $TSFixMe) => {
                 if (String(domain._id) === String(domainId)) {
@@ -474,7 +463,6 @@ export default {
             }
         );
 
-        
         const greenlock = global.greenlock;
         // delete any associated certificate (only for auto provisioned ssl)
         // handle this in the background
@@ -490,12 +478,10 @@ export default {
             });
         }
 
-        
         statusPage.domains = remainingDomains;
         return await this.updateOneBy(
-            
             { _id: statusPage._id },
-            
+
             { domains: statusPage.domains }
         );
     },
@@ -523,13 +509,12 @@ export default {
         });
 
         const data = { ...statusPage };
-        
+
         data.projectId = statusPageProjectId;
-        
+
         data.name = statusPageName;
-        
+
         if (filterMonitors && data.monitors) {
-            
             data.monitors = data.monitors
                 .filter((monitorObj: $TSFixMe) => {
                     // values.statuspageId is sub project id selected on the dropdown
@@ -546,10 +531,10 @@ export default {
                     return monitorObj;
                 });
         }
-        
+
         if (!filterMonitors && data.monitors) {
             // just filter and use only ids
-            
+
             data.monitors = data.monitors.map((monitorObj: $TSFixMe) => {
                 monitorObj.monitor =
                     monitorObj.monitor._id || monitorObj.monitor;
@@ -594,14 +579,12 @@ export default {
             await Promise.all(
                 subscribers.map(async subscriber => {
                     await SubscriberService.deleteBy(
-                        
                         { _id: subscriber._id },
                         userId
                     );
                 })
             );
 
-            
             const greenlock = global.greenlock;
             // delete all certificate pipeline for the custom domains
             // handle this for autoprovisioned custom domains
@@ -640,7 +623,7 @@ export default {
             select: selectStatusPage,
             populate: populateStatusPage,
         });
-        
+
         for (const statusPage of statusPages) {
             const monitors = statusPage.monitors.filter(
                 (monitorData: $TSFixMe) =>
@@ -663,18 +646,17 @@ export default {
             },
             select: 'slug',
         });
-        
+
         if (existingStatusPage && existingStatusPage.length > 0) {
             const error = new Error(
                 'StatusPage with that name already exists.'
             );
-            
+
             error.code = 400;
             throw error;
         }
 
         if (data && data.name) {
-            
             existingStatusPage.slug = getSlug(data.name);
         }
 
@@ -689,7 +671,6 @@ export default {
                 for (const [key, value] of Object.entries(
                     data.groupedMonitors
                 )) {
-                    
                     const monitorIds = value.map(
                         (monitorObj: $TSFixMe) => monitorObj.monitor
                     );
@@ -802,7 +783,7 @@ export default {
                 },
             ],
         });
-        
+
         const checkHideResolved = statuspages[0].hideResolvedIncident;
         let option = {};
         if (checkHideResolved) {
@@ -811,7 +792,6 @@ export default {
             };
         }
 
-        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -864,7 +844,7 @@ export default {
             return { notes, count };
         } else {
             const error = new Error('No monitors on this status page');
-            
+
             error.code = 400;
             throw error;
         }
@@ -1019,7 +999,6 @@ export default {
             ],
         });
 
-        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -1076,12 +1055,10 @@ export default {
                 })
             );
 
-            
             events = flattenArray(events);
             // do not repeat the same event two times
-            
+
             events = eventIds.map(id => {
-                
                 return events.find(event => String(event._id) === String(id));
             });
             const count = events.length;
@@ -1089,7 +1066,7 @@ export default {
             return { events, count };
         } else {
             const error = new Error('No monitors on this status page');
-            
+
             error.code = 400;
             throw error;
         }
@@ -1126,7 +1103,6 @@ export default {
             ],
         });
 
-        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -1181,24 +1157,22 @@ export default {
                 })
             );
 
-            
             events = flattenArray(events);
             // do not repeat the same event two times
-            
+
             events = eventIds.map(id => {
-                
                 return events.find(event => String(event._id) === String(id));
             });
 
             // // sort in ascending start date
-            
+
             events = events.sort((a, b) => b.startDate - a.startDate);
 
             const count = events.length;
             return { events, count };
         } else {
             const error = new Error('No monitors on this status page');
-            
+
             error.code = 400;
             throw error;
         }
@@ -1235,7 +1209,6 @@ export default {
             ],
         });
 
-        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -1287,24 +1260,22 @@ export default {
                 })
             );
 
-            
             events = flattenArray(events);
             // do not repeat the same event two times
-            
+
             events = eventIds.map(id => {
-                
                 return events.find(event => String(event._id) === String(id));
             });
 
             // sort in ascending start date
-            
+
             events = events.sort((a, b) => a.startDate - b.startDate);
 
             const count = events.length;
             return { events: limitEvents(events, limit, skip), count };
         } else {
             const error = new Error('No monitors on this status page');
-            
+
             error.code = 400;
             throw error;
         }
@@ -1473,7 +1444,7 @@ export default {
                 const error = new Error(
                     'You are unauthorized to access the page please login to continue.'
                 );
-                
+
                 error.code = 401;
                 throw error;
             }
@@ -1482,7 +1453,7 @@ export default {
                 String(monitorObj.monitor._id || monitorObj.monitor)
             );
             const projectId = statusPage.projectId._id || statusPage.projectId;
-            
+
             const subProjects = await ProjectService.findBy({
                 query: {
                     $or: [{ parentProjectId: projectId }, { _id: projectId }],
@@ -1498,7 +1469,6 @@ export default {
                 0
             );
             const filteredMonitorData = monitors.map(subProject => {
-                
                 return subProject.monitors.filter((monitor: $TSFixMe) =>
                     monitorIds.includes(monitor._id.toString())
                 );
@@ -1507,12 +1477,12 @@ export default {
         } else {
             if (statusPages.length > 0) {
                 const error = new Error('Domain not verified');
-                
+
                 error.code = 400;
                 throw error;
             } else {
                 const error = new Error('Page Not Found');
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -1536,7 +1506,6 @@ export default {
             ],
         });
 
-        
         const withMonitors = statuspages.filter(
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
@@ -1580,7 +1549,7 @@ export default {
             return { incidents, count };
         } else {
             const error = new Error('No monitors on this status page');
-            
+
             error.code = 400;
             throw error;
         }
@@ -1589,7 +1558,6 @@ export default {
         const fn = async (resolve: $TSFixMe) => {
             if (statusPage.isPrivate) {
                 if (userId) {
-                    
                     const project = await ProjectService.findOneBy({
                         query: { _id: statusPage.projectId._id },
                         select: '_id users',
@@ -1676,10 +1644,9 @@ export default {
             populate: populateStatusPage,
             select: selectStatusPage,
         });
-        
+
         if (statusPage && statusPage.length > 1) {
             const statusPages = await Promise.all(
-                
                 statusPage.map(async (statusPage: $TSFixMe) => {
                     const statusPageId = statusPage._id;
                     statusPage = await _this.updateOneBy(
@@ -1786,17 +1753,17 @@ export default {
 
     createExternalStatusPage: async function(data: $TSFixMe) {
         const externalStatusPage = new ExternalStatusPageModel();
-        
+
         externalStatusPage.url = data.url || null;
-        
+
         externalStatusPage.name = data.name || null;
-        
+
         externalStatusPage.description = data.description || null;
-        
+
         externalStatusPage.projectId = data.projectId || null;
-        
+
         externalStatusPage.statusPageId = data.statusPageId || null;
-        
+
         externalStatusPage.createdById = data.createdById || null;
         const newExternalStatusPage = await externalStatusPage.save();
 
@@ -1879,19 +1846,19 @@ export default {
         }
 
         const announcement = new AnnouncementModel();
-        
+
         announcement.name = data.name || null;
-        
+
         announcement.projectId = data.projectId || null;
-        
+
         announcement.statusPageId = data.statusPageId || null;
-        
+
         announcement.description = data.description || null;
-        
+
         announcement.monitors = data.monitors || null;
-        
+
         announcement.createdById = data.createdById || null;
-        
+
         announcement.slug = data.slug || null;
         const newAnnouncement = await announcement.save();
 
@@ -2030,17 +1997,17 @@ export default {
 
     createAnnouncementLog: async function(data: $TSFixMe) {
         const announcementLog = new AnnouncementLogModel();
-        
+
         announcementLog.announcementId = data.announcementId || null;
-        
+
         announcementLog.createdById = data.createdById || null;
-        
+
         announcementLog.statusPageId = data.statusPageId || null;
-        
+
         announcementLog.startDate = data.startDate || null;
-        
+
         announcementLog.endDate = data.endDate || null;
-        
+
         announcementLog.active = data.active || null;
         const newAnnouncementLog = await announcementLog.save();
         return newAnnouncementLog;

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -9,16 +8,13 @@ require('should');
 // user credentials
 const password = '1234567890';
 
-
 describe('API Monitor API', () => {
     const operationTimeOut = init.timeout;
 
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -27,51 +23,48 @@ describe('API Monitor API', () => {
 
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
         await page.evaluate(
-            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('statusCode').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('header').value = '')
         );
-        
+
         await page.evaluate(() => (document.getElementById('body').value = ''));
-        
+
         await init.pageWaitForSelector(page, '#responseTime');
-        
+
         await init.pageClick(page, 'input[name=responseTime]');
-        
+
         await init.pageType(page, 'input[name=responseTime]', '0');
-        
+
         await init.pageWaitForSelector(page, '#statusCode');
-        
+
         await init.pageClick(page, 'input[name=statusCode]');
-        
+
         await init.pageType(page, 'input[name=statusCode]', '200');
         await page.select('#responseType', 'json');
-        
+
         await init.pageWaitForSelector(page, '#header');
-        
+
         await init.pageClick(page, 'textarea[name=header]');
-        
+
         await init.pageType(
             page,
             'textarea[name=header]',
             '{"Content-Type":"application/json"}'
         );
-        
+
         await init.pageWaitForSelector(page, '#body');
-        
+
         await init.pageClick(page, 'textarea[name=body]');
-        
+
         await init.pageType(page, 'textarea[name=body]', '{"status":"ok"}');
-        
+
         await init.pageClick(page, 'button[type=submit]');
-        
+
         await init.pageWaitForSelector(page, '#save-btn');
         await init.pageWaitForSelector(page, '#save-btn', {
             visible: true,
@@ -87,20 +80,18 @@ describe('API Monitor API', () => {
         await init.addComponent(componentName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not add API monitor with invalid url',
         async (done: $TSFixMe) => {
             // Create Component first
             // Redirects automatically component to details page
             await init.navigateToComponentDetails(componentName, page);
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -110,27 +101,25 @@ describe('API Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
-            
+
             await init.pageClick(page, 'input[data-testId=type_api]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(page, '#url', 'https://google.com');
             await init.selectDropdownValue('#method', 'get', page);
 
-            
             await init.pageClick(page, 'button[type=submit]');
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 '#formNewMonitorError'
@@ -145,14 +134,12 @@ describe('API Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not add API monitor with invalid payload',
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -162,20 +149,20 @@ describe('API Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
-            
+
             await init.pageClick(page, 'input[data-testId=type_api]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(
                 page,
                 '#url',
@@ -183,10 +170,8 @@ describe('API Monitor API', () => {
             );
             await init.selectDropdownValue('#method', 'post', page);
 
-            
             await init.pageClick(page, 'button[type=submit]');
 
-            
             const spanElement = await init.pageWaitForSelector(
                 page,
                 '#formNewMonitorError'
@@ -197,14 +182,12 @@ describe('API Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not add API monitor with invalid payload in advance options',
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -214,65 +197,63 @@ describe('API Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
-            
+
             await init.pageClick(page, 'input[data-testId=type_api]');
             await init.selectDropdownValue('#method', 'post', page);
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(
                 page,
                 '#url',
                 'https://oneuptime.com/api/monitor/valid-project-id'
             );
-            
+
             await init.pageWaitForSelector(page, '#advanceOptions');
-            
+
             await init.pageClick(page, '#advanceOptions');
 
-            
             await init.pageWaitForSelector(page, '#addApiHeaders');
-            
+
             await init.pageClick(page, '#addApiHeaders');
-            
+
             await init.pageWaitForSelector(
                 page,
                 'input[id=headers_1000_0_key]'
             );
-            
+
             await init.pageClick(page, 'input[id=headers_1000_0_key]');
-            
+
             await init.pageType(
                 page,
                 'input[id=headers_1000_0_key]',
                 'Authorization'
             );
-            
+
             await init.pageClick(page, 'input[id=headers_1000_0_value]');
-            
+
             await init.pageType(
                 page,
                 'input[id=headers_1000_0_value]',
                 'Basic valid-token'
             );
             await init.selectDropdownValue('#bodyType', 'text/plain', page);
-            
+
             await init.pageClick(page, '#feedback-textarea');
-            
+
             await init.pageType(page, '#feedback-textarea', 'BAD');
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
-            
             const spanElement = await init.pageWaitForSelector(
                 page,
                 '#formNewMonitorError'
@@ -283,14 +264,12 @@ describe('API Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should add API monitor with valid url and payload',
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -300,26 +279,25 @@ describe('API Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
-            
+
             await init.pageClick(page, 'input[data-testId=type_api]');
             await init.selectDropdownValue('#method', 'get', page);
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(page, '#url', 'http://localhost:3002/api');
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`

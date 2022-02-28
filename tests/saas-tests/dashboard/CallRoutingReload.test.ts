@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -14,13 +13,10 @@ const user = {
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = 100000;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(100000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -30,26 +26,24 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the call route page and confirm there are no errors',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageClick(page, '#callRouting');
-            
+
             await init.pageClick(page, '#addRoutingNumberButton');
             await init.pageWaitForSelector(page, '#addNumber', {
                 visible: true,

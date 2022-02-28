@@ -20,7 +20,7 @@ export default {
             const error = new Error(
                 'You need at least one monitor to create a scheduled event'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -28,7 +28,7 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of a monitor'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -69,12 +69,11 @@ export default {
             populate,
         });
         // add note when a scheduled event is created
-        
+
         await ScheduledEventNoteService.create({
-            
             content: scheduledEvent.description,
             scheduledEventId: scheduledEvent._id,
-            
+
             createdById: scheduledEvent.createdById._id,
             type: 'investigation',
             event_state: 'Created',
@@ -82,7 +81,7 @@ export default {
 
         //Create event start note immediately if start time equal to create time
         const currentTime = moment();
-        
+
         const startTime = moment(scheduledEvent.startDate);
         if (startTime <= currentTime) {
             //set monitoring state of the monitor
@@ -104,7 +103,6 @@ export default {
                 }
             }
 
-            
             await ScheduledEventNoteService.create({
                 content: 'This scheduled event has started',
                 scheduledEventId: scheduledEvent._id,
@@ -114,7 +112,7 @@ export default {
         }
 
         //Create event end note immediately if end time equal to create time
-        
+
         const endTime = moment(scheduledEvent.endDate);
         if (endTime <= currentTime) {
             // revert monitor to monitoring state
@@ -126,7 +124,6 @@ export default {
                 );
             }
 
-            
             await ScheduledEventNoteService.create({
                 content: 'This scheduled event has ended',
                 scheduledEventId: scheduledEvent._id,
@@ -134,7 +131,7 @@ export default {
                 event_state: 'Ended',
             });
         }
-        
+
         if (scheduledEvent.alertSubscriber) {
             // handle this asynchronous operation in the background
             AlertService.sendCreatedScheduledEventToSubscribers(
@@ -165,7 +162,7 @@ export default {
             const error = new Error(
                 'You need at least one monitor to update a scheduled event'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -174,7 +171,7 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of a monitor'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -235,7 +232,7 @@ export default {
             const error = new Error(
                 'Scheduled Event not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -302,7 +299,7 @@ export default {
             const error = new Error(
                 'Scheduled Event not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -587,38 +584,38 @@ export default {
                 newEndDate = moment(endDate).add(1, 'months');
             }
             const postObj = {};
-            
+
             postObj.name = resolvedScheduledEvent.name;
-            
+
             postObj.startDate = newStartDate;
-            
+
             postObj.endDate = newEndDate;
-            
+
             postObj.description = resolvedScheduledEvent.description;
-            
+
             postObj.showEventOnStatusPage =
                 resolvedScheduledEvent.showEventOnStatusPage;
-            
+
             postObj.callScheduleOnEvent =
                 resolvedScheduledEvent.callScheduleOnEvent;
-            
+
             postObj.monitorDuringEvent =
                 resolvedScheduledEvent.monitorDuringEvent;
-            
+
             postObj.alertSubscriber = resolvedScheduledEvent.alertSubscriber;
-            
+
             postObj.recurring = resolvedScheduledEvent.recurring;
-            
+
             postObj.showAdvance = resolvedScheduledEvent.showAdvance;
-            
+
             postObj.interval = resolvedScheduledEvent.interval;
-            
+
             postObj.createdById = resolvedScheduledEvent.createdById;
             const projectId = resolvedScheduledEvent.projectId;
             const monitors = resolvedScheduledEvent.monitors.map(
                 (monitor: $TSFixMe) => monitor.monitorId
             );
-            
+
             postObj.monitors = monitors;
             _this.create({ projectId }, postObj, true);
         }
@@ -647,7 +644,7 @@ export default {
 
         // add note automatically
         // when a scheduled event is resolved
-        
+
         await ScheduledEventNoteService.create({
             content: 'This scheduled event has been resolved',
             scheduledEventId: query._id,
@@ -728,7 +725,6 @@ export default {
                 }
             );
             if (scheduledEventNoteCount === 0) {
-                
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has started',
                     scheduledEventId,
@@ -779,7 +775,6 @@ export default {
                 }
             );
             if (scheduledEventNoteListCount === 0) {
-                
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has ended',
                     scheduledEventId,

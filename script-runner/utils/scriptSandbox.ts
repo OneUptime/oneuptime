@@ -181,7 +181,7 @@ const run = async (
         });
     } else {
         // worker_threads code
-        
+
         import { NodeVM } from 'vm2';
         const vm = new NodeVM({
             eval: false,
@@ -242,7 +242,6 @@ const run = async (
         process.exit();
     }
 };
-
 
 export default run(); // DO NOT call default export directly (used by worker thread)
 module.exports.run = run; // call named export only

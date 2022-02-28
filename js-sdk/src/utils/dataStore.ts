@@ -98,7 +98,6 @@ class DataStore {
             val = this.mapValue(path, this.outgoing, time, method, errorCount);
             return this.outgoing.set(path, val);
         } else if (type === 'mongoose') {
-            
             val = this.mapValue(path, this.mongoose, time);
             return this.mongoose.set(path, val);
         }
@@ -108,11 +107,10 @@ class DataStore {
     }
     async sendData() {
         const data = {
-            
             incoming: Object.fromEntries(this.incoming),
-            
+
             outgoing: Object.fromEntries(this.outgoing),
-            
+
             mongoose: Object.fromEntries(this.mongoose),
             sentAt: Date.now(),
         };
@@ -124,11 +122,10 @@ class DataStore {
             this.sendingData = true;
 
             const data = {
-                
                 incoming: Object.fromEntries(this.incoming),
-                
+
                 outgoing: Object.fromEntries(this.outgoing),
-                
+
                 mongoose: Object.fromEntries(this.mongoose),
                 sentAt: Date.now(),
             };

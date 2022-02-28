@@ -1,4 +1,3 @@
-
 import { find, save, findOne } from '../util/db';
 import { ObjectId } from 'mongodb';
 import moment from 'moment';
@@ -20,7 +19,6 @@ async function run() {
             deleted: false,
         });
         const templates = await find(incidentSettingsCollection, {
-            
             projectId: ObjectId(project._id),
             name: { $exists: true },
             deleted: false,
@@ -35,9 +33,9 @@ async function run() {
                     title: '{{monitorName}} is {{incidentType}}.',
                     description:
                         '{{monitorName}} is {{incidentType}}. This incident is currently being investigated by our team and more information will be added soon.',
-                    
+
                     projectId: ObjectId(project._id),
-                    
+
                     incidentPriority: ObjectId(incidentPriority._id),
                     createdAt: new Date(moment().format()),
                 },

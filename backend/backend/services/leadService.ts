@@ -7,31 +7,29 @@ export default {
     //Returns: promise
     create: async function(data: $TSFixMe) {
         let lead = new LeadsModel();
-        
+
         lead.type = data.type;
-        
+
         lead.name = data.name;
-        
+
         lead.email = data.email;
-        
+
         lead.phone = data.phone;
-        
+
         lead.website = data.website;
-        
+
         lead.companySize = data.companySize;
-        
+
         lead.country = data.country;
-        
+
         lead.message = data.message;
-        
+
         lead.whitepaperName = data.whitepaperName;
-        
+
         lead.source = data.source;
 
-        
         lead.templateName = 'Request Demo';
         if (data.whitepaperName) {
-            
             lead.templateName = 'Whitepaper Request';
         }
 

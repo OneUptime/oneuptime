@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -22,11 +21,9 @@ let token: $TSFixMe,
     newProjectId: $TSFixMe,
     monitorId: $TSFixMe;
 
-
 describe('Enterprise Monitor API', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -51,7 +48,6 @@ describe('Enterprise Monitor API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
@@ -63,7 +59,6 @@ describe('Enterprise Monitor API', function() {
         });
     });
 
-    
     it('should create a new monitor for project with no billing plan', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 

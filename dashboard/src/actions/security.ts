@@ -28,7 +28,7 @@ export const addContainerSecurity = ({
             `security/${projectId}/${componentId}/container`,
             data
         );
-        
+
         dispatch(addContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -69,7 +69,7 @@ export const getContainerSecurity = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`
         );
-        
+
         dispatch(getContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -95,7 +95,7 @@ export const getContainerSecurityBySlug = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/containerSecuritySlug/${containerSecuritySlug}`
         );
-        
+
         dispatch(getContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -139,7 +139,7 @@ export const getContainerSecurities = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/container?skip=${skip}&limit=${limit}`
         );
-        
+
         dispatch(getContainerSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -177,11 +177,10 @@ export const deleteContainerSecurity = ({
     dispatch(deleteContainerSecurityRequest());
 
     try {
-        
         const response = await deleteApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`
         );
-        
+
         dispatch(deleteContainerSecuritySuccess(response.data));
 
         // update the list of container securities
@@ -222,7 +221,6 @@ export const scanContainerSecurity = ({
     dispatch(setActiveContainerSecurity(containerSecurityId));
 
     try {
-        
         await postApi(
             `security/${projectId}/container/scan/${containerSecurityId}`
         );
@@ -265,7 +263,7 @@ export const getContainerSecurityLog = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
         );
-        
+
         dispatch(getContainerSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -291,7 +289,7 @@ export const getContainerSecurityLogBySlug = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/containerSecuritySlug/logs/${containerSecuritySlug}`
         );
-        
+
         dispatch(getContainerSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -331,7 +329,7 @@ export const getContainerSecurityLogs = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/container/logs`
         );
-        
+
         dispatch(getContainerSecurityLogsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -376,7 +374,6 @@ export function editContainerSecurity({
 
         promise.then(
             function(response) {
-                
                 dispatch(editContainerSecuritySuccess(response.data));
             },
             function(error) {
@@ -423,7 +420,7 @@ export const addApplicationSecurity = ({
             `security/${projectId}/${componentId}/application`,
             data
         );
-        
+
         dispatch(addApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -464,7 +461,7 @@ export const getApplicationSecurity = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`
         );
-        
+
         dispatch(getApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -490,7 +487,7 @@ export const getApplicationSecurityBySlug = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/applicationSecuritySlug/${applicationSecuritySlug}`
         );
-        
+
         dispatch(getApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -534,7 +531,7 @@ export const getApplicationSecurities = ({
         const response = await getApi(
             `security/${projectId}/${componentId}/application?skip=${skip}&limit=${limit}`
         );
-        
+
         dispatch(getApplicationSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -572,11 +569,10 @@ export const deleteApplicationSecurity = ({
     dispatch(deleteApplicationSecurityRequest());
 
     try {
-        
         const response = await deleteApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`
         );
-        
+
         dispatch(deleteApplicationSecuritySuccess(response.data));
 
         // update the list of application securities
@@ -616,7 +612,6 @@ export const scanApplicationSecurity = ({
     dispatch(scanApplicationSecurityRequest());
     dispatch(setActiveApplicationSecurity(applicationSecurityId));
     try {
-        
         await postApi(
             `security/${projectId}/application/scan/${applicationSecurityId}`
         );
@@ -659,7 +654,7 @@ export const getApplicationSecurityLog = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
         );
-        
+
         dispatch(getApplicationSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -685,7 +680,7 @@ export const getApplicationSecurityLogBySlug = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/applicationSecuritySlug/logs/${applicationSecuritySlug}`
         );
-        
+
         dispatch(getApplicationSecurityLogSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -725,7 +720,7 @@ export const getApplicationSecurityLogs = ({
         const response = await getApi(
             `securityLog/${projectId}/${componentId}/application/logs`
         );
-        
+
         dispatch(getApplicationSecurityLogsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -770,7 +765,6 @@ export function editApplicationSecurity({
 
         promise.then(
             function(response) {
-                
                 dispatch(editApplicationSecuritySuccess(response.data));
             },
             function(error) {

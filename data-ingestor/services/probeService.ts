@@ -1,5 +1,4 @@
 export default {
-    
     create: async function(data) {
         try {
             const _this = this;
@@ -14,30 +13,29 @@ export default {
             });
             if (storedProbe && storedProbe.probeName) {
                 const error = new Error('Probe name already exists.');
-                
+
                 error.code = 400;
                 ErrorService.log('probe.create', error);
                 throw error;
             } else {
                 const probe = {};
-                
+
                 probe.probeKey = probeKey;
-                
+
                 probe.probeName = data.probeName;
-                
+
                 probe.version = data.probeVersion;
 
                 const now = new Date(moment().format());
-                
+
                 probe.createdAt = now;
-                
+
                 probe.lastAlive = now;
-                
+
                 probe.deleted = false;
 
                 const result = await probeCollection.insertOne(probe);
                 const savedProbe = await _this.findOneBy({
-                    
                     _id: ObjectId(result.insertedId),
                 });
                 return savedProbe;
@@ -48,7 +46,6 @@ export default {
         }
     },
 
-    
     findOneBy: async function(query) {
         try {
             if (!query) {
@@ -69,7 +66,6 @@ export default {
         }
     },
 
-    
     updateOneBy: async function(query, data) {
         try {
             if (!query) {
@@ -91,7 +87,6 @@ export default {
         }
     },
 
-    
     saveLighthouseLog: async function(data) {
         try {
             const log = await LighthouseLogService.create(data);
@@ -102,7 +97,6 @@ export default {
         }
     },
 
-    
     createMonitorDisabledStatus: async function(data) {
         try {
             let monitorStatus = await MonitorStatusService.findBy({
@@ -132,7 +126,6 @@ export default {
         }
     },
 
-    
     saveMonitorLog: async function(data) {
         try {
             const _this = this;
@@ -158,22 +151,19 @@ export default {
             }
 
             // grab all the criteria in a monitor
-            
+
             const allCriteria = [];
             if (data.matchedUpCriterion) {
-                
                 data.matchedUpCriterion.forEach(criteria =>
                     allCriteria.push(criteria)
                 );
             }
             if (data.matchedDownCriterion) {
-                
                 data.matchedDownCriterion.forEach(criteria =>
                     allCriteria.push(criteria)
                 );
             }
             if (data.matchedDegradedCriterion) {
-                
                 data.matchedDegradedCriterion.forEach(criteria =>
                     allCriteria.push(criteria)
                 );
@@ -192,14 +182,13 @@ export default {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    
                     await _this.incidentResolveOrAcknowledge(data, allCriteria);
                 }
 
                 const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(
                     data
                 );
-                
+
                 if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
 
                 if (
@@ -211,10 +200,8 @@ export default {
 
                 await MonitorStatusService.create({ ...data, deleted: false });
 
-                
                 if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
                     log = await MonitorLogService.updateOneBy(
-                        
                         { _id: ObjectId(log._id) },
                         { incidentIds: incidentIdsOrRetry }
                     );
@@ -222,25 +209,21 @@ export default {
             } else {
                 // should make sure all unresolved incidents for the monitor is resolved
                 if (data.status === 'online') {
-                    
                     await _this.incidentResolveOrAcknowledge(data, allCriteria);
                 }
 
                 const incidents = await IncidentService.findBy({
                     query: {
-                        
                         'monitors.monitorId': ObjectId(data.monitorId),
                         incidentType: data.status,
                         resolved: false,
                     },
                 });
 
-                
                 const incidentIds = incidents.map(incident => incident._id);
 
                 if (incidentIds && incidentIds.length) {
                     log = await MonitorLogService.updateOneBy(
-                        
                         { _id: ObjectId(log._id) },
                         { incidentIds }
                     );
@@ -253,7 +236,6 @@ export default {
         }
     },
 
-    
     getMonitorLog: async function(data) {
         try {
             const date = new Date(moment().format());
@@ -269,17 +251,14 @@ export default {
         }
     },
 
-    
     incidentCreateOrUpdate: async function(data) {
         try {
             const [monitor, incidents] = await Promise.all([
                 MonitorService.findOneBy({
-                    
                     query: { _id: ObjectId(data.monitorId) },
                 }),
                 IncidentService.findBy({
                     query: {
-                        
                         'monitors.monitorId': ObjectId(data.monitorId),
                         incidentType: data.status,
                         resolved: false,
@@ -296,7 +275,6 @@ export default {
                 matchedCriterion.scripts &&
                 matchedCriterion.scripts.length > 0
             ) {
-                
                 scripts = matchedCriterion.scripts.map(script => {
                     return {
                         automatedScript: script.scriptId,
@@ -315,7 +293,6 @@ export default {
                     for (let incident of incidents) {
                         if (monitor.type !== 'incomingHttpRequest') {
                             const initialProbes = incident.probes.map(
-                                
                                 probe => ({
                                     probeId: probe.probeId._id || probe.probeId,
                                     updatedAt: probe.updatedAt,
@@ -325,7 +302,6 @@ export default {
                             );
                             incident = await IncidentService.updateOneBy(
                                 {
-                                    
                                     _id: ObjectId(incident._id),
                                 },
                                 {
@@ -400,7 +376,6 @@ export default {
                     for (let incident of incidents) {
                         if (monitor.type !== 'incomingHttpRequest') {
                             const initialProbes = incident.probes.map(
-                                
                                 probe => ({
                                     probeId: probe.probeId._id || probe.probeId,
                                     updatedAt: probe.updatedAt,
@@ -410,7 +385,6 @@ export default {
                             );
                             incident = await IncidentService.updateOneBy(
                                 {
-                                    
                                     _id: ObjectId(incident._id),
                                 },
                                 {
@@ -484,7 +458,6 @@ export default {
                     for (let incident of incidents) {
                         if (monitor.type !== 'incomingHttpRequest') {
                             const initialProbes = incident.probes.map(
-                                
                                 probe => ({
                                     probeId: probe.probeId._id || probe.probeId,
                                     updatedAt: probe.updatedAt,
@@ -494,7 +467,6 @@ export default {
                             );
                             incident = await IncidentService.updateOneBy(
                                 {
-                                    
                                     _id: ObjectId(incident._id),
                                 },
                                 {
@@ -567,20 +539,17 @@ export default {
         }
     },
 
-    
     incidentResolveOrAcknowledge: async function(data, allCriteria) {
         try {
             const [incidents, monitor] = await Promise.all([
                 IncidentService.findBy({
                     query: {
-                        
                         'monitors.monitorId': ObjectId(data.monitorId),
                         resolved: false,
                         manuallyCreated: false,
                     },
                 }),
                 MonitorService.findOneBy({
-                    
                     query: { _id: ObjectId(data.monitorId) },
                 }),
             ]);
@@ -589,12 +558,9 @@ export default {
             // check the id of each criteria against the id of criteria attached to an incident
             // ack / resolve according to the criteria
 
-            
             let autoAcknowledge, autoResolve;
             if (incidents && incidents.length > 0) {
-                
                 incidents.forEach(incident => {
-                    
                     let criteriaId = null;
                     if (
                         incident &&
@@ -602,10 +568,9 @@ export default {
                         incident.criterionCause._id
                     )
                         criteriaId = String(incident.criterionCause._id);
-                    
+
                     allCriteria.forEach(criteria => {
                         if (
-                            
                             String(criteria?._id) === criteriaId ||
                             criteria?.name === incident?.criterionCause?.name
                         ) {
@@ -615,21 +580,20 @@ export default {
                     });
                 });
             }
-            
+
             const incidentsV1 = [];
             const incidentsV2 = [];
 
             if (incidents && incidents.length) {
                 // is this check needed at all??
                 // if (lastStatus && lastStatus !== data.status) {
-                
+
                 incidents.forEach(incident => {
                     if (
                         incident.probes &&
                         incident.probes.length > 0 &&
                         monitor.type !== 'incomingHttpRequest'
                     ) {
-                        
                         incident.probes.some(probe => {
                             if (
                                 probe.probeId &&
@@ -647,14 +611,13 @@ export default {
                 });
                 // }
             }
-            
+
             for (const incident of incidentsV1) {
                 if (
                     incident.probes &&
                     incident.probes.length > 0 &&
                     monitor.type !== 'incomingHttpRequest'
                 ) {
-                    
                     const initialProbes = incident.probes.map(probe => ({
                         probeId: probe.probeId._id || probe.probeId,
                         updatedAt: probe.updatedAt,
@@ -664,7 +627,6 @@ export default {
                     const [newIncident] = await Promise.all([
                         IncidentService.updateOneBy(
                             {
-                                
                                 _id: ObjectId(incident._id),
                             },
                             {
@@ -695,7 +657,7 @@ export default {
             await forEach(incidentsV2, async incident => {
                 const trueArray = [];
                 const falseArray = [];
-                
+
                 incident.probes.forEach(probe => {
                     if (probe.status) {
                         trueArray.push(probe);
@@ -708,7 +670,6 @@ export default {
                     trueArray.length === falseArray.length ||
                     monitor.type === 'incomingHttpRequest'
                 ) {
-                    
                     if (autoAcknowledge) {
                         if (!incident.acknowledged) {
                             await postApi(
@@ -721,7 +682,7 @@ export default {
                             );
                         }
                     }
-                    
+
                     if (autoResolve) {
                         await postApi(
                             'api/incident/data-ingestor/resolve-incident',
@@ -745,20 +706,17 @@ export default {
         }
     },
 
-    
     updateProbeStatus: async function(probeId) {
         try {
             const now = new Date(moment().format());
             await probeCollection.updateOne(
                 {
-                    
                     _id: ObjectId(probeId),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
                 { $set: { lastAlive: now } }
             );
             const probe = await this.findOneBy({
-                
                 _id: ObjectId(probeId),
             });
 
@@ -767,7 +725,6 @@ export default {
                 `${realtimeBaseUrl}/update-probe`,
                 { data: probe },
                 true
-                
             ).catch(error => {
                 ErrorService.log('probeService.updateProbeStatus', error);
             });
@@ -778,18 +735,16 @@ export default {
         }
     },
 
-    
     scriptConditions: (resp, con) => {
         const body = resp ?? null;
-        
+
         const successReasons = [];
-        
+
         const failedReasons = [];
 
         let eventOccurred = false;
         let matchedCriterion;
         if (con && con.length) {
-            
             eventOccurred = con.some(condition => {
                 let stat = true;
                 if (
@@ -801,9 +756,9 @@ export default {
                     stat = checkScriptAnd(
                         condition.criteria,
                         body,
-                        
+
                         successReasons,
-                        
+
                         failedReasons
                     );
                 } else if (
@@ -815,9 +770,9 @@ export default {
                     stat = checkScriptOr(
                         condition.criteria,
                         body,
-                        
+
                         successReasons,
-                        
+
                         failedReasons
                     );
                 }
@@ -832,15 +787,14 @@ export default {
 
         return {
             stat: eventOccurred,
-            
+
             successReasons,
-            
+
             failedReasons,
             matchedCriterion,
         };
     },
 
-    
     conditions: (monitorType, con, payload, resp, response) => {
         const status = resp
             ? resp.status
@@ -854,9 +808,9 @@ export default {
         const headers = resp && resp.headers ? resp.headers : null;
         const sslCertificate =
             resp && resp.sslCertificate ? resp.sslCertificate : null;
-        
+
         const successReasons = [];
-        
+
         const failedReasons = [];
 
         let eventOccurred = false;
@@ -878,9 +832,9 @@ export default {
                         body,
                         sslCertificate,
                         response,
-                        
+
                         successReasons,
-                        
+
                         failedReasons,
                         monitorType,
                         queryParams,
@@ -899,9 +853,9 @@ export default {
                         body,
                         sslCertificate,
                         response,
-                        
+
                         successReasons,
-                        
+
                         failedReasons,
                         monitorType,
                         queryParams,
@@ -915,9 +869,9 @@ export default {
                     matchedCriterion = condition;
                     return {
                         stat: eventOccurred,
-                        
+
                         successReasons,
-                        
+
                         failedReasons,
                         matchedCriterion: condition,
                     };
@@ -926,20 +880,18 @@ export default {
         }
         return {
             stat: eventOccurred,
-            
+
             successReasons,
-            
+
             failedReasons,
             matchedCriterion,
         };
     },
 
-    
     incomingCondition: (payload, conditions) => {
         let eventOccurred = false;
         let matchedCriterion;
         if (conditions && conditions.length) {
-            
             eventOccurred = some(conditions, condition => {
                 let response = false;
                 let respAnd = false,
@@ -949,27 +901,19 @@ export default {
 
                 if (
                     condition &&
-                    
                     condition.criteria &&
-                    
                     condition.criteria.condition &&
-                    
                     condition.criteria.condition === 'and'
                 ) {
-                    
                     respAnd = incomingCheckAnd(payload, condition.criteria);
                     countAnd++;
                 }
                 if (
                     condition &&
-                    
                     condition.criteria &&
-                    
                     condition.criteria.condition &&
-                    
                     condition.criteria.condition === 'or'
                 ) {
-                    
                     respOr = incomingCheckOr(payload, condition.criteria);
                     countOr++;
                 }
@@ -997,7 +941,6 @@ export default {
         return { eventOccurred, matchedCriterion };
     },
 
-    
     probeHttpRequest: async function(monitor, probeId) {
         try {
             const _this = this;
@@ -1007,9 +950,8 @@ export default {
             const payload = moment().diff(moment(lastPingTime), 'minutes');
 
             const {
-                
                 eventOccurred: validUp,
-                
+
                 matchedCriterion: matchedUpCriterion,
             } =
                 monitor && monitor.criteria && monitor.criteria.up
@@ -1017,9 +959,8 @@ export default {
                     : false;
 
             const {
-                
                 eventOccurred: validDegraded,
-                
+
                 matchedCriterion: matchedDegradedCriterion,
             } =
                 monitor && monitor.criteria && monitor.criteria.degraded
@@ -1030,15 +971,13 @@ export default {
                     : false;
 
             const {
-                
                 eventOccurred: validDown,
-                
+
                 matchedCriterion: matchedDownCriterion,
             } =
                 monitor && monitor.criteria && monitor.criteria.down
                     ? _this.incomingCondition(payload, [
                           ...monitor.criteria.down.filter(
-                              
                               criterion => criterion.default !== true
                           ),
                       ])
@@ -1069,58 +1008,56 @@ export default {
                 reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
                 if (monitor.criteria.down) {
                     matchedCriterion = monitor.criteria.down.find(
-                        
                         criterion => criterion.default === true
                     );
                 }
             }
             const logData = {};
-            
+
             logData.responseTime = 0;
-            
+
             logData.responseStatus = null;
-            
+
             logData.status = status;
-            
+
             logData.probeId = probeId;
-            
+
             logData.monitorId =
                 monitor && monitor.id
                     ? monitor.id
                     : monitor._id
                     ? monitor._id
                     : null;
-            
+
             logData.sslCertificate = null;
-            
+
             logData.lighthouseScanStatus = null;
-            
+
             logData.performance = null;
-            
+
             logData.accessibility = null;
-            
+
             logData.bestPractices = null;
-            
+
             logData.seo = null;
-            
+
             logData.pwa = null;
-            
+
             logData.lighthouseData = null;
-            
+
             logData.retryCount = 3;
-            
+
             logData.reason = reason;
-            
+
             logData.response = null;
-            
+
             logData.stopPingTimeUpdate = true;
-            
+
             logData.matchedCriterion = matchedCriterion;
 
             // update monitor to save the last matched criterion
             const [, log] = await Promise.all([
                 MonitorService.updateCriterion(
-                    
                     ObjectId(monitor._id),
                     matchedCriterion
                 ),
@@ -1136,9 +1073,7 @@ export default {
     },
 };
 
-
 import _ from 'lodash';
-
 
 const incomingCheckAnd = (payload, condition) => {
     let validity = false;
@@ -1290,7 +1225,6 @@ const incomingCheckAnd = (payload, condition) => {
     return validity;
 };
 
-
 const incomingCheckOr = (payload, condition) => {
     let validity = false;
     let val = 0;
@@ -1440,29 +1374,27 @@ const incomingCheckOr = (payload, condition) => {
     return validity;
 };
 
-
 const checkAnd = (
-    
     payload,
-    
+
     con,
-    
+
     statusCode,
-    
+
     body,
-    
+
     ssl,
-    
+
     response,
-    
+
     successReasons,
-    
+
     failedReasons,
-    
+
     type,
-    
+
     queryParams,
-    
+
     headers
 ) => {
     let validity = true;
@@ -1477,7 +1409,7 @@ const checkAnd = (
                     con.criteria[i].condition === 'and'
                 ) {
                     // check and again
-                    
+
                     const temp = checkAnd(
                         payload,
                         con.criteria[i],
@@ -1500,7 +1432,7 @@ const checkAnd = (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check or again
-                    
+
                     const temp1 = checkOr(
                         payload,
                         con.criteria[i],
@@ -1881,13 +1813,11 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
                         } else {
                             successReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
@@ -1909,13 +1839,11 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
                         } else {
                             successReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
@@ -2251,7 +2179,6 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2261,7 +2188,6 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2286,7 +2212,6 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2296,7 +2221,6 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2323,7 +2247,6 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2333,7 +2256,6 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2358,7 +2280,6 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2368,7 +2289,6 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2393,7 +2313,6 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2403,7 +2322,6 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2428,7 +2346,6 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2438,7 +2355,6 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2463,7 +2379,6 @@ const checkAnd = (
                             validity = false;
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2473,7 +2388,6 @@ const checkAnd = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -2509,7 +2423,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2518,7 +2431,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2542,7 +2454,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2551,7 +2462,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2577,7 +2487,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2586,7 +2495,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2610,7 +2518,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2619,7 +2526,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2643,7 +2549,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2652,7 +2557,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2676,7 +2580,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2685,7 +2588,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2709,7 +2611,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2718,7 +2619,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2758,7 +2658,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2771,7 +2670,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2798,7 +2696,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2811,7 +2708,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2840,7 +2736,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2853,7 +2748,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2880,7 +2774,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2893,7 +2786,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2920,7 +2812,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2933,7 +2824,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2960,7 +2850,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -2973,7 +2862,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3000,7 +2888,6 @@ const checkAnd = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3013,7 +2900,6 @@ const checkAnd = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3230,7 +3116,6 @@ const checkAnd = (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
                                     body &&
-                                    
                                     body.includes([con.criteria[i].field1])
                                 )
                             ) {
@@ -3273,7 +3158,6 @@ const checkAnd = (
                                     con.criteria[i] &&
                                     con.criteria[i].field1 &&
                                     body &&
-                                    
                                     !body.includes([con.criteria[i].field1])
                                 )
                             ) {
@@ -3523,7 +3407,6 @@ const checkAnd = (
                             validity = false;
                             failedReasons.push('Pod is not available');
                         } else {
-                            
                             // eslint-disable-next-line no-loop-func
                             payload.podData.allPods.forEach(pod => {
                                 if (
@@ -3562,7 +3445,6 @@ const checkAnd = (
                             validity = false;
                             failedReasons.push('Pod is not available');
                         } else {
-                            
                             // eslint-disable-next-line no-loop-func
                             payload.podData.allPods.forEach(pod => {
                                 if (
@@ -3607,7 +3489,6 @@ const checkAnd = (
                             validity = false;
                             failedReasons.push('Job is not available');
                         } else {
-                            
                             // eslint-disable-next-line no-loop-func
                             payload.jobData.allJobs.forEach(job => {
                                 if (
@@ -3646,7 +3527,6 @@ const checkAnd = (
                             validity = false;
                             failedReasons.push('Job is not available');
                         } else {
-                            
                             // eslint-disable-next-line no-loop-func
                             payload.jobData.allJobs.forEach(job => {
                                 if (
@@ -3691,7 +3571,6 @@ const checkAnd = (
                             failedReasons.push('Deployment is not available');
                         } else {
                             payload.deploymentData.allDeployments.forEach(
-                                
                                 // eslint-disable-next-line no-loop-func
                                 deployment => {
                                     if (
@@ -3723,7 +3602,6 @@ const checkAnd = (
                             failedReasons.push('Deployment is not available');
                         } else {
                             payload.deploymentData.allDeployments.forEach(
-                                
                                 // eslint-disable-next-line no-loop-func
                                 deployment => {
                                     if (
@@ -3760,7 +3638,6 @@ const checkAnd = (
                             failedReasons.push('Statefulset is not available');
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
-                                
                                 // eslint-disable-next-line no-loop-func
                                 statefulset => {
                                     if (
@@ -3792,7 +3669,6 @@ const checkAnd = (
                             failedReasons.push('Statefulset is not available');
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
-                                
                                 // eslint-disable-next-line no-loop-func
                                 statefulset => {
                                     if (
@@ -3830,13 +3706,11 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
                         } else {
                             successReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
@@ -3855,13 +3729,11 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
                         } else {
                             successReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
@@ -3874,29 +3746,27 @@ const checkAnd = (
     return validity;
 };
 
-
 const checkOr = (
-    
     payload,
-    
+
     con,
-    
+
     statusCode,
-    
+
     body,
-    
+
     ssl,
-    
+
     response,
-    
+
     successReasons,
-    
+
     failedReasons,
-    
+
     type,
-    
+
     queryParams,
-    
+
     headers
 ) => {
     let validity = false;
@@ -3911,7 +3781,7 @@ const checkOr = (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check or again
-                    
+
                     const temp1 = checkOr(
                         payload,
                         con.criteria[i],
@@ -3932,7 +3802,6 @@ const checkOr = (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'and'
                 ) {
-                    
                     const temp = checkAnd(
                         payload,
                         con.criteria[i],
@@ -4280,13 +4149,11 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
                         } else {
                             failedReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
@@ -4306,13 +4173,11 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
                         } else {
                             failedReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
@@ -4633,7 +4498,6 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4643,7 +4507,6 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4666,7 +4529,6 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4676,7 +4538,6 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4701,7 +4562,6 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4711,7 +4571,6 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4734,7 +4593,6 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4744,7 +4602,6 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4767,7 +4624,6 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4777,7 +4633,6 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4800,7 +4655,6 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4810,7 +4664,6 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4833,7 +4686,6 @@ const checkOr = (
                             validity = true;
                             if (payload && payload.cpuLoad !== null) {
                                 successReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4843,7 +4695,6 @@ const checkOr = (
                         } else {
                             if (payload && payload.cpuLoad !== null) {
                                 failedReasons.push(
-                                    
                                     `${criteriaStrings.cpuLoad} ${formatDecimal(
                                         payload.cpuLoad,
                                         2
@@ -4876,7 +4727,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -4885,7 +4735,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -4906,7 +4755,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -4915,7 +4763,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -4938,7 +4785,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -4947,7 +4793,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -4968,7 +4813,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -4977,7 +4821,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -4998,7 +4841,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5007,7 +4849,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5028,7 +4869,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5037,7 +4877,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5058,7 +4897,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5067,7 +4905,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.memoryUsed
-                                        
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5104,7 +4941,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5117,7 +4953,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5141,7 +4976,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5154,7 +4988,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5180,7 +5013,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5193,7 +5025,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5217,7 +5048,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5230,7 +5060,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5254,7 +5083,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5267,7 +5095,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5291,7 +5118,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5304,7 +5130,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5328,7 +5153,6 @@ const checkOr = (
                                 successReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5341,7 +5165,6 @@ const checkOr = (
                                 failedReasons.push(
                                     `${
                                         criteriaStrings.freeStorage
-                                        
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5543,7 +5366,6 @@ const checkOr = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 body &&
-                                
                                 body.includes([con.criteria[i].field1])
                             ) {
                                 validity = true;
@@ -5590,7 +5412,6 @@ const checkOr = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 body &&
-                                
                                 !body.includes([con.criteria[i].field1])
                             ) {
                                 validity = true;
@@ -5845,7 +5666,6 @@ const checkOr = (
                         ) {
                             failedReasons.push('Pod is not available');
                         } else {
-                            
                             // eslint-disable-next-line no-loop-func
                             payload.podData.allPods.forEach(pod => {
                                 if (
@@ -5883,7 +5703,6 @@ const checkOr = (
                         ) {
                             failedReasons.push('Pod is not available');
                         } else {
-                            
                             // eslint-disable-next-line no-loop-func
                             payload.podData.allPods.forEach(pod => {
                                 if (
@@ -5927,7 +5746,6 @@ const checkOr = (
                         ) {
                             failedReasons.push('Job is not available');
                         } else {
-                            
                             // eslint-disable-next-line no-loop-func
                             payload.jobData.allJobs.forEach(job => {
                                 if (
@@ -5965,7 +5783,6 @@ const checkOr = (
                         ) {
                             failedReasons.push('Job is not available');
                         } else {
-                            
                             // eslint-disable-next-line no-loop-func
                             payload.jobData.allJobs.forEach(job => {
                                 if (
@@ -6009,7 +5826,6 @@ const checkOr = (
                             failedReasons.push('Deployment is not available');
                         } else {
                             payload.deploymentData.allDeployments.forEach(
-                                
                                 // eslint-disable-next-line no-loop-func
                                 deployment => {
                                     if (
@@ -6040,7 +5856,6 @@ const checkOr = (
                             failedReasons.push('Deployment is not available');
                         } else {
                             payload.deploymentData.allDeployments.forEach(
-                                
                                 // eslint-disable-next-line no-loop-func
                                 deployment => {
                                     if (
@@ -6076,7 +5891,6 @@ const checkOr = (
                             failedReasons.push('Statefulset is not available');
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
-                                
                                 // eslint-disable-next-line no-loop-func
                                 statefulset => {
                                     if (
@@ -6107,7 +5921,6 @@ const checkOr = (
                             failedReasons.push('Statefulset is not available');
                         } else {
                             payload.statefulsetData.allStatefulset.forEach(
-                                
                                 // eslint-disable-next-line no-loop-func
                                 statefulset => {
                                     if (
@@ -6143,13 +5956,11 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
                         } else {
                             failedReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
@@ -6166,13 +5977,11 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Offline`
                             );
                         } else {
                             failedReasons.push(
-                                
                                 `${criteriaStrings[type] ||
                                     'Monitor was'} Online`
                             );
@@ -6208,89 +6017,76 @@ const checkScriptCondition = (condition, body) => {
         // we need a catch-all for server-defined
         // script timeout errors or terminated scripts
         if (body.statusText === 'timeout') {
-            
             validity.valid = false;
-            
+
             validity.reason = body.error;
             return validity;
         }
 
         if (condition.filter === 'throwsError') {
             if (body.statusText === 'failed' && body.error) {
-                
                 validity.valid = true;
-                
+
                 validity.reason = `Script threw error ${body.error}`;
             } else {
-                
                 validity.valid = false;
-                
+
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'doesNotThrowError') {
             if (body.statusText === 'failed' && body.error) {
-                
                 validity.valid = false;
-                
+
                 validity.reason = `Script threw error ${body.error}`;
             } else {
-                
                 validity.valid = true;
-                
+
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'emptyCallback') {
             if (body.statusText === 'nonEmptyCallback' && body.error) {
-                
                 validity.valid = false;
-                
+
                 validity.reason = `Script callback invoked with arguments ${JSON.stringify(
                     body.error
                 )}`;
             } else {
-                
                 validity.valid = true;
-                
+
                 validity.reason = `Script callback has no arguments`;
             }
         } else if (condition.filter === 'nonEmptyCallback') {
             if (body.statusText === 'nonEmptyCallback' && body.error) {
-                
                 validity.valid = true;
-                
+
                 validity.reason = `Script callback invoked with arguments ${JSON.stringify(
                     body.error
                 )}`;
             } else {
-                
                 validity.valid = false;
-                
+
                 validity.reason = `Script callback has no arguments`;
             }
         }
     } else if (condition.responseType === 'executionTime') {
         if (condition.filter === 'executesIn') {
             if (body.executionTime <= condition.filter1) {
-                
                 validity.valid = true;
-                
+
                 validity.reason = `Script executed in ${body.executionTime}ms within ${condition.filter1}ms limit`;
             } else {
-                
                 validity.valid = false;
-                
+
                 validity.reason = `Script executed above ${condition.filter1}ms limit`;
             }
         } else if (condition.filter === 'doesNotExecuteIn') {
             if (body.executionTime >= condition.filter1) {
-                
                 validity.valid = true;
-                
+
                 validity.reason = `Script executed in ${body.executionTime}ms above ${condition.filter1}ms minimum`;
             } else {
-                
                 validity.valid = false;
-                
+
                 validity.reason = `Script executed below ${condition.filter1}ms minimum`;
             }
         }
@@ -6301,7 +6097,6 @@ const checkScriptCondition = (condition, body) => {
 
     return validity;
 };
-
 
 const checkScriptAnd = (con, body, successReasons, failedReasons) => {
     let valid = true;
@@ -6343,13 +6138,11 @@ const checkScriptAnd = (con, body, successReasons, failedReasons) => {
             } else {
                 const validity = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
-                    
                     if (validity.valid) {
-                        
                         successReasons.push(validity.reason);
                     } else {
                         valid = false;
-                        
+
                         failedReasons.push(validity.reason);
                     }
                 }
@@ -6359,7 +6152,6 @@ const checkScriptAnd = (con, body, successReasons, failedReasons) => {
 
     return valid;
 };
-
 
 const checkScriptOr = (con, body, successReasons, failedReasons) => {
     let valid = false;
@@ -6401,13 +6193,11 @@ const checkScriptOr = (con, body, successReasons, failedReasons) => {
             } else {
                 const validity = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
-                    
                     if (validity.valid) {
                         valid = true;
-                        
+
                         successReasons.push(validity.reason);
                     } else {
-                        
                         failedReasons.push(validity.reason);
                     }
                 }
@@ -6436,7 +6226,6 @@ const criteriaStrings = {
     ip: 'IP is',
 };
 
-
 const formatDecimal = (value, decimalPlaces, roundType) => {
     let formattedNumber;
     switch (roundType) {
@@ -6459,7 +6248,6 @@ const formatDecimal = (value, decimalPlaces, roundType) => {
         decimalPlaces
     );
 };
-
 
 const formatBytes = (a, b, c, d, e) => {
     let value = a;

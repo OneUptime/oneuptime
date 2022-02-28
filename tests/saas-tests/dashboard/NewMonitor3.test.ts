@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,9 +15,7 @@ const user = {
 describe('New Monitor API', () => {
     const operationTimeOut = 1000000;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -29,13 +26,11 @@ describe('New Monitor API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not show any upgrade modal if the project plan is on Scale plan and above',
         async (done: $TSFixMe) => {
@@ -77,43 +72,43 @@ describe('New Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${componentName}`);
-            
+
             await init.pageWaitForSelector(page, '#cbMonitors');
-            
+
             await init.pageClick(page, '#newFormId');
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
-            
+
             await init.pageWaitForSelector(page, 'input[id=name]');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
             // Added new URL-Montior
-            
+
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(page, '#url', 'https://google.com');
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             const pricingPlanModal = await init.pageWaitForSelector(

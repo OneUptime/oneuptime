@@ -37,7 +37,6 @@ export function changePassword(values: $TSFixMe) {
 
         promise.then(
             function(response) {
-                
                 dispatch(changePasswordSuccess(response.data));
             },
             function(error) {

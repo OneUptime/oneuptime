@@ -5,21 +5,19 @@ export default {
         // prepare issue model
         let issue = new IssueModel();
 
-        
         issue.name = data.exception ? data.exception.type : 'Unknown Error';
-        
+
         issue.description = data.exception ? data.exception.message : '';
 
         // generate hash from fingerprint
         const hash = sha256(data.fingerprint.join('')).toString();
-        
+
         issue.fingerprintHash = hash;
-        
+
         issue.fingerprint = data.fingerprint;
 
-        
         issue.type = data.type;
-        
+
         issue.errorTrackerId = data.errorTrackerId;
 
         const savedIssue = await issue.save();
@@ -93,11 +91,10 @@ export default {
         const query = {};
         const hash = sha256(fingerprint.join('')).toString();
 
-        
         if (!query.deleted) query.deleted = false;
-        
+
         query.fingerprintHash = hash;
-        
+
         query.errorTrackerId = errorTrackerId;
         const issue = await IssueModel.findOne(query)
             .lean()
@@ -124,7 +121,6 @@ export default {
         );
 
         if (unsetData) {
-            
             issue = await IssueModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -178,7 +174,6 @@ export default {
                 select: 'projectId',
             });
 
-            
             NotificationService.create(
                 component.projectId,
                 `An Issue under Error Tracker ${issue.errorTrackerId.name} was deleted under the component ${component.name} by ${issue.deletedById.name}`,

@@ -2,25 +2,25 @@ export default {
     create: async function(data: $TSFixMe) {
         const _this = this;
         const subscriberModel = new SubscriberModel();
-        
+
         subscriberModel.projectId = data.projectId || null;
-        
+
         subscriberModel.monitorId = data.monitorId || null;
-        
+
         subscriberModel.statusPageId = data.statusPageId || null;
-        
+
         subscriberModel.alertVia = data.alertVia || null;
-        
+
         subscriberModel.contactEmail = data.contactEmail || null;
-        
+
         subscriberModel.contactPhone = data.contactPhone || null;
-        
+
         subscriberModel.countryCode = data.countryCode || null;
-        
+
         subscriberModel.contactWebhook = data.contactWebhook || null;
-        
+
         subscriberModel.notificationType = data.notificationType || null;
-        
+
         subscriberModel.webhookMethod = data.webhookMethod || 'post';
         const subscriber = await subscriberModel.save();
         const populate = [
@@ -123,37 +123,37 @@ export default {
         const subscribersArr = [];
         for (const result of subscribers) {
             const temp = {};
-            
+
             temp._id = result._id;
-            
+
             temp.projectId = result.projectId._id;
-            
+
             temp.projectName = result.projectId.name;
-            
+
             temp.monitorId = result.monitorId ? result.monitorId._id : null;
-            
+
             temp.monitorName = result.monitorId ? result.monitorId.name : null;
-            
+
             temp.statusPageId = result.statusPageId
                 ? result.statusPageId._id
                 : null;
-            
+
             temp.statusPageName = result.statusPageId
                 ? result.statusPageId.name
                 : null;
-            
+
             temp.createdAt = result.createdAt;
-            
+
             temp.alertVia = result.alertVia;
-            
+
             temp.contactEmail = result.contactEmail;
-            
+
             temp.contactPhone = result.contactPhone;
-            
+
             temp.countryCode = result.countryCode;
-            
+
             temp.contactWebhook = result.contactWebhook;
-            
+
             temp.webhookMethod = result.webhookMethod;
             subscribersArr.push(temp);
         }
@@ -176,39 +176,39 @@ export default {
         const subscribersArr = [];
         for (const result of subscribers) {
             const temp = {};
-            
+
             temp._id = result._id;
-            
+
             temp.projectId = result.projectId._id;
-            
+
             temp.projectName = result.projectId.name;
-            
+
             temp.monitorId = result.monitorId ? result.monitorId._id : null;
-            
+
             temp.monitorName = result.monitorId ? result.monitorId.name : null;
-            
+
             temp.statusPageId = result.statusPageId
                 ? result.statusPageId._id
                 : null;
-            
+
             temp.statusPageName = result.statusPageId
                 ? result.statusPageId.name
                 : null;
-            
+
             temp.createdAt = result.createdAt;
-            
+
             temp.alertVia = result.alertVia;
-            
+
             temp.contactEmail = result.contactEmail;
-            
+
             temp.contactPhone = result.contactPhone;
-            
+
             temp.countryCode = result.countryCode;
-            
+
             temp.contactWebhook = result.contactWebhook;
-            
+
             temp.webhookMethod = result.webhookMethod;
-            
+
             temp.notificationType = result.notificationType;
             subscribersArr.push(temp);
         }
@@ -226,7 +226,7 @@ export default {
                 select: 'monitors',
                 populate: populateStatusPage,
             });
-            
+
             monitors = statusPage.monitors.map(
                 (monitorData: $TSFixMe) => monitorData.monitor
             );
@@ -241,7 +241,7 @@ export default {
                 const error = new Error(
                     'You are already subscribed to this monitor.'
                 );
-                
+
                 error.code = 400;
                 ErrorService.log('SubscriberService.subscribe', error);
                 throw error;
@@ -362,7 +362,6 @@ export default {
         if (subscriber && subscriber.length > 1) {
             const subscribers = await Promise.all(
                 subscriber.map(async subscriber => {
-                    
                     const subscriberId = subscriber._id;
                     subscriber = await _this.updateOneBy(
                         { _id: subscriberId, deleted: true },
@@ -377,10 +376,8 @@ export default {
             );
             return subscribers;
         } else {
-            
             subscriber = subscriber[0];
             if (subscriber) {
-                
                 const subscriberId = subscriber._id;
                 subscriber = await _this.updateOneBy(
                     { _id: subscriberId, deleted: true },

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -10,13 +9,10 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-
 describe('Keyboard Shortcut: Admin Dashboard', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(360000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -33,13 +29,11 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should navigate to projects page with keyboard shortcut (f + p)',
         async (done: $TSFixMe) => {
@@ -65,7 +59,6 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    
     test(
         'should navigate to probes page with keyboard shortcut (f + b)',
         async (done: $TSFixMe) => {
@@ -91,14 +84,13 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    
     test(
         'should navigate to audit logs with keyboard shortcut (f + a)',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#auditLogs', {
                 visible: true,
@@ -121,7 +113,6 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    
     test(
         'should navigate to license setting with keyboard shortcut (f + l)',
         async (done: $TSFixMe) => {
@@ -147,7 +138,6 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    
     test(
         'should navigate to smtp setting with keyboard shortcut (f + m)',
         async (done: $TSFixMe) => {
@@ -173,7 +163,6 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    
     test(
         'should navigate to twilio setting with keyboard shortcut (f + t)',
         async (done: $TSFixMe) => {
@@ -199,7 +188,6 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    
     test(
         'should navigate to sso setting with keyboard shortcut (f + o)',
         async (done: $TSFixMe) => {
@@ -221,7 +209,6 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
         operationTimeOut
     );
 
-    
     test(
         'should navigate to dashboard from admin dashboard with keyboard shortcut (f + d)',
         async (done: $TSFixMe) => {

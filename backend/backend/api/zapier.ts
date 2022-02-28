@@ -24,7 +24,7 @@ router.get('/test', isAuthorized, async function(req, res) {
 router.get('/monitors', isAuthorized, async function(req, res) {
     try {
         const projectId = req.query.projectId;
-        
+
         const projects = await ProjectService.findBy({
             query: {
                 $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -161,7 +161,7 @@ router.get('/incident/acknowledged', isAuthorized, async function(req, res) {
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
         const incidents = await ZapierService.getAcknowledgedIncidents(
             projectId,
-            
+
             true,
             false
         );

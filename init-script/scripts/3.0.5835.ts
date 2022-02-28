@@ -1,4 +1,3 @@
-
 import { find, update, save } from '../util/db';
 
 import bcrypt from 'bcrypt';

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -10,13 +9,10 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-
 describe('Audit Logs', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -27,39 +23,37 @@ describe('Audit Logs', () => {
             email: email,
             password: password,
         };
-        
+
         await init.registerEnterpriseUser(user, page, false);
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     test(
         'Should delete all audit logs from the table',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
-            
+
             await init.pageWaitForSelector(page, '#deleteLog');
-            
+
             await init.pageClick(page, '#deleteLog');
-            
+
             await init.pageWaitForSelector(page, '#confirmDelete');
-            
+
             await init.pageClick(page, '#confirmDelete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
@@ -75,30 +69,29 @@ describe('Audit Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not delete audit logs from the table',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
-            
+
             await init.pageWaitForSelector(page, '#deleteLog');
-            
+
             await init.pageClick(page, '#deleteLog');
-            
+
             await init.pageWaitForSelector(page, '#cancelAuditDelete');
-            
+
             await init.pageClick(page, '#cancelAuditDelete');
 
             const rowNum = await init.page$$Eval(
@@ -111,42 +104,42 @@ describe('Audit Logs', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should check if logs are prefilled again after deleting logs',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
-            
+
             await init.pageWaitForSelector(page, '#deleteLog');
-            
+
             await init.pageClick(page, '#deleteLog');
-            
+
             await init.pageWaitForSelector(page, '#confirmDelete');
-            
+
             await init.pageClick(page, '#confirmDelete');
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             const rowNum = await init.page$$Eval(
@@ -160,28 +153,27 @@ describe('Audit Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should show audit log(s) that match the search parameter(s)',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
-            
+
             await init.pageWaitForSelector(page, '#searchAuditLog');
-            
+
             await init.pageClick(page, '#searchAuditLog');
-            
+
             await init.pageType(page, '#searchAuditLog', 'probe');
 
             const rowNum = await init.page$$Eval(
@@ -194,28 +186,28 @@ describe('Audit Logs', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should not show any audit log if the search parameter(s) does not match any log',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
-            
+
             await init.pageWaitForSelector(page, '#searchAuditLog');
-            
+
             await init.pageClick(page, '#searchAuditLog');
-            
+
             await init.pageType(page, '#searchAuditLog', 'somerandom');
 
             const rowNum = await init.page$$Eval(
@@ -229,22 +221,21 @@ describe('Audit Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should note that audit logs are currently enabled',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             // count currently available logs
-            
+
             let logCount = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
@@ -253,23 +244,23 @@ describe('Audit Logs', () => {
             logCount = await logCount.jsonValue();
             logCount = Number(logCount);
             // goto other pages
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
 
             // come back to logs page
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             // get the new log count
-            
+
             let newLogCount = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
@@ -283,30 +274,30 @@ describe('Audit Logs', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should disable audit logs',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             // visit the audit log settings page by clicking on settings first to show drop down
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
 
             // click on th audit log
-            
+
             await init.pageWaitForSelector(page, '#auditLog');
-            
+
             await init.pageClick(page, '#auditLog');
 
             // turn audit log off
@@ -317,23 +308,23 @@ describe('Audit Logs', () => {
             );
 
             // click the submit button
-            
+
             await init.pageWaitForSelector(page, '#auditLogSubmit');
-            
+
             await init.pageClick(page, '#auditLogSubmit');
 
             // go back to audit logs page
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             // look for the alert panel
-            
+
             const alertPanelElement = await init.pageWaitForSelector(
                 page,
                 `#auditLogDisabled`
@@ -343,22 +334,21 @@ describe('Audit Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should validate that audit logs are currently disabled and on page change no audit is logged',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             // look for the alert panel
-            
+
             const alertPanelElement = await init.pageWaitForSelector(
                 page,
                 `#auditLogDisabled`
@@ -366,7 +356,7 @@ describe('Audit Logs', () => {
             expect(alertPanelElement).toBeDefined();
 
             // count currently available logs
-            
+
             let logCount = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
@@ -376,23 +366,23 @@ describe('Audit Logs', () => {
             logCount = Number(logCount);
 
             // goto other pages
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
 
             // come back to logs page
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             // validate that the number doesnt change
-            
+
             let newLogCount = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
@@ -405,22 +395,22 @@ describe('Audit Logs', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should validate that audit logs are enabled and on page change audit is logged',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             // count number of logs
-            
+
             let logCount = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
@@ -430,7 +420,7 @@ describe('Audit Logs', () => {
             logCount = Number(logCount);
 
             // look for the alert panel
-            
+
             const alertPanelElement = await init.pageWaitForSelector(
                 page,
                 `#auditLogDisabled`
@@ -438,9 +428,9 @@ describe('Audit Logs', () => {
             expect(alertPanelElement).toBeDefined();
 
             // find the a tag to enable logs and click on it
-            
+
             await init.pageWaitForSelector(page, '#auditLogSetting');
-            
+
             await init.pageClick(page, '#auditLogSetting');
 
             // enable logs
@@ -451,23 +441,23 @@ describe('Audit Logs', () => {
             );
 
             // click the submit button
-            
+
             await init.pageWaitForSelector(page, '#auditLogSubmit');
-            
+
             await init.pageClick(page, '#auditLogSubmit');
 
             // go back to audit logs
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#auditLogs');
-            
+
             await init.pageClick(page, '#auditLogs');
 
             // count new number of logs
-            
+
             let newLogCount = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`

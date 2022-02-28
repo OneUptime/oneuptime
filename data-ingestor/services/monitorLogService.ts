@@ -29,60 +29,58 @@ export default {
             } else {
                 responseBody = '';
             }
-            
+
             Log.monitorId = data.monitorId;
-            
+
             Log.probeId = data.probeId;
-            
+
             Log.status = data.status;
-            
+
             Log.responseTime = data.responseTime;
-            
+
             Log.responseStatus = data.responseStatus;
-            
+
             Log.responseBody = responseBody;
-            
+
             Log.responseHeader =
                 data.rawResp && data.rawResp.headers
                     ? data.rawResp.headers
                     : {};
-            
+
             Log.cpuLoad = data.cpuLoad;
-            
+
             Log.avgCpuLoad = data.avgCpuLoad;
-            
+
             Log.cpuCores = data.cpuCores;
-            
+
             Log.memoryUsed = data.memoryUsed;
-            
+
             Log.totalMemory = data.totalMemory;
-            
+
             Log.swapUsed = data.swapUsed;
-            
+
             Log.storageUsed = data.storageUsed;
-            
+
             Log.totalStorage = data.totalStorage;
-            
+
             Log.storageUsage = data.storageUsage;
-            
+
             Log.mainTemp = data.mainTemp;
-            
+
             Log.maxTemp = data.maxTemp;
-            
+
             Log.sslCertificate = data.sslCertificate;
-            
+
             Log.kubernetesLog = data.kubernetesData || {};
 
-            
             Log.createdAt = new Date(moment().format());
 
             // script log details
-            
+
             Log.scriptMetadata = data.scriptMetadata;
 
             const result = await monitorLogCollection.insertOne(Log);
             const savedLog = await this.findOneBy({
-                
                 _id: ObjectId(result.insertedId),
             });
 
@@ -124,7 +122,6 @@ export default {
 
             if (logByHour) {
                 await MonitorLogByHourService.updateOneBy(
-                    
                     { _id: ObjectId(logByHour._id) },
                     {
                         ...data,
@@ -159,7 +156,6 @@ export default {
             }
             if (logByDay) {
                 await MonitorLogByDayService.updateOneBy(
-                    
                     { _id: ObjectId(logByDay._id) },
                     {
                         ...data,
@@ -194,7 +190,6 @@ export default {
             }
             if (logByWeek) {
                 await MonitorLogByWeekService.updateOneBy(
-                    
                     { _id: ObjectId(logByWeek._id) },
                     {
                         ...data,
@@ -293,19 +288,17 @@ export default {
         try {
             const [monitor, logData] = await Promise.all([
                 MonitorService.findOneBy({
-                    
                     query: { _id: ObjectId(data.monitorId) },
                     // select: 'projectId',
                     // populate: [{ path: 'projectId', select: '_id' }],
                 }),
-                
+
                 this.findOneBy({ _id: ObjectId(data._id) }),
             ]);
 
             if (monitor && monitor.projectId) {
                 const project = await ProjectService.findOneBy({
                     query: {
-                        
                         _id: ObjectId(
                             monitor.projectId._id || monitor.projectId
                         ),

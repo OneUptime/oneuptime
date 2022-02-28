@@ -1,4 +1,3 @@
-
 import { find, update } from '../util/db';
 
 const monitorCollection = 'monitors';
@@ -65,10 +64,9 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.and
                                         );
                                         up.criteria.criteria.push(nestVal);
@@ -78,10 +76,9 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.or
                                         );
                                         up.criteria.criteria.push(nestVal);
@@ -103,7 +100,7 @@ async function run() {
                                     or[0].match && or[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                
+
                                 nested.criteria.push(...or);
                                 up.criteria.criteria.push(nested);
                             });
@@ -118,10 +115,9 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.and
                                             );
                                             up.criteria.criteria.push(nestVal);
@@ -131,10 +127,9 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.or
                                             );
                                             up.criteria.criteria.push(nestVal);
@@ -165,10 +160,9 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.or
                                         );
                                         up.criteria.criteria.push(nestVal);
@@ -178,10 +172,9 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.and
                                         );
                                         up.criteria.criteria.push(nestVal);
@@ -203,7 +196,7 @@ async function run() {
                                     and[0].match && and[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                
+
                                 nested.criteria.push(...and);
                                 up.criteria.criteria.push(nested);
                             });
@@ -218,10 +211,9 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.and
                                             );
                                             up.criteria.criteria.push(nestVal);
@@ -231,10 +223,9 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.or
                                             );
                                             up.criteria.criteria.push(nestVal);
@@ -278,10 +269,9 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.and
                                         );
                                         down.criteria.criteria.push(nestVal);
@@ -291,10 +281,9 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.or
                                         );
                                         down.criteria.criteria.push(nestVal);
@@ -316,7 +305,7 @@ async function run() {
                                     or[0].match && or[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                
+
                                 nested.criteria.push(...or);
                                 down.criteria.criteria.push(nested);
                             });
@@ -331,10 +320,9 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.and
                                             );
                                             down.criteria.criteria.push(
@@ -346,10 +334,9 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.or
                                             );
                                             down.criteria.criteria.push(
@@ -382,10 +369,9 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.or
                                         );
                                         down.criteria.criteria.push(nestVal);
@@ -395,10 +381,9 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.and
                                         );
                                         down.criteria.criteria.push(nestVal);
@@ -420,7 +405,7 @@ async function run() {
                                     and[0].match && and[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                
+
                                 nested.criteria.push(...and);
                                 down.criteria.criteria.push(nested);
                             });
@@ -435,10 +420,9 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.and
                                             );
                                             down.criteria.criteria.push(
@@ -450,10 +434,9 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.or
                                             );
                                             down.criteria.criteria.push(
@@ -499,10 +482,9 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.and
                                         );
                                         degraded.criteria.criteria.push(
@@ -514,10 +496,9 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.or
                                         );
                                         degraded.criteria.criteria.push(
@@ -541,7 +522,7 @@ async function run() {
                                     or[0].match && or[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                
+
                                 nested.criteria.push(...or);
                                 degraded.criteria.criteria.push(nested);
                             });
@@ -556,10 +537,9 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.and
                                             );
                                             degraded.criteria.criteria.push(
@@ -571,10 +551,9 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.or
                                             );
                                             degraded.criteria.criteria.push(
@@ -607,10 +586,9 @@ async function run() {
                                         obj.collection.or.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.or
                                         );
                                         degraded.criteria.criteria.push(
@@ -622,10 +600,9 @@ async function run() {
                                         obj.collection.and.length > 0
                                     ) {
                                         const nestVal = { criteria: [] };
-                                        
+
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
-                                            
                                             ...obj.collection.and
                                         );
                                         degraded.criteria.criteria.push(
@@ -649,7 +626,7 @@ async function run() {
                                     and[0].match && and[0].match === 'any'
                                         ? 'or'
                                         : 'and';
-                                
+
                                 nested.criteria.push(...and);
                                 degraded.criteria.criteria.push(nested);
                             });
@@ -664,10 +641,9 @@ async function run() {
                                             obj.collection.and.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.and
                                             );
                                             degraded.criteria.criteria.push(
@@ -679,10 +655,9 @@ async function run() {
                                             obj.collection.or.length > 0
                                         ) {
                                             const nestVal = { criteria: [] };
-                                            
+
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
-                                                
                                                 ...obj.collection.or
                                             );
                                             degraded.criteria.criteria.push(

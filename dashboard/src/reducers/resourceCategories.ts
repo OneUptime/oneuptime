@@ -69,7 +69,7 @@ export default function resourceCategory(
                     resourceCategories: state.resourceCategoryList.resourceCategories.concat(
                         action.payload
                     ),
-                    
+
                     count: state.resourceCategoryList.count + 1,
                 },
                 resourceCategoryListForNewResource: {
@@ -113,9 +113,7 @@ export default function resourceCategory(
                     ...state.resourceCategoryList,
                     resourceCategories: state.resourceCategoryList.resourceCategories.map(
                         item => {
-                            
                             if (item._id === action.payload._id) {
-                                
                                 return { ...item, name: action.payload.name };
                             }
                             return item;
@@ -187,7 +185,6 @@ export default function resourceCategory(
                     ...state.resourceCategoryListForNewResource,
                     resourceCategories: state.resourceCategoryListForNewResource.resourceCategories.filter(
                         resourceCategory => {
-                            
                             if (resourceCategory._id === action.payload) {
                                 return false;
                             } else {
@@ -200,7 +197,6 @@ export default function resourceCategory(
                     ...state.resourceCategoryList,
                     resourceCategories: state.resourceCategoryList.resourceCategories.filter(
                         resourceCategory => {
-                            
                             if (resourceCategory._id === action.payload) {
                                 return false;
                             } else {
@@ -208,7 +204,7 @@ export default function resourceCategory(
                             }
                         }
                     ),
-                    
+
                     count: state.resourceCategoryList.count - 1,
                 },
                 deletedResourceCategory: {

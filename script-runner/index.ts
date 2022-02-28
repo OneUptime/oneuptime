@@ -25,7 +25,6 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-
 import express from 'express';
 const app = express();
 
@@ -40,7 +39,6 @@ import cron from 'node-cron';
 import main from './workers/main';
 
 app.use(cors());
-
 
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
@@ -62,7 +60,6 @@ app.set('port', process.env.PORT || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-
 app.get(['/script/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -75,7 +72,6 @@ app.get(['/script/status', '/status'], function(req, res) {
 });
 
 app.use('/script', require('./api/script'));
-
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line

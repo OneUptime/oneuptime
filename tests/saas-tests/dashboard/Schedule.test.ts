@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,13 +16,10 @@ const user = {
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 
-
 describe('Schedule', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -35,19 +31,17 @@ describe('Schedule', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should show pricing plan modal when enable team rotation is clicked',
         async (done: $TSFixMe) => {
             const projectName = 'newproject';
             const newScheduleName = 'test';
-            
+
             await init.addProject(page, projectName);
 
             await init.pageWaitForSelector(page, '#onCallDuty', {
@@ -66,24 +60,23 @@ describe('Schedule', () => {
                 elem.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#name');
-            
+
             await init.pageType(page, '#name', newScheduleName);
-            
+
             await init.pageClick(page, '#btnCreateSchedule');
             await init.pageWaitForSelector(page, '#name', { hidden: true });
 
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
-                
+
                 elem = Array.from(elem);
-                
+
                 elem[0].click();
             });
-            
+
             await init.pageWaitForSelector(page, '#enableTeamRotation');
-            
+
             await init.pageClick(page, '#enableTeamRotation');
 
             const modal = await init.pageWaitForSelector(
@@ -100,7 +93,6 @@ describe('Schedule', () => {
         operationTimeOut
     );
 
-    
     test(
         'should show pricing plan modal when add on-call duty times is clicked',
         async (done: $TSFixMe) => {
@@ -118,14 +110,14 @@ describe('Schedule', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
-                
+
                 elem = Array.from(elem);
-                
+
                 elem[0].click();
             });
-            
+
             await init.pageWaitForSelector(page, '#addOnCallDutyTimes');
-            
+
             await init.pageClick(page, '#addOnCallDutyTimes');
 
             const modal = await init.pageWaitForSelector(
@@ -143,7 +135,6 @@ describe('Schedule', () => {
         operationTimeOut
     );
 
-    
     test(
         'should show the component name on the monitors',
         async (done: $TSFixMe) => {
@@ -152,7 +143,7 @@ describe('Schedule', () => {
                 null,
                 monitorName,
                 page,
-                
+
                 componentName
             );
             await page.goto(utils.DASHBOARD_URL, {
@@ -169,13 +160,12 @@ describe('Schedule', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
-                
+
                 elem = Array.from(elem);
-                
+
                 elem[0].click();
             });
 
-            
             let monitor = await init.page$(
                 page,
                 `label[id=scheduleMonitor_0] > div.Checkbox-label > span > span[title=${monitorName}]`
@@ -188,13 +178,12 @@ describe('Schedule', () => {
         operationTimeOut
     );
 
-    
     test(
         'it should navigate to the oncall schedule details page from the oncall schedule list when the view schedule button is clicked',
         async (done: $TSFixMe) => {
             const projectName = 'newproject1';
             const newScheduleName = 'test';
-            
+
             await init.addProject(page, projectName);
 
             await init.pageWaitForSelector(page, '#onCallDuty', {
@@ -213,17 +202,16 @@ describe('Schedule', () => {
                 elem.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#name');
-            
+
             await init.pageType(page, '#name', newScheduleName);
-            
+
             await init.pageClick(page, '#btnCreateSchedule');
             await init.pageWaitForSelector(page, '#viewOnCallSchedule', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewOnCallSchedule');
             await init.pageWaitForSelector(page, `#cb${newScheduleName}`, {
                 visible: true,

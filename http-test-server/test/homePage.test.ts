@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import should from 'should';
 import utils from './test-utils';
@@ -10,11 +9,8 @@ let page: $TSFixMe;
 
 const bodyText = utils.generateRandomString();
 
-
 describe('HTTP Home page', () => {
-    
     beforeAll(async () => {
-        
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -23,25 +19,21 @@ describe('HTTP Home page', () => {
         );
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     it('Should return html page if response type is changed', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
         await page.evaluate(
-            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('statusCode').value = '')
         );
-        
+
         await page.evaluate(() => (document.getElementById('body').value = ''));
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');

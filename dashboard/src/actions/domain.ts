@@ -36,7 +36,7 @@ export function verifyDomain({ projectId, domainId, payload }: $TSFixMe) {
                 `domainVerificationToken/${projectId}/verify/${domainId}`,
                 payload
             );
-            
+
             dispatch(verifyDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -89,7 +89,7 @@ export function createDomain({
                 `status-page/${projectId}/${statusPageId}/domain`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
-            
+
             dispatch(createDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -129,11 +129,10 @@ export function deleteDomain({ projectId, statusPageId, domainId }: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         dispatch(deleteDomainRequest());
         try {
-            
             const response = await deleteApi(
                 `status-page/${projectId}/${statusPageId}/${domainId}`
             );
-            
+
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -186,7 +185,7 @@ export function updateDomain({
                 `status-page/${projectId}/${statusPageId}/${domainId}`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
-            
+
             dispatch(updateDomainSuccess(response.data));
         } catch (error) {
             const errorMsg =

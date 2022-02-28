@@ -14,7 +14,7 @@ export default (populateArray: $TSFixMe, query: $TSFixMe) => {
     try {
         if (populateArray && !Array.isArray(populateArray)) {
             const error = new Error('Populate should be an array of fields');
-            
+
             error.code = 400;
             throw error;
         }
@@ -23,7 +23,7 @@ export default (populateArray: $TSFixMe, query: $TSFixMe) => {
             const error = new Error(
                 'Populate is not following the right convention, make sure to specify path and select property'
             );
-            
+
             error.code = 400;
             throw error;
         }

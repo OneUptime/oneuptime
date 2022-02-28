@@ -7,7 +7,6 @@ export default {
     encrypt: (plainText: $TSFixMe, iv: $TSFixMe) => {
         const promise = new Promise((resolve, reject) => {
             try {
-                
                 const cipher = crypto.createCipheriv(algorithm, key, iv);
                 let encoded = cipher.update(plainText, 'utf8', 'hex');
                 encoded += cipher.final('hex');
@@ -22,7 +21,6 @@ export default {
     decrypt: (encText: $TSFixMe, iv: $TSFixMe) => {
         const promise = new Promise((resolve, reject) => {
             try {
-                
                 const decipher = crypto.createDecipheriv(algorithm, key, iv);
                 let decoded = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');

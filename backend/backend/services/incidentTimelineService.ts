@@ -2,25 +2,21 @@ export default {
     create: async function(data: $TSFixMe) {
         let incidentTimeline = new IncidentTimelineModel();
 
-        
         incidentTimeline.incidentId = data.incidentId;
         if (data.createdById) {
-            
             incidentTimeline.createdById = data.createdById;
         }
         if (data.probeId) {
-            
             incidentTimeline.probeId = data.probeId;
         }
         if (data.incident_state) {
-            
             incidentTimeline.incident_state = data.incident_state;
         }
-        
+
         incidentTimeline.createdByZapier = data.createdByZapier || false;
-        
+
         incidentTimeline.createdByApi = data.createdByApi || false;
-        
+
         incidentTimeline.status = data.status;
 
         incidentTimeline = await incidentTimeline.save();
@@ -210,7 +206,6 @@ export default {
             })
         );
 
-        
         timelines = flattenArray(timelines);
         return timelines;
     },

@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -47,10 +46,9 @@ const incidentSettings = {
     name: 'Another update',
 };
 
-
 describe('Incident Settings API', function() {
     this.timeout(500000);
-    
+
     before(function(done: $TSFixMe) {
         this.timeout(90000);
         GlobalConfig.initTestConfig().then(function() {
@@ -106,7 +104,6 @@ describe('Incident Settings API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await IncidentService.hardDeleteBy({ _id: incidentId });
@@ -120,7 +117,6 @@ describe('Incident Settings API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should return the list of the available variables', async () => {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -134,7 +130,6 @@ describe('Incident Settings API', function() {
         expect(res.body[0]).to.have.property('definition');
     });
 
-    
     it('should return the default settings if no custom settings are defined', async () => {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -153,7 +148,6 @@ describe('Incident Settings API', function() {
         );
     });
 
-    
     it('should update the default incident settings.', async () => {
         const authorization = `Basic ${token}`;
         const incidentPriorityObject = await IncidentPrioritiesService.findOne({
@@ -182,7 +176,6 @@ describe('Incident Settings API', function() {
         expect(res.body.name).to.eql(incidentSettings.name);
     });
 
-    
     it('should substitute variables with their values when an incident is created manually.', async () => {
         const authorization = `Basic ${token}`;
         const payload = {

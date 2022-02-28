@@ -1,4 +1,3 @@
-
 import { find, updateMany } from '../util/db';
 
 const monitorCollection = 'monitors';

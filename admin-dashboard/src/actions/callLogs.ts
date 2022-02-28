@@ -32,9 +32,8 @@ export const fetchCallLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
     dispatch(fetchCallLogsRequest());
 
     try {
-        
         const response = await getApi(`call-logs?skip=${skip}&limit=${limit}`);
-        
+
         const data = response.data;
 
         dispatch(fetchCallLogsSuccess(data));
@@ -89,12 +88,11 @@ export const searchCallLogs = (
     dispatch(searchCallLogsRequest());
 
     try {
-        
         const response = await postApi(
             `call-logs/search?skip=${skip}&limit=${limit}`,
             values
         );
-        
+
         const data = response.data;
 
         dispatch(searchCallLogsSuccess(data));
@@ -140,9 +138,8 @@ export const deleteCallLogs = () => async (dispatch: $TSFixMe) => {
     dispatch(deleteCallLogsRequest());
 
     try {
-        
         const response = await deleteApi(`call-logs`);
-        
+
         const message = response.data.message;
 
         dispatch(deleteCallLogsSuccess(message));
@@ -193,13 +190,11 @@ export const resetFetchCallLogStatus = () => {
 
 // Calls the API to fetch callLogStatus
 export const fetchCallLogStatus = () => async (dispatch: $TSFixMe) => {
-    
     dispatch(fetchCallLogStatusRequest());
 
     try {
-        
         const response = await getApi('globalConfig/callLogMonitoringStatus');
-        
+
         dispatch(fetchCallLogStatusSuccess(response.data));
         return response;
     } catch (error) {
@@ -252,15 +247,13 @@ export const resetConfirmCallLogStatus = () => {
 export const callLogStatusChange = (values: $TSFixMe) => async (
     dispatch: $TSFixMe
 ) => {
-    
     dispatch(changeCallLogStatusRequest());
 
     try {
-        
         const response = await postApi('globalConfig/', [
             { name: 'callLogMonitoringStatus', value: values.status },
         ]);
-        
+
         const data = response.data;
         dispatch(changeCallLogStatusSuccess(data));
         return data;

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 
 import should from 'should';
@@ -15,23 +14,18 @@ const user = {
     password,
 };
 
-
 describe('Change Password API', () => {
-    
     beforeAll(async () => {
-        
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     it(
         'Should not allow change of password if password and confirm password do not math',
         async () => {
@@ -39,25 +33,25 @@ describe('Change Password API', () => {
                 utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
                 { waitUntil: 'networkidle2' }
             );
-            
+
             await init.pageWaitForSelector(page, '#password');
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', user.password);
-            
+
             await init.pageWaitForSelector(page, '#confirmPassword');
-            
+
             await init.pageClick(page, 'input[name=confirmPassword]');
-            
+
             await init.pageType(
                 page,
                 'input[name=confirmPassword]',
                 'unmatchingPassword'
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(
                 page,
                 '#confirmPasswordField > span > span:nth-child(2)'
@@ -77,7 +71,6 @@ describe('Change Password API', () => {
         init.timeout
     );
 
-    
     it(
         'Should submit if password is less than 8 characters',
         async () => {
@@ -85,21 +78,21 @@ describe('Change Password API', () => {
                 utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
                 { waitUntil: 'networkidle2' }
             );
-            
+
             await init.pageWaitForSelector(page, '#password');
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', '123456');
-            
+
             await init.pageWaitForSelector(page, '#confirmPassword');
-            
+
             await init.pageClick(page, 'input[name=confirmPassword]');
-            
+
             await init.pageType(page, 'input[name=confirmPassword]', '123456');
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(
                 page,
                 '#passwordField > span > span:nth-child(1)'
@@ -119,7 +112,6 @@ describe('Change Password API', () => {
         init.timeout
     );
 
-    
     it(
         'Should submit if password is missing',
         async () => {
@@ -127,21 +119,21 @@ describe('Change Password API', () => {
                 utils.ACCOUNTS_URL + '/change-password/thisisaWrongRestToken',
                 { waitUntil: 'networkidle2' }
             );
-            
+
             await init.pageWaitForSelector(page, '#password');
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', '');
-            
+
             await init.pageWaitForSelector(page, '#confirmPassword');
-            
+
             await init.pageClick(page, 'input[name=confirmPassword]');
-            
+
             await init.pageType(page, 'input[name=confirmPassword]', '123456');
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(
                 page,
                 '#passwordField > span > span:nth-child(1)'

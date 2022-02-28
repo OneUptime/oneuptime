@@ -1,4 +1,3 @@
-
 import lighthouse from 'lighthouse';
 import chromeLauncher from 'chrome-launcher';
 import ora from 'ora';
@@ -41,7 +40,6 @@ function launchChromeAndRunLighthouse(
     config = null
 ) {
     return chromeLauncher.launch(flags).then(chrome => {
-        
         flags.port = chrome.port;
         return lighthouse(url, flags, config).then((results: $TSFixMe) => {
             return chrome.kill().then(() => results);
@@ -59,7 +57,7 @@ process.on('message', function(data) {
     const scores = {};
     const spinner = ora(`Running lighthouse on ${data.url}`).start();
     spinner.color = 'green';
-    
+
     launchChromeAndRunLighthouse(data.url, flags, config)
         .then(results => {
             results.artifacts = 'ignore';
@@ -78,35 +76,30 @@ process.on('message', function(data) {
             results.lhr.audits = 'ignore';
             results.lhr.categoryGroups = 'ignore';
 
-            
             scores.performance = Math.ceil(
                 results.lhr.categories.performance.score * 100
             );
-            
+
             scores.accessibility = Math.ceil(
                 results.lhr.categories.accessibility.score * 100
             );
-            
+
             scores.bestPractices = Math.ceil(
                 results.lhr.categories['best-practices'].score * 100
             );
-            
+
             scores.seo = Math.ceil(results.lhr.categories.seo.score * 100);
             if (
-                
                 scores.performance < 50 ||
-                
                 scores.accessibility < 70 ||
-                
                 scores.bestPractices < 70 ||
-                
                 scores.seo < 80
             ) {
                 spinner.fail();
             } else {
                 spinner.succeed();
             }
-            
+
             process.send(scores);
             return scores;
         })

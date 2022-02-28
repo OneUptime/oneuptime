@@ -33,18 +33,16 @@ export const resetFetchLicense = () => {
 
 // Calls the API to fetch license
 export const fetchLicense = () => async (dispatch: $TSFixMe) => {
-    
     dispatch(fetchLicenseRequest());
     dispatch(resetConfirmLicense());
 
     try {
-        
         const response = await postApi('globalConfig/configs', [
             'licenseKey',
             'licenseEmail',
             'licenseToken',
         ]);
-        
+
         const data = response.data;
         dispatch(fetchLicenseSuccess(data));
         return data;
@@ -98,21 +96,19 @@ export const resetConfirmLicense = () => {
 export const confirmLicense = (values: $TSFixMe) => async (
     dispatch: $TSFixMe
 ) => {
-    
     dispatch(confirmLicenseRequest());
 
     try {
         const response = await postApi('license/validate/', values, true);
-        
+
         let data = response.data;
         if (data.token) {
-            
             const response = await postApi('globalConfig/', [
                 { name: 'licenseKey', value: values.license },
                 { name: 'licenseEmail', value: values.email },
                 { name: 'licenseToken', value: data.token },
             ]);
-            
+
             data = response.data;
         }
         dispatch(confirmLicenseSuccess(data));

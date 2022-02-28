@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -10,13 +9,10 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-
 describe('Project', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -30,13 +26,11 @@ describe('Project', () => {
         await init.registerEnterpriseUser(user, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not show upgrade/downgrade box if IS_SAAS_SERVICE is false',
         async () => {
@@ -54,7 +48,6 @@ describe('Project', () => {
             );
             await page.reload({ waitUntil: 'networkidle0' });
 
-            
             const elem = await init.page$$(page, 'table > tbody > tr');
             elem[0].click();
 
@@ -65,7 +58,6 @@ describe('Project', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete a project',
         async (done: $TSFixMe) => {
@@ -74,7 +66,7 @@ describe('Project', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projects');
 
             const firstProject = await init.pageWaitForSelector(
@@ -91,13 +83,13 @@ describe('Project', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#delete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#confirmDelete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
@@ -118,7 +110,6 @@ describe('Project', () => {
         operationTimeOut
     );
 
-    
     test(
         'should restore a deleted project',
         async (done: $TSFixMe) => {
@@ -127,7 +118,7 @@ describe('Project', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projects');
 
             const firstProject = await init.pageWaitForSelector(
@@ -143,7 +134,7 @@ describe('Project', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#restore');
 
             const deleteBtn = await init.pageWaitForSelector(page, '#delete', {

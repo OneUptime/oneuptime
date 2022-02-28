@@ -1,4 +1,3 @@
-
 import { registerService } from './serviceWorker';
 const publicVapidKey = process.env.REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY; // URL Safe Base64 Encoded Public Key
 
@@ -13,9 +12,8 @@ export async function getUserAgent() {
 
 export async function getTheSubscription() {
     let subscription;
-    
+
     if (registerService) {
-        
         subscription = await registerService.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(publicVapidKey),

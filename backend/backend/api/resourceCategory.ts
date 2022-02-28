@@ -2,7 +2,6 @@ import express from 'express';
 
 const router = express.Router();
 
-
 import { isAuthorized } from '../middlewares/authorization';
 
 const getUser = require('../middlewares/user').getUser;
@@ -27,7 +26,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         const resourceCategoryName = req.body.resourceCategoryName;
         const projectId = req.params.projectId;
 
-        
         const userId = req.user ? req.user.id : null;
 
         if (!resourceCategoryName) {
@@ -80,7 +78,6 @@ router.delete(
             const resourceCategoryId = req.params.resourceCategoryId;
             const projectId = req.params.projectId;
 
-            
             const userId = req.user ? req.user.id : null;
 
             if (!resourceCategoryId) {

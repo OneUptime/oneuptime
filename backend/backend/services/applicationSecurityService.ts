@@ -38,7 +38,7 @@ export default {
             const error = new Error(
                 'Application security with this name already exist in this component'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -47,7 +47,7 @@ export default {
             const error = new Error(
                 'Application security with this git repository url already exist in this component'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -56,7 +56,7 @@ export default {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -142,7 +142,6 @@ export default {
         ).populate('gitCredential');
 
         if (unsetData) {
-            
             applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -155,7 +154,7 @@ export default {
             const error = new Error(
                 'Application Security not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -187,7 +186,7 @@ export default {
             const error = new Error(
                 'Application Security not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -200,7 +199,6 @@ export default {
         // delete log associated with this application security
         if (securityLog) {
             await ApplicationSecurityLogService.deleteBy({
-                
                 _id: securityLog._id,
             });
         }

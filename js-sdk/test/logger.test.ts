@@ -11,7 +11,6 @@ const timeout = 5000;
 
 import OneUptimeLogger from '../src/logger';
 
-
 describe('OneUptimeLogger', function() {
     const sleep = (milliseconds: $TSFixMe) => {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -24,11 +23,9 @@ describe('OneUptimeLogger', function() {
     // create a new user
     const component = { name: 'Our Component' };
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(60000);
         sleep(5000).then(() => {
-            
             user.email = generateRandomBusinessEmail();
             request
                 .post('/user/signup')
@@ -50,7 +47,6 @@ describe('OneUptimeLogger', function() {
                                 .set('Authorization', `Basic ${token}`)
                                 .send({ name: 'Application OneUptimeLogger' })
                                 .end(function(err: $TSFixMe, res: $TSFixMe) {
-                                    
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
                                     expect(res.body).to.have.property('_id');
@@ -61,7 +57,7 @@ describe('OneUptimeLogger', function() {
                 });
         });
     });
-    
+
     it('should request for application log key', function() {
         const firstLog = new OneUptimeLogger(API_URL, applicationLog._id, '');
         firstLog.log('here').catch(error => {
@@ -71,7 +67,7 @@ describe('OneUptimeLogger', function() {
             );
         });
     });
-    
+
     it('should request for content', function() {
         const firstLog = new OneUptimeLogger(
             API_URL,
@@ -85,7 +81,7 @@ describe('OneUptimeLogger', function() {
             );
         });
     });
-    
+
     it('should return invalid application log', function() {
         const firstLog = new OneUptimeLogger(
             API_URL,
@@ -99,7 +95,7 @@ describe('OneUptimeLogger', function() {
             );
         });
     });
-    
+
     it('should return a valid logged item of type string', function() {
         const validLog = new OneUptimeLogger(
             API_URL,
@@ -108,17 +104,16 @@ describe('OneUptimeLogger', function() {
         );
         const logMessage = 'This is a simple log';
         validLog.log(logMessage).then(response => {
-            
             expect(response.status).to.equal(200);
-            
+
             expect(response.data).to.be.an('object');
-            
+
             expect(response.data.content).to.be.a('string');
-            
+
             expect(response.data).to.include({ content: logMessage });
         });
     });
-    
+
     it('should return a valid logged item of type object', function() {
         const validLog = new OneUptimeLogger(
             API_URL,
@@ -130,27 +125,26 @@ describe('OneUptimeLogger', function() {
             user: { name: 'Jon', email: 'accurate@y.co.uk' },
         };
         validLog.log(logMessage).then(response => {
-            
             expect(response.status).to.equal(200);
-            
+
             expect(response.data).to.be.an('object');
-            
+
             expect(response.data.content).to.be.an('object');
-            
+
             expect(response.data.content).to.include({
                 message: logMessage.message,
             });
-            
+
             expect(response.data.content.user).to.include({
                 name: logMessage.user.name,
             });
-            
+
             expect(response.data.content.user).to.include({
                 email: logMessage.user.email,
             });
         });
     });
-    
+
     it('should return a valid logged item with log type of error', function() {
         const validLog = new OneUptimeLogger(
             API_URL,
@@ -159,17 +153,16 @@ describe('OneUptimeLogger', function() {
         );
         const logMessage = 'This is a simple log';
         validLog.error(logMessage).then(response => {
-            
             expect(response.status).to.equal(200);
-            
+
             expect(response.data).to.be.an('object');
-            
+
             expect(response.data.content).to.be.a('string');
-            
+
             expect(response.data).to.include({ type: 'error' });
         });
     });
-    
+
     it('should return a valid logged item with log type of warning', function() {
         const validLog = new OneUptimeLogger(
             API_URL,
@@ -178,17 +171,16 @@ describe('OneUptimeLogger', function() {
         );
         const logMessage = 'This is a simple log';
         validLog.warning(logMessage).then(response => {
-            
             expect(response.status).to.equal(200);
-            
+
             expect(response.data).to.be.an('object');
-            
+
             expect(response.data.content).to.be.a('string');
-            
+
             expect(response.data).to.include({ type: 'warning' });
         });
     });
-    
+
     it('should return a valid logged item with log type of info with one tag', function() {
         const validLog = new OneUptimeLogger(
             API_URL,
@@ -197,25 +189,24 @@ describe('OneUptimeLogger', function() {
         );
         const logMessage = 'This is a simple log';
         const tag = 'trial';
-        
+
         validLog.log(logMessage, tag).then(response => {
-            
             expect(response.status).to.equal(200);
-            
+
             expect(response.data).to.be.an('object');
-            
+
             expect(response.data.content).to.be.a('string');
-            
+
             expect(response.data).to.include({ type: 'info' });
-            
+
             expect(response.data.tags).to.be.an('array');
-            
+
             expect(response.data.tags).to.have.lengthOf(1);
-            
+
             expect(response.data.tags).to.include(tag);
         });
     });
-    
+
     it('should return a valid logged item with log type of warning with no tag', function() {
         const validLog = new OneUptimeLogger(
             API_URL,
@@ -224,17 +215,16 @@ describe('OneUptimeLogger', function() {
         );
         const logMessage = 'This is a simple log';
         validLog.warning(logMessage).then(response => {
-            
             expect(response.status).to.equal(200);
-            
+
             expect(response.data).to.be.an('object');
-            
+
             expect(response.data.content).to.be.a('string');
-            
+
             expect(response.data).to.include({ type: 'warning' });
         });
     });
-    
+
     it('should return a valid logged item with log type of error with 3 tags', function() {
         const validLog = new OneUptimeLogger(
             API_URL,
@@ -243,27 +233,25 @@ describe('OneUptimeLogger', function() {
         );
         const logMessage = 'This is a simple log';
         const tags = ['auction', 'trial', 'famous'];
-        
+
         validLog.error(logMessage, tags).then(response => {
-            
             expect(response.status).to.equal(200);
-            
+
             expect(response.data).to.be.an('object');
-            
+
             expect(response.data.content).to.be.a('string');
-            
+
             expect(response.data).to.include({ type: 'error' });
-            
+
             expect(response.data.tags).to.be.an('array');
-            
+
             expect(response.data.tags).to.have.lengthOf(tags.length);
             tags.forEach(tag => {
-                
                 expect(response.data.tags).to.include(tag);
             });
         });
     });
-    
+
     it('should reject a valid logged item with log type of error with invalid tags', function() {
         const validLog = new OneUptimeLogger(
             API_URL,
@@ -272,7 +260,7 @@ describe('OneUptimeLogger', function() {
         );
         const logMessage = 'This is a simple log';
         const tags = { type: 'trying things' };
-        
+
         validLog.error(logMessage, tags).then(response => {
             expect(response).to.equal('Invalid Content Tags to be logged');
         });

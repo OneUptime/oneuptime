@@ -34,7 +34,7 @@ export default {
             const error = new Error(
                 'You need at least one monitor to create an incident'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -42,7 +42,7 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of the same monitor'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -56,7 +56,7 @@ export default {
             const error = new Error(
                 'You need at least one enabled monitor to create an incident'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -70,14 +70,13 @@ export default {
             const error = new Error(
                 'You need at least one monitor not undergoing scheduled maintenance'
             );
-            
+
             error.code = 400;
             throw error;
         }
         if (monitors && monitors.length > 0) {
             const { matchedCriterion } = data;
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: data.projectId },
                 select: 'users parentProjectId name',
@@ -117,7 +116,7 @@ export default {
 
             if (errorMsg) {
                 const error = new Error(errorMsg);
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -155,27 +154,25 @@ export default {
                 }),
             ]);
 
-            
             incident.projectId = data.projectId || null;
-            
+
             incident.monitors = monitors;
-            
+
             incident.createdById = data.createdById;
-            
+
             incident.createdByApi = data.createdByApi;
-            
+
             incident.notClosedBy = users;
-            
+
             incident.incidentType = data.incidentType;
-            
+
             incident.manuallyCreated = data.manuallyCreated || false;
             if (data.reason && data.reason.length > 0) {
-                
                 incident.reason = data.reason.join('\n');
             }
-            
+
             incident.response = data.response || null;
-            
+
             incident.idNumber =
                 incidentsCountInProject +
                 deletedIncidentsCountInProject +
@@ -183,12 +180,10 @@ export default {
                 deletedParentCount +
                 1;
 
-            
             incident.slug = getSlug(incident.idNumber); // create incident slug from the idNumber
 
-            
             incident.customFields = data.customFields;
-            
+
             incident.createdByIncomingHttpRequest =
                 data.createdByIncomingHttpRequest;
 
@@ -200,7 +195,6 @@ export default {
                 monitorName: joinNames(monitorNames),
             };
 
-            
             if (!incident.manuallyCreated) {
                 const select =
                     'projectId title description incidentPriority isDefault name';
@@ -220,26 +214,23 @@ export default {
                     incidentSettings.description
                 );
 
-                
                 incident.title =
                     matchedCriterion && matchedCriterion.title
                         ? matchedCriterion.title
                         : titleTemplate(templatesInput);
-                
+
                 incident.description =
                     matchedCriterion && matchedCriterion.description
                         ? matchedCriterion.description
                         : descriptionTemplate(templatesInput);
-                
+
                 incident.criterionCause = {
                     ...matchedCriterion,
                 };
 
-                
                 incident.incidentPriority = incidentSettings.incidentPriority;
 
                 if (data.probeId) {
-                    
                     incident.probes = [
                         {
                             probeId: data.probeId,
@@ -255,11 +246,10 @@ export default {
                     data.description
                 );
 
-                
                 incident.title = titleTemplate(templatesInput);
-                
+
                 incident.description = descriptionTemplate(templatesInput);
-                
+
                 incident.incidentPriority = data.incidentPriority;
             }
 
@@ -306,9 +296,7 @@ export default {
                 populatedIncident
             );
 
-            
             incident.notifications = notifications.map(notification => ({
-                
                 notificationId: notification._id,
             }));
             incident = await incident.save();
@@ -355,10 +343,9 @@ export default {
 
             // run in the background
             IncidentMessageService.create({
-                
                 content: incident.description,
                 incidentId: incident._id,
-                
+
                 createdById: incident.createdById?._id || incident.createdById,
                 type: 'investigation',
                 incident_state: 'Identified',
@@ -594,7 +581,6 @@ export default {
     },
 
     async _sendIncidentCreatedAlert(incident: $TSFixMe) {
-        
         ZapierService.pushToZapier('incident_created', incident).catch(
             error => {
                 ErrorService.log('ZapierService.pushToZapier', error);
@@ -625,7 +611,7 @@ export default {
 
             let notification = {};
             // send slack notification
-            
+
             SlackService.sendNotification(
                 incident.projectId._id || incident.projectId,
                 incident,
@@ -636,7 +622,7 @@ export default {
                 ErrorService.log('SlackService.sendNotification', error);
             });
             // send webhook notification
-            
+
             WebHookService.sendIntegrationNotification(
                 incident.projectId._id || incident.projectId,
                 incident,
@@ -650,7 +636,7 @@ export default {
                 );
             });
             // send Ms Teams notification
-            
+
             MsTeamsService.sendNotification(
                 incident.projectId._id || incident.projectId,
                 incident,
@@ -739,7 +725,7 @@ export default {
                     acknowledgedBy: userId,
                     acknowledgedAt: Date.now(),
                     acknowledgedByZapier: zapier,
-                    
+
                     acknowledgedByIncomingHttpRequest: httpRequest?._id,
                     acknowledgedByApi,
                 }
@@ -751,7 +737,6 @@ export default {
 
             try {
                 if (isEmpty(httpRequest)) {
-                    
                     NotificationService.create(
                         incident.projectId._id || incident.projectId,
                         `An Incident was acknowledged by ${name}`,
@@ -759,10 +744,9 @@ export default {
                         'acknowledge'
                     );
                 } else {
-                    
                     NotificationService.create(
                         incident.projectId._id || incident.projectId,
-                        
+
                         `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
                         userId,
                         'acknowledge'
@@ -883,7 +867,6 @@ export default {
                 });
             }
 
-            
             ZapierService.pushToZapier('incident_acknowledge', incident).catch(
                 error => {
                     ErrorService.log('ZapierService.pushToZapier', error);
@@ -954,17 +937,16 @@ export default {
         }
 
         if (!incident.acknowledged) {
-            
             data.acknowledged = true;
-            
+
             data.acknowledgedBy = userId;
-            
+
             data.acknowledgedAt = Date.now();
-            
+
             data.acknowledgedByZapier = zapier;
-            
+
             data.acknowledgedByIncomingHttpRequest = httpRequest?._id;
-            
+
             data.acknowledgedByApi = resolvedByApi;
 
             await IncidentTimelineService.create({
@@ -976,17 +958,17 @@ export default {
                 createdByApi: resolvedByApi,
             });
         }
-        
+
         data.resolved = true;
-        
+
         data.resolvedBy = userId;
-        
+
         data.resolvedAt = Date.now();
-        
+
         data.resolvedByZapier = zapier;
-        
+
         data.resolvedByIncomingHttpRequest = httpRequest?._id;
-        
+
         data.resolvedByApi = resolvedByApi;
 
         incident = await _this.updateOneBy({ _id: incidentId }, data);
@@ -1062,7 +1044,7 @@ export default {
         await MonitorStatusService.createMany(statusData);
 
         RealTimeService.incidentResolved(incident);
-        
+
         ZapierService.pushToZapier('incident_resolve', incident).catch(
             error => {
                 ErrorService.log('ZapierService.pushToZapier', error);
@@ -1377,7 +1359,6 @@ export default {
             'oneuptime'}`;
 
         try {
-            
             NotificationService.create(
                 incident.projectId._id || incident.projectId,
                 msg,
@@ -1630,9 +1611,8 @@ export default {
                     });
                     fetchedDefault = true;
                 }
-                
+
                 if (sla && !slaList[sla._id] && !sla.deleted) {
-                    
                     slaList[sla._id] = sla;
                 }
             }
@@ -1640,14 +1620,10 @@ export default {
             // grab the lowest sla and apply to the incident
             let lowestSla = {};
             for (const [, value] of Object.entries(slaList)) {
-                
                 if (!lowestSla.duration) {
-                    
                     lowestSla = value;
                 } else {
-                    
                     lowestSla =
-                        
                         Number(value.duration) < Number(lowestSla.duration)
                             ? value
                             : lowestSla;
@@ -1659,12 +1635,10 @@ export default {
 
                 if (
                     incidentCommunicationSla &&
-                    
                     !incidentCommunicationSla.deleted
                 ) {
-                    
                     let countDown = incidentCommunicationSla.duration * 60;
-                    
+
                     const alertTime = incidentCommunicationSla.alertTime * 60;
 
                     const data = {
@@ -1740,7 +1714,6 @@ export default {
     },
 
     clearInterval: function(incidentId: $TSFixMe) {
-        
         intervals = intervals.filter(interval => {
             if (String(interval.incidentId) === String(incidentId)) {
                 clearInterval(interval.intervalId);

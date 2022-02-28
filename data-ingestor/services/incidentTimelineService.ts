@@ -17,27 +17,23 @@ export default {
         try {
             let incidentTimeline = {};
 
-            
             incidentTimeline.incidentId = data.incidentId;
             if (data.createdById) {
-                
                 incidentTimeline.createdById = data.createdById;
             }
             if (data.probeId) {
-                
                 incidentTimeline.probeId = data.probeId;
             }
             if (data.incident_state) {
-                
                 incidentTimeline.incident_state = data.incident_state;
             }
-            
+
             incidentTimeline.createdByZapier = data.createdByZapier || false;
-            
+
             incidentTimeline.status = data.status;
-            
+
             incidentTimeline.createdAt = new Date(moment().format());
-            
+
             incidentTimeline.deleted = false;
 
             const result = await incidentTimelineCollection.insertOne(
@@ -46,11 +42,9 @@ export default {
 
             const [timeline, incident] = await Promise.all([
                 this.findOneBy({
-                    
                     _id: ObjectId(result.insertedId),
                 }),
                 IncidentService.findOneBy({
-                    
                     query: { _id: ObjectId(data.incidentId) },
                 }),
             ]);
@@ -59,7 +53,7 @@ export default {
             if (incident) {
                 const _incidentTimeline = Object.assign(
                     {},
-                    
+
                     incidentTimeline._doc || incidentTimeline,
                     {
                         projectId: incident.projectId._id || incident.projectId,
@@ -68,7 +62,6 @@ export default {
 
                 const project = ProjectService.findOneBy({
                     query: {
-                        
                         _id: ObjectId(
                             _incidentTimeline.projectId._id ||
                                 _incidentTimeline.projectId
@@ -76,15 +69,10 @@ export default {
                     },
                 });
                 const projectId = project
-                    ? 
-                      project.parentProjectId
-                        ? 
-                          project.parentProjectId._id || project.parentProjectId
-                        : 
-                          project._id
-                    : 
-                      incidentTimeline.projectId._id ||
-                      
+                    ? project.parentProjectId
+                        ? project.parentProjectId._id || project.parentProjectId
+                        : project._id
+                    : incidentTimeline.projectId._id ||
                       incidentTimeline.projectId;
 
                 // realtime update

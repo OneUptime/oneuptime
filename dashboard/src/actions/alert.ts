@@ -35,12 +35,10 @@ export function fetchAlert(projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(`alert/${projectId}`);
 
-        
         dispatch(alertRequest());
 
         promise.then(
             function(payload) {
-                
                 dispatch(alertSuccess(payload.data));
             },
             function(error) {
@@ -101,12 +99,10 @@ export function fetchProjectAlert(
             `alert/${projectId}/alert?skip=${skip}&limit=${limit}`
         );
 
-        
         dispatch(projectAlertRequest());
 
         promise.then(
             function(payload) {
-                
                 const data = payload.data;
                 data.projectId = projectId;
                 dispatch(projectAlertSuccess(data));
@@ -171,12 +167,10 @@ export function fetchIncidentAlert(
             `alert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
         );
 
-        
         dispatch(incidentAlertRequest());
 
         promise.then(
             function(alerts) {
-                
                 dispatch(incidentAlertSuccess(alerts.data));
             },
             function(error) {
@@ -251,12 +245,10 @@ export function fetchSubscriberAlert(
             );
         }
 
-        
         dispatch(subscriberAlertRequest());
 
         promise.then(
             function(alerts) {
-                
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
             function(error) {
@@ -318,7 +310,6 @@ export function fetchAlertCharges(
 
         promise.then(
             function(alertCharges) {
-                
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
             function(error) {
@@ -368,7 +359,6 @@ export function downloadAlertCharges(projectId: $TSFixMe) {
 
         promise.then(
             function(alertCharges) {
-                
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
             function(error) {

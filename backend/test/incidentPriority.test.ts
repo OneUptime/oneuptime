@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -23,10 +22,9 @@ let token: $TSFixMe,
     defaultIncidentPriorityId: $TSFixMe,
     newIncidentPriorityId: $TSFixMe;
 
-
 describe('Incident Priority API', function() {
     this.timeout(500000);
-    
+
     before(function(done: $TSFixMe) {
         this.timeout(90000);
         GlobalConfig.initTestConfig().then(function() {
@@ -61,7 +59,6 @@ describe('Incident Priority API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await IncidentSettings.hardDeleteBy({ projectId: projectId });
@@ -70,7 +67,6 @@ describe('Incident Priority API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('Should return the list of the available variables.', async () => {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -89,7 +85,6 @@ describe('Incident Priority API', function() {
         expect(res.body.data[1].name).to.eql('Low');
     });
 
-    
     it('Should not remove the default incident priority.', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
@@ -102,7 +97,6 @@ describe('Incident Priority API', function() {
             });
     });
 
-    
     it('Should create a new incident priority.', async () => {
         const authorization = `Basic ${token}`;
         let res = await request
@@ -132,7 +126,6 @@ describe('Incident Priority API', function() {
         expect(res.body.data[2].name).to.eql('Intermediate');
     });
 
-    
     it('Should update incident priority.', async () => {
         const newIncidentPriorityName = 'Intermediate Updated';
         const authorization = `Basic ${token}`;
@@ -161,7 +154,6 @@ describe('Incident Priority API', function() {
         expect(res.body.data[2].name).to.eql(newIncidentPriorityName);
     });
 
-    
     it('Should delete incident priority.', async () => {
         const authorization = `Basic ${token}`;
         let res = await request

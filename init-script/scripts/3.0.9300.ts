@@ -1,4 +1,3 @@
-
 import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
 const schedulesCollection = 'schedules';

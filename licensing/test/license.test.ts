@@ -1,4 +1,3 @@
-
 process.env.PORT = 3021;
 const expect = require('chai').expect;
 const {
@@ -11,7 +10,6 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
 
-
 const request = chai.request.agent(app);
 import AirtableService from '../src/services/airtableService';
 
@@ -19,11 +17,9 @@ const tableName = 'License';
 const email = 'license@hackerbay.io';
 let validLicenseId: $TSFixMe, expiredLicenseId: $TSFixMe;
 
-
 describe('License API', function() {
     this.timeout(20000);
 
-    
     before(async () => {
         const licenses = await AirtableService.create({
             tableName,
@@ -33,7 +29,6 @@ describe('License API', function() {
         expiredLicenseId = licenses[1].id;
     });
 
-    
     after(async () => {
         await AirtableService.delete({
             tableName,
@@ -41,7 +36,6 @@ describe('License API', function() {
         });
     });
 
-    
     it('should confirm valid license', (done: $TSFixMe) => {
         request
             .post('/license/validate')
@@ -56,7 +50,6 @@ describe('License API', function() {
             });
     });
 
-    
     it('should not confirm invalid license', (done: $TSFixMe) => {
         request
             .post('/license/validate')
@@ -71,7 +64,6 @@ describe('License API', function() {
             });
     });
 
-    
     it('should not confirm expired license', (done: $TSFixMe) => {
         request
             .post('/license/validate')
@@ -86,7 +78,6 @@ describe('License API', function() {
             });
     });
 
-    
     it('should not confirm valid license for missing details', (done: $TSFixMe) => {
         request
             .post('/license/validate')

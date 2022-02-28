@@ -98,15 +98,12 @@ router.put(
 
             const data = {};
             if (dockerRegistryUrl) {
-                
                 data.dockerRegistryUrl = dockerRegistryUrl;
             }
             if (dockerUsername) {
-                
                 data.dockerUsername = dockerUsername;
             }
             if (dockerPassword) {
-                
                 data.dockerPassword = dockerPassword;
             }
 

@@ -64,7 +64,7 @@ export default {
                 const error = new Error(
                     'Git Credential already exist in this project'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -88,7 +88,7 @@ export default {
                 const error = new Error(
                     'Git Ssh already exist in this project'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -127,12 +127,11 @@ export default {
         const populateGitCredentials = [
             { path: 'projectId', select: 'name slug' },
         ];
-        
+
         gitCredential = await this.findOneBy({
             query: {
-                
                 _id: gitCredential._id,
-                
+
                 deleted: gitCredential.deleted,
             },
             select: selectGitCredentials,
@@ -143,7 +142,7 @@ export default {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -157,7 +156,7 @@ export default {
             const error = new Error(
                 'Git Credential not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }

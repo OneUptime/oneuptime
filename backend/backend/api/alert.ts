@@ -19,7 +19,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        
+
         const userId = req.user.id;
         const data = req.body;
         data.projectId = projectId;
@@ -43,10 +43,8 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     res
 ) {
     try {
-        
         const subProjectIds = req.user.subProjects
-            ? 
-              req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
         const alerts = await alertService.getSubProjectAlerts(subProjectIds);
         return sendItemResponse(req, res, alerts); // frontend expects sendItemResponse
@@ -168,7 +166,7 @@ router.get('/:projectId/:alertId/viewed', async function(req, res) {
 router.delete('/:projectId', getUser, isUserOwner, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        
+
         const userId = req.user.id;
         const alert = await alertService.deleteBy(
             { projectId: projectId },

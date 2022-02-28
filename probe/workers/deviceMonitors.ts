@@ -7,11 +7,9 @@ import ErrorService from '../utils/errorService';
 export default {
     ping: async (monitor: $TSFixMe) => {
         try {
-            
             const newDate = new moment();
             const resDate = new Date();
             if (monitor && monitor.type) {
-                
                 const d = new moment(monitor.lastPingTime);
 
                 if (newDate.diff(d, 'minutes') > 3) {

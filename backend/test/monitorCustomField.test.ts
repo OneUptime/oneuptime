@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -20,7 +19,6 @@ import ProjectService from '../backend/services/projectService';
 import ComponentService from '../backend/services/componentService';
 import MonitorCustomFieldService from '../backend/services/monitorCustomField';
 
-
 describe('Monitor Custom Field API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe,
@@ -39,7 +37,7 @@ describe('Monitor Custom Field API', function() {
         };
 
     this.timeout(timeout);
-    
+
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(
@@ -75,7 +73,6 @@ describe('Monitor Custom Field API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -87,7 +84,6 @@ describe('Monitor Custom Field API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should not create a monitor custom field when field name is missing or not specified', function(done: $TSFixMe) {
         request
             .post(`/monitorCustomField/${projectId}`)
@@ -100,7 +96,6 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    
     it('should not create a monitor custom field when field type is missing or not specified', function(done: $TSFixMe) {
         request
             .post(`/monitorCustomField/${projectId}`)
@@ -113,7 +108,6 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    
     it('should setup custom fields for all monitors in a project (text)', function(done: $TSFixMe) {
         request
             .post(`/monitorCustomField/${projectId}`)
@@ -129,7 +123,6 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    
     it('should not create monitor custom field with an existing name in a project', function(done: $TSFixMe) {
         request
             .post(`/monitorCustomField/${projectId}`)
@@ -144,7 +137,6 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    
     it('should update a particular monitor custom field in a project', function(done: $TSFixMe) {
         monitorFieldText.fieldName = 'newName';
 
@@ -164,7 +156,6 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    
     it('should list all the monitor custom fields in a project', function(done: $TSFixMe) {
         // add one more monitor custom field
         request
@@ -184,7 +175,6 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    
     it('should delete a particular monitor custom field in a project', function(done: $TSFixMe) {
         request
             .delete(`/monitorCustomField/${projectId}/${monitorCustomFieldId}`)

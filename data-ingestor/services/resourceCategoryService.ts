@@ -33,7 +33,7 @@ export default {
             resourceCategories = resourceCategories.map(
                 (resourceCategory: $TSFixMe) => ({
                     name: resourceCategory.name,
-                    
+
                     _id: ObjectId(resourceCategory._id),
                     createdAt: resourceCategory.createdAt,
                 })
@@ -45,7 +45,6 @@ export default {
         }
     },
 };
-
 
 const resourceCategoryCollection = global.db.collection('resourcecategories');
 import { ObjectId } from 'mongodb';

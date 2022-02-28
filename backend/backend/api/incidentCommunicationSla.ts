@@ -48,28 +48,28 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!name || !name.trim()) {
             const error = new Error('SLA name is required');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (duration && isNaN(duration)) {
             const error = new Error('Please use numeric values for duration');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!alertTime || !alertTime.trim()) {
             const error = new Error('Please set alert time for this SLA');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (isNaN(alertTime)) {
             const error = new Error('Please use numeric values for alert time');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -78,7 +78,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Alert time should be always less than duration'
             );
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -102,28 +102,28 @@ router.put('/:projectId/:incidentSlaId', getUser, isAuthorized, async function(
 
         if (!handleDefault && (!name || !name.trim())) {
             const error = new Error('SLA name is required');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && duration && isNaN(duration)) {
             const error = new Error('Please use numeric values for duration');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && (!alertTime || !alertTime.trim())) {
             const error = new Error('Please set alert time for this SLA');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
 
         if (!handleDefault && isNaN(alertTime)) {
             const error = new Error('Please use numeric values for alert time');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -132,7 +132,7 @@ router.put('/:projectId/:incidentSlaId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Alert time should be always less than duration'
             );
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }

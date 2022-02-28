@@ -1,5 +1,4 @@
 export default {
-    
     create: async function(data) {
         const _this = this;
         let containerScannerKey;
@@ -16,23 +15,22 @@ export default {
             storedContainerScanner.containerScannerName
         ) {
             const error = new Error('containerScanner name already exists.');
-            
+
             error.code = 400;
             throw error;
         } else {
             const containerScanner = new ContainerScannerModel();
-            
+
             containerScanner.containerScannerKey = containerScannerKey;
-            
+
             containerScanner.containerScannerName = data.containerScannerName;
-            
+
             containerScanner.version = data.containerScannerVersion;
             const savedContainerScanner = await containerScanner.save();
             return savedContainerScanner;
         }
     },
 
-    
     updateOneBy: async function(query, data) {
         if (!query) {
             query = {};
@@ -49,7 +47,6 @@ export default {
         return containerScanner;
     },
 
-    
     findOneBy: async function(query) {
         if (!query) {
             query = {};
@@ -62,7 +59,6 @@ export default {
         return containerScanner;
     },
 
-    
     updateContainerScannerStatus: async function(containerScannerId) {
         const containerScanner = await ContainerScannerModel.findOneAndUpdate(
             { _id: containerScannerId },

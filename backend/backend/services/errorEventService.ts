@@ -10,32 +10,31 @@ export default {
                   frames: data.exception.stackTraceFrame,
               })
             : null;
-        
+
         errorEvent.content = data.exception;
-        
+
         errorEvent.device = data.deviceDetails;
-        
+
         errorEvent.tags = data.tags;
-        
+
         errorEvent.type = data.type;
-        
+
         errorEvent.sdk = data.sdk;
 
-        
         errorEvent.fingerprintHash = data.fingerprintHash;
-        
+
         errorEvent.fingerprint = data.fingerprint;
 
         // set error trackerid
-        
+
         errorEvent.errorTrackerId = data.errorTrackerId;
 
         // set issueId
-        
+
         errorEvent.issueId = data.issueId;
 
         // set timeline
-        
+
         errorEvent.timeline = data.timeline;
 
         const savedErrorEvent = await errorEvent.save();
@@ -214,7 +213,7 @@ export default {
             index = index + 1;
         }
         // sort total error events by latest occurence date
-        
+
         totalErrorEvents.sort((eventA, eventB) =>
             moment(eventB.latestOccurennce).isAfter(eventA.latestOccurennce)
         );
@@ -332,7 +331,6 @@ export default {
             };
         }
         if (oldestErrorEvent.length > 0) {
-            
             previous.oldest = oldestErrorEvent[0]._id;
         }
         if (nextErrorEvent.length > 0) {
@@ -342,7 +340,6 @@ export default {
             };
         }
         if (latestErrorEvent.length > 0) {
-            
             next.latest = latestErrorEvent[0]._id;
         }
 

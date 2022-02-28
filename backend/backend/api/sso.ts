@@ -18,7 +18,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const [ssos, count] = await Promise.all([
             SsoService.findBy({ query: {}, limit, skip, select: selectSso }),
-            
+
             SsoService.countBy(),
         ]);
 

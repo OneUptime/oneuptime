@@ -19,17 +19,16 @@ export default {
                 : (stringifiedTags = data.tags.join());
         }
 
-        
         log.content = content;
-        
+
         log.stringifiedContent = JSON.stringify(content) + stringifiedTags;
-        
+
         log.applicationLogId = data.applicationLogId;
-        
+
         log.type = data.type;
-        
+
         log.tags = data.tags;
-        
+
         log.createdById = data.createdById;
         const savedlog = await log.save();
 
@@ -103,7 +102,7 @@ export default {
         // send an error if the component doesnt exist
         if (applicationLogCount === 0) {
             const error = new Error('Application Log does not exist.');
-            
+
             error.code = 400;
             throw error;
         }

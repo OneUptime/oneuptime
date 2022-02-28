@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,9 +12,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 describe('Email Logs', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -26,41 +23,39 @@ describe('Email Logs', () => {
             email: email,
             password: password,
         };
-        
+
         await init.registerEnterpriseUser(user, page, false);
         await init.addEmailCredentials(page, email);
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     test(
         'Should delete all email logs from the table',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.testSmptSettings(page, email);
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
-            
+
             await init.pageWaitForSelector(page, '#deleteLog');
-            
+
             await init.pageClick(page, '#deleteLog');
-            
+
             await init.pageWaitForSelector(page, '#confirmDelete');
-            
+
             await init.pageClick(page, '#confirmDelete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
@@ -77,31 +72,30 @@ describe('Email Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not delete email logs from the table',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.testSmptSettings(page, email);
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
-            
+
             await init.pageWaitForSelector(page, '#deleteLog');
-            
+
             await init.pageClick(page, '#deleteLog');
-            
+
             await init.pageWaitForSelector(page, '#cancelEmailDelete');
-            
+
             await init.pageClick(page, '#cancelEmailDelete');
 
             const rowNum = await init.page$$Eval(
@@ -115,18 +109,17 @@ describe('Email Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should note that email logs are currently enabled',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
             const alertPanelElement = await init.pageWaitForSelector(
                 page,
@@ -137,58 +130,58 @@ describe('Email Logs', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should disable email logs',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.testSmptSettings(page, email);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
 
             // visit the email log settings page by clicking on settings first to show drop down
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
 
             // click on th email log
-            
+
             await init.pageWaitForSelector(page, '#emailLog');
-            
+
             await init.pageClick(page, '#emailLog');
 
             // turn email log off
-            
+
             await init.pageWaitForSelector(page, '.Toggler-wrap');
-            
+
             await init.pageClick(page, '.Toggler-wrap');
 
             // click the submit button
-            
+
             await init.pageWaitForSelector(page, '#emailLogSubmit');
-            
+
             await init.pageClick(page, '#emailLogSubmit');
 
             // go back to logs page
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
             //go to email logs page
-            
+
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
 
             // look for the alert panel
-            
+
             const alertPanelElement = await init.pageWaitForSelector(
                 page,
                 `#emailLogDisabled`
@@ -198,22 +191,21 @@ describe('Email Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should validate that email logs are currently disabled and not save when an email related activity is performed',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
 
             // look for the alert panel
-            
+
             const alertPanelElement = await init.pageWaitForSelector(
                 page,
                 `#emailLogDisabled`
@@ -221,7 +213,7 @@ describe('Email Logs', () => {
             expect(alertPanelElement).toBeDefined();
 
             // count currently available logs
-            
+
             let logCount = await init.pageWaitForSelector(
                 page,
                 `#email-log-count`
@@ -234,18 +226,17 @@ describe('Email Logs', () => {
             await init.testSmptSettings(page, email);
 
             // come back to logs page
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
 
-            
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
 
             // validate that the number doesnt change
-            
+
             let newLogCount = await init.pageWaitForSelector(
                 page,
                 `#email-log-count`
@@ -258,23 +249,23 @@ describe('Email Logs', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should validate that email logs are enabled and on performing email related activity email is logged again',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             //await init.testSmptSettings(page, email);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
 
             // count number of logs
-            
+
             let logCount = await init.pageWaitForSelector(
                 page,
                 `#email-log-count`
@@ -284,7 +275,7 @@ describe('Email Logs', () => {
             logCount = Number(logCount.split(' ')[0]);
 
             // look for the alert panel
-            
+
             const alertPanelElement = await init.pageWaitForSelector(
                 page,
                 `#emailLogDisabled`
@@ -292,9 +283,9 @@ describe('Email Logs', () => {
             expect(alertPanelElement).toBeDefined();
 
             // find the a tag to enable logs and click on it
-            
+
             await init.pageWaitForSelector(page, '#emailLogSetting');
-            
+
             await init.pageClick(page, '#emailLogSetting');
 
             // enable logs
@@ -305,26 +296,25 @@ describe('Email Logs', () => {
             );
 
             // click the submit button
-            
+
             await init.pageWaitForSelector(page, '#emailLogSubmit');
-            
+
             await init.pageClick(page, '#emailLogSubmit');
 
             // create email log by testing smpt settings
             await init.testSmptSettings(page, email);
             //go back to log email
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
 
-            
             await init.pageWaitForSelector(page, '#emailLogs');
-            
+
             await init.pageClick(page, '#emailLogs');
 
             // count new number of logs
-            
+
             let newLogCount = await init.pageWaitForSelector(
                 page,
                 `#email-log-count`

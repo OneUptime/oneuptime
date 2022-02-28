@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,13 +11,10 @@ const user = {
     password: '1234567890',
 };
 
-
 describe('Enterprise Component API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -31,13 +27,11 @@ describe('Enterprise Component API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should create new component',
         async (done: $TSFixMe) => {
@@ -49,22 +43,22 @@ describe('Enterprise Component API', () => {
             await init.pageWaitForSelector(page, '#components', {
                 timeout: 120000,
             });
-            
+
             await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
-            
+
             await init.pageWaitForSelector(page, '#form-new-component');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', componentName);
-            
+
             await init.pageClick(page, 'button[type=submit]');
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -73,11 +67,11 @@ describe('Enterprise Component API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             let spanElement;
-            
+
             spanElement = await init.pageWaitForSelector(
                 page,
                 `span#component-title-${componentName}`

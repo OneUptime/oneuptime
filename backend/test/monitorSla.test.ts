@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -25,7 +24,6 @@ const monitorSlaPayload = {
     isDefault: true,
 };
 
-
 describe('Monitor SLA', function() {
     const timeout = 30000;
     let projectId: $TSFixMe,
@@ -35,7 +33,7 @@ describe('Monitor SLA', function() {
         slaId: $TSFixMe;
 
     this.timeout(timeout);
-    
+
     before(async function() {
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
@@ -55,7 +53,6 @@ describe('Monitor SLA', function() {
         authorization = `Basic ${token}`;
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -67,7 +64,6 @@ describe('Monitor SLA', function() {
         });
     });
 
-    
     it('should not create a monitor SLA if the name is missing', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -81,7 +77,6 @@ describe('Monitor SLA', function() {
         expect(res.body.message).to.be.equal('SLA name is required');
     });
 
-    
     it('should not create monitor SLA if monitor uptime is missing', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -95,7 +90,6 @@ describe('Monitor SLA', function() {
         expect(res.body.message).to.be.equal('Monitor uptime is required');
     });
 
-    
     it('should not create monitor SLA if monitor uptime is not numeric value', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -111,7 +105,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should not create monitor SLA if frequency is not a numeric value', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -127,7 +120,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should not create monitor SLA if frequency is less than a day', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -141,7 +133,6 @@ describe('Monitor SLA', function() {
         expect(res.body.message).to.be.equal('At lease a single day is needed');
     });
 
-    
     it('should not create monitor SLA if monitor uptime is zero', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -157,7 +148,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should not create monitor SLA if monitor uptime is greater than 100', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -173,7 +163,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should create a monitor SLA', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -185,7 +174,6 @@ describe('Monitor SLA', function() {
         expect(res.body.name).to.be.equal(monitorSlaPayload.name);
     });
 
-    
     it('should not create a monitor SLA with an existing name', async function() {
         const res = await request
             .post(`/monitorSla/${projectId}`)
@@ -198,7 +186,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should not update a monitor SLA if the name is missing', async function() {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
@@ -212,7 +199,6 @@ describe('Monitor SLA', function() {
         expect(res.body.message).to.be.equal('SLA name is required');
     });
 
-    
     it('should not update monitor SLA if monitor uptime is missing', async function() {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
@@ -226,7 +212,6 @@ describe('Monitor SLA', function() {
         expect(res.body.message).to.be.equal('Monitor uptime is required');
     });
 
-    
     it('should not update monitor SLA if monitor uptime is not numeric value', async function() {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
@@ -242,7 +227,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should not update monitor SLA if frequency is not a numeric value', async function() {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
@@ -258,7 +242,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should not update monitor SLA if frequency is less than a day', async function() {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
@@ -272,7 +255,6 @@ describe('Monitor SLA', function() {
         expect(res.body.message).to.be.equal('At lease a single day is needed');
     });
 
-    
     it('should not update monitor SLA if monitor uptime is zero', async function() {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
@@ -288,7 +270,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should not update monitor SLA if monitor uptime is greater than 100', async function() {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
@@ -304,7 +285,6 @@ describe('Monitor SLA', function() {
         );
     });
 
-    
     it('should update a monitor SLA', async function() {
         monitorSlaPayload.frequency = '10';
         monitorSlaPayload.name = 'updatedFxPro';
@@ -319,7 +299,6 @@ describe('Monitor SLA', function() {
         expect(res.body.frequency).to.be.equal(monitorSlaPayload.frequency);
     });
 
-    
     it('should get the list of monitor SLAs', async function() {
         const res = await request
             .get(`/monitorSla/${projectId}?skip=0&limit=10`)
@@ -330,7 +309,6 @@ describe('Monitor SLA', function() {
         expect(res.body.limit).to.be.equal(10);
     });
 
-    
     it('should delete a particular monitor SLA', async function() {
         const res = await request
             .delete(`/monitorSla/${projectId}/${slaId}`)

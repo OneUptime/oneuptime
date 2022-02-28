@@ -1,6 +1,5 @@
 import moment from 'moment';
 
-
 const validDate = new Date(moment(new Date()).add(10, 'days'))
     .toISOString()
     .split('T')[0];

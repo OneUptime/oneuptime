@@ -32,7 +32,6 @@ export default {
                 };
 
                 if (authentication === 'password') {
-                    
                     config.password = password;
                 } else {
                     await fetch(`${serverUrl}/file/${identityFile}`).then(
@@ -41,17 +40,16 @@ export default {
                                 const dest = fs.createWriteStream(
                                     `./${identityFile}`
                                 );
-                                
+
                                 res.body.pipe(dest);
-                                
+
                                 res.body.on('end', () => {
                                     setTimeout(() => {
-                                        
                                         config.privateKey = fs.readFileSync(
                                             `./${identityFile}`,
                                             'utf8'
                                         );
-                                        
+
                                         resolve();
                                     }, 1000);
                                 });

@@ -13,7 +13,7 @@ export default {
             const error = new Error(
                 'Monitor SLA with the same name already exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -100,7 +100,7 @@ export default {
                 const error = new Error(
                     'Monitor SLA with the same name already exist'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -171,7 +171,7 @@ export default {
 
         if (!updatedMonitorSla) {
             const error = new Error('Monitor SLA not found or does not exist');
-            
+
             error.code = 400;
             throw error;
         }

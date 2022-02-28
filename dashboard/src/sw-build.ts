@@ -1,4 +1,3 @@
-
 import workboxBuild from 'workbox-build';
 
 // NOTE: This should be run *AFTER* all your assets are built

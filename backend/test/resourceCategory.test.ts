@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -6,7 +5,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-
 
 const request = chai.request.agent(app);
 
@@ -19,7 +17,6 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-
 let token, userId, projectId, resourceCategoryId, apiKey;
 const resourceCategory = {
     resourceCategoryName: 'New Resource Category',
@@ -28,26 +25,20 @@ import payment from '../backend/config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
 
-
 describe('Resource Category API', function() {
-    
     this.timeout(20000);
 
-    
     before(function(done) {
-        
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            
             createUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
                 VerificationTokenModel.findOne({ userId }, function(
-                    
                     err,
-                    
+
                     verificationToken
                 ) {
                     request
@@ -60,7 +51,7 @@ describe('Resource Category API', function() {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                
+
                                 .end(function(err, res) {
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
@@ -71,10 +62,9 @@ describe('Resource Category API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
-        
+
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -85,54 +75,49 @@ describe('Resource Category API', function() {
                 ],
             },
         });
-        
+
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should reject the request of an unauthenticated user', function(done) {
         request
-            
+
             .post(`/resourceCategory/${projectId}`)
             .send({
                 resourceCategoryName: 'unauthenticated user',
             })
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    
     it('should not create a resource category when the `resourceCategoryName` field is null', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 resourceCategoryName: null,
             })
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    
     it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .send(resourceCategory)
-            
+
             .end(function(err, res) {
                 resourceCategoryId = res.body._id;
                 expect(res).to.have.status(200);
@@ -143,15 +128,13 @@ describe('Resource Category API', function() {
             });
     });
 
-    
     it('should get all monitor Categories for an authenticated user by ProjectId', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -164,15 +147,13 @@ describe('Resource Category API', function() {
             });
     });
 
-    
     it('should delete a resource category when resourceCategoryId is valid', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 done();
@@ -180,27 +161,21 @@ describe('Resource Category API', function() {
     });
 });
 
-
 describe('User from other project have access to read / write and delete API.', function() {
-    
     this.timeout(20000);
 
-    
     before(function(done) {
-        
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            
             createUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
-                
+
                 createUser(request, userData.newUser, function(err, res) {
                     userId = res.body.id;
                     VerificationTokenModel.findOne({ userId }, function(
-                        
                         err,
-                        
+
                         verificationToken
                     ) {
                         request
@@ -215,7 +190,7 @@ describe('User from other project have access to read / write and delete API.', 
                                         email: userData.newUser.email,
                                         password: userData.newUser.password,
                                     })
-                                    
+
                                     .end(function(err, res) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
@@ -227,10 +202,9 @@ describe('User from other project have access to read / write and delete API.', 
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
-        
+
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -241,48 +215,44 @@ describe('User from other project have access to read / write and delete API.', 
                 ],
             },
         });
-        
+
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    
     it('should not be able to create new resource category', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .send(resourceCategory)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
-    
+
     it('should not be able to delete a resource category', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
-    
+
     it('should not be able to get all resource categories', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
@@ -290,28 +260,22 @@ describe('User from other project have access to read / write and delete API.', 
     });
 });
 
-
 describe('Non-admin user access to create, delete and access resource category.', function() {
-    
     this.timeout(60000);
 
     let projectIdSecondUser = '';
     let emailToBeInvited = '';
 
-    
     before(function(done) {
-        
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            
             createUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function(
-                    
                     err,
-                    
+
                     verificationToken
                 ) {
                     request
@@ -324,22 +288,22 @@ describe('Non-admin user access to create, delete and access resource category.'
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                
+
                                 .end(function(err, res) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
-                                        
+
                                         .post(`/resourceCategory/${projectId}`)
                                         .set('Authorization', authorization)
                                         .send(resourceCategory)
-                                        
+
                                         .end(function(err, res) {
                                             resourceCategoryId = res.body._id;
                                             createUser(
                                                 request,
                                                 userData.newUser,
-                                                
+
                                                 function(err, res) {
                                                     projectIdSecondUser =
                                                         res.body.project._id;
@@ -349,9 +313,8 @@ describe('Non-admin user access to create, delete and access resource category.'
                                                     VerificationTokenModel.findOne(
                                                         { userId },
                                                         function(
-                                                            
                                                             err,
-                                                            
+
                                                             verificationToken
                                                         ) {
                                                             request
@@ -363,7 +326,6 @@ describe('Non-admin user access to create, delete and access resource category.'
                                                                     function() {
                                                                         request
                                                                             .post(
-                                                                                
                                                                                 `/team/${projectId}`
                                                                             )
                                                                             .set(
@@ -397,9 +359,8 @@ describe('Non-admin user access to create, delete and access resource category.'
                                                                                         )
                                                                                         .end(
                                                                                             function(
-                                                                                                
                                                                                                 err,
-                                                                                                
+
                                                                                                 res
                                                                                             ) {
                                                                                                 token =
@@ -426,10 +387,9 @@ describe('Non-admin user access to create, delete and access resource category.'
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
-        
+
         await ProjectService.hardDeleteBy({ _id: projectId });
         await ProjectService.hardDeleteBy({ _id: projectIdSecondUser });
         await UserService.hardDeleteBy({
@@ -441,48 +401,44 @@ describe('Non-admin user access to create, delete and access resource category.'
                 ],
             },
         });
-        
+
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    
     it('should not be able to create new resource category', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .post(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
             .send(resourceCategory)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
-    
+
     it('should not be able to delete a resource category', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
-    
+
     it('should be able to get all resource categories', function(done) {
-        
         const authorization = `Basic ${token}`;
         request
-            
+
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -496,17 +452,12 @@ describe('Non-admin user access to create, delete and access resource category.'
     });
 });
 
-
 describe('Resource Category APIs accesible through API key', function() {
-    
     this.timeout(20000);
 
-    
     before(function(done) {
-        
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            
             createUser(request, userData.user, function(err, res) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -516,10 +467,9 @@ describe('Resource Category APIs accesible through API key', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
-        
+
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -530,19 +480,18 @@ describe('Resource Category APIs accesible through API key', function() {
                 ],
             },
         });
-        
+
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    
     it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', function(done) {
         request
-            
+
             .post(`/resourceCategory/${projectId}`)
-            
+
             .set('apiKey', apiKey)
             .send(resourceCategory)
-            
+
             .end(function(err, res) {
                 resourceCategoryId = res.body._id;
                 expect(res).to.have.status(200);
@@ -553,14 +502,13 @@ describe('Resource Category APIs accesible through API key', function() {
             });
     });
 
-    
     it('should get all monitor Categories for an authenticated user by ProjectId', function(done) {
         request
-            
+
             .get(`/resourceCategory/${projectId}`)
-            
+
             .set('apiKey', apiKey)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -573,14 +521,13 @@ describe('Resource Category APIs accesible through API key', function() {
             });
     });
 
-    
     it('should delete a resource category when resourceCategoryId is valid', function(done) {
         request
-            
+
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
-            
+
             .set('apiKey', apiKey)
-            
+
             .end(function(err, res) {
                 expect(res).to.have.status(200);
                 done();
@@ -588,9 +535,7 @@ describe('Resource Category APIs accesible through API key', function() {
     });
 });
 
-
 describe('Resource Category API - Check pagination for 12 resource categories', function() {
-    
     this.timeout(40000);
 
     const monitorCategories = [
@@ -608,19 +553,17 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         'testPagination12',
     ];
 
-    
     before(async function() {
-        
         this.timeout(60000);
         await GlobalConfig.initTestConfig();
         const checkCardData = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
-            
+
             email: userData.email,
-            
+
             companyName: userData.companyName,
         });
-        
+
         const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
             checkCardData.body.id
         );
@@ -656,7 +599,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         const createdMonitorCategories = monitorCategories.map(
             async resourceCategoryName => {
                 const sentRequests = await request
-                    
+
                     .post(`/resourceCategory/${projectId}`)
                     .set('Authorization', authorization)
                     .send({ resourceCategoryName });
@@ -666,10 +609,9 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         await Promise.all(createdMonitorCategories);
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
-        
+
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -680,17 +622,15 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
                 ],
             },
         });
-        
+
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
         await ResourceCategoryModel.deleteMany({ name: 'testPagination' });
     });
 
-    
     it('should get first 10 resource categories with data length 10, skip 0, limit 10 and count 12', async function() {
-        
         const authorization = `Basic ${token}`;
         const res = await request
-            
+
             .get(`/resourceCategory/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -712,12 +652,10 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
             .to.be.equal(10);
     });
 
-    
     it('should get 2 last resource categories with data length 2, skip 10, limit 10 and count 12', async function() {
-        
         const authorization = `Basic ${token}`;
         const res = await request
-            
+
             .get(`/resourceCategory/${projectId}?skip=10&limit=10`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);
@@ -739,12 +677,10 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
             .to.be.equal(10);
     });
 
-    
     it('should get 0 resource categories with data length 0, skip 20, limit 10 and count 12', async function() {
-        
         const authorization = `Basic ${token}`;
         const res = await request
-            
+
             .get(`/resourceCategory/${projectId}?skip=20&limit=10`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);

@@ -98,10 +98,8 @@ export default function incident(state = initialState, action: $TSFixMe) {
             const { incident: incidentData, countDown } = action.payload;
             if (
                 state.incident.incident &&
-                
                 String(incidentData._id) === String(state.incident.incident._id)
             ) {
-                
                 const incident = { ...state.incident.incident, countDown };
                 return {
                     ...state,
@@ -120,7 +118,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 incident: {
                     ...state.incident,
                     incident: {
-                        
                         ...state.incident.incident,
                         ...action.payload,
                     },
@@ -150,7 +147,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 incident: {
                     ...state.incident,
                     incident: {
-                        
                         ...state.incident.incident,
                         ...action.payload,
                     },
@@ -216,7 +212,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case 'ADD_NEW_INCIDENT_TO_MONITORS':
             isExistingIncident = state.incidents.incidents.find(
                 incident =>
-                    
                     incident._id ===
                     (action.payload.projectId._id || action.payload.projectId)
             );
@@ -231,7 +226,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     incidents: isExistingIncident
                         ? state.incidents.incidents.length > 0
                             ? state.incidents.incidents.map(incident => {
-                                  
                                   return incident._id ===
                                       (action.payload.projectId._id ||
                                           action.payload.projectId)
@@ -241,7 +235,7 @@ export default function incident(state = initialState, action: $TSFixMe) {
                                                 action.payload.projectId,
                                             incidents: [
                                                 action.payload,
-                                                
+
                                                 ...incident.incidents.filter(
                                                     (
                                                         inc: $TSFixMe,
@@ -253,11 +247,11 @@ export default function incident(state = initialState, action: $TSFixMe) {
                                                         index < 9
                                                 ),
                                             ],
-                                            
+
                                             count: incident.count + 1,
-                                            
+
                                             skip: incident.skip,
-                                            
+
                                             limit: incident.limit,
                                         }
                                       : incident;
@@ -273,8 +267,7 @@ export default function incident(state = initialState, action: $TSFixMe) {
                                       limit: 0,
                                   },
                               ]
-                        : 
-                          state.incidents.incidents.concat([
+                        : state.incidents.incidents.concat([
                               {
                                   _id:
                                       action.payload.projectId._id ||
@@ -324,15 +317,13 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case types.UPDATE_INCIDENT_SUCCESS:
             incidents = Object.assign([], state.incidents.incidents);
             index = incidents.findIndex(
-                
                 incident => incident._id === action.payload._id
             );
-            
+
             if (index >= 0) incidents[index] = action.payload;
 
             if (
                 state.incident.incident &&
-                
                 state.incident.incident._id === action.payload._id
             )
                 incident = Object.assign({}, action.payload);
@@ -343,10 +334,9 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 state.unresolvedincidents.incidents
             );
             index1 = unresolvedincidents.findIndex(
-                
                 incident => incident._id === action.payload._id
             );
-            
+
             if (index1 >= 0) unresolvedincidents[index1] = action.payload;
 
             return Object.assign({}, state, {
@@ -448,12 +438,12 @@ export default function incident(state = initialState, action: $TSFixMe) {
 
         case types.INCIDENT_TIMELINE_SUCCESS: {
             const incident = Object.assign({}, state.incident.incident);
-            
+
             if (incident) incident.timeline = action.payload.data;
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
-                    
+
                     ...incident,
                     count: action.payload.count,
                     skip: action.payload.skip,
@@ -493,7 +483,7 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     },
                 };
             }
-            
+
             if (!state.incidentMessages[incidentSlug]) {
                 return {
                     ...state,
@@ -512,14 +502,12 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 incidentMessages: {
                     ...state.incidentMessages,
                     [incidentSlug]: {
-                        
                         ...state.incidentMessages[incidentSlug],
                         internal: {
-                            
                             ...state.incidentMessages[incidentSlug]?.internal,
                             incidentMessages: [
                                 action.payload,
-                                
+
                                 ...(state.incidentMessages[incidentSlug]
                                     ?.internal?.incidentMessages || []),
                             ],
@@ -533,7 +521,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 incidents: {
                     incidents: state.incidents.incidents.map(incident => {
-                        
                         return incident._id === action.payload.projectId
                             ? {
                                   _id: action.payload.projectId,
@@ -590,7 +577,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
                             incident => {
-                                
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
                                 } else {
@@ -616,7 +602,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
                             incident => {
-                                
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
                                 } else {
@@ -642,7 +627,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
                             incident => {
-                                
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
                                 } else {
@@ -668,7 +652,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                         success: true,
                         incidents: state.unresolvedincidents.incidents.map(
                             incident => {
-                                
                                 if (incident._id === action.payload.data._id) {
                                     return action.payload.data;
                                 } else {
@@ -781,7 +764,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
             incidents = Object.assign([], state.incidents);
             incidents = incidents.filter(
                 incident =>
-                    
                     (incident.projectId._id || incident.projectId) !==
                     action.payload
             );
@@ -799,15 +781,13 @@ export default function incident(state = initialState, action: $TSFixMe) {
 
         case types.INTERNAL_NOTE_SUCCESS:
             incidentMessages =
-                
                 state.incidentMessages[action.payload.incidentId._id][
                     action.payload.type
                 ].incidentMessages.filter(
                     (incidentMessage: $TSFixMe) =>
                         incidentMessage._id === action.payload._id
                 ).length > 0
-                    ? 
-                      state.incidentMessages[action.payload.incidentId._id][
+                    ? state.incidentMessages[action.payload.incidentId._id][
                           action.payload.type
                       ].incidentMessages.map((incidentMessage: $TSFixMe) => {
                           if (incidentMessage._id === action.payload._id) {
@@ -816,7 +796,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                           return incidentMessage;
                       })
                     : [action.payload].concat(
-                          
                           state.incidentMessages[action.payload.incidentId._id][
                               action.payload.type
                           ].incidentMessages
@@ -829,23 +808,19 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 incidentMessages: {
                     ...state.incidentMessages,
                     [action.payload.incidentId._id]: {
-                        
                         ...state.incidentMessages[
                             action.payload.incidentId._id
                         ],
                         [action.payload.type]: {
-                            
                             ...state.incidentMessages[
                                 action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
                             count: action.payload.updated
-                                ? 
-                                  state.incidentMessages[
+                                ? state.incidentMessages[
                                       action.payload.incidentId._id
                                   ][action.payload.type].count
-                                : 
-                                  state.incidentMessages[
+                                : state.incidentMessages[
                                       action.payload.incidentId._id
                                   ][action.payload.type].count + 1,
                         },
@@ -894,15 +869,13 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case types.INVESTIGATION_NOTE_SUCCESS: {
             let noteFound = false;
             incidentMessages =
-                
                 state.incidentMessages[action.payload.incidentId._id][
                     action.payload.type
                 ].incidentMessages.filter(
                     (incidentMessage: $TSFixMe) =>
                         incidentMessage._id === action.payload._id
                 ).length > 0
-                    ? 
-                      state.incidentMessages[action.payload.incidentId._id][
+                    ? state.incidentMessages[action.payload.incidentId._id][
                           action.payload.type
                       ].incidentMessages.map((incidentMessage: $TSFixMe) => {
                           if (incidentMessage._id === action.payload._id) {
@@ -912,7 +885,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                           return incidentMessage;
                       })
                     : [action.payload].concat(
-                          
                           state.incidentMessages[action.payload.incidentId._id][
                               action.payload.type
                           ].incidentMessages
@@ -925,24 +897,20 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 incidentMessages: {
                     ...state.incidentMessages,
                     [action.payload.incidentId._id]: {
-                        
                         ...state.incidentMessages[
                             action.payload.incidentId._id
                         ],
                         [action.payload.type]: {
-                            
                             ...state.incidentMessages[
                                 action.payload.incidentId._id
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
                             count:
                                 noteFound || action.payload.updated
-                                    ? 
-                                      state.incidentMessages[
+                                    ? state.incidentMessages[
                                           action.payload.incidentId._id
                                       ][action.payload.type].count
-                                    : 
-                                      state.incidentMessages[
+                                    : state.incidentMessages[
                                           action.payload.incidentId._id
                                       ][action.payload.type].count + 1,
                         },
@@ -992,10 +960,9 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case 'ADD_INCIDENT_NOTE': {
             let incidentFound = false;
             let incidentMessages = [];
-            
+
             if (state.incidentMessages[action.payload.incidentId.slug]) {
                 let msg =
-                    
                     state.incidentMessages[action.payload.incidentId.slug];
                 msg = msg ? msg[action.payload.type] : null;
                 msg = msg ? msg.incidentMessages : null;
@@ -1017,30 +984,23 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     incidentMessages = [action.payload, ...incidentMessages];
                 }
                 const type =
-                    
                     state.incidentMessages[action.payload.incidentId.slug] &&
-                    
                     state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
                     ]
-                        ? 
-                          state.incidentMessages[
+                        ? state.incidentMessages[
                               action.payload.incidentId.slug
                           ][action.payload.type]
                         : null;
                 const count =
-                    
                     state.incidentMessages[action.payload.incidentId.slug] &&
-                    
                     state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
                     ] &&
-                    
                     state.incidentMessages[action.payload.incidentId.slug][
                         action.payload.type
                     ].count
-                        ? 
-                          state.incidentMessages[
+                        ? state.incidentMessages[
                               action.payload.incidentId.slug
                           ][action.payload.type].count
                         : 0;
@@ -1049,7 +1009,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     incidentMessages: {
                         ...state.incidentMessages,
                         [action.payload.incidentId.slug]: {
-                            
                             ...state.incidentMessages[
                                 action.payload.incidentId.slug
                             ],
@@ -1077,7 +1036,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
                             if (
-                                
                                 String(incident._id) ===
                                 String(action.payload.data._id)
                             ) {
@@ -1094,7 +1052,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: true,
                     incident:
                         state.incident.incident &&
-                        
                         state.incident.incident._id === action.payload.data._id
                             ? action.payload.data
                             : state.incident.incident,
@@ -1103,12 +1060,10 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     ...state.incidents,
                     incidents: state.incidents.incidents.map(incident => {
                         if (
-                            
                             incident._id ===
                             (action.payload.data.projectId._id ||
                                 action.payload.data.projectId)
                         ) {
-                            
                             incident.incidents = incident.incidents.map(
                                 (inObj: $TSFixMe) => {
                                     if (inObj._id === action.payload.data._id) {
@@ -1133,7 +1088,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
                             if (
-                                
                                 String(incident._id) ===
                                 String(action.payload.data._id)
                             ) {
@@ -1150,7 +1104,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: true,
                     incident:
                         state.incident.incident &&
-                        
                         state.incident.incident._id === action.payload.data._id
                             ? action.payload.data
                             : state.incident.incident,
@@ -1159,12 +1112,10 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     ...state.incidents,
                     incidents: state.incidents.incidents.map(incident => {
                         if (
-                            
                             incident._id ===
                             (action.payload.data.projectId._id ||
                                 action.payload.data.projectId)
                         ) {
-                            
                             incident.incidents = incident.incidents.map(
                                 (inObj: $TSFixMe) => {
                                     if (inObj._id === action.payload.data._id) {
@@ -1183,7 +1134,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case 'DELETE_MONITOR_BY_SOCKET': {
             const incidents = state.unresolvedincidents.incidents.map(
                 incident => {
-                    
                     const monitors = incident.monitors.filter(
                         (monitor: $TSFixMe) => {
                             if (monitor.monitorId._id === action.payload) {
@@ -1192,7 +1142,7 @@ export default function incident(state = initialState, action: $TSFixMe) {
                             return true;
                         }
                     );
-                    
+
                     incident.monitors = monitors;
                     return incident;
                 }
@@ -1221,7 +1171,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     ...state.unresolvedincidents,
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
-                            
                             let monitors = incident.monitors;
                             if (monitors && monitors.length > 0) {
                                 monitors = monitors.map((monitor: $TSFixMe) => {
@@ -1235,7 +1184,7 @@ export default function incident(state = initialState, action: $TSFixMe) {
                                     }
                                     return monitor;
                                 });
-                                
+
                                 incident.monitors = monitors;
                             }
                             return incident;
@@ -1252,7 +1201,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: true,
                     incidents: state.unresolvedincidents.incidents.filter(
                         incident => {
-                            
                             if (incident._id === action.payload._id) {
                                 return false;
                             } else {
@@ -1299,7 +1247,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 unresolvedincidents: {
                     ...state.unresolvedincidents,
                     incidents: state.unresolvedincidents.incidents.filter(
-                        
                         incident => incident._id !== action.payload
                     ),
                 },
@@ -1313,7 +1260,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                         ...state.incidents,
                         incidents: [
                             {
-                                
                                 ...state.incidents.incidents[0],
                                 incidents: state.incidents.incidents[0].incidents.filter(
                                     incident =>
@@ -1327,7 +1273,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                         ...state.unresolvedincidents,
                         incidents: state.unresolvedincidents.incidents.filter(
                             incident =>
-                                
                                 String(incident._id) !==
                                 String(action.payload._id)
                         ),
@@ -1380,7 +1325,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 incidentMessages: {
                     ...state.incidentMessages,
                     [action.payload.incidentSlug]: {
-                        
                         ...state.incidentMessages[action.payload.incidentSlug],
                         [action.payload.type]: {
                             incidentMessages: action.payload.incidentMessages,
@@ -1402,12 +1346,11 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case types.FETCH_INCIDENT_MESSAGES_FAILURE:
             failureIncidentMessage = {
                 ...state.incidentMessages,
-                
+
                 [action.payload.incidentSlug]: state.incidentMessages[
                     action.payload.incidentSlug
                 ][action.payload.type]
                     ? {
-                          
                           ...state.incidentMessages[
                               action.payload.incidentSlug
                           ][action.payload.type],
@@ -1430,18 +1373,15 @@ export default function incident(state = initialState, action: $TSFixMe) {
             requestIncidentMessage = {
                 ...state.incidentMessages,
                 [action.payload.incidentSlug]: {
-                    
                     ...state.incidentMessages[action.payload.incidentSlug],
-                    
+
                     [action.payload.type]: state.incidentMessages[
                         action.payload.incidentSlug
                     ]
-                        ? 
-                          state.incidentMessages[action.payload.incidentSlug][
+                        ? state.incidentMessages[action.payload.incidentSlug][
                               action.payload.type
                           ]
                             ? {
-                                  
                                   ...state.incidentMessages[
                                       action.payload.incidentSlug
                                   ][action.payload.type],
@@ -1475,7 +1415,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 incidentMessages: initialState.incidentMessages,
             });
         case types.EDIT_INCIDENT_MESSAGE_SWITCH:
-            
             incidentMessages = state.incidentMessages[
                 action.payload.incidentId._id
             ][action.payload.type].incidentMessages.map(
@@ -1494,12 +1433,10 @@ export default function incident(state = initialState, action: $TSFixMe) {
                 incidentMessages: {
                     ...state.incidentMessages,
                     [action.payload.incidentId._id]: {
-                        
                         ...state.incidentMessages[
                             action.payload.incidentId._id
                         ],
                         [action.payload.type]: {
-                            
                             ...state.incidentMessages[
                                 action.payload.incidentId._id
                             ][action.payload.type],
@@ -1510,7 +1447,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
             });
 
         case types.DELETE_INCIDENT_MESSAGE_SUCCESS:
-            
             incidentMessages = state.incidentMessages[
                 action.payload.incidentId
             ][action.payload.type].incidentMessages.filter(
@@ -1524,16 +1460,13 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     error: action.payload,
                     success: false,
                     [action.payload.incidentId]: {
-                        
                         ...state.incidentMessages[action.payload.incidentId],
                         [action.payload.type]: {
-                            
                             ...state.incidentMessages[
                                 action.payload.incidentId
                             ][action.payload.type],
                             incidentMessages: incidentMessages,
                             count:
-                                
                                 state.incidentMessages[
                                     action.payload.incidentId
                                 ][action.payload.type].count - 1,

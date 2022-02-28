@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +15,10 @@ const newWebHookName = utils.generateRandomString();
 const webhookEndpoint = utils.generateRandomWebsite();
 const priorityName = utils.generateRandomString();
 
-
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -42,13 +38,11 @@ describe('Monitor Detail API', () => {
         await init.addIncidentPriority(priorityName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should navigate to monitor details and create a new subscriber',
         async (done: $TSFixMe) => {
@@ -60,21 +54,20 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            
+
             await init.pageClick(page, '.subscribers-tab');
 
             const addButtonSelector = '#addSubscriberButton';
-            
+
             await init.pageWaitForSelector(page, addButtonSelector);
             await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                 e.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#alertViaId');
 
             await init.selectDropdownValue('#alertViaId', 'email', page);
-            
+
             await init.pageType(page, 'input[name=email]', subscriberEmail);
             await init.page$Eval(page, '#createSubscriber', (e: $TSFixMe) =>
                 e.click()
@@ -85,7 +78,6 @@ describe('Monitor Detail API', () => {
 
             const createdSubscriberSelector = '#subscriber_contact';
 
-            
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
             const createdSubscriberEmail = await init.page$Eval(
@@ -100,7 +92,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and get list of subscribers and paginate subscribers',
         async (done: $TSFixMe) => {
@@ -112,20 +103,20 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            
+
             await init.pageClick(page, '.subscribers-tab');
             const addButtonSelector = '#addSubscriberButton';
-            
+
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i = 0; i < 5; i++) {
                 await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                     e.click()
                 );
-                
+
                 await init.pageWaitForSelector(page, '#alertViaId');
                 await init.selectDropdownValue('#alertViaId', 'email', page);
-                
+
                 await init.pageType(
                     page,
                     'input[name=email]',
@@ -141,7 +132,6 @@ describe('Monitor Detail API', () => {
 
             const createdSubscriberSelector = '#numberOfSubscribers';
 
-            
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
             let subscriberRows = await init.page$Eval(
@@ -153,11 +143,9 @@ describe('Monitor Detail API', () => {
             // Total number of subscribers is rendered and not first 5.
             expect(countSubscribers).toEqual('6');
 
-            
             const nextSelector = await init.page$(page, '#btnNextSubscriber');
             await nextSelector.click();
 
-            
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
             subscriberRows = await init.page$Eval(
@@ -170,10 +158,9 @@ describe('Monitor Detail API', () => {
             // Navigating to the next page did not affect the subscriber count.
             expect(countSubscribers).toEqual('6');
 
-            
             const prevSelector = await init.page$(page, '#btnPrevSubscriber');
             await prevSelector.click();
-            
+
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
             subscriberRows = await init.page$Eval(
@@ -190,7 +177,7 @@ describe('Monitor Detail API', () => {
     );
 
     //MS Teams
-    
+
     test(
         'Should navigate to monitor details and create a msteams webhook',
         async (done: $TSFixMe) => {
@@ -202,27 +189,25 @@ describe('Monitor Detail API', () => {
             );
 
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
 
             const addButtonSelector = '#addMsTeamsButton';
-            
+
             await init.pageWaitForSelector(page, addButtonSelector);
             await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                 e.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#endpoint');
 
             // Name is required to submit a msteams webhook AND only name is rendered. webHookEndPoint only shows when edit button is clicked.
-            
+
             await init.pageType(page, '#webHookName', webHookName);
-            
+
             await init.pageType(page, '#endpoint', webhookEndpoint);
 
             await page.evaluate(() => {
-                
                 document.querySelector('input[name=incidentCreated]').click();
             });
 
@@ -251,7 +236,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and update a msteams webhook',
         async (done: $TSFixMe) => {
@@ -262,12 +246,11 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
 
             const existingWebhookSelector = `#msteam_${webHookName}`;
 
-            
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
             const existingWebhookName = await init.page$Eval(
@@ -287,10 +270,10 @@ describe('Monitor Detail API', () => {
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
             await init.pageClick(page, '#webHookName', { clickCount: 3 });
-            
+
             await init.pageType(page, '#webHookName', newWebHookName);
             await init.pageClick(page, '#endpoint', { clickCount: 3 });
-            
+
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
             await init.page$Eval(page, '#msteamsUpdate', (e: $TSFixMe) =>
                 e.click()
@@ -298,7 +281,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#msteamsUpdate', {
                 hidden: true,
             });
-            
+
             await init.pageWaitForSelector(page, `#msteam_${newWebHookName}`);
             const updatedWebhookName = await init.page$Eval(
                 page,
@@ -311,7 +294,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and delete a msteams webhook',
         async (done: $TSFixMe) => {
@@ -322,14 +304,13 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
 
             const createdWebhookSelector = '.msteam-length';
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            
             const webhookRows = await init.page$$(page, createdWebhookSelector);
             const countWebhooks = webhookRows.length;
 
@@ -342,7 +323,6 @@ describe('Monitor Detail API', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#msteamsDelete');
             await init.page$Eval(page, '#msteamsDelete', (e: $TSFixMe) =>
                 e.click()
@@ -351,7 +331,6 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            
             let newWebhookRows = await init.pageWaitForSelector(
                 page,
                 '#No_MsTeam'
@@ -366,7 +345,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and get list of msteams webhooks and paginate them',
         async (done: $TSFixMe) => {
@@ -378,36 +356,35 @@ describe('Monitor Detail API', () => {
             );
 
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
 
             const addButtonSelector = '#addMsTeamsButton';
-            
+
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i = 0; i < 11; i++) {
                 await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                     e.click()
                 );
-                
+
                 await init.pageWaitForSelector(page, '#endpoint');
-                
+
                 await init.pageType(
                     page,
                     '#webHookName',
                     utils.generateRandomString()
                 );
-                
+
                 await init.pageType(
                     page,
                     '#endpoint',
                     utils.generateRandomWebsite()
                 );
                 await page.evaluate(() => {
-                    
                     document
                         .querySelector('input[name=incidentCreated]')
-                        
+
                         .click();
                 });
                 await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) =>
@@ -421,14 +398,13 @@ describe('Monitor Detail API', () => {
             await page.reload({ waitUntil: 'networkidle0' });
 
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
 
             const createdWebhookSelector = '.msteam-length';
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            
             let webhookRows = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
@@ -444,10 +420,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
             expect(countWebhooks).toEqual(1);
@@ -462,10 +437,9 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 

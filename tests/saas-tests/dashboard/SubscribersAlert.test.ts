@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const countryCode = '+1';
 const phoneNumber = '9173976235';
 const subscriberEmail = utils.generateRandomBusinessEmail();
 
-
 describe('Subscribers Alert logs API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -54,13 +50,11 @@ describe('Subscribers Alert logs API', () => {
         await init.addMonitorToComponent(componentName, monitorName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should add SMS subscribers.',
         async (done: $TSFixMe) => {
@@ -72,28 +66,28 @@ describe('Subscribers Alert logs API', () => {
                 monitorName,
                 page
             );
-            
+
             await init.pageClick(page, '.subscribers-tab');
-            
+
             await init.pageWaitForSelector(page, '#addSubscriberButton');
-            
+
             await init.pageClick(page, '#addSubscriberButton');
-            
+
             await init.pageWaitForSelector(page, '#alertViaId');
             await init.selectDropdownValue('#alertViaId', 'sms', page);
-            
+
             await init.pageWaitForSelector(page, '#countryCodeId');
             await init.selectDropdownValue('#countryCodeId', countryCode, page);
-            
+
             await init.pageType(page, '#contactPhoneId', phoneNumber);
-            
+
             await init.pageClick(page, '#createSubscriber');
             await init.pageWaitForSelector(page, '#createSubscriber', {
                 hidden: true,
             });
             const subscriberPhoneNumberSelector =
                 '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
-            
+
             await init.pageWaitForSelector(page, subscriberPhoneNumberSelector);
             const subscriberPhoneNumber = await init.page$Eval(
                 page,
@@ -108,7 +102,6 @@ describe('Subscribers Alert logs API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should add Email subscribers.',
         async (done: $TSFixMe) => {
@@ -120,30 +113,30 @@ describe('Subscribers Alert logs API', () => {
                 monitorName,
                 page
             );
-            
+
             await init.pageClick(page, '.subscribers-tab');
-            
+
             await init.pageWaitForSelector(page, '#addSubscriberButton');
-            
+
             await init.pageClick(page, '#addSubscriberButton');
-            
+
             await init.pageWaitForSelector(page, '#alertViaId');
             await init.selectDropdownValue('#alertViaId', 'email', page);
-            
+
             await init.pageWaitForSelector(page, '#emailId');
-            
+
             await init.pageType(page, '#emailId', subscriberEmail);
-            
+
             await init.pageClick(page, '#createSubscriber');
             await init.pageWaitForSelector(page, '#createSubscriber', {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle0' });
-            
+
             await init.pageClick(page, '.subscribers-tab');
             const subscriberEmailSelector =
                 '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
-            
+
             await init.pageWaitForSelector(page, subscriberEmailSelector);
             const renderedSubscriberEmail = await init.page$Eval(
                 page,
@@ -156,7 +149,6 @@ describe('Subscribers Alert logs API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should send SMS and Email when an incident is created.',
         async (done: $TSFixMe) => {
@@ -166,31 +158,30 @@ describe('Subscribers Alert logs API', () => {
                 page
             );
 
-            
             await init.pageWaitForSelector(
                 page,
                 `#monitorCreateIncident_${monitorName}`
             );
-            
+
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
-            
+
             await init.pageWaitForSelector(page, '#incidentType');
             await init.selectDropdownValue('#incidentType', 'offline', page);
-            
+
             await init.pageClick(page, '#createIncident');
-            
+
             await init.pageWaitForSelector(page, `#incident_0`);
-            
+
             await init.pageWaitForSelector(page, '#notificationscroll');
-            
+
             await init.pageClick(page, '#viewIncident-0');
-            
+
             await init.pageWaitForSelector(page, '#incident_0');
 
             await page.reload({ waitUntil: 'networkidle0' });
-            
+
             await init.pageClick(page, '.alert-tab');
-            
+
             await init.pageWaitForSelector(
                 page,
                 '#subscriberAlertTable tbody tr'
@@ -202,9 +193,9 @@ describe('Subscribers Alert logs API', () => {
 
             const firstRowIdentifier =
                 '#subscriberAlertTable tbody tr:nth-of-type(1)';
-            
+
             await init.pageClick(page, firstRowIdentifier);
-            
+
             await init.pageWaitForSelector(
                 page,
                 '#backboneModals .bs-Modal-content'
@@ -239,7 +230,6 @@ describe('Subscribers Alert logs API', () => {
             expect(type).toEqual('identified');
             expect(alertStatus).toEqual('Sent');
 
-            
             await init.pageClick(page, '#backboneModals #closeBtn');
             await init.pageWaitForSelector(
                 page,
@@ -251,9 +241,9 @@ describe('Subscribers Alert logs API', () => {
 
             const secondRowIdentifier =
                 '#subscriberAlertTable tbody tr:nth-of-type(2)';
-            
+
             await init.pageClick(page, secondRowIdentifier);
-            
+
             await init.pageWaitForSelector(
                 page,
                 '#backboneModals .bs-Modal-content'

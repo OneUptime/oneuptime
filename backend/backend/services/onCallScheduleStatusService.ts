@@ -53,17 +53,16 @@ export default {
     }: $TSFixMe) {
         let item = new OnCallScheduleStatusModel();
 
-        
         item.project = project;
-        
+
         item.activeEscalation = activeEscalation;
-        
+
         item.schedule = schedule;
-        
+
         item.incidentAcknowledged = incidentAcknowledged;
-        
+
         item.incident = incident;
-        
+
         item.escalations = escalations;
 
         item = await item.save();

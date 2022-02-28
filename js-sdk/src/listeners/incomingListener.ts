@@ -10,7 +10,7 @@ class IncomingListener {
     private end;
     private store;
     private app;
-    
+
     constructor(start, end, store, app) {
         this.start = start;
         this.end = end;
@@ -22,10 +22,10 @@ class IncomingListener {
         override(Http);
         override(Https);
         const _this = this;
-        
+
         function override(module) {
             const emit = module.Server.prototype.emit;
-            
+
             module.Server.prototype.emit = function(type, req, res) {
                 if (type === 'request') {
                     const path = req.pathname || req.path || req.url || '/';

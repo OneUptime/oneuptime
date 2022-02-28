@@ -56,14 +56,12 @@ router.get('/', async (req, res) => {
 
         // handle redis related operation to test the health
         try {
-            
             if (global.redisClient) {
-                
                 await global.redisClient.set(
                     'status',
                     'Redis status is online'
                 );
-                
+
                 const value = await global.redisClient.get('status');
 
                 if (!value) {

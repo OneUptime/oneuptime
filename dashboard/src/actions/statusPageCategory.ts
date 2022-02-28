@@ -29,7 +29,6 @@ export const createStatusPageCategory = ({
 
     promise.then(
         function(response) {
-            
             dispatch(createStatusPageCategorySuccess(response.data));
         },
         function(error) {
@@ -79,7 +78,6 @@ export const updateStatusPageCategory = ({
 
     promise.then(
         function(response) {
-            
             dispatch(updateStatusPageCategorySuccess(response.data));
         },
         function(error) {
@@ -133,7 +131,6 @@ export const fetchStatusPageCategories = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchStatusPageCategoriesSuccess(response.data));
         },
         function(error) {
@@ -187,7 +184,6 @@ export const fetchAllStatusPageCategories = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
         },
         function(error) {
@@ -226,7 +222,6 @@ export const deleteStatusPageCategory = ({
     projectId,
     statusPageCategoryId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
-    
     const promise = deleteApi(
         `statusPageCategory/${projectId}/${statusPageCategoryId}`
     );
@@ -234,7 +229,6 @@ export const deleteStatusPageCategory = ({
 
     promise.then(
         function(response) {
-            
             dispatch(updateStatusPageCategorySuccess(response.data));
         },
         function(error) {

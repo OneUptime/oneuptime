@@ -110,10 +110,10 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case DELETE_MS_TEAMS_SUCCESS:
             msTeams = Object.assign([], state.msTeams.msTeams);
-            
+
             index = msTeams.findIndex(team => team._id === action.payload._id);
             msTeams.splice(index, 1);
-            
+
             count = state.msTeams.count - 1;
             return Object.assign({}, state, {
                 deleteMsTeams: {
@@ -161,9 +161,9 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case CREATE_MS_TEAMS_SUCCESS:
             msTeams = Object.assign([], state.msTeams.msTeams);
-            
+
             action.payload._id && msTeams.push(action.payload);
-            
+
             count = state.msTeams.count + 1;
 
             return Object.assign({}, state, {
@@ -212,9 +212,9 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case UPDATE_MS_TEAMS_SUCCESS:
             msTeams = Object.assign([], state.msTeams.msTeams);
-            
+
             index = msTeams.findIndex(hook => hook._id === action.payload._id);
-            
+
             msTeams[index] = action.payload;
 
             return Object.assign({}, state, {

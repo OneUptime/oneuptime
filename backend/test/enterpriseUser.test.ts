@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user';
@@ -19,11 +18,9 @@ let projectId: $TSFixMe,
     userRole: $TSFixMe,
     token: $TSFixMe;
 
-
 describe('Enterprise User API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -49,7 +46,6 @@ describe('Enterprise User API', function() {
         });
     });
 
-    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -65,12 +61,10 @@ describe('Enterprise User API', function() {
         });
     });
 
-    
     it('should sign up initial user as `master-admin`', function() {
         expect(userRole).to.equal('master-admin');
     });
 
-    
     it('should confirm that `master-admin` exists', function(done: $TSFixMe) {
         request
             .get('/user/masterAdminExists')
@@ -83,7 +77,7 @@ describe('Enterprise User API', function() {
     });
 
     // 'post /user/signup'
-    
+
     it('should register `user` without stripeToken, stripePlanId', function(done: $TSFixMe) {
         createEnterpriseUser(request, data.newUser, function(
             err: $TSFixMe,
@@ -100,7 +94,6 @@ describe('Enterprise User API', function() {
         });
     });
 
-    
     it('should login with valid credentials', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -118,7 +111,6 @@ describe('Enterprise User API', function() {
             });
     });
 
-    
     it('should login with valid credentials, and return sent redirect url', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -138,7 +130,6 @@ describe('Enterprise User API', function() {
             });
     });
 
-    
     it('should get list of users without their hashed passwords', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -159,7 +150,6 @@ describe('Enterprise User API', function() {
             });
     });
 
-    
     it('should turn off 2fa for a user', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -195,7 +185,6 @@ describe('Enterprise User API', function() {
             });
     });
 
-    
     it('should not turn off 2fa for a user if loged in user is not admin', function(done: $TSFixMe) {
         request
             .post('/user/login')

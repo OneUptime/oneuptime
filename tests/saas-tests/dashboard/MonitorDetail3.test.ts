@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const newWebHookName = utils.generateRandomString();
 const webhookEndpoint = utils.generateRandomWebsite();
 const priorityName = utils.generateRandomString();
 
-
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -41,13 +37,11 @@ describe('Monitor Detail API', () => {
         await init.addIncidentPriority(priorityName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should navigate to monitor details and create a slack webhook',
         async (done: $TSFixMe) => {
@@ -58,26 +52,23 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
 
             const addButtonSelector = '#addSlackButton';
-            
+
             await init.pageWaitForSelector(page, addButtonSelector);
             await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                 e.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#endpoint');
 
-            
             await init.pageType(page, '#webHookName', webHookName);
-            
+
             await init.pageType(page, '#endpoint', webhookEndpoint);
 
             await page.evaluate(() => {
-                
                 document.querySelector('input[name=incidentCreated]').click();
             });
 
@@ -90,7 +81,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#createSlack', {
                 hidden: true,
             });
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
             const createdWebhookName = await init.page$Eval(
@@ -104,7 +95,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and update a Slack webhook',
         async (done: $TSFixMe) => {
@@ -115,12 +105,11 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
 
             const existingWebhookSelector = `#name_slack_${webHookName}`;
 
-            
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
             const existingWebhookName = await init.page$Eval(
@@ -140,10 +129,10 @@ describe('Monitor Detail API', () => {
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
             await init.pageClick(page, '#webHookName', { clickCount: 3 });
-            
+
             await init.pageType(page, '#webHookName', newWebHookName);
             await init.pageClick(page, '#endpoint', { clickCount: 3 });
-            
+
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
             await init.page$Eval(page, '#slackUpdate', (e: $TSFixMe) =>
                 e.click()
@@ -151,7 +140,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#slackUpdate', {
                 hidden: true,
             });
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#name_slack_${newWebHookName}`
@@ -167,7 +156,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and delete a slack webhook',
         async (done: $TSFixMe) => {
@@ -178,13 +166,12 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
             const createdWebhookSelector = '.slack-list';
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            
             const webhookRows = await init.page$$(page, createdWebhookSelector);
             const countWebhooks = webhookRows.length;
 
@@ -197,7 +184,6 @@ describe('Monitor Detail API', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#slackDelete');
             await init.page$Eval(page, '#slackDelete', (e: $TSFixMe) =>
                 e.click()
@@ -206,7 +192,6 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            
             let newWebhookRows = await init.pageWaitForSelector(
                 page,
                 '#No_SlackTeam'
@@ -221,7 +206,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and get list of slack webhooks and paginate them',
         async (done: $TSFixMe) => {
@@ -232,36 +216,34 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on integrations tab
-            
+
             await init.pageClick(page, '.integrations-tab');
             const addButtonSelector = '#addSlackButton';
-            
+
             await init.pageWaitForSelector(page, addButtonSelector);
 
             for (let i = 0; i < 11; i++) {
                 await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                     e.click()
                 );
-                
+
                 await init.pageWaitForSelector(page, '#endpoint');
 
-                
                 await init.pageType(
                     page,
                     '#webHookName',
                     utils.generateRandomString()
                 );
-                
+
                 await init.pageType(
                     page,
                     '#endpoint',
                     utils.generateRandomWebsite()
                 );
                 await page.evaluate(() => {
-                    
                     document
                         .querySelector('input[name=incidentCreated]')
-                        
+
                         .click();
                 });
                 await init.page$Eval(page, '#createSlack', (e: $TSFixMe) =>
@@ -277,42 +259,35 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            
+
             await init.pageClick(page, '.integrations-tab');
 
             const createdWebhookSelector = '.slack-list';
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            
             let webhookRows = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
 
-            
             const nextSelector = await init.page$(page, '#btnNextSlack');
 
             await nextSelector.click();
 
-            
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
 
-            
             const prevSelector = await init.page$(page, '#btnPrevSlack');
 
             await prevSelector.click();
 
-            
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
 

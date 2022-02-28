@@ -14,7 +14,6 @@ const _this = {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
-            
             axios({
                 method: 'POST',
                 url: `${config.serverUrl}/${url}`,
@@ -38,7 +37,6 @@ const _this = {
     getApi: (url: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            
             axios({
                 method: 'GET',
                 url: `${config.serverUrl}/${url}`,
@@ -61,7 +59,6 @@ const _this = {
     putApi: (url: $TSFixMe, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            
             axios({
                 method: 'PUT',
                 url: `${config.serverUrl}/${url}`,
@@ -85,7 +82,6 @@ const _this = {
     deleteApi: (url: $TSFixMe, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
-            
             axios({
                 method: 'DELETE',
                 url: `${config.serverUrl}/${url}`,

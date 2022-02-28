@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -23,7 +22,6 @@ import ContainerSecurityService from '../backend/services/containerSecurityServi
 import ContainerSecurityLogService from '../backend/services/containerSecurityLogService';
 import AirtableService from '../backend/services/airtableService';
 
-
 describe('Container Security API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe,
@@ -34,7 +32,7 @@ describe('Container Security API', function() {
         credentialId: $TSFixMe;
 
     this.timeout(timeout);
-    
+
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(
@@ -91,7 +89,6 @@ describe('Container Security API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -105,7 +102,6 @@ describe('Container Security API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should create a container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -139,7 +135,6 @@ describe('Container Security API', function() {
         });
     });
 
-    
     it('should update a container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const update = { name: 'Container Test' };
@@ -157,7 +152,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should get a particular container security in a component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -178,7 +172,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should get all the container security in a component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -192,7 +185,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should get all the container security with a particular credential', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -206,7 +198,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should scan a container security', function(done: $TSFixMe) {
         this.timeout(300000);
         const authorization = `Basic ${token}`;
@@ -222,7 +213,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should throw error if scanning with an invalid docker credentials or invalid image path', function(done: $TSFixMe) {
         this.timeout(500000);
         const authorization = `Basic ${token}`;
@@ -254,7 +244,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not create a container security if name already exist in the component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
@@ -277,7 +266,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not create a container security if image path already exist in the component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
@@ -300,7 +288,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not create a container security if name is missing or undefined in the request body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
@@ -322,7 +309,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not create a container security if image path is missing or undefined in the request body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
@@ -342,7 +328,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not create a container security if dockerCredential is missing or undefined in the request body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {
@@ -364,7 +349,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should delete a particular container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -380,7 +364,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not scan a container security if it does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -399,7 +382,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not delete a non-existing container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -418,7 +400,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not get a non-existing container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -437,7 +418,6 @@ describe('Container Security API', function() {
             });
     });
 
-    
     it('should not create a container security if dockerCredential does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const data = {

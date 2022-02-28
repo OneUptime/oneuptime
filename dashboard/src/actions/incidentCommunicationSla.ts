@@ -23,7 +23,7 @@ export const createCommunicationSla = (
         dispatch(createCommunicationSlaRequest());
 
         const response = await postApi(`incidentSla/${projectId}`, data);
-        
+
         dispatch(createCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -66,7 +66,7 @@ export const updateCommunicationSla = (
             `incidentSla/${projectId}/${incidentSlaId}`,
             data
         );
-        
+
         dispatch(updateCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -111,7 +111,7 @@ export const fetchCommunicationSlas = (
                 `incidentSla/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
-        
+
         dispatch(fetchCommunicationSlasSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -147,11 +147,10 @@ export const deleteCommunicationSla = (
     try {
         dispatch(deleteCommunicationSlaRequest());
 
-        
         const response = await deleteApi(
             `incidentSla/${projectId}/${incidentSlaId}`
         );
-        
+
         dispatch(deleteCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -195,7 +194,7 @@ export const fetchDefaultCommunicationSla = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `incidentSla/${projectId}/defaultCommunicationSla`
         );
-        
+
         dispatch(fetchDefaultCommunicationSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =

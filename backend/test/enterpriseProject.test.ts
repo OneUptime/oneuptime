@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -16,11 +15,9 @@ import ProjectService from '../backend/services/projectService';
 
 let token: $TSFixMe, projectId: $TSFixMe, newProjectId: $TSFixMe;
 
-
 describe('Enterprise Project API', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -45,7 +42,6 @@ describe('Enterprise Project API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
@@ -56,7 +52,6 @@ describe('Enterprise Project API', function() {
         });
     });
 
-    
     it('should create a project when `planId` is not given', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -72,7 +67,6 @@ describe('Enterprise Project API', function() {
             });
     });
 
-    
     it('should delete a project', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
@@ -84,7 +78,6 @@ describe('Enterprise Project API', function() {
             });
     });
 
-    
     it('should restore a deleted project', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -18,13 +17,10 @@ const projectName = utils.generateRandomString();
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -39,13 +35,11 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the status-page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -70,7 +64,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addMoreMonitors');
             await init.pageWaitForSelector(page, '#monitor-0', {
                 visible: true,
@@ -81,7 +75,7 @@ describe('OneUptime Page Reload', () => {
                 `${componentName} / ${monitorName}`,
                 page
             );
-            
+
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             // To confirm no errors and stays on the same page on reload

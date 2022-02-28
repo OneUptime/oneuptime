@@ -1,4 +1,3 @@
-
 import { updateMany, removeFieldsFromMany } from '../util/db';
 
 const statusPageCollection = 'statuspages';

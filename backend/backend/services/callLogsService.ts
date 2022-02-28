@@ -53,17 +53,16 @@ export default {
     ) {
         let item = new CallLogsModel();
 
-        
         item.from = from;
-        
+
         item.to = to;
-        
+
         item.projectId = projectId;
-        
+
         item.content = content;
-        
+
         item.status = status;
-        
+
         item.error = error;
         item = await item.save();
 

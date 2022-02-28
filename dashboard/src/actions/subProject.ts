@@ -40,9 +40,8 @@ export function getSubProjects(projectId: $TSFixMe, skip = 0, limit = 10) {
         promise.then(
             function(subProjects) {
                 const subData = {
-                    
                     subProjects: subProjects.data.data,
-                    
+
                     count: subProjects.data.count,
                     skip,
                     limit,
@@ -119,9 +118,8 @@ export function createSubProject(
 
         return promise.then(
             function(subProject) {
-                
                 dispatch(createSubProjectSuccess(subProject.data));
-                
+
                 return subProject.data;
             },
             function(error) {

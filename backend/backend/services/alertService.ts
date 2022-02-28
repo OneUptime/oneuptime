@@ -73,7 +73,6 @@ export default {
         projectId: $TSFixMe,
         alertPhoneNumber: $TSFixMe
     ) {
-        
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'alertOptions',
@@ -150,33 +149,32 @@ export default {
         alertProgress =
             alertProgress && `${alertProgress.current}/${alertProgress.total}`;
         const alert = new AlertModel();
-        
+
         alert.projectId = projectId;
-        
+
         alert.onCallScheduleStatus = onCallScheduleStatus;
-        
+
         alert.schedule = schedule;
-        
+
         alert.escalation = escalation;
-        
+
         alert.monitorId = monitorId;
-        
+
         alert.alertVia = alertVia;
-        
+
         alert.userId = userId;
-        
+
         alert.incidentId = incidentId;
-        
+
         alert.alertStatus = alertStatus;
-        
+
         alert.eventType = eventType;
-        
+
         alert.alertProgress = alertProgress;
 
         if (error) {
-            
             alert.error = error;
-            
+
             alert.errorMessage = errorMessage;
         }
 
@@ -562,7 +560,6 @@ export default {
         const pushRem = currentEscalationStatus.pushRemindersSent + 1;
 
         if (emailRem > 1) {
-            
             alertProgress.emailProgress = {
                 current: emailRem,
                 total: escalation.emailReminders,
@@ -570,7 +567,6 @@ export default {
         }
 
         if (callRem > 1) {
-            
             alertProgress.callProgress = {
                 current: callRem,
                 total: escalation.callReminders,
@@ -578,7 +574,6 @@ export default {
         }
 
         if (smsRem > 1) {
-            
             alertProgress.smsProgress = {
                 current: smsRem,
                 total: escalation.smsReminders,
@@ -586,7 +581,6 @@ export default {
         }
 
         if (pushRem > 1) {
-            
             alertProgress.pushProgress = {
                 current: pushRem,
                 total: escalation.pushReminders,
@@ -756,7 +750,6 @@ export default {
         ];
 
         const [project, ec] = await Promise.all([
-            
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: '_id alertEnable alertOptions slug name',
@@ -780,7 +773,6 @@ export default {
             });
         }
 
-        
         const groupUsers = teamGroup.map(group => group.teams);
         const groupUserIds = [].concat
             .apply([], groupUsers)
@@ -1138,16 +1130,15 @@ export default {
 
             const projectId = incident.projectId._id || incident.projectId;
             const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-            
+
             const ack_url = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
-            
+
             const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-            
+
             const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-                
                 date = moment(incident.createdAt)
                     .tz(user.timezone)
                     .format('LLLL');
@@ -1312,10 +1303,10 @@ export default {
             // const componentSlug = monitor.componentId.slug;
             // const componentName = monitor.componentId.name;
             // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
-            
+
             const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.slug}`;
             let incidentSlaTimeline = incidentCommunicationSla.duration * 60;
-            
+
             incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
             const incidentSlaRemaining = secondsToHms(alertTime);
 
@@ -1486,7 +1477,6 @@ export default {
                 AlertType.Call
             );
 
-            
             if (!status.success) {
                 return await _this.create({
                     projectId,
@@ -1500,7 +1490,7 @@ export default {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    
+
                     errorMessage: status.message,
                     alertProgress: callProgress,
                 });
@@ -1555,7 +1545,6 @@ export default {
                 );
 
                 if (!balanceStatus.error) {
-                    
                     await AlertChargeService.create(
                         projectId,
                         balanceStatus.chargeAmount,
@@ -1697,7 +1686,6 @@ export default {
                 AlertType.SMS
             );
 
-            
             if (!status.success) {
                 return await _this.create({
                     projectId: incident.projectId._id || incident.projectId,
@@ -1711,7 +1699,7 @@ export default {
                     alertStatus: null,
                     error: true,
                     eventType,
-                    
+
                     errorMessage: status.message,
                     alertProgress: smsProgress,
                 });
@@ -1773,7 +1761,6 @@ export default {
                 );
 
                 if (!balanceStatus.error) {
-                    
                     await AlertChargeService.create(
                         incident.projectId._id || incident.projectId,
                         balanceStatus.chargeAmount,
@@ -1891,25 +1878,21 @@ export default {
             if (incident) {
                 for (const subscriber of subscribers) {
                     let statusPageSlug = null;
-                    
+
                     if (subscriber.statusPageId) {
                         const statusPage = await StatusPageService.findOneBy({
                             query: {
-                                
                                 _id: subscriber.statusPageId,
                             },
                             select: 'slug',
                         });
-                        
+
                         statusPageSlug = statusPage ? statusPage.slug : null;
                     }
-                    
+
                     if (subscriber.alertVia === AlertType.Email) {
-                        
                         if (!track[subscriber.contactEmail]) {
-                            
                             track[subscriber.contactEmail] =
-                                
                                 subscriber.contactEmail;
                             sendSubscriberAlert({
                                 subscriber,
@@ -1979,12 +1962,10 @@ export default {
                     }
                 );
                 for (const subscriber of subscribers) {
-                    
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
                                 query: {
-                                    
                                     _id: subscriber.statusPageId,
                                     isSubscriberEnabled: true,
                                 },
@@ -1993,13 +1974,9 @@ export default {
                             }
                         );
                         if (enabledStatusPage) {
-                            
                             if (subscriber.alertVia === AlertType.Email) {
-                                
                                 if (!track[subscriber.contactEmail]) {
-                                    
                                     track[subscriber.contactEmail] =
-                                        
                                         subscriber.contactEmail;
                                     sendSubscriberAlert({
                                         subscriber,
@@ -2018,13 +1995,9 @@ export default {
                             }
                         }
                     } else {
-                        
                         if (subscriber.alertVia === AlertType.Email) {
-                            
                             if (!track[subscriber.contactEmail]) {
-                                
                                 track[subscriber.contactEmail] =
-                                    
                                     subscriber.contactEmail;
                                 sendSubscriberAlert({
                                     subscriber,
@@ -2081,7 +2054,7 @@ export default {
                     populate: monitorPopulate,
                     select: monitorSelect,
                 }),
-                
+
                 ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'slug name',
@@ -2257,14 +2230,13 @@ export default {
             });
 
             const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-            
+
             const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
-            
+
             const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-                
                 date = moment(date)
                     .tz(user.timezone)
                     .format();
@@ -2444,7 +2416,7 @@ export default {
                     populate: monitorPopulate,
                     select: monitorSelect,
                 }),
-                
+
                 ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'slug name',
@@ -2623,12 +2595,11 @@ export default {
             });
 
             const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
-            
+
             const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
-                
                 date = moment(date)
                     .tz(user.timezone)
                     .format();
@@ -2819,12 +2790,10 @@ export default {
                     }
                 );
                 for (const subscriber of subscribers) {
-                    
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
                                 query: {
-                                    
                                     _id: subscriber.statusPageId,
                                     isSubscriberEnabled: true,
                                 },
@@ -2833,13 +2802,9 @@ export default {
                             }
                         );
                         if (enabledStatusPage) {
-                            
                             if (subscriber.alertVia === AlertType.Email) {
-                                
                                 if (!track[subscriber.contactEmail]) {
-                                    
                                     track[subscriber.contactEmail] =
-                                        
                                         subscriber.contactEmail;
                                     await sendSubscriberAlert({
                                         subscriber,
@@ -2858,13 +2823,9 @@ export default {
                             }
                         }
                     } else {
-                        
                         if (subscriber.alertVia === AlertType.Email) {
-                            
                             if (!track[subscriber.contactEmail]) {
-                                
                                 track[subscriber.contactEmail] =
-                                    
                                     subscriber.contactEmail;
                                 await sendSubscriberAlert({
                                     subscriber,
@@ -2934,12 +2895,10 @@ export default {
                     }
                 );
                 for (const subscriber of subscribers) {
-                    
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
                                 query: {
-                                    
                                     _id: subscriber.statusPageId,
                                     isSubscriberEnabled: true,
                                 },
@@ -2948,13 +2907,9 @@ export default {
                             }
                         );
                         if (enabledStatusPage) {
-                            
                             if (subscriber.alertVia === AlertType.Email) {
-                                
                                 if (!track[subscriber.contactEmail]) {
-                                    
                                     track[subscriber.contactEmail] =
-                                        
                                         subscriber.contactEmail;
                                     sendSubscriberAlert({
                                         subscriber,
@@ -2973,13 +2928,9 @@ export default {
                             }
                         }
                     } else {
-                        
                         if (subscriber.alertVia === AlertType.Email) {
-                            
                             if (!track[subscriber.contactEmail]) {
-                                
                                 track[subscriber.contactEmail] =
-                                    
                                     subscriber.contactEmail;
                                 sendSubscriberAlert({
                                     subscriber,
@@ -3030,7 +2981,6 @@ export default {
         ];
         const monitorSelect = '_id customFields componentId projectId';
         const [project, mon] = await Promise.all([
-            
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select:
@@ -3064,7 +3014,6 @@ export default {
 
         let statusPageUrl: $TSFixMe;
         if (statusPage) {
-            
             statusPageUrl = `${global.statusHost}/status-page/${statusPage._id}`;
             if (statusPage.domains && statusPage.domains.length > 0) {
                 const domains = statusPage.domains.filter(
@@ -3084,7 +3033,6 @@ export default {
 
         let statusUrl: $TSFixMe;
         if (statusPageSlug) {
-            
             statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.slug}`;
         }
 
@@ -3092,14 +3040,12 @@ export default {
             incidentCustomFields = {};
         if (monitor && monitor.customFields) {
             monitor.customFields.forEach(
-                
                 (field: $TSFixMe) =>
                     (monitorCustomFields[field.fieldName] = field.fieldValue)
             );
         }
         if (incident && incident.customFields) {
             incident.customFields.forEach(
-                
                 (field: $TSFixMe) =>
                     (incidentCustomFields[field.fieldName] = field.fieldValue)
             );
@@ -3164,7 +3110,6 @@ export default {
                     );
                     alertStatus = webhookNotificationSent ? 'Sent' : 'Not Sent';
                 } catch (error) {
-                    
                     alertStatus = null;
                     throw error;
                 } finally {
@@ -3305,9 +3250,9 @@ export default {
                     id,
                 });
                 const alertId = subscriberAlert._id;
-                
+
                 const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${projectId}/${alertId}/viewed`;
-                
+
                 const unsubscribeUrl = `${global.homeHost}/unsubscribe/${monitor._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
@@ -3629,7 +3574,6 @@ export default {
                         eventType = 'identified';
                     }
 
-                    
                     if (!status.success) {
                         return await SubscriberAlertService.create({
                             projectId,
@@ -3638,7 +3582,7 @@ export default {
                             alertVia: AlertType.SMS,
                             alertStatus: null,
                             error: true,
-                            
+
                             errorMessage: status.message,
                             eventType: eventType,
                             totalSubscribers,
@@ -3890,7 +3834,6 @@ export default {
     },
 
     mapCountryShortNameToCountryCode(shortName: $TSFixMe) {
-        
         return countryCode[[shortName]];
     },
 
@@ -4025,7 +3968,7 @@ export default {
                 projectId: projectId,
                 createdAt: { $gte: yesterday },
             }),
-            
+
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'alertLimit',
@@ -4056,7 +3999,7 @@ export default {
     ) {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName, slug: projectSlug } = project;
-        
+
         const projectUrl = `${global.dashboardHost}/project/${projectSlug}`;
         const projectPlan = getPlanById(stripePlanId);
 
@@ -4114,13 +4057,9 @@ export default {
                 );
 
                 for (const subscriber of subscribers) {
-                    
                     if (subscriber.alertVia === AlertType.Email) {
-                        
                         if (!track[subscriber.contactEmail]) {
-                            
                             track[subscriber.contactEmail] =
-                                
                                 subscriber.contactEmail;
                             sendSubscribersAlert({
                                 subscriber,
@@ -4170,13 +4109,9 @@ export default {
                 );
 
                 for (const subscriber of subscribers) {
-                    
                     if (subscriber.alertVia === AlertType.Email) {
-                        
                         if (!track[subscriber.contactEmail]) {
-                            
                             track[subscriber.contactEmail] =
-                                
                                 subscriber.contactEmail;
                             await sendSubscribersAlert({
                                 subscriber,
@@ -4256,17 +4191,14 @@ export default {
                 for (const subscriber of subscribers) {
                     const projectId = message.scheduledEventId.projectId._id;
 
-                    
                     const project = await ProjectService.findOneBy({
                         query: { _id: projectId },
                         select:
                             'sendNewScheduledEventInvestigationNoteNotificationEmail name alertEnable sendNewScheduledEventInvestigationNoteNotificationSms users _id alertOptions slug sendNewScheduledEventInvestigationNoteNotificationSms',
                     });
 
-                    
                     const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
-                    
                     if (subscriber.alertVia === AlertType.Email) {
                         const select =
                             'projectId subject body emailType allowedVariables';
@@ -4327,7 +4259,7 @@ export default {
                             }
                             return await SubscriberAlertService.create({
                                 projectId,
-                                
+
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.Email,
                                 eventType: 'Scheduled maintenance note created',
@@ -4342,7 +4274,7 @@ export default {
                         const subscriberAlert = await SubscriberAlertService.create(
                             {
                                 projectId,
-                                
+
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.Email,
                                 alertStatus: 'Pending',
@@ -4369,9 +4301,9 @@ export default {
                                 message.scheduledEventId.name,
                                 message.event_state,
                                 message.content,
-                                
+
                                 subscriber.contactEmail,
-                                
+
                                 subscriber.contactEmail,
                                 createdBy,
                                 emailTemplate,
@@ -4398,7 +4330,6 @@ export default {
                             );
                             throw error;
                         }
-                        
                     } else if (subscriber.alertVia === AlertType.SMS) {
                         let owner;
                         const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
@@ -4454,7 +4385,7 @@ export default {
 
                             return await SubscriberAlertService.create({
                                 projectId,
-                                
+
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.SMS,
                                 alertStatus: null,
@@ -4466,10 +4397,9 @@ export default {
                             });
                         }
                         const countryCode = await _this.mapCountryShortNameToCountryCode(
-                            
                             subscriber.countryCode
                         );
-                        
+
                         let contactPhone = subscriber.contactPhone;
                         if (countryCode) {
                             contactPhone = countryCode + contactPhone;
@@ -4501,7 +4431,7 @@ export default {
 
                                 return await SubscriberAlertService.create({
                                     projectId: projectId,
-                                    
+
                                     subscriberId: subscriber._id,
                                     alertVia: AlertType.SMS,
                                     alertStatus: null,
@@ -4520,16 +4450,15 @@ export default {
                                 AlertType.SMS
                             );
 
-                            
                             if (!status.success) {
                                 return await SubscriberAlertService.create({
                                     projectId,
-                                    
+
                                     subscriberId: subscriber._id,
                                     alertVia: AlertType.SMS,
                                     alertStatus: null,
                                     error: true,
-                                    
+
                                     errorMessage: status.message,
                                     eventType: eventType,
                                     totalSubscribers,
@@ -4549,7 +4478,7 @@ export default {
                         const subscriberAlert = await SubscriberAlertService.create(
                             {
                                 projectId,
-                                
+
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.SMS,
                                 alertStatus: 'Pending',
@@ -4658,7 +4587,7 @@ export default {
         const date = new Date();
         const projectName = schedule.projectId.name;
         const projectId = schedule.projectId._id;
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select:
@@ -4749,7 +4678,7 @@ export default {
                     id,
                 });
                 const alertId = subscriberAlert._id;
-                
+
                 const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                 let alertStatus = null;
@@ -4934,7 +4863,6 @@ export default {
                         AlertType.SMS
                     );
 
-                    
                     if (!status.success) {
                         return await SubscriberAlertService.create({
                             projectId,
@@ -4942,7 +4870,7 @@ export default {
                             alertVia: AlertType.SMS,
                             alertStatus: null,
                             error: true,
-                            
+
                             errorMessage: status.message,
                             eventType: eventType,
                             totalSubscribers,
@@ -5343,7 +5271,6 @@ export default {
                             AlertType.SMS
                         );
 
-                        
                         if (!status.success) {
                             return await SubscriberAlertService.create({
                                 projectId,
@@ -5351,7 +5278,7 @@ export default {
                                 alertVia: AlertType.SMS,
                                 alertStatus: null,
                                 error: true,
-                                
+
                                 errorMessage: status.message,
                                 eventType: eventType,
                                 totalSubscribers,
@@ -5472,27 +5399,24 @@ export default {
 
                 for (const subscriber of subscribers) {
                     const projectId = message.projectId;
-                    
+
                     const monitorName = subscriber.monitorName;
 
-                    
                     const project = await ProjectService.findOneBy({
                         query: { _id: projectId },
                         select:
                             'sendAnnouncementNotificationEmail replyAddress name sendAnnouncementNotificationSms alertEnable users _id alertEnable alertOptions slug',
                     });
 
-                    
                     const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                     let announcementAlert =
-                        
                         subscriber.notificationType?.announcement;
-                    
+
                     const statusPageId = subscriber?.statusPageId;
 
                     // if there is no notification type, then set incidentAlert to true.
-                    
+
                     if (!subscriber.notificationType) {
                         announcementAlert = true;
                     }
@@ -5509,13 +5433,9 @@ export default {
                         });
                     } else {
                         if (announcementAlert) {
-                            
                             if (subscriber.alertVia === AlertType.Email) {
-                                
                                 if (!track[subscriber.contactEmail]) {
-                                    
                                     track[subscriber.contactEmail] =
-                                        
                                         subscriber.contactEmail;
                                     await sendAlerts({
                                         project,

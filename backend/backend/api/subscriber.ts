@@ -18,11 +18,11 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
     try {
         const body = req.body;
         const data = {};
-        
+
         data.projectId = req.params.projectId;
-        
+
         data.statusPageId = req.params.statusPageId;
-        
+
         data.notificationType = body.notificationType;
 
         if (!body.userDetails) {
@@ -64,7 +64,6 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                 });
             }
 
-            
             data.contactEmail = body.userDetails.email;
         } else if (body.userDetails.method === 'sms') {
             if (!body.userDetails.phone_number) {
@@ -101,9 +100,8 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                 });
             }
 
-            
             data.contactPhone = body.userDetails.phone_number;
-            
+
             data.countryCode = body.userDetails.country;
         } else if (body.userDetails.method === 'webhook') {
             if (!body.userDetails.endpoint) {
@@ -140,14 +138,13 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
                 });
             }
 
-            
             data.contactWebhook = body.userDetails.endpoint;
-            
+
             data.contactEmail = body.userDetails.email;
         }
 
         const monitors = body.monitors;
-        
+
         data.alertVia = body.userDetails.method;
 
         const subscriber = await SubscriberService.subscribe(data, monitors);
@@ -369,7 +366,6 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
 
         const subscriptions = await SubscriberService.findBy({
             query: {
-                
                 contactEmail: subscriber[0].contactEmail,
                 subscribed: true,
             },
@@ -377,7 +373,6 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         });
 
         const monitorIds = subscriptions.map(
-            
             subscription => subscription.monitorId
         );
 
@@ -391,7 +386,6 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         subscriptions.map(subscription => {
             return subscriberMonitors.map((subscriberMonitor: $TSFixMe) => {
                 if (
-                    
                     String(subscription.monitorId) ===
                     String(subscriberMonitor._id)
                 ) {
@@ -453,7 +447,7 @@ router.put('/unsubscribe/:monitorId/:email', async function(req, res) {
 router.delete('/:projectId/:subscriberId', getUser, async function(req, res) {
     try {
         const subscriberId = req.params.subscriberId;
-        
+
         const userId = req.user ? req.user.id : null;
         const subscriber = await SubscriberService.deleteBy(
             { _id: subscriberId },

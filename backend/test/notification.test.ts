@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -15,18 +14,15 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-
 const request = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
 let projectId: $TSFixMe, token: $TSFixMe, userId;
 
-
 describe('Notification API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -62,7 +58,6 @@ describe('Notification API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -79,7 +74,6 @@ describe('Notification API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should create a new notification', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
@@ -96,7 +90,6 @@ describe('Notification API', function() {
             });
     });
 
-    
     it('should get project notifications current user is present in', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -112,7 +105,6 @@ describe('Notification API', function() {
             });
     });
 
-    
     it('should not get project notifications current user is not present in', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -125,7 +117,6 @@ describe('Notification API', function() {
             });
     });
 
-    
     it('should mark project notification as read', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -150,7 +141,6 @@ describe('Notification API', function() {
             });
     });
 
-    
     it('should close a notification', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -174,7 +164,6 @@ describe('Notification API', function() {
             });
     });
 
-    
     it('should mark all project notifications as read', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -195,7 +184,6 @@ describe('Notification API', function() {
             });
     });
 
-    
     it('should reject request if the notification param is invalid ', function(done: $TSFixMe) {
         request
             .put(`/notification/${projectId}/read`)

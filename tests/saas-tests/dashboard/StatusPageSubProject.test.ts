@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -14,13 +13,10 @@ const newPassword = '1234567890';
 const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-
 describe('StatusPage API With SubProjects', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -41,9 +37,9 @@ describe('StatusPage API With SubProjects', () => {
 
         // add sub-project
         await init.addSubProject(subProjectName, page);
-        
+
         await init.pageClick(page, '#projectFilterToggle');
-        
+
         await init.pageClick(page, `#project-${subProjectName}`);
         // Create Component
         await init.addComponent(componentName, page);
@@ -70,13 +66,11 @@ describe('StatusPage API With SubProjects', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not display create status page button for subproject `member` role.',
         async (done: $TSFixMe) => {
@@ -87,9 +81,9 @@ describe('StatusPage API With SubProjects', () => {
 
             await init.saasLogout(page); // Needed for subproject team member to login
             await init.registerAndLoggingTeamMember(user, page);
-            
+
             await init.pageWaitForSelector(page, '#statusPages');
-            
+
             await init.pageClick(page, '#statusPages');
 
             const createButton = await init.page$(
@@ -105,7 +99,6 @@ describe('StatusPage API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create a status page in sub-project for sub-project `admin`',
         async (done: $TSFixMe) => {
@@ -120,22 +113,21 @@ describe('StatusPage API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#projectFilterToggle');
-            
+
             await init.pageClick(page, `#project-${subProjectName}`);
             await init.addStatusPageToProject(
                 statuspageName,
                 subProjectName,
                 page
             );
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#status_page_count_${subProjectName}`
             );
 
-            
             const statusPageCountSelector = await init.page$(
                 page,
                 `#status_page_count_${subProjectName}`
@@ -152,7 +144,6 @@ describe('StatusPage API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should navigate to status page when view button is clicked on the status page table view',
         async (done: $TSFixMe) => {
@@ -165,13 +156,13 @@ describe('StatusPage API With SubProjects', () => {
                 subProjectName,
                 page
             );
-            
+
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
-            
+
             await init.page$$(page, 'tr.statusPageListItem');
-            
+
             await init.pageWaitForSelector(page, '#viewStatusPage');
-            
+
             await init.pageClick(page, `#viewStatusPage_${statuspageName}`);
             await page.reload({ waitUntil: 'networkidle2' });
 
@@ -191,7 +182,6 @@ describe('StatusPage API With SubProjects', () => {
         init.timeout
     );
 
-    
     test(
         'should get list of status pages in sub-projects and paginate status pages in sub-project',
         async (done: $TSFixMe) => {
@@ -208,10 +198,9 @@ describe('StatusPage API With SubProjects', () => {
             }
 
             await page.reload({ waitUntil: 'networkidle2' });
-            
+
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
 
-            
             let statusPageRows = await init.page$$(
                 page,
                 'tr.statusPageListItem'
@@ -220,22 +209,18 @@ describe('StatusPage API With SubProjects', () => {
 
             expect(countStatusPages).toEqual(10);
 
-            
             await init.pageWaitForSelector(page, `#btnNext-${subProjectName}`);
-            
+
             await init.pageClick(page, `#btnNext-${subProjectName}`);
 
-            
             statusPageRows = await init.page$$(page, 'tr.statusPageListItem');
             countStatusPages = statusPageRows.length;
             expect(countStatusPages).toEqual(2);
 
-            
             await init.pageWaitForSelector(page, `#btnPrev-${subProjectName}`);
-            
+
             await init.pageClick(page, `#btnPrev-${subProjectName}`);
 
-            
             statusPageRows = await init.page$$(page, 'tr.statusPageListItem');
             countStatusPages = statusPageRows.length;
 
@@ -246,48 +231,45 @@ describe('StatusPage API With SubProjects', () => {
         init.timeout
     );
 
-    
     test(
         'should update sub-project status page settings',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#statusPages');
-            
+
             await init.pageClick(page, '#statusPages');
-            
+
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
-            
+
             await init.pageClick(page, 'tr.statusPageListItem');
 
-            
             await init.pageClick(page, '.branding-tab');
 
             const pageTitle = 'MyCompany';
             const pageDescription = 'MyCompany description';
-            
+
             await init.pageWaitForSelector(page, '#title');
-            
+
             await init.pageType(page, '#title', pageTitle);
-            
+
             await init.pageType(
                 page,
                 '#account_app_product_description',
                 pageDescription
             );
-            
+
             await init.pageClick(page, '#saveBranding');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
 
             await page.reload({ waitUntil: 'networkidle2' });
-            
+
             await init.pageClick(page, '.branding-tab');
 
-            
             await init.pageWaitForSelector(page, '#title');
             const title = await init.page$Eval(
                 page,
@@ -302,43 +284,40 @@ describe('StatusPage API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete sub-project status page',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#statusPages');
-            
+
             await init.pageClick(page, '#statusPages');
-            
+
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
-            
+
             await init.pageClick(page, 'tr.statusPageListItem');
 
-            
             await init.pageClick(page, '.advanced-options-tab');
-            
+
             await init.pageWaitForSelector(page, '#delete');
-            
+
             await init.pageClick(page, '#delete');
-            
+
             await init.pageWaitForSelector(page, '#confirmDelete');
-            
+
             await init.pageClick(page, '#confirmDelete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
             });
-            
+
             await init.pageWaitForSelector(page, '#statusPages');
-            
+
             await init.pageClick(page, '#statusPages');
 
-            
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
-            
+
             const statusPageRows = await init.page$$(
                 page,
                 'tr.statusPageListItem'

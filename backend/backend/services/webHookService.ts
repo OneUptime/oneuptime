@@ -10,7 +10,6 @@ export default {
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ) {
         const [project, monitorStatus] = await Promise.all([
-            
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId slug name _id',
@@ -48,7 +47,7 @@ export default {
     ) {
         const self = this;
         let response;
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId slug name _id',
@@ -64,19 +63,19 @@ export default {
         if (incidentStatus === INCIDENT_RESOLVED) {
             query = {
                 ...query,
-                
+
                 'notificationOptions.incidentResolved': true,
             };
         } else if (incidentStatus === INCIDENT_CREATED) {
             query = {
                 ...query,
-                
+
                 'notificationOptions.incidentCreated': true,
             };
         } else if (incidentStatus === INCIDENT_ACKNOWLEDGED) {
             query = {
                 ...query,
-                
+
                 'notificationOptions.incidentAcknowledged': true,
             };
         } else {
@@ -133,7 +132,6 @@ export default {
         webHookType = PROJECT_WEBHOOK,
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ) {
-        
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';
@@ -311,15 +309,13 @@ export default {
             criterion: criterionCauseName,
         };
         if (incident.acknowledged) {
-            
             data.acknowledgedBy = incident.acknowledgedBy.name;
-            
+
             data.acknowledgedAt = incident.acknowledgedAt;
         }
         if (incident.resolved) {
-            
             data.resolvedBy = incident.resolvedBy.name;
-            
+
             data.resolvedAt = incident.resolvedAt;
         }
 
@@ -328,7 +324,7 @@ export default {
             httpMethod = webhookAgent.data.endpointType;
             if (httpMethod === undefined) {
                 const error = new Error('Webhook endpoint type missing');
-                
+
                 error.code = 400;
                 throw error;
             }

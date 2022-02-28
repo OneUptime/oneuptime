@@ -1,4 +1,3 @@
-
 import { customUpdate } from '../util/db';
 
 const statusPageCollection = 'statuspages';

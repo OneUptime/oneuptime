@@ -18,7 +18,6 @@ export function createApplicationLog(
 
         promise.then(
             function(applicationLog) {
-                
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
             function(error) {
@@ -82,7 +81,6 @@ export function fetchApplicationLogs(
 
         promise.then(
             function(applicationLogs) {
-                
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
             function(error) {
@@ -149,7 +147,6 @@ export function deleteApplicationLog(
 
         promise.then(
             function(applicationLog) {
-                
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
             function(error) {
@@ -234,13 +231,13 @@ export function fetchLogs(
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
-                        
+
                         logs: response.data.data.logs,
-                        
+
                         dateRange: response.data.data.dateRange,
                         skip,
                         limit,
-                        
+
                         count: response.data.count,
                     })
                 );
@@ -298,7 +295,6 @@ export function resetApplicationLogKey(
     applicationLogId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
         );
@@ -306,7 +302,6 @@ export function resetApplicationLogKey(
 
         promise.then(
             function(applicationLog) {
-                
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
             function(error) {
@@ -375,7 +370,6 @@ export function editApplicationLog(
 
         promise.then(
             function(applicationLog) {
-                
                 dispatch(editApplicationLogSuccess(applicationLog.data));
             },
             function(error) {
@@ -435,7 +429,7 @@ export function fetchStats(
                 dispatch(
                     fetchStatsSuccess({
                         applicationLogId,
-                        
+
                         stats: logs.data.data,
                     })
                 );
@@ -513,9 +507,9 @@ export function searchLog(
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
-                        
+
                         logs: response.data.searchedLogs,
-                        
+
                         count: response.data.totalSearchCount,
                     })
                 );

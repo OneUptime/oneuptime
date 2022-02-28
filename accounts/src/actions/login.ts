@@ -37,7 +37,7 @@ export function loginSuccess(user: $TSFixMe) {
     const { statusPageLogin, statusPageURL } = state.login;
     if (statusPageLogin) {
         const newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
-        
+
         return (window.location = newURL);
     }
 
@@ -62,15 +62,12 @@ export function loginSuccess(user: $TSFixMe) {
     }
 
     if (user.redirect && user?.tokens?.jwtAccessToken) {
-        
         return (window.location = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`);
     } else if (user.redirect) {
         return (window.location = user.redirect);
     } else if (user.role === 'master-admin') {
-        
         window.location = ADMIN_DASHBOARD_URL;
     } else {
-        
         window.location = DASHBOARD_URL;
     }
 
@@ -111,7 +108,6 @@ export function loginUser(values: $TSFixMe) {
 
         promise.then(
             function(user) {
-                
                 dispatch(loginSuccess(user.data));
             },
             function(error) {
@@ -144,7 +140,7 @@ export const loginUserSso = (values: $TSFixMe) => async (
 ) => {
     try {
         const response = await getApi(`user/sso/login?email=${values.email}`);
-        
+
         const { url } = response.data;
         window.location = url;
     } catch (error) {
@@ -176,7 +172,6 @@ export function verifyAuthToken(values: $TSFixMe) {
 
         promise.then(
             function(user) {
-                
                 dispatch(loginSuccess(user.data));
             },
             function(error) {
@@ -231,7 +226,6 @@ export function verifyBackupCode(values: $TSFixMe) {
 
         promise.then(
             function(user) {
-                
                 dispatch(loginSuccess(user.data));
             },
             function(error) {
@@ -289,12 +283,10 @@ export const resetMasterAdminExists = () => {
 // Calls the API to register a user.
 export function checkIfMasterAdminExists(values: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = getApi('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
             function(response) {
-                
                 dispatch(masterAdminExistsSuccess(response.data));
             },
             function(error) {

@@ -8,7 +8,6 @@ const MonitorService = require('../services/monitorService'),
 export default {
     checkAllServerMonitors: async () => {
         try {
-            
             const newDate = new moment();
             const monitors = await MonitorService.findBy({
                 query: { type: 'server-monitor' },
@@ -17,7 +16,6 @@ export default {
 
             if (monitors) {
                 monitors.forEach(async (monitor: $TSFixMe) => {
-                    
                     const d = new moment(monitor.lastPingTime);
                     const log = await MonitorLogService.findOneBy({
                         query: { monitorId: monitor._id },

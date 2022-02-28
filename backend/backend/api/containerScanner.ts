@@ -78,14 +78,12 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
             { path: 'componentId', select: 'name slug projectId' },
         ];
         const findLog = await ContainerSecurityLogService.findOneBy({
-            
             query: { _id: securityLog._id },
             select: selectContainerLog,
             populate: populateContainerLog,
         });
-        
+
         const project = await ProjectService.findOneBy({
-            
             query: { _id: findLog.componentId.projectId },
             select: '_id name users',
         });
@@ -94,27 +92,27 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
             .map((e: $TSFixMe) => ({
                 id: e.userId,
             })); // This cater for projects with multiple registered members
-        
+
         project.critical = findLog.data.vulnerabilityInfo.critical;
-        
+
         project.high = findLog.data.vulnerabilityInfo.high;
-        
+
         project.moderate = findLog.data.vulnerabilityInfo.moderate;
-        
+
         project.low = findLog.data.vulnerabilityInfo.low;
-        
+
         const critical = findLog.data.vulnerabilityData
             .filter((e: $TSFixMe) => e.severity === 'critical')
             .slice(0, 10);
-        
+
         const high = findLog.data.vulnerabilityData
             .filter((e: $TSFixMe) => e.severity === 'high')
             .slice(0, 10);
-        
+
         const moderate = findLog.data.vulnerabilityData
             .filter((e: $TSFixMe) => e.severity === 'moderate')
             .slice(0, 5);
-        
+
         const low = findLog.data.vulnerabilityData
             .filter((e: $TSFixMe) => e.severity === 'low')
             .slice(0, 5);

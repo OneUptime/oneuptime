@@ -20,11 +20,9 @@ import AirtableService from '../backend/services/airtableService';
 
 let token: $TSFixMe, projectId: $TSFixMe, emailTemplateId: $TSFixMe, userId;
 
-
 describe('Email Template API', function() {
     this.timeout(20000);
 
-    
     before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
@@ -48,7 +46,6 @@ describe('Email Template API', function() {
         token = res1.body.tokens.jwtAccessToken;
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -67,7 +64,7 @@ describe('Email Template API', function() {
     });
 
     // 'post /:projectId'
-    
+
     it('should create an email template with valid data', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -84,7 +81,6 @@ describe('Email Template API', function() {
         expect(res.body.subject).to.be.equal('Mail Subject');
     });
 
-    
     it('should sanitize dirty template data sent to endpoint', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -101,7 +97,6 @@ describe('Email Template API', function() {
         );
     });
 
-    
     it('should get an array of email templates by valid projectId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -111,7 +106,6 @@ describe('Email Template API', function() {
         expect(res.body).to.be.an('array');
     });
 
-    
     it('should get an email template by valid emailTemplateId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -122,7 +116,6 @@ describe('Email Template API', function() {
         expect(res.body).to.be.an('object');
     });
 
-    
     it('should update an email template by valid emailTemplateId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -136,7 +129,6 @@ describe('Email Template API', function() {
         expect(res.body.subject).to.be.equal('New Mail Subject');
     });
 
-    
     it('should update default email template', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -154,7 +146,6 @@ describe('Email Template API', function() {
         expect(res.body[1].subject).to.be.equal('Updated Mail Subject');
     });
 
-    
     it('should deleted an email template', async function() {
         const authorization = `Basic ${token}`;
         const res = await request

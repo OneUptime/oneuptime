@@ -13,20 +13,18 @@ export default {
     ) {
         let feedback = new FeedbackModel();
 
-        
         feedback.message = message;
-        
+
         feedback.page = page;
-        
+
         feedback.projectId = projectId;
-        
+
         feedback.createdById = createdById;
         feedback = await feedback.save();
-        
+
         feedback = feedback.toObject();
 
         const [project, user] = await Promise.all([
-            
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'name',
@@ -36,7 +34,7 @@ export default {
                 select: 'name email companyPhoneNumber',
             }),
         ]);
-        
+
         feedback.project = project;
 
         AirtableService.logFeedback({
@@ -47,13 +45,12 @@ export default {
             page,
         });
 
-        
         feedback.userName = user.name;
-        
+
         feedback.email = user.email;
-        
+
         feedback.phone = user.companyPhoneNumber;
-        
+
         feedback.templateName = 'User Feedback';
 
         try {

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,13 +16,10 @@ const teamMember = utils.generateRandomBusinessEmail();
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -35,33 +31,31 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the team member page and confirm there are no errors',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#teamMembers');
-            
+
             await init.pageClick(page, `#btn_${projectName}`);
-            
+
             await init.pageType(page, `#emails_${projectName}`, teamMember);
-            
+
             await init.pageClick(page, '#member');
-            
+
             await init.pageClick(page, `#btn_modal_${projectName}`);
             await init.pageWaitForSelector(page, `#frm_${projectName}`, {
                 hidden: true,
             });
-            
+
             await init.pageClick(page, `#${teamMember.split('@')[0]}-profile`);
             await init.pageWaitForSelector(page, '#cbTeamMembers', {
                 visible: true,

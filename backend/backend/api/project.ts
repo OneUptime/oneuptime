@@ -71,7 +71,7 @@ router.post('/create', getUser, async function(req, res) {
         }
 
         const projectName = data.projectName;
-        
+
         const userId = req.user ? req.user.id : null;
         data.userId = userId;
 
@@ -119,7 +119,7 @@ router.post('/create', getUser, async function(req, res) {
                         { _id: userId },
                         { stripeCustomerId: checkedPaymentIntent.customer }
                     ),
-                    
+
                     PaymentService.subscribePlan(
                         stripePlanId,
                         checkedPaymentIntent.customer
@@ -144,15 +144,12 @@ router.post('/create', getUser, async function(req, res) {
                 return sendItemResponse(req, res, project);
             } else {
                 if (IS_SAAS_SERVICE) {
-                    
                     const subscription = await PaymentService.subscribePlan(
                         stripePlanId,
                         user.stripeCustomerId
                     );
                     if (
-                        
                         subscription.subscriptionPaymentStatus === 'canceled' ||
-                        
                         subscription.subscriptionPaymentStatus === 'unpaid'
                     ) {
                         user = await UserService.findOneBy({
@@ -160,7 +157,6 @@ router.post('/create', getUser, async function(req, res) {
                             select: 'email name',
                         });
                         try {
-                            
                             MailService.sendPaymentFailedEmail(
                                 projectName,
                                 user.email,
@@ -216,10 +212,9 @@ router.post('/create', getUser, async function(req, res) {
 // Returns: 200: [{project}]; 400: Error.
 router.get('/projects', getUser, async function(req, res) {
     try {
-        
         const userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
-        
+
         const userProjects = await ProjectService.findBy({
             query: { 'users.userId': userId },
             select: 'parentProjectId _id',
@@ -404,7 +399,7 @@ router.put(
     async function(req, res) {
         try {
             const projectId = req.params.projectId;
-            
+
             const userId = req.user ? req.user.id : null;
 
             if (!projectId) {
@@ -500,7 +495,7 @@ router.delete(
     async function(req, res) {
         try {
             const projectId = req.params.projectId;
-            
+
             const userId = req.user.id;
             const feedback = req.body.feedback;
 
@@ -570,7 +565,7 @@ router.delete(
             }
 
             let userId = null;
-            
+
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'users _id',
@@ -611,7 +606,7 @@ router.post(
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
             const planId = req.body.planId;
-            
+
             const userId = req.user ? req.user.id : null;
             const oldPlan = req.body.oldPlan;
             const newPlan = req.body.newPlan;
@@ -684,7 +679,7 @@ router.put(
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
             const planId = req.body.planId;
-            
+
             const userId = req.user ? req.user.id : null;
             const oldPlan = req.body.oldPlan;
             const newPlan = req.body.newPlan;
@@ -731,7 +726,6 @@ router.put(
                     });
                 }
 
-                
                 const project = await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: 'users',
@@ -778,7 +772,7 @@ router.post(
         try {
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
-            
+
             const userId = req.user ? req.user.id : null;
             const oldPlan = req.body.oldPlan;
 
@@ -838,10 +832,9 @@ router.delete(
     async function(req, res) {
         // Call the ProjectService
         try {
-            
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
-            
+
             const teamMember = await ProjectService.exitProject(
                 projectId,
                 userId
@@ -862,7 +855,6 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function(
     res
 ) {
     try {
-        
         const userId = req.user ? req.user.id : null;
         const parentProjectId = req.params.projectId;
         const subProjectName =
@@ -902,7 +894,7 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function(
         const populate = [{ path: 'parentProjectId', select: 'name' }];
         const select =
             '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-        
+
         subProjects = await ProjectService.findBy({
             query: { _id: subProjects._id },
             select,
@@ -923,7 +915,7 @@ router.delete(
         try {
             const parentProjectId = req.params.projectId;
             const subProjectId = req.params.subProjectId;
-            
+
             const userId = req.user.id;
 
             if (!subProjectId) {
@@ -954,7 +946,7 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function(
     // Call the ProjectService
     try {
         const parentProjectId = req.params.projectId;
-        
+
         const userId = req.user ? req.user.id : null;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
@@ -1090,7 +1082,7 @@ router.put(
                     message: 'New alert limit must be present.',
                 });
             }
-            
+
             const oldProject = await ProjectService.findOneBy({
                 query: { _id: projectId, deleted: false },
                 select: 'alertLimit',

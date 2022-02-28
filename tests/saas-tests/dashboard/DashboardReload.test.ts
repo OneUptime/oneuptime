@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -14,13 +13,10 @@ const user = {
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -31,13 +27,11 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the dashboard page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -51,7 +45,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the components page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -62,7 +55,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
             await init.pageWaitForSelector(page, '#cbComponents', {
                 visible: true,
@@ -79,7 +72,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the incidents page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -90,7 +82,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#incidents');
             await init.pageWaitForSelector(page, '#cbIncidents', {
                 visible: true,
@@ -107,7 +99,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the status-pages and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -118,7 +109,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#statusPages');
             await init.pageWaitForSelector(page, '#cbStatusPages', {
                 visible: true,
@@ -135,7 +126,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the onCall Duty and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -146,7 +136,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#onCallDuty');
             await init.pageWaitForSelector(page, '#cbOn-CallDuty', {
                 visible: true,
@@ -163,7 +153,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the Scheduled Maintenance and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -174,7 +163,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduledMaintenance');
             await init.pageWaitForSelector(
                 page,
@@ -199,7 +188,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the Reports page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -210,7 +198,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#reports');
             await init.pageWaitForSelector(page, '#cbReports', {
                 visible: true,
@@ -227,7 +215,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the Team members and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -238,7 +225,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#teamMembers');
             await init.pageWaitForSelector(page, '#cbTeamMembers', {
                 visible: true,
@@ -255,7 +242,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the Project settings and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -266,7 +252,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#cbProjectSettings', {
                 visible: true,
@@ -283,7 +269,6 @@ describe('OneUptime Page Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should reload the Consulting and Services and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -294,7 +279,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#consultingServices');
             await init.pageWaitForSelector(page, '#consultingServicesPage', {
                 visible: true,

@@ -19,14 +19,14 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!fieldName || !fieldName.trim()) {
             const error = new Error('Field name is required');
-            
+
             error.code = 400;
             throw error;
         }
 
         if (!fieldType || !fieldType.trim()) {
             const error = new Error('Field type is required');
-            
+
             error.code = 400;
             throw error;
         }
@@ -44,7 +44,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             const error = new Error(
                 'Custom field with this name already exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -100,14 +100,14 @@ router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
 
         if (!fieldName || !fieldName.trim()) {
             const error = new Error('Field name is required');
-            
+
             error.code = 400;
             throw error;
         }
 
         if (!fieldType || !fieldType.trim()) {
             const error = new Error('Field type is required');
-            
+
             error.code = 400;
             throw error;
         }
@@ -120,7 +120,7 @@ router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
             const error = new Error(
                 'Custom field with this name already exist'
             );
-            
+
             error.code = 400;
             throw error;
         }

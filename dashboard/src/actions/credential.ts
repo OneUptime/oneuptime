@@ -26,7 +26,7 @@ export const addGitCredential = ({ projectId, data }: $TSFixMe) => async (
             `credential/${projectId}/gitCredential`,
             data
         );
-        
+
         dispatch(addGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -69,7 +69,6 @@ export const updateGitCredential = ({
             data
         );
 
-        
         dispatch(updateGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -106,7 +105,7 @@ export const getGitCredentials = ({ projectId }: $TSFixMe) => async (
 
     try {
         const response = await getApi(`credential/${projectId}/gitCredential`);
-        
+
         dispatch(getGitCredentialsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -143,12 +142,10 @@ export const deleteGitCredential = ({
     dispatch(deleteGitCredentialRequest());
 
     try {
-        
         const response = await deleteApi(
             `credential/${projectId}/gitCredential/${credentialId}`
         );
 
-        
         dispatch(deleteGitCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -190,7 +187,6 @@ export const getGitSecurities = ({
             `security/${projectId}/application/${credentialId}`
         );
 
-        
         dispatch(getGitSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -231,7 +227,7 @@ export const addDockerCredential = ({ projectId, data }: $TSFixMe) => async (
             `credential/${projectId}/dockerCredential`,
             data
         );
-        
+
         dispatch(addDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -274,7 +270,6 @@ export const updateDockerCredential = ({
             data
         );
 
-        
         dispatch(updateDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -313,7 +308,7 @@ export const getDockerCredentials = ({ projectId }: $TSFixMe) => async (
         const response = await getApi(
             `credential/${projectId}/dockerCredential`
         );
-        
+
         dispatch(getDockerCredentialsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -350,12 +345,10 @@ export const deleteDockerCredential = ({
     dispatch(deleteDockerCredentialRequest());
 
     try {
-        
         const response = await deleteApi(
             `credential/${projectId}/dockerCredential/${credentialId}`
         );
 
-        
         dispatch(deleteDockerCredentialSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -397,7 +390,6 @@ export const getDockerSecurities = ({
             `security/${projectId}/container/${credentialId}`
         );
 
-        
         dispatch(getDockerSecuritiesSuccess(response.data));
     } catch (error) {
         const errorMsg =

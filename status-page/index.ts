@@ -1,4 +1,3 @@
-
 import express from 'express';
 import path from 'path';
 const app = express();
@@ -148,15 +147,14 @@ async function handleCustomDomain(
         });
 
     return {
-        
         cert: domainObj.cert,
-        
+
         privateKey: domainObj.privateKey,
-        
+
         autoProvisioning: domainObj.autoProvisioning,
-        
+
         enableHttps: domainObj.enableHttps,
-        
+
         domain: domainObj.domain,
     };
 }

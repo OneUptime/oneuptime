@@ -25,7 +25,6 @@ export function fetchResourceCategories(
         promise.then(
             function(resourceCategories) {
                 dispatch(
-                    
                     fetchResourceCategoriesSuccess(resourceCategories.data)
                 );
             },
@@ -74,7 +73,6 @@ export function createResourceCategory(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(resourceCategory) {
-                
                 dispatch(createResourceCategorySuccess(resourceCategory.data));
             },
             function(error) {
@@ -111,7 +109,6 @@ export function updateResourceCategory(
         promise.then(
             function(updatedResourceCategory) {
                 dispatch(
-                    
                     updateResourceCategorySuccess(updatedResourceCategory.data)
                 );
             },
@@ -181,7 +178,6 @@ export function deleteResourceCategory(
     projectId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = deleteApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`
         );
@@ -190,7 +186,6 @@ export function deleteResourceCategory(
         promise.then(
             function(resourceCategory) {
                 dispatch(
-                    
                     deleteResourceCategorySuccess(resourceCategory.data._id)
                 );
             },
@@ -246,7 +241,6 @@ export function fetchResourceCategoriesForNewResource(projectId: $TSFixMe) {
             function(resourceCategories) {
                 dispatch(
                     fetchResourceCategoriesForNewResourceSuccess(
-                        
                         resourceCategories.data
                     )
                 );

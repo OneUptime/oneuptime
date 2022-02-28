@@ -46,7 +46,7 @@ export default {
             const error = new Error(
                 'You need at least one monitor to create an incoming request'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -59,7 +59,7 @@ export default {
             const error = new Error(
                 'You cannot have multiple selection of a monitor'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -145,7 +145,7 @@ export default {
         // create a unique request url
         // update incomingRequest collection with the new url
         const _this = this;
-        
+
         const requestUrl = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
         const updatedIncomingRequest = await _this.updateOneBy(
             { requestId, projectId },
@@ -176,7 +176,7 @@ export default {
                 const error = new Error(
                     'You need at least one monitor to update a scheduled event'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -185,7 +185,7 @@ export default {
                 const error = new Error(
                     'You cannot have multiple selection of a monitor'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -329,7 +329,7 @@ export default {
             const error = new Error(
                 'Incoming request not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -421,7 +421,7 @@ export default {
             const error = new Error(
                 'Incoming request not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -617,7 +617,6 @@ export default {
 
             let monitors = [];
             if (incomingRequest.selectAllMonitors) {
-                
                 const projectIds = await ProjectService.findBy({
                     query: { parentProjectId: data.projectId },
                     select: '_id',
@@ -797,13 +796,11 @@ export default {
                     ).toLowerCase();
                     const priorityObj = {};
                     incidentPriorities.forEach(
-                        
                         (priority: $TSFixMe) =>
                             (priorityObj[priority.name.toLowerCase()] =
                                 priority._id)
                     );
                     data.incidentPriority =
-                        
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
@@ -902,13 +899,11 @@ export default {
                     ).toLowerCase();
                     const priorityObj = {};
                     incidentPriorities.forEach(
-                        
                         (priority: $TSFixMe) =>
                             (priorityObj[priority.name.toLowerCase()] =
                                 priority._id)
                     );
                     data.incidentPriority =
-                        
                         priorityObj[incidentPriority] ||
                         incidentSettings.incidentPriority;
 
@@ -941,7 +936,7 @@ export default {
             let created_incidents = new Set(
                 incidentResponse.map(response => response.idNumber)
             );
-            
+
             created_incidents = [...created_incidents];
             return {
                 status: 'success',
@@ -956,7 +951,7 @@ export default {
                 incomingRequest.updateInternalNote)
         ) {
             let subProjectIds = [];
-            
+
             const subProjects = await ProjectService.findBy({
                 query: {
                     parentProjectId:
@@ -1301,7 +1296,6 @@ export default {
                         fieldType: 'string',
                     });
 
-                    
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
                             const filterCriteria = filter.filterCriteria,
@@ -1490,7 +1484,7 @@ export default {
                 incomingRequest.resolveIncident)
         ) {
             let subProjectIds = [];
-            
+
             const subProjects = await ProjectService.findBy({
                 query: {
                     parentProjectId:
@@ -1845,7 +1839,6 @@ export default {
                         fieldType: 'string',
                     });
 
-                    
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
                             const filterCriteria = filter.filterCriteria,

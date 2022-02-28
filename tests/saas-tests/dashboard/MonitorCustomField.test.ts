@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -21,13 +20,10 @@ const user = {
     password,
 };
 
-
 describe('Monitor Custom Field', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -39,13 +35,11 @@ describe('Monitor Custom Field', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should configure monitor custom field in a project',
         async (done: $TSFixMe) => {
@@ -62,7 +56,6 @@ describe('Monitor Custom Field', () => {
         operationTimeOut
     );
 
-    
     test(
         'should update a monitor custom field in a project',
         async (done: $TSFixMe) => {
@@ -73,36 +66,35 @@ describe('Monitor Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#monitor', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#monitor');
 
-            
             await init.pageClick(page, '.monitor-sla-advanced');
 
             await init.pageWaitForSelector(page, '#editCustomField_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#editCustomField_0');
             await init.pageWaitForSelector(page, '#customFieldForm', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#fieldName', { clickCount: 3 });
-            
+
             await init.pageType(
                 page,
                 '#fieldName',
@@ -113,7 +105,7 @@ describe('Monitor Custom Field', () => {
                 monitorFieldNumber.fieldType,
                 page
             );
-            
+
             await init.pageClick(page, '#updateCustomField');
             await init.pageWaitForSelector(page, '#updateCustomField', {
                 hidden: true,
@@ -130,7 +122,6 @@ describe('Monitor Custom Field', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete a monitor custom field in a project',
         async (done: $TSFixMe) => {
@@ -141,35 +132,34 @@ describe('Monitor Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#monitor', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#monitor');
 
-            
             await init.pageClick(page, '.monitor-sla-advanced');
 
             await init.pageWaitForSelector(page, '#deleteCustomField_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteCustomField_0');
             await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteCustomFieldModalBtn');
             await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 hidden: true,

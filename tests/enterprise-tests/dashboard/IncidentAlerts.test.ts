@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,13 +16,10 @@ const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const callScheduleName = utils.generateRandomString();
 
-
 describe('Schedule', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -58,17 +54,17 @@ describe('Schedule', () => {
                 phoneNumber: '9173976128',
             }
         );
-        
+
         await init.addSchedule(callScheduleName, page);
-        
+
         await init.pageWaitForSelector(page, 'table tbody tr:first-child');
-        
+
         await init.pageClick(page, 'table tbody tr:first-child');
-        
+
         await init.pageWaitForSelector(page, '#btnSaveMonitors');
-        
+
         await init.pageClick(page, '#scheduleMonitor_0');
-        
+
         await init.pageClick(page, '#btnSaveMonitors');
         await init.page$Eval(
             page,
@@ -90,38 +86,35 @@ describe('Schedule', () => {
             'Test Name',
             page
         );
-        
+
         await init.pageClick(page, '#saveSchedulePolicy');
 
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should send on-call and external subscribers alerts when an incident is created.',
         async (done: $TSFixMe) => {
-            
             await init.addIncident(monitorName, 'offline', page);
-            
+
             await init.pageWaitForSelector(page, '#viewIncident-0');
-            
+
             await init.pageClick(page, '#viewIncident-0');
-            
+
             await init.pageWaitForSelector(page, '#react-tabs-4');
-            
+
             await init.pageClick(page, '#react-tabs-4');
-            
+
             await init.pageWaitForSelector(page, '#TeamAlertLogBox');
 
             const firstOncallAlertStatusSelector =
                 '#TeamAlertLogBox tbody tr:nth-last-of-type(1) td:last-of-type';
-            
+
             await init.pageWaitForSelector(
                 page,
                 firstOncallAlertStatusSelector
@@ -135,7 +128,6 @@ describe('Schedule', () => {
 
             expect(firstOncallAlertStatus).toEqual('Success');
 
-            
             await init.pageWaitForSelector(page, '#subscriberAlertTable');
             const subscriberAlertStatusSelector =
                 '#subscriberAlertTable tbody tr:first-of-type td:nth-last-of-type(1)';

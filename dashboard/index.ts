@@ -17,7 +17,6 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-
 import express from 'express';
 import path from 'path';
 const app = express();
@@ -49,40 +48,37 @@ app.get(['/env.js', '/dashboard/env.js'], function(
 ) {
     const isClustLocal = req.get('host').includes('cluster.local');
     if (!isClustLocal) {
-        
         global.dashboardHost = 'https://' + req.host + '/dashboard';
-        
+
         global.homeHost = 'https://' + req.host;
-        
+
         global.accountsHost = 'https://' + req.host + '/accounts';
-        
+
         global.backendHost = 'https://' + req.host + '/api';
-        
+
         global.realtimeHost = 'https://' + req.host + '/realtime';
     }
     if (req.host.includes('localhost')) {
         if (req.get('host').includes('localhost:')) {
-            
             global.dashboardHost =
                 'http://' + req.host + ':' + (process.env.PORT || 3002);
-            
+
             global.accountsHost = 'http://' + req.host + ':' + 3003;
-            
+
             global.homeHost = 'http://' + req.host + ':' + 1444;
-            
+
             global.backendHost = 'http://' + req.host + ':' + 3002;
-            
+
             global.realtimeHost = 'http://' + req.host + ':' + 3300;
         } else if (!isClustLocal) {
-            
             global.dashboardHost = 'http://' + req.host + '/dashboard';
-            
+
             global.accountsHost = 'http://' + req.host + '/accounts';
-            
+
             global.homeHost = 'http://' + req.host;
-            
+
             global.backendHost = 'http://' + req.host + '/api';
-            
+
             global.realtimeHost = 'http://' + req.host + '/realtime';
         }
     }
@@ -90,11 +86,10 @@ app.get(['/env.js', '/dashboard/env.js'], function(
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
         ...(!isClustLocal && {
-            
             REACT_APP_HOST: global.dashboardHost,
-            
+
             REACT_APP_ACCOUNTS_HOST: global.accountsHost,
-            
+
             REACT_APP_BACKEND_HOST: global.backendHost,
         }),
         REACT_APP_DOMAIN: req.host,

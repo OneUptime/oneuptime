@@ -54,7 +54,6 @@ export default function register(state = initialState, action: $TSFixMe) {
                 error: null,
             });
         case SIGNUP_SUCCESS:
-            
             state.user.cardRegistered = action.payload.cardRegistered;
             return Object.assign({}, state, {
                 requesting: false,

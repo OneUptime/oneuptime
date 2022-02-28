@@ -2,53 +2,52 @@ export default {
     create: async function(data: $TSFixMe) {
         const LogHour = new MonitorLogByHourModel();
 
-        
         LogHour.monitorId = data.monitorId;
-        
+
         LogHour.probeId = data.probeId;
-        
+
         LogHour.status = data.status;
-        
+
         LogHour.responseTime = data.responseTime;
-        
+
         LogHour.responseStatus = data.responseStatus;
-        
+
         LogHour.cpuLoad = data.cpuLoad;
-        
+
         LogHour.avgCpuLoad = data.avgCpuLoad;
-        
+
         LogHour.cpuCores = data.cpuCores;
-        
+
         LogHour.memoryUsed = data.memoryUsed;
-        
+
         LogHour.totalMemory = data.totalMemory;
-        
+
         LogHour.swapUsed = data.swapUsed;
-        
+
         LogHour.storageUsed = data.storageUsed;
-        
+
         LogHour.totalStorage = data.totalStorage;
-        
+
         LogHour.storageUsage = data.storageUsage;
-        
+
         LogHour.mainTemp = data.mainTemp;
-        
+
         LogHour.maxTemp = data.maxTemp;
-        
+
         LogHour.maxResponseTime = data.responseTime;
-        
+
         LogHour.maxCpuLoad = data.cpuLoad;
-        
+
         LogHour.maxMemoryUsed = data.memoryUsed;
-        
+
         LogHour.maxStorageUsed = data.storageUsed;
-        
+
         LogHour.maxMainTemp = data.mainTemp;
-        
+
         LogHour.intervalDate = data.intervalDate;
-        
+
         LogHour.sslCertificate = data.sslCertificate;
-        
+
         LogHour.kubernetesLog = data.kubernetesData || {};
 
         const savedLogHour = await LogHour.save();

@@ -52,7 +52,6 @@ export default {
             const select =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
-            
             const subProjects = await ProjectService.findBy({
                 query,
                 select,

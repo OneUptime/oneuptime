@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -65,11 +64,9 @@ const updatedInvestigationNote = {
     content: 'Just updated this note',
 };
 
-
 describe('Scheduled Event Note', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -189,7 +186,6 @@ describe('Scheduled Event Note', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -211,7 +207,6 @@ describe('Scheduled Event Note', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should get all scheduled event notes => internal notes', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -229,7 +224,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should get first 10 scheduled event notes for data length 10, skip 0, limit 10 and count 12 => internal notes', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -259,7 +253,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should get 2 last scheduled events notes with data length 2, skip 10, limit 10 and count 12 => internal notes', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -289,7 +282,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should create a scheduled event note => internal note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -305,7 +297,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should create a scheduled event note => investigation note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -321,7 +312,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should not create a scheduled event note if any of the field is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -335,7 +325,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should not creat a scheduled event note if type field is not investigation or internal', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -349,7 +338,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should update a note => internal note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -368,7 +356,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should update a note => investigation note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -387,7 +374,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should not update a note if the scheduled event note does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const noteId = projectId;
@@ -404,7 +390,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should delete a scheduled event note => internal note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -420,7 +405,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should delete a scheduled event note => investigation note', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -436,7 +420,6 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    
     it('should note delete a scheduled event note if it does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const noteId = projectId;

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -24,9 +23,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 describe('Sub-Project API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,13 +35,11 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should create a new sub-project',
         async (done: $TSFixMe) => {
@@ -60,22 +55,22 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
 
             await init.pageWaitForSelector(page, '#btn_Add_SubProjects', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#btn_Add_SubProjects');
             await init.pageWaitForSelector(page, '#title', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageType(page, '#title', subProjectName);
-            
+
             await init.pageClick(page, '#btnAddSubProjects');
             await init.pageWaitForSelector(page, '#title', { hidden: true });
             const subProjectSelector = await init.pageWaitForSelector(
@@ -94,7 +89,6 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test('should invite viewer to a subproject', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -103,7 +97,7 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#teamMembers');
         let prevMemberCount = await init.page$Eval(
             page,
@@ -118,20 +112,20 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        
+
         await init.pageClick(page, `button[id=btn_${subProjectName}]`);
         await init.pageWaitForSelector(page, `#frm_${subProjectName}`, {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageType(page, 'input[name=emails]', email);
-        
+
         await init.pageClick(page, `#${role}_${subProjectName}`);
         await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
             visible: true,
         });
-        
+
         await init.pageClick(page, `#btn_modal_${subProjectName}`);
         await init.pageWaitForSelector(page, `#btn_modal_${subProjectName}`, {
             hidden: true,
@@ -149,7 +143,6 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    
     test('should invite viewer to a project', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -158,7 +151,7 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#teamMembers');
         await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
@@ -177,22 +170,22 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        
+
         await init.pageClick(page, `button[id=btn_${newProjectName}]`);
         await init.pageWaitForSelector(page, `#frm_${newProjectName}`, {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageType(page, 'input[name=emails]', projectViewer.email);
-        
+
         await init.pageClick(page, `#${role}_${newProjectName}`);
         await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
             visible: true,
         });
-        
+
         await init.pageClick(page, `#btn_modal_${newProjectName}`);
-        
+
         const elem = await init.page$(page, 'button[id=btnConfirmInvite]');
         elem.click();
         await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
@@ -211,7 +204,6 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    
     test('should create a status page', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
@@ -220,7 +212,7 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#statusPages');
         await init.pageWaitForSelector(
             page,
@@ -254,16 +246,15 @@ describe('Sub-Project API', () => {
         done();
     });
 
-    
     test(
         'should display subproject status pages to a subproject viewer',
         async (done: $TSFixMe) => {
             // Login as viewer
             await init.logout(page);
             await init.loginProjectViewer({ email, password }, page);
-            
+
             await init.pageWaitForSelector(page, '#statusPages');
-            
+
             await init.pageClick(page, '#statusPages');
 
             await init.pageWaitForSelector(page, '#statusPageTable_0', {
@@ -280,7 +271,6 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should display project and subproject status pages to project viewers',
         async (done: $TSFixMe) => {
@@ -290,13 +280,13 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#AccountSwitcherId');
             await init.pageWaitForSelector(page, '#accountSwitcher', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             const element = await init.page$(
                 page,
                 `#accountSwitcher > div[title=${newProjectName}]`
@@ -306,14 +296,13 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             const projectStatusPages = await init.page$(
                 page,
                 '#statusPageTable'
             );
             expect(projectStatusPages).not.toEqual(null);
 
-            
             const subProjectStatusPages = await init.page$(
                 page,
                 '#statusPageTable_0'
@@ -324,7 +313,6 @@ describe('Sub-Project API', () => {
         operationTimeOut
     );
 
-    
     test('should redirect viewer to external status page', async (done: $TSFixMe) => {
         await init.logout(page);
         await init.loginProjectViewer(projectViewer, page);
@@ -332,13 +320,13 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#AccountSwitcherId');
         await init.pageWaitForSelector(page, '#accountSwitcher', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         const element = await init.page$(
             page,
             `#accountSwitcher > div[title=${newProjectName}]`

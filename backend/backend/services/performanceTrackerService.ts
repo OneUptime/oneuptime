@@ -22,7 +22,7 @@ export default {
             // send an error if the component doesnt exist
             if (!componentCount || componentCount === 0) {
                 const error = new Error('Component does not exist.');
-                
+
                 error.code = 400;
                 ErrorService.log('performanceTrackerService.create', error);
                 throw error;
@@ -39,7 +39,7 @@ export default {
                 const error = new Error(
                     'Performance tracker with that name already exists.'
                 );
-                
+
                 error.code = 400;
                 ErrorService.log('performanceTrackerService.create', error);
                 throw error;
@@ -153,7 +153,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -207,7 +207,6 @@ export default {
             });
         if (performanceTracker) {
             try {
-                
                 NotificationService.create(
                     performanceTracker.componentId.projectId._id ||
                         performanceTracker.componentId.projectId,
@@ -251,7 +250,6 @@ export default {
         );
 
         if (unsetData) {
-            
             performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },

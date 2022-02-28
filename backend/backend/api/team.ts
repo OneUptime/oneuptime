@@ -36,10 +36,8 @@ router.get(
     isAuthorized,
     getSubProjects,
     async function(req, res) {
-        
         const subProjectIds = req.user.subProjects
-            ? 
-              req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
         try {
             const subProjectTeamMembers = await Promise.all(
@@ -110,7 +108,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     res
 ) {
     const data = req.body;
-    
+
     const userId = req.user ? req.user : null;
     const { projectId } = req.params;
 
@@ -175,7 +173,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
         // Call the TeamService
         const users = await TeamService.inviteTeamMembers(
-            
             req.user.id,
             projectId,
             data.emails,
@@ -214,7 +211,6 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        
         const userId = req.user ? req.user.id : null;
         const teamMemberUserId = req.params.teamMemberId;
         const projectId = req.params.projectId;
@@ -293,7 +289,6 @@ router.put(
             });
         }
 
-        
         const userId = req.user ? req.user.id : null;
         const teamMemberId = data.teamMemberId;
 
@@ -315,12 +310,11 @@ router.put(
                 );
 
                 try {
-                    
                     NotificationService.create(
                         projectId,
-                        
+
                         `A team members role was updated by ${req.user.name}`,
-                        
+
                         req.user.id,
                         'information'
                     );
@@ -337,12 +331,11 @@ router.put(
                     data.role
                 );
                 try {
-                    
                     NotificationService.create(
                         projectId,
-                        
+
                         `A team members role was updated by ${req.user.name}`,
-                        
+
                         req.user.id,
                         'information'
                     );

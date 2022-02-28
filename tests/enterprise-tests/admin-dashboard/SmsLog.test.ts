@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -10,13 +9,10 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-
 describe('SMS Logs', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -27,7 +23,7 @@ describe('SMS Logs', () => {
             email: email,
             password: password,
         };
-        
+
         await init.registerEnterpriseUser(user, page, false);
         await init.addGlobalTwilioSettings(
             true,
@@ -40,44 +36,42 @@ describe('SMS Logs', () => {
         );
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should delete all SMS logs from the table',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
-            
+
             await init.pageWaitForSelector(page, '#twilio');
-            
+
             await init.pageClick(page, '#twilio');
-            
+
             await init.pageWaitForSelector(page, 'button[type=submit]');
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#smsLogs');
-            
+
             await init.pageClick(page, '#smsLogs');
-            
+
             await init.pageWaitForSelector(page, '#deleteLog');
-            
+
             await init.pageClick(page, '#deleteLog');
-            
+
             await init.pageWaitForSelector(page, '#confirmDelete');
-            
+
             await init.pageClick(page, '#confirmDelete');
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
@@ -94,38 +88,37 @@ describe('SMS Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not delete SMS logs from the table',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
-            
+
             await init.pageWaitForSelector(page, '#twilio');
-            
+
             await init.pageClick(page, '#twilio');
-            
+
             await init.pageWaitForSelector(page, 'button[type=submit]');
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#smsLogs');
-            
+
             await init.pageClick(page, '#smsLogs');
-            
+
             await init.pageWaitForSelector(page, '#deleteLog');
-            
+
             await init.pageClick(page, '#deleteLog');
-            
+
             await init.pageWaitForSelector(page, '#cancelSmsDelete');
-            
+
             await init.pageClick(page, '#cancelSmsDelete');
 
             const rowNum = await init.page$$Eval(
@@ -139,61 +132,60 @@ describe('SMS Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should check if logs are prefilled again after deleting logs',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             //perform an sms related action
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
-            
+
             await init.pageWaitForSelector(page, '#twilio');
-            
+
             await init.pageClick(page, '#twilio');
-            
+
             await init.pageWaitForSelector(page, 'button[type=submit]');
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
             //delete all logs
-            
+
             await init.pageWaitForSelector(page, '#smsLogs');
-            
+
             await init.pageClick(page, '#smsLogs');
-            
+
             await init.pageWaitForSelector(page, '#deleteLog');
-            
+
             await init.pageClick(page, '#deleteLog');
-            
+
             await init.pageWaitForSelector(page, '#confirmDelete');
-            
+
             await init.pageClick(page, '#confirmDelete');
             //perform another sms related event
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
-            
+
             await init.pageWaitForSelector(page, '#twilio');
-            
+
             await init.pageClick(page, '#twilio');
-            
+
             await init.pageWaitForSelector(page, 'button[type=submit]');
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#smsLogs');
-            
+
             await init.pageClick(page, '#smsLogs');
 
             const rowNum = await init.page$$Eval(
@@ -207,22 +199,21 @@ describe('SMS Logs', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should note that SMS logs are currently enabled',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#smsLogs');
-            
+
             await init.pageClick(page, '#smsLogs');
 
             // count currently available logs
-            
+
             let logCount = await init.pageWaitForSelector(
                 page,
                 `#sms-log-count`
@@ -232,37 +223,37 @@ describe('SMS Logs', () => {
             logCount = Number(logCount.split(' ')[0]);
 
             // goto other pages
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
-            
+
             await init.pageWaitForSelector(page, '#twilio');
-            
+
             await init.pageClick(page, '#twilio');
-            
+
             await init.pageWaitForSelector(page, 'button[type=submit]');
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             //wait for 2seconds so the server would have sent the sms
             page.waitFor(2000);
             // come back to logs page probes
-            
+
             await init.pageWaitForSelector(page, '#probes');
-            
+
             await init.pageClick(page, '#probes');
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#smsLogs');
-            
+
             await init.pageClick(page, '#smsLogs');
 
             // get the new log count
-            
+
             let newLogCount = await init.pageWaitForSelector(
                 page,
                 `#sms-log-count`
@@ -275,30 +266,30 @@ describe('SMS Logs', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should disable SMS logs',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#smsLogs');
-            
+
             await init.pageClick(page, '#smsLogs');
 
             // visit the SMS log settings page by clicking on settings first to show drop down
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
 
             // click on th SMS log
-            
+
             await init.pageWaitForSelector(page, '#smsLog');
-            
+
             await init.pageClick(page, '#smsLog');
 
             // turn SMS log off
@@ -309,23 +300,23 @@ describe('SMS Logs', () => {
             );
 
             // click the submit button
-            
+
             await init.pageWaitForSelector(page, '#smsLogSubmit');
-            
+
             await init.pageClick(page, '#smsLogSubmit');
 
             // go back to SMS logs page
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
-            
+
             await init.pageWaitForSelector(page, '#smsLogs');
-            
+
             await init.pageClick(page, '#smsLogs');
 
             // look for the alert panel
-            
+
             const alertPanelElement = await init.pageWaitForSelector(
                 page,
                 `#smsLogDisabled`

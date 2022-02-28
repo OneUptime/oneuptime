@@ -32,9 +32,8 @@ export const fetchAuditLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
     dispatch(fetchAuditLogsRequest());
 
     try {
-        
         const response = await getApi(`audit-logs?skip=${skip}&limit=${limit}`);
-        
+
         const data = response.data;
 
         dispatch(fetchAuditLogsSuccess(data));
@@ -89,12 +88,11 @@ export const searchAuditLogs = (
     dispatch(searchAuditLogsRequest());
 
     try {
-        
         const response = await postApi(
             `audit-logs/search?skip=${skip}&limit=${limit}`,
             values
         );
-        
+
         const data = response.data;
 
         dispatch(searchAuditLogsSuccess(data));
@@ -140,9 +138,8 @@ export const deleteAuditLogs = () => async (dispatch: $TSFixMe) => {
     dispatch(deleteAuditLogsRequest());
 
     try {
-        
         const response = await deleteApi(`audit-logs`);
-        
+
         const message = response.data.message;
 
         dispatch(deleteAuditLogsSuccess(message));
@@ -193,13 +190,11 @@ export const resetFetchAuditLogStatus = () => {
 
 // Calls the API to fetch auditLogStatus
 export const fetchAuditLogStatus = () => async (dispatch: $TSFixMe) => {
-    
     dispatch(fetchAuditLogStatusRequest());
 
     try {
-        
         const response = await getApi('globalConfig/auditLogMonitoringStatus');
-        
+
         dispatch(fetchAuditLogStatusSuccess(response.data));
         return response;
     } catch (error) {
@@ -252,15 +247,13 @@ export const resetConfirmAuditLogStatus = () => {
 export const auditLogStatusChange = (values: $TSFixMe) => async (
     dispatch: $TSFixMe
 ) => {
-    
     dispatch(changeAuditLogStatusRequest());
 
     try {
-        
         const response = await postApi('globalConfig/', [
             { name: 'auditLogMonitoringStatus', value: values.status },
         ]);
-        
+
         const data = response.data;
         dispatch(changeAuditLogStatusSuccess(data));
         return data;

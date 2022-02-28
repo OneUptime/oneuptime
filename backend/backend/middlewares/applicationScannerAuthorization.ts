@@ -80,13 +80,12 @@ export default {
                 // if cluster key matches then just query by applicationScanner name,
                 // because if the applicationScanner key does not match, we can update applicationScanner key later
                 // without updating mongodb database manually.
-                
+
                 applicationScanner = await ApplicationScannerService.findOneBy({
                     query: { applicationScannerName },
                     select: '_id applicationScannerKey',
                 });
             } else {
-                
                 applicationScanner = await ApplicationScannerService.findOneBy({
                     query: { applicationScannerKey, applicationScannerName },
                     select: '_id applicationScannerKey',
@@ -129,7 +128,6 @@ export default {
             req.applicationScanner.id = applicationScanner._id;
 
             const [applicationScannerValue] = await Promise.all([
-                
                 ApplicationScannerService.findOneBy({
                     query: { applicationScannerKey, applicationScannerName },
                     select: 'version',

@@ -10,7 +10,7 @@ export default {
     ) {
         const self = this;
         let response;
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProject _id slug name',
@@ -26,19 +26,19 @@ export default {
         if (incidentStatus === INCIDENT_RESOLVED) {
             query = {
                 ...query,
-                
+
                 'notificationOptions.incidentResolved': true,
             };
         } else if (incidentStatus === INCIDENT_CREATED) {
             query = {
                 ...query,
-                
+
                 'notificationOptions.incidentCreated': true,
             };
         } else if (incidentStatus === INCIDENT_ACKNOWLEDGED) {
             query = {
                 ...query,
-                
+
                 'notificationOptions.incidentAcknowledged': true,
             };
         } else {
@@ -83,7 +83,6 @@ export default {
         component: $TSFixMe,
         duration: $TSFixMe
     ) {
-        
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';
@@ -217,7 +216,7 @@ export default {
     ) {
         const self = this;
         let response;
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProject _id slug',
@@ -271,7 +270,6 @@ export default {
         data: $TSFixMe,
         monitor: $TSFixMe
     ) {
-        
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
 
         const payload = {

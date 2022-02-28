@@ -16,7 +16,6 @@ async function handleFetchingDomains() {
         select: 'domains',
     });
 
-    
     for (const statusPage of statusPages) {
         for (const domain of statusPage.domains) {
             if (
@@ -42,7 +41,7 @@ async function handleFetchingDomains() {
 export default async function() {
     try {
         const domains = await handleFetchingDomains();
-        
+
         const greenlock = global.greenlock;
         if (greenlock) {
             for (const domain of domains) {

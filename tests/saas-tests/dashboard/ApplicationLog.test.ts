@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,13 +12,10 @@ const user = {
 const componentName = utils.generateRandomString();
 const applicationLogName = 'AppLogName';
 
-
 describe('Log Containers', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -29,13 +25,11 @@ describe('Log Containers', () => {
         await init.registerUser(user, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should create new component',
         async (done: $TSFixMe) => {
@@ -46,22 +40,22 @@ describe('Log Containers', () => {
             await init.pageWaitForSelector(page, '#components', {
                 timeout: 120000,
             });
-            
+
             await init.pageClick(page, '#components');
 
             // Fill and submit New Component form
-            
+
             await init.pageWaitForSelector(page, '#form-new-component');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', componentName);
-            
+
             await init.pageClick(page, '#addComponentButton');
             await init.pageWaitForSelector(page, '#form-new-monitor', {
                 visible: true,
@@ -74,10 +68,9 @@ describe('Log Containers', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `span#component-title-${componentName}`
@@ -90,33 +83,32 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should create new log container and confirm that it redirects to the details page',
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
 
             // Fill and submit New Application  log form
-            
+
             await init.pageWaitForSelector(page, '#form-new-application-log');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', applicationLogName);
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `span#application-log-title-${applicationLogName}`
@@ -126,7 +118,7 @@ describe('Log Containers', () => {
             spanElement.should.be.exactly(applicationLogName);
 
             // find the log api key button which appears only on the details page
-            
+
             const logKeyElement = await init.pageWaitForSelector(
                 page,
                 `#key_${applicationLogName}`
@@ -137,7 +129,7 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    
+
     test.skip(
         'Should create new resource category then redirect to application log page to create a container under that',
         async (done: $TSFixMe) => {
@@ -148,40 +140,40 @@ describe('Log Containers', () => {
             //navigate to component details
             await init.navigateToComponentDetails(componentName, page);
             // go to logs
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
             // create a new log and select the category
             // Fill and submit New Application  log form
-            
+
             await init.pageWaitForSelector(page, '#cbLogs');
-            
+
             await init.pageClick(page, '#newFormId');
-            
+
             await init.pageWaitForSelector(page, '#form-new-application-log');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', appLogName);
             await init.selectDropdownValue(
                 '#resourceCategory',
                 categoryName,
                 page
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
             // confirm the category shows in the details page.
             await init.pageWaitForSelector(page, `#${appLogName}Badge`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#${appLogName}Badge`
@@ -194,34 +186,34 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should not create new log container',
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            
+
             await init.pageWaitForSelector(page, '#logs');
-            
+
             await init.pageClick(page, '#logs');
 
             // Fill and submit New Application  log form
-            
+
             await init.pageWaitForSelector(page, '#cbLogs');
-            
+
             await init.pageClick(page, '#newFormId');
-            
+
             await init.pageWaitForSelector(page, '#form-new-application-log');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', '');
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             await init.pageWaitForSelector(
@@ -229,7 +221,7 @@ describe('Log Containers', () => {
                 '#form-new-application-log span#field-error',
                 { visible: true, timeout: init.timeout }
             );
-            
+
             let spanElement = await init.page$(
                 page,
                 '#form-new-application-log span#field-error'
@@ -242,7 +234,7 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should open details page of created log container',
         async (done: $TSFixMe) => {
@@ -252,7 +244,6 @@ describe('Log Containers', () => {
                 page
             );
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#application-log-title-${applicationLogName}`
@@ -265,7 +256,7 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should display warning for empty log container',
         async (done: $TSFixMe) => {
@@ -277,7 +268,7 @@ describe('Log Containers', () => {
             );
 
             // get the error element, Expect it to be defined
-            
+
             const errorElement = await init.pageWaitForSelector(
                 page,
                 `#${applicationLogName}-no-log-warning`
@@ -288,7 +279,7 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should filter log container by selected log type',
         async (done: $TSFixMe) => {
@@ -300,12 +291,12 @@ describe('Log Containers', () => {
             );
 
             // toggle the filter section
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#filter_${applicationLogName}`
             );
-            
+
             await init.pageClick(page, `#filter_${applicationLogName}`);
 
             // select the drop down and confirm the current value as all

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,9 +16,8 @@ describe('SMS Templates API', () => {
     const operationTimeOut = init.timeout;
 
     let initialTemplate: $TSFixMe;
-    
+
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,39 +30,37 @@ describe('SMS Templates API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not show reset button if sms template is not saved yet',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#smsCalls');
-            
+
             await init.pageClick(page, '#smsCalls');
-            
+
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
                 'Subscriber Incident Created',
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#templateField');
             initialTemplate = await init.page$Eval(
                 page,
@@ -85,41 +81,40 @@ describe('SMS Templates API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should update default sms template',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#smsCalls');
-            
+
             await init.pageClick(page, '#smsCalls');
-            
+
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
                 ' Subscriber Incident Created',
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#frmSmsTemplate');
             const newTemplate = 'New Body';
             await init.pageClick(page, 'textarea[name=body]', {
                 clickCount: 3,
             });
-            
+
             await init.pageType(page, 'textarea[name=body]', newTemplate);
-            
+
             await init.pageClick(page, '#saveTemplate');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -133,7 +128,7 @@ describe('SMS Templates API', () => {
                 'Subscriber Incident Created',
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#frmSmsTemplate');
 
             const smsTemplateBody = await init.page$Eval(
@@ -148,26 +143,25 @@ describe('SMS Templates API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should show reset button when a template is already saved',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#smsCalls');
-            
+
             await init.pageClick(page, '#smsCalls');
-            
+
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
@@ -189,26 +183,25 @@ describe('SMS Templates API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should reset template to default state',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#smsCalls');
-            
+
             await init.pageClick(page, '#smsCalls');
-            
+
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
@@ -216,27 +209,26 @@ describe('SMS Templates API', () => {
                 page
             );
 
-            
             await init.pageWaitForSelector(page, '#templateReset');
-            
+
             await init.pageClick(page, '#templateReset');
-            
+
             await init.pageWaitForSelector(page, '#ResetSmsTemplate');
-            
+
             await init.pageClick(page, '#ResetSmsTemplate');
 
             await init.pageWaitForSelector(page, '#ResetSmsTemplate', {
                 hidden: true,
             });
             await page.reload();
-            
+
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
                 'Subscriber Incident Created',
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#templateField');
             const template = await init.page$Eval(
                 page,

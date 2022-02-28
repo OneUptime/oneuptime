@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -10,13 +9,10 @@ require('should');
 const userEmail = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-
 describe('Enterprise License API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -28,43 +24,40 @@ describe('Enterprise License API', () => {
             password: password,
         };
         // user
-        
+
         await init.registerEnterpriseUser(user, page, false);
         //await browser.close();
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should not confirm expired license',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
 
-            
             await init.pageWaitForSelector(page, '#license');
-            
+
             await init.pageClick(page, 'input[name=license]');
-            
+
             await init.pageType(page, 'input[name=license]', 'expired-license');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(
                 page,
                 'input[name=email]',
                 utils.generateRandomBusinessEmail()
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             const expiredError = await init.page$Eval(

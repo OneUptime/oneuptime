@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,13 +16,10 @@ const anotherEmail = utils.generateRandomBusinessEmail();
 
 const subProjectName = utils.generateRandomString();
 
-
 describe('Team API With SubProjects', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -48,13 +44,12 @@ describe('Team API With SubProjects', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
     // No need for switchProject as the tests were carried out in the created project from 'email' and 'password'
-    
+
     test(
         'should add a new user to parent project and all sub-projects (role -> `Administrator`)',
         async (done: $TSFixMe) => {
@@ -63,37 +58,35 @@ describe('Team API With SubProjects', () => {
             });
             const role = 'Administrator';
 
-            
             await init.pageWaitForSelector(page, '#teamMembers');
-            
+
             await init.pageClick(page, '#teamMembers');
-            
+
             await init.pageWaitForSelector(page, `#btn_${projectName}`);
-            
+
             await init.pageClick(page, `#btn_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#emails_${projectName}`);
-            
+
             await init.pageClick(page, `#emails_${projectName}`);
-            
+
             await init.pageType(page, `#emails_${projectName}`, anotherEmail);
-            
+
             await init.pageClick(page, `#${role}_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#btn_modal_${projectName}`);
-            
+
             await init.pageClick(page, `#btn_modal_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, '#btnConfirmInvite');
-            
+
             await init.pageClick(page, '#btnConfirmInvite');
             await init.pageWaitForSelector(page, `#btn_modal_${projectName}`, {
                 hidden: true,
             });
 
-            
             await init.pageWaitForSelector(page, `#count_${projectName}`);
             const memberCount = await init.page$Eval(
                 page,
@@ -107,7 +100,6 @@ describe('Team API With SubProjects', () => {
         init.timeout
     );
 
-    
     test(
         'should not allow project owner to add other project owners',
         async (done: $TSFixMe) => {
@@ -116,15 +108,14 @@ describe('Team API With SubProjects', () => {
             });
             const role = 'Owner';
 
-            
             await init.pageWaitForSelector(page, '#teamMembers');
-            
+
             await init.pageClick(page, '#teamMembers');
-            
+
             await init.pageWaitForSelector(page, `#btn_${projectName}`);
-            
+
             await init.pageClick(page, `#btn_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
             const elementHandle = await init.page$(
                 page,
@@ -137,7 +128,6 @@ describe('Team API With SubProjects', () => {
         init.timeout
     );
 
-    
     test(
         'should not allow administrator to add project owners',
         async (done: $TSFixMe) => {
@@ -146,15 +136,14 @@ describe('Team API With SubProjects', () => {
             });
             const role = 'Owner';
 
-            
             await init.pageWaitForSelector(page, '#teamMembers');
-            
+
             await init.pageClick(page, '#teamMembers');
-            
+
             await init.pageWaitForSelector(page, `#btn_${projectName}`);
-            
+
             await init.pageClick(page, `#btn_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
             const elementHandle = await init.page$(
                 page,
@@ -168,16 +157,15 @@ describe('Team API With SubProjects', () => {
         init.timeout
     );
 
-    
     test(
         'should add a new user to sub-project (role -> `Member`)',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#projectFilterToggle');
-            
+
             await init.pageClick(page, `#project-${subProjectName}`);
             const role = 'Member';
 
@@ -185,26 +173,26 @@ describe('Team API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#teamMembers');
-            
+
             await init.pageWaitForSelector(page, `#btn_${subProjectName}`);
-            
+
             await init.pageClick(page, `#btn_${subProjectName}`);
-            
+
             await init.pageWaitForSelector(page, `#frm_${subProjectName}`);
-            
+
             await init.pageClick(page, `#emails_${subProjectName}`);
-            
+
             await init.pageType(page, `#emails_${subProjectName}`, newEmail);
-            
+
             await init.pageClick(page, `#${role}_${subProjectName}`);
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#btn_modal_${subProjectName}`
             );
-            
+
             await init.pageClick(page, `#btn_modal_${subProjectName}`);
             await init.pageWaitForSelector(
                 page,
@@ -214,7 +202,6 @@ describe('Team API With SubProjects', () => {
                 }
             );
 
-            
             await init.pageWaitForSelector(page, `#count_${subProjectName}`);
             const memberCount = await init.page$Eval(
                 page,
@@ -228,7 +215,6 @@ describe('Team API With SubProjects', () => {
         init.timeout
     );
 
-    
     test(
         'should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)',
         async (done: $TSFixMe) => {
@@ -237,24 +223,24 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#projectFilterToggle');
-            
+
             await init.pageClick(page, `#project-${projectName}`);
-            
+
             await init.pageWaitForSelector(page, '#teamMembers');
-            
+
             await init.pageClick(page, '#teamMembers');
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#changeRole_${emailSelector}`
             );
-            
+
             await init.pageClick(page, `#changeRole_${emailSelector}`);
-            
+
             await init.pageWaitForSelector(page, `#${newRole}`);
-            
+
             await init.pageClick(page, `#${newRole}`);
 
             const member = await init.pageWaitForSelector(
@@ -271,7 +257,6 @@ describe('Team API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should remove user from project Team Members and all sub-projects.',
         async (done: $TSFixMe) => {
@@ -280,9 +265,8 @@ describe('Team API With SubProjects', () => {
                 waitUntil: ['networkidle2'],
             });
 
-            
             await init.pageWaitForSelector(page, '#teamMembers');
-            
+
             await init.pageClick(page, '#teamMembers');
             await init.pageWaitForSelector(
                 page,
@@ -292,17 +276,16 @@ describe('Team API With SubProjects', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, `#removeMember__${emailSelector}`);
-            
+
             await init.pageWaitForSelector(page, '#removeTeamUser');
-            
+
             await init.pageClick(page, '#removeTeamUser');
             await init.pageWaitForSelector(page, '#removeTeamUser', {
                 hidden: true,
             });
 
-            
             await init.pageWaitForSelector(page, `#count_${projectName}`);
             const memberCount = await init.page$Eval(
                 page,
@@ -316,7 +299,6 @@ describe('Team API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not add team members without business emails',
         async (done: $TSFixMe) => {
@@ -327,34 +309,33 @@ describe('Team API With SubProjects', () => {
                 waitUntil: ['networkidle2'],
             });
 
-            
             await init.pageWaitForSelector(page, '#teamMembers');
-            
+
             await init.pageClick(page, '#teamMembers');
-            
+
             await init.pageWaitForSelector(
                 page,
                 `button[id=btn_${projectName}]`
             );
-            
+
             await init.pageClick(page, `button[id=btn_${projectName}]`);
-            
+
             await init.pageWaitForSelector(page, 'input[name=emails]');
-            
+
             await init.pageClick(page, 'input[name=emails]');
-            
+
             await init.pageType(page, 'input[name=emails]', nonBusinessEmail);
-            
+
             await init.pageWaitForSelector(page, `#${role}_${projectName}`);
-            
+
             await init.pageClick(page, `#${role}_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#btn_modal_${projectName}`);
-            
+
             await init.pageClick(page, `#btn_modal_${projectName}`);
-            
+
             await init.pageClick(page, `#btnConfirmInvite`);
-            
+
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#businessEmailError`
@@ -370,7 +351,6 @@ describe('Team API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should assign a new owner of the project',
         async (done: $TSFixMe) => {
@@ -381,39 +361,38 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#teamMembers');
-            
+
             await init.pageClick(page, '#teamMembers');
 
             // Invite a team member
-            
+
             await init.pageWaitForSelector(page, `#btn_${projectName}`);
-            
+
             await init.pageClick(page, `#btn_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#emails_${projectName}`);
-            
+
             await init.pageClick(page, `#emails_${projectName}`);
-            
+
             await init.pageType(page, `#emails_${projectName}`, anotherEmail);
-            
+
             await init.pageClick(page, `#Member_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, `#btn_modal_${projectName}`);
-            
+
             await init.pageClick(page, `#btn_modal_${projectName}`);
-            
+
             await init.pageWaitForSelector(page, '#btnConfirmInvite');
-            
+
             await init.pageClick(page, '#btnConfirmInvite');
             await init.pageWaitForSelector(page, `#btn_modal_${projectName}`, {
                 hidden: true,
             });
 
-            
             await init.pageWaitForSelector(
                 page,
                 `#changeRole_${memberEmailSelector}`
@@ -431,15 +410,14 @@ describe('Team API With SubProjects', () => {
             );
             expect(oldOwnerRole).toEqual('Owner');
 
-            
             await init.pageClick(page, `#changeRole_${memberEmailSelector}`);
-            
+
             await init.pageWaitForSelector(page, `#${newRole}`);
-            
+
             await init.pageClick(page, `#${newRole}`);
-            
+
             await init.pageWaitForSelector(page, '#confirmRoleChange');
-            
+
             await init.pageClick(page, '#confirmRoleChange');
 
             const newMemberRole = await init.page$Eval(

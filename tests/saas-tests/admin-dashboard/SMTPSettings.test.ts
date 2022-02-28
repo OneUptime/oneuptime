@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const password = '1234567890';
 const smtpName = 'Hackerbay';
 const wrongPassword = utils.generateRandomString();
 
-
 describe('SMTP Settings API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -54,31 +50,27 @@ describe('SMTP Settings API', () => {
         await axios(config);
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     test(
         'Should not submit empty fields',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings a');
 
-            
             await init.pageWaitForSelector(page, '#smtp');
-            
+
             await init.pageClick(page, '#smtp a');
 
-            
             await init.pageWaitForSelector(page, '#smtp-form');
-            
+
             await init.pageClick(page, '#email-enabled');
-            
+
             await init.pageClick(page, '#customSmtp');
 
             const originalValues = await init.page$$Eval(
@@ -86,39 +78,37 @@ describe('SMTP Settings API', () => {
                 'input',
                 (e: $TSFixMe) => e.map((field: $TSFixMe) => field.value)
             );
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(page, 'input[name=email]', '');
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', '');
-            
+
             await init.pageClick(page, 'input[name=smtp-server]');
-            
+
             await init.pageType(page, 'input[name=smtp-server]', '');
-            
+
             await init.pageClick(page, 'input[name=smtp-port]');
-            
+
             await init.pageType(page, 'input[name=smtp-port]', '');
-            
+
             await init.pageClick(page, 'input[name=from]');
-            
+
             await init.pageType(page, 'input[name=from]', '');
-            
+
             await init.pageClick(page, 'input[name=from-name]');
-            
+
             await init.pageType(page, 'input[name=from-name]', '');
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             // All fields should validate false
             expect(
-                
                 (await init.page$$(page, 'span.field-error')).length
             ).toEqual(
-                
                 (await init.page$$(page, 'input')).length -
                     4 /** There 10 input values and 6 span-errors */
             );
@@ -136,75 +126,72 @@ describe('SMTP Settings API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should save valid form data',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
 
-            
             await init.pageWaitForSelector(page, '#smtp');
-            
+
             await init.pageClick(page, '#smtp a');
-            
+
             await init.pageWaitForSelector(page, '#smtp-form');
-            
+
             await init.pageClick(page, '#email-enabled');
-            
+
             await init.pageClick(page, '#customSmtp');
 
-            
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(
                 page,
                 'input[name=email]',
                 utils.smtpCredential.user
             );
-            
+
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(
                 page,
                 'input[name=password]',
                 utils.smtpCredential.pass
             );
-            
+
             await init.pageClick(page, 'input[name=smtp-server]');
-            
+
             await init.pageType(
                 page,
                 'input[name=smtp-server]',
                 utils.smtpCredential.host
             );
-            
+
             await init.pageClick(page, 'input[name=smtp-port]');
-            
+
             await init.pageType(
                 page,
                 'input[name=smtp-port]',
                 utils.smtpCredential.port
             );
-            
+
             await init.pageClick(page, 'input[name=from]');
-            
+
             await init.pageType(
                 page,
                 'input[name=from]',
                 utils.smtpCredential.from
             );
-            
+
             await init.pageClick(page, 'input[name=from-name]');
-            
+
             await init.pageType(page, 'input[name=from-name]', smtpName);
             await init.page$Eval(page, '#smtp-secure', (element: $TSFixMe) =>
                 element.click()
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             await page.reload();
@@ -221,37 +208,33 @@ describe('SMTP Settings API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should open a test success modal with valid smtp settings',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
 
-            
             await init.pageWaitForSelector(page, '#smtp');
-            
+
             await init.pageClick(page, '#smtp a');
-            
+
             await init.pageWaitForSelector(page, '#smtp-form');
 
-            
             await init.pageClick(page, '#testSmtpSettingsButton');
-            
+
             await init.pageWaitForSelector(page, 'input[name=test-email]');
-            
+
             await init.pageType(page, 'input[name=test-email]', email);
-            
+
             await init.pageClick(page, '#customSmtpBtn');
-            
+
             await init.pageClick(page, '#confirmSmtpTest');
 
-            
             await init.pageWaitForSelector(page, '#test-result');
-            
+
             let elem = await init.page$(page, '#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
@@ -262,42 +245,37 @@ describe('SMTP Settings API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should open a test failed modal with invalid smtp settings',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageWaitForSelector(page, '#settings');
-            
+
             await init.pageClick(page, '#settings');
 
-            
             await init.pageWaitForSelector(page, '#smtp');
-            
+
             await init.pageClick(page, '#smtp a');
-            
+
             await init.pageWaitForSelector(page, '#smtp-form');
 
-            
             await init.pageClick(page, 'input[name=password]');
-            
+
             await init.pageType(page, 'input[name=password]', wrongPassword);
 
-            
             await init.pageClick(page, '#testSmtpSettingsButton');
-            
+
             await init.pageWaitForSelector(page, 'input[name=test-email]');
-            
+
             await init.pageType(page, 'input[name=test-email]', email);
-            
+
             await init.pageClick(page, '#customSmtpBtn');
-            
+
             await init.pageClick(page, '#confirmSmtpTest');
 
-            
             await init.pageWaitForSelector(page, '#test-result');
-            
+
             let elem = await init.page$(page, '#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();

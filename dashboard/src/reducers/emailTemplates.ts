@@ -89,7 +89,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: true,
                 },
                 showingTemplate: action.payload.find(
-                    
                     (temp: $TSFixMe) =>
                         temp.emailType === state.showingTemplate.emailType
                 ),
@@ -138,7 +137,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: false,
                 },
                 showingTemplate: action.payload.find(
-                    
                     (temp: $TSFixMe) =>
                         temp.emailType === state.showingTemplate.emailType
                 ),
@@ -165,7 +163,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
                 showingTemplate: state.emailTemplates.templates.find(
-                    
                     temp => temp.emailType === action.payload
                 ),
             });

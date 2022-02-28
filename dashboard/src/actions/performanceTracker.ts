@@ -52,7 +52,6 @@ export const createPerformanceTracker = ({
 
     promise.then(
         function(response) {
-            
             dispatch(createPerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -102,7 +101,6 @@ export const fetchPerformanceTracker = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchPerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -155,7 +153,6 @@ export const fetchPerformanceTrackers = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchPerformanceTrackersSuccess(response.data));
         },
         function(error) {
@@ -207,7 +204,6 @@ export const updatePerformanceTracker = ({
 
     promise.then(
         function(response) {
-            
             dispatch(updatePerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -250,14 +246,13 @@ export const deletePerformanceTracker = ({
     performanceTrackerId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deletePerformanceTrackerRequest());
-    
+
     const promise = deleteApi(
         `performanceTracker/${projectId}/tracker/${performanceTrackerId}`
     );
 
     promise.then(
         function(response) {
-            
             dispatch(deletePerformanceTrackerSuccess(response.data));
         },
         function(error) {
@@ -307,7 +302,6 @@ export const resetPerformanceTrackerKey = ({
 
     promise.then(
         function(response) {
-            
             dispatch(resetPerformanceTrackerKeySuccess(response.data));
         },
         function(error) {
@@ -353,7 +347,6 @@ export const removeQuickStart = ({
 
     promise.then(
         function(response) {
-            
             dispatch(removeQuickStartSuccess(response.data));
         },
         function(error) {
@@ -404,7 +397,6 @@ export const fetchLastMetrics = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchLastMetricsSuccess(response.data));
         },
         function(error) {

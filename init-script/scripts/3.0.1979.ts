@@ -1,4 +1,3 @@
-
 import { find, save, update } from '../util/db';
 
 const projectCollection = 'projects';

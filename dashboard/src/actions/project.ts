@@ -127,20 +127,18 @@ export function getProjects(switchToProjectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         const promise = getApi(
             `project/projects?skip=${0}&limit=${9999}`,
-            
+
             null
         );
         dispatch(projectsRequest(promise));
 
         promise.then(
             function(projects) {
-                
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
-                
+
                 if (projects.length > 0 && !switchToProjectId) {
                     if (User.getCurrentProjectId()) {
-                        
                         const project = projects.filter(
                             (project: $TSFixMe) =>
                                 project._id === User.getCurrentProjectId()
@@ -148,27 +146,21 @@ export function getProjects(switchToProjectId: $TSFixMe) {
                         if (project && project.length > 0) {
                             dispatch(switchProject(dispatch, project[0]));
                         } else {
-                            
                             dispatch(switchProject(dispatch, projects[0]));
                         }
                     } else {
-                        
                         dispatch(switchProject(dispatch, projects[0]));
                     }
                 } else {
                     let projectSwitched = false;
 
-                    
                     for (let i = 0; i < projects.length; i++) {
-                        
                         if (projects[i]._id === switchToProjectId) {
-                            
                             dispatch(switchProject(dispatch, projects[i]));
                             projectSwitched = true;
                         }
                     }
                     if (User.getCurrentProjectId() && !projectSwitched) {
-                        
                         const project = projects.filter(
                             (project: $TSFixMe) =>
                                 project._id === User.getCurrentProjectId()
@@ -179,7 +171,6 @@ export function getProjects(switchToProjectId: $TSFixMe) {
                         }
                     }
                     !projectSwitched &&
-                        
                         dispatch(switchProject(dispatch, projects[0]));
                 }
             },
@@ -222,14 +213,12 @@ export function getProjectBalanceSuccess(project: $TSFixMe) {
 
 export function getProjectBalance(projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = getApi(`project/${projectId}/balance`, null);
-        
+
         dispatch(getProjectBalanceRequest(promise));
 
         promise.then(
             function(balance) {
-                
                 dispatch(getProjectBalanceSuccess(balance.data));
             },
             function(error) {
@@ -285,9 +274,9 @@ export function createProject(values: $TSFixMe) {
                 if (IS_SAAS_SERVICE) {
                     User.setCardRegistered(true);
                 }
-                
+
                 dispatch(createProjectSuccess(project.data));
-                
+
                 return project.data;
             },
             function(error) {
@@ -378,7 +367,6 @@ export function switchProject(
     }
 
     if (
-        
         !User.getActiveSubProjectId('active_subproject_id') &&
         switchToMainProject
     ) {
@@ -386,7 +374,6 @@ export function switchProject(
     }
 
     const activeSubProjectId = User.getActiveSubProjectId(
-        
         'active_subproject_id'
     );
 
@@ -409,7 +396,6 @@ export function switchProject(
     if (!currentProjectId || project._id !== currentProjectId) {
         getSubProjects(project._id)(dispatch).then(res => {
             if (!switchToMainProject) {
-                
                 const { data } = res.data;
                 const projectId = data[0]._id;
                 if (data.length > 0) {
@@ -421,15 +407,15 @@ export function switchProject(
         getSubProjects(project._id)(dispatch);
     }
     fetchAlert(activeSubProjectId)(dispatch);
-    
+
     fetchSubProjectStatusPages(activeSubProjectId)(dispatch);
     fetchComponents({ projectId: activeSubProjectId })(dispatch); // default skip = 0, limit = 3
     fetchMonitors(activeSubProjectId)(dispatch);
-    
+
     fetchResourceCategories(project._id)(dispatch);
     fetchResourceCategoriesForNewResource(project._id)(dispatch);
     fetchUnresolvedIncidents(project._id, true)(dispatch);
-    
+
     fetchSchedules(activeSubProjectId)(dispatch);
     fetchSubProjectSchedules(activeSubProjectId)(dispatch);
     fetchNotifications(project._id)(dispatch);
@@ -987,7 +973,6 @@ export const updateProjectBalance = ({
             `stripe/${projectId}/updateBalance/${intentId}`
         );
 
-        
         dispatch(updateProjectBalanceSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -1031,7 +1016,6 @@ export function checkCard(data: $TSFixMe) {
 
         promise.then(
             function(card) {
-                
                 dispatch(checkCardSuccess(card.data));
             },
             function(error) {
@@ -1081,7 +1065,7 @@ export function setEmailNotification({ projectId, data }: $TSFixMe) {
                 `project/${projectId}/advancedOptions/email`,
                 data
             );
-            
+
             dispatch(setEmailNotificationSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1126,7 +1110,7 @@ export function setSmsNotification({ projectId, data }: $TSFixMe) {
                 `project/${projectId}/advancedOptions/sms`,
                 data
             );
-            
+
             dispatch(setSmsNotificationSuccess(response.data));
         } catch (error) {
             const errorMsg =
@@ -1172,7 +1156,7 @@ export function setWebhookNotificationSettings({ projectId, data }: $TSFixMe) {
                 `project/${projectId}/advancedOptions/webhook`,
                 data
             );
-            
+
             dispatch(setWebhookNotificationSettingsSuccess(response.data));
         } catch (error) {
             const errorMessage =
@@ -1224,9 +1208,9 @@ export function createProjectDomain({ projectId, data }: $TSFixMe) {
                 `domainVerificationToken/${projectId}/domain`,
                 data
             );
-            
+
             dispatch(createProjectDomainSuccess(response.data));
-            
+
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -1270,9 +1254,9 @@ export function fetchProjectDomains(projectId: $TSFixMe, skip = 0, limit = 10) {
             const response = await getApi(
                 `domainVerificationToken/${projectId}/domains?skip=${skip}&limit=${limit}`
             );
-            
+
             dispatch(fetchProjectDomainsSuccess(response.data));
-            
+
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -1323,9 +1307,9 @@ export function updateProjectDomain({ projectId, domainId, data }: $TSFixMe) {
                 `domainVerificationToken/${projectId}/domain/${domainId}`,
                 data
             );
-            
+
             dispatch(updateProjectDomainSuccess(response.data));
-            
+
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -1376,9 +1360,9 @@ export function verifyProjectDomain({ projectId, domainId, data }: $TSFixMe) {
                 `domainVerificationToken/${projectId}/verify/${domainId}`,
                 data
             );
-            
+
             dispatch(verifyProjectDomainSuccess(response.data));
-            
+
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -1425,13 +1409,12 @@ export function deleteProjectDomain({ projectId, domainId }: $TSFixMe) {
         dispatch(deleteProjectDomainRequest());
 
         try {
-            
             const response = await deleteApi(
                 `domainVerificationToken/${projectId}/domain/${domainId}`
             );
-            
+
             dispatch(deleteProjectDomainSuccess(response.data));
-            
+
             return response.data;
         } catch (error) {
             const errorMessage =
@@ -1475,7 +1458,6 @@ export function fetchTrialError(error: $TSFixMe) {
 
 export function fetchTrial(projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = postApi(`stripe/${projectId}/getTrial`);
 
         dispatch(fetchTrialRequest());
@@ -1531,7 +1513,6 @@ export function fetchProjectSlug(slug: $TSFixMe) {
 
         promise.then(
             function(response) {
-                
                 dispatch(fetchProjectSlugSuccess(response.data));
             },
             function(error) {

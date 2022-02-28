@@ -5,7 +5,6 @@ import {
     GET_VERSION_SUCCESS,
 } from '../constants/version';
 
-
 import { version } from '../../package.json';
 
 const initialState = {

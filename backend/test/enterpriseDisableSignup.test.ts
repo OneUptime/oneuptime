@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user';
@@ -13,7 +12,6 @@ const request = chai.request.agent(app);
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
-
 
 describe('Disable Sign up test', function() {
     this.timeout(200000);
@@ -39,7 +37,6 @@ describe('Disable Sign up test', function() {
         process.env.DISABLE_SIGNUP = undefined;
     });
 
-    
     it('should not sign up the user when sign up is disabled', (done: $TSFixMe) => {
         createUser(request, data.user, function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
@@ -48,7 +45,6 @@ describe('Disable Sign up test', function() {
         });
     });
 
-    
     it('should sign up a new user when user is admin', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request

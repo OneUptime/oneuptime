@@ -26,15 +26,15 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const callRoutingLogModel = new CallRoutingLogModel();
-        
+
         callRoutingLogModel.callRoutingId = data.callRoutingId;
-        
+
         callRoutingLogModel.calledFrom = data.calledFrom;
-        
+
         callRoutingLogModel.calledTo = data.calledTo;
-        
+
         callRoutingLogModel.callSid = data.callSid;
-        
+
         callRoutingLogModel.dialTo = data.dialTo;
 
         const logs = await callRoutingLogModel.save();

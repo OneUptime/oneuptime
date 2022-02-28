@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 
 import utils from '../../test-utils';
@@ -14,11 +13,11 @@ const moveToSsoPage = async (page: $TSFixMe) => {
         visible: true,
         timeout: init.timeout,
     });
-    
+
     await init.pageClick(page, '#settings');
-    
+
     await init.pageWaitForSelector(page, '#sso');
-    
+
     await init.pageClick(page, '#sso');
 };
 
@@ -27,59 +26,48 @@ const createSso = async (page: $TSFixMe, data: $TSFixMe) => {
         visible: true,
         timeout: init.timeout,
     });
-    
+
     await init.pageClick(page, '#add-sso');
-    
+
     await init.pageWaitForSelector(page, '#save-button');
 
     if (data['saml-enabled'])
-        
         await init.pageClick(page, '#saml-enabled-slider');
 
-    
     await init.pageClick(page, '#domain');
-    
+
     await init.pageType(page, '#domain', data.domain);
 
-    
     await init.pageClick(page, '#entityId');
-    
+
     await init.pageType(page, '#entityId', data.applicationId);
 
-    
     await init.pageClick(page, '#remoteLoginUrl');
-    
+
     await init.pageType(page, '#remoteLoginUrl', data.samlSsoUrl);
 
-    
     await init.pageClick(page, '#certificateFingerprint');
-    
+
     await init.pageType(
         page,
         '#certificateFingerprint',
         data.certificateFingerprint
     );
 
-    
     await init.pageClick(page, '#remoteLogoutUrl');
-    
+
     await init.pageType(page, '#remoteLogoutUrl', data.remoteLogoutUrl);
 
-    
     await init.pageClick(page, '#ipRanges');
-    
+
     await init.pageType(page, '#ipRanges', data.ipRanges);
 
-    
     await init.pageClick(page, '#save-button');
     await init.pageWaitForSelector(page, '#save-button', { hidden: true });
 };
 
-
 describe('SSO login', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -114,33 +102,30 @@ describe('SSO login', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     it(
         'Should return an error message if the domain is not defined in the database.',
         async (done: $TSFixMe) => {
             await page.goto(utils.ACCOUNTS_URL + '/login', {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#login-button');
-            
+
             await init.pageClick(page, '#sso-login');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(
                 page,
                 'input[name=email]',
                 'email@inexistent-domain.hackerbay.io'
             );
             await Promise.all([
-                
                 init.pageClick(page, 'button[type=submit]'),
                 page.waitForResponse((response: $TSFixMe) =>
                     response.url().includes('/login')
@@ -158,27 +143,25 @@ describe('SSO login', () => {
         operationTimeOut
     );
 
-    
     it(
         "Should return an error message if the SSO authentication is disabled for the email's domain.",
         async (done: $TSFixMe) => {
             await page.goto(utils.ACCOUNTS_URL + '/login', {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#login-button');
-            
+
             await init.pageClick(page, '#sso-login');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(
                 page,
                 'input[name=email]',
                 'email@disabled-domain.hackerbay.io'
             );
             await Promise.all([
-                
                 init.pageClick(page, 'button[type=submit]'),
                 page.waitForResponse((response: $TSFixMe) =>
                     response.url().includes('/login')
@@ -196,20 +179,19 @@ describe('SSO login', () => {
         operationTimeOut
     );
 
-    
     it(
         'Should redirects the user if the domain is defined in the database.',
         async (done: $TSFixMe) => {
             await page.goto(utils.ACCOUNTS_URL + '/login', {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#login-button');
-            
+
             await init.pageClick(page, '#sso-login');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(
                 page,
                 'input[name=email]',
@@ -217,25 +199,23 @@ describe('SSO login', () => {
             );
             const [response] = await Promise.all([
                 page.waitForNavigation('networkidle2'),
-                
+
                 init.pageClick(page, 'button[type=submit]'),
             ]);
             const chain = response.request().redirectChain();
             expect(chain.length).not.toBe(0);
 
-            
             await init.pageClick(page, '#username');
-            
+
             await init.pageType(page, '#username', 'user1');
 
-            
             await init.pageClick(page, '#password');
-            
+
             await init.pageType(page, '#password', 'user1pass');
 
             await Promise.all([
                 page.waitForNavigation('networkidle2'),
-                
+
                 init.pageClick(page, 'button'),
             ]);
 

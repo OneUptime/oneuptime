@@ -28,7 +28,7 @@ router.get('/:projectId/default', getUser, isAuthorized, async function(
         const { projectId } = req.params;
         if (!projectId) {
             const error = new Error('Project Id must be present');
-            
+
             error.code = 400;
             throw error;
         }
@@ -55,7 +55,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
-            
+
             error.code = 400;
             throw error;
         }
@@ -187,13 +187,13 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!templateId) {
             const error = new Error('Incident settings Id must be present.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -222,25 +222,25 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!name) {
             const error = new Error('Name must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!title) {
             const error = new Error('Title must be present');
-            
+
             error.code = 400;
             throw error;
         }
         if (!incidentPriority) {
             const error = new Error('Incident priority must be present');
-            
+
             error.code = 400;
             throw error;
         }
@@ -251,7 +251,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
         });
         if (!priority) {
             const error = new Error("Incident priority doesn't exist.");
-            
+
             error.code = 400;
             throw error;
         }

@@ -282,12 +282,12 @@ export const allRoutes = groups
                 }
                 return newSubRoutes;
             })
-            
+
             .reduce(joinFn);
-        
+
         return newRoutes.concat(subRoutes);
     })
-    
+
     .reduce(joinFn);
 
 export const getGroups = () => groups;

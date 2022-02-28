@@ -37,7 +37,7 @@ export const getActiveMembers = (
         );
         dispatch(getActiveMembersRequest(promise));
         const members = await promise;
-        
+
         dispatch(getActiveMembersSuccess(members.data));
     } catch (error) {
         let newerror = error;
@@ -90,7 +90,7 @@ export const getActiveMonitors = (
         );
         dispatch(getActiveMonitorsRequest(promise));
         const monitors = await promise;
-        
+
         dispatch(getActiveMonitorsSuccess(monitors.data));
     } catch (error) {
         let newerror = error;
@@ -141,7 +141,7 @@ export const getIncidents = (
         );
         dispatch(getIncidentsRequest(promise));
         const reports = await promise;
-        
+
         dispatch(getIncidentsSuccess(reports.data));
     } catch (error) {
         let newerror = error;
@@ -192,7 +192,7 @@ export const getResolveTime = (
         );
         dispatch(getResolveTimeRequest(promise));
         const reports = await promise;
-        
+
         dispatch(getResolveTimeSuccess(reports.data));
     } catch (error) {
         let newerror = error;

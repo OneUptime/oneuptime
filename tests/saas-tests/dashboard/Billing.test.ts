@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,9 +16,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 describe('Project Setting: Change Plan', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(360000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -36,19 +33,17 @@ describe('Project Setting: Change Plan', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should change project plan',
         async () => {
             await init.growthPlanUpgrade(page);
             await page.reload({ waitUntil: 'networkidle0' });
-            
+
             await init.pageWaitForSelector(page, 'input#Growth_month');
             const checked = await init.page$Eval(
                 page,
@@ -59,7 +54,7 @@ describe('Project Setting: Change Plan', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'should not update project account when admin recharge account with negative number',
         async (done: $TSFixMe) => {
@@ -70,15 +65,15 @@ describe('Project Setting: Change Plan', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#billing');
-            
+
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            
+
             let spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -90,22 +85,22 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account then click cancel
-            
+
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            
+
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = -20;
-            
+
             await init.pageType(
                 page,
                 '#rechargeBalanceAmount',
                 creditedBalance.toString()
             );
-            
+
             await init.pageClick(page, '#rechargeAccount');
 
             // confirm the current balance is still $0
-            
+
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#field-error'
@@ -122,7 +117,7 @@ describe('Project Setting: Change Plan', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'should update project account when admin recharge account',
         async (done: $TSFixMe) => {
@@ -133,15 +128,15 @@ describe('Project Setting: Change Plan', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#billing');
-            
+
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            
+
             let spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -153,31 +148,30 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account
-            
+
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            
+
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = 20;
-            
+
             await init.pageType(
                 page,
                 '#rechargeBalanceAmount',
                 creditedBalance.toString()
             );
-            
+
             await init.pageClick(page, '#rechargeAccount');
             balance += creditedBalance;
 
-            
             await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
-            
+
             await init.pageClick(page, '#confirmBalanceTopUp');
             await init.pageWaitForSelector(page, '#confirmBalanceTopUp', {
                 hidden: true,
             });
 
             // confirm a pop up comes up and the message is a successful
-            
+
             let spanModalElement = await init.pageWaitForSelector(
                 page,
                 '#message-modal-message'
@@ -189,14 +183,14 @@ describe('Project Setting: Change Plan', () => {
             );
 
             // click ok
-            
+
             await init.pageWaitForSelector(page, '#modal-ok');
-            
+
             await init.pageClick(page, '#modal-ok');
             await init.pageWaitForSelector(page, '#modal-ok', { hidden: true });
 
             // confirm the current balance is $20
-            
+
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -211,7 +205,7 @@ describe('Project Setting: Change Plan', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'should not update project account when admin recharge account and clicks cancel',
         async (done: $TSFixMe) => {
@@ -222,15 +216,15 @@ describe('Project Setting: Change Plan', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#billing');
-            
+
             await init.pageClick(page, '#billing');
 
             // get current balance as $0
-            
+
             let spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -242,30 +236,29 @@ describe('Project Setting: Change Plan', () => {
             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
             // add $20 to the account then click cancel
-            
+
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            
+
             await init.pageClick(page, '#rechargeBalanceAmount');
             creditedBalance = 20;
-            
+
             await init.pageType(
                 page,
                 '#rechargeBalanceAmount',
                 creditedBalance.toString()
             );
-            
+
             await init.pageClick(page, '#rechargeAccount');
 
-            
             await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
-            
+
             await init.pageClick(page, '#cancelBalanceTopUp');
             await init.pageWaitForSelector(page, '#cancelBalanceTopUp', {
                 hidden: true,
             });
 
             // confirm the current balance is still $0
-            
+
             spanBalanceElement = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
@@ -282,13 +275,10 @@ describe('Project Setting: Change Plan', () => {
     );
 });
 
-
 describe('Member Restriction', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -325,13 +315,11 @@ describe('Member Restriction', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to update alert option',
         async (done: $TSFixMe) => {
@@ -344,11 +332,11 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#billing');
-            
+
             await init.pageClick(page, '#billing');
             await init.pageWaitForSelector(page, '#alertEnable', {
                 visible: true,
@@ -359,7 +347,7 @@ describe('Member Restriction', () => {
                 '#alertEnable',
                 (checkbox: $TSFixMe) => checkbox.click
             );
-            
+
             await init.pageClick(page, '#alertOptionSave');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,
@@ -373,7 +361,6 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to recharge account',
         async (done: $TSFixMe) => {
@@ -382,19 +369,19 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#billing');
-            
+
             await init.pageClick(page, '#billing');
-            
+
             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            
+
             await init.pageClick(page, '#rechargeBalanceAmount');
-            
+
             await init.pageType(page, '#rechargeBalanceAmount', '20');
-            
+
             await init.pageClick(page, '#rechargeAccount');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,
@@ -408,7 +395,6 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to change project plan',
         async (done: $TSFixMe) => {
@@ -417,19 +403,19 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#billing');
-            
+
             await init.pageClick(page, '#billing');
             await init.pageWaitForSelector(page, 'input#Startup_month', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input#Startup_month');
-            
+
             await init.pageClick(page, '#changePlanBtn');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,

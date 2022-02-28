@@ -53,11 +53,10 @@ export function getProbes(
 
         promise.then(
             function(probes) {
-                
                 probes.data.skip = skip || 0;
-                
+
                 probes.data.limit = limit || 10;
-                
+
                 dispatch(probeSuccess(probes.data));
             },
             function(error) {

@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -23,7 +22,6 @@ import ApplicationSecurities from '../backend/services/applicationSecurityServic
 import ApplicationSecurityLogService from '../backend/services/applicationSecurityLogService';
 import AirtableService from '../backend/services/airtableService';
 
-
 describe('Application Security API', function() {
     const timeout = 300000;
     let projectId: $TSFixMe,
@@ -34,7 +32,7 @@ describe('Application Security API', function() {
         credentialId: $TSFixMe;
 
     this.timeout(timeout);
-    
+
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(
@@ -91,7 +89,6 @@ describe('Application Security API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -105,7 +102,6 @@ describe('Application Security API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should create an application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -114,12 +110,11 @@ describe('Application Security API', function() {
             gitPassword: gitCredential.gitPassword,
             projectId,
         }).then(function(credential) {
-            
             credentialId = credential._id;
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
-                
+
                 gitCredential: credential._id,
             };
 
@@ -143,7 +138,6 @@ describe('Application Security API', function() {
         });
     });
 
-    
     it('should update an application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const update = { name: 'newname' };
@@ -161,7 +155,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should get a particular application security in a component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -182,7 +175,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should get all the application security in a component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -196,7 +188,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should get all the application security with a particular credential', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -210,7 +201,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should scan an application security', function(done: $TSFixMe) {
         this.timeout(300000);
         const authorization = `Basic ${token}`;
@@ -226,7 +216,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not create an application security if name already exist in the component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -249,7 +238,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not create an application security if git repository url already exist in the component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -272,7 +260,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should delete a particular application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -288,7 +275,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not create an application security if name is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -311,7 +297,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not create an application security if git repository url is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -334,7 +319,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not create an application security if git credential is missing', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -357,7 +341,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not scan an application security if it does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -376,7 +359,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not delete a non-existing application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -395,7 +377,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not get a non-existing application security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
@@ -414,7 +395,6 @@ describe('Application Security API', function() {
             });
     });
 
-    
     it('should not create an application security if git credential does not exist', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 

@@ -1,9 +1,9 @@
 export default {
     create: async function(data: $TSFixMe) {
         const query = {};
-        
+
         if (data.monitorId) query.monitorId = data.monitorId;
-        
+
         if (data.probeId) query.probeId = data.probeId;
 
         const select = '_id status lastStatus';
@@ -42,18 +42,17 @@ export default {
 
             const monitorStatus = new MonitorStatusModel();
             if (data.lastStatus) {
-                
                 monitorStatus.lastStatus = data.lastStatus;
             }
-            
+
             monitorStatus.monitorId = data.monitorId;
-            
+
             monitorStatus.probeId = data.probeId || null;
-            
+
             monitorStatus.incidentId = data.incidentId || null;
-            
+
             monitorStatus.manuallyCreated = data.manuallyCreated || false;
-            
+
             monitorStatus.status = data.status;
 
             const savedMonitorStatus = await monitorStatus.save();
@@ -70,9 +69,9 @@ export default {
         const dataList = [];
         for (const data of allData) {
             const query = {};
-            
+
             if (data.monitorId) query.monitorId = data.monitorId;
-            
+
             if (data.probeId) query.probeId = data.probeId;
 
             const select = '_id status lastStatus';
@@ -116,7 +115,7 @@ export default {
         if (dataList.length > 0) {
             const docs = await MonitorStatusModel.insertMany(dataList);
             // we don't want to await this ):
-            
+
             docs.forEach((doc: $TSFixMe) => _this.sendMonitorStatus(doc));
 
             return docs;

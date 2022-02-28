@@ -47,7 +47,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 message: "values can't be null",
             });
         }
-        
+
         data.createdById = req.user ? req.user.id : null;
 
         /* if (!data.componentId) {
@@ -163,11 +163,9 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                         httpsAgent,
                     };
                     if (headers && Object.keys(headers).length) {
-                        
                         payload.headers = headers;
                     }
                     if (body && Object.keys(body).length) {
-                        
                         payload.data = body;
                     }
                     const apiResponse = await axios(payload);
@@ -239,7 +237,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         const [monitor, user] = await Promise.all([
             MonitorService.create(data),
             UserService.findOneBy({
-                
                 query: { _id: req.user.id },
                 select: 'name _id',
             }),
@@ -254,7 +251,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         if (monitor) {
             try {
-                
                 NotificationService.create(
                     monitor.projectId._id || monitor.projectId,
                     `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
@@ -292,12 +288,9 @@ router.post('/:projectId/identityFile', async function(req, res) {
             }
             if (
                 req.files &&
-                
                 req.files.identityFile &&
-                
                 req.files.identityFile[0].filename
             ) {
-                
                 identityFile = req.files.identityFile[0].filename;
             }
             return sendItemResponse(req, res, { identityFile });
@@ -324,12 +317,9 @@ router.post('/:projectId/configurationFile', async function(req, res) {
             }
             if (
                 req.files &&
-                
                 req.files.configurationFile &&
-                
                 req.files.configurationFile[0].filename
             ) {
-                
                 configurationFile = req.files.configurationFile[0].filename;
             }
             return sendItemResponse(req, res, { configurationFile });
@@ -372,11 +362,9 @@ router.put(
                         httpsAgent,
                     };
                     if (headers && Object.keys(headers).length) {
-                        
                         payload.headers = headers;
                     }
                     if (body && Object.keys(body).length) {
-                        
                         payload.data = body;
                     }
                     const apiResponse = await axios(payload);
@@ -442,10 +430,8 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     res
 ) {
     try {
-        
         const subProjectIds = req.user.subProjects
-            ? 
-              req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
 
         const { limit, skip } = req.query;
@@ -512,10 +498,9 @@ router.get(
     async function(req, res) {
         try {
             const type = req.query.type;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
                 ? { projectId: { $in: subProjectIds }, type }
@@ -559,10 +544,9 @@ router.get(
         try {
             const monitorId = req.params.monitorId;
             const type = req.query.type;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
                 ? { _id: monitorId, projectId: { $in: subProjectIds }, type }
@@ -619,16 +603,15 @@ router.post(
                         'createdAt lastAlive probeKey probeName version probeImage deleted',
                 },
             ];
-            
+
             if (monitorId && !incidentId) query.monitorId = monitorId;
-            
+
             if (incidentId) query.incidentIds = incidentId;
-            
+
             if (probeValue) query.probeId = probeValue;
-            
+
             if (type === 'incomingHttpRequest') query.probeId = null;
             if (startDate && endDate)
-                
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             const [monitorLogs, count] = await Promise.all([
@@ -658,7 +641,7 @@ router.delete(
         try {
             const monitor = await MonitorService.deleteBy(
                 { _id: monitorId, projectId: projectId },
-                
+
                 req.user.id
             );
             if (monitor) {
@@ -702,8 +685,7 @@ router.post(
                 failedReasons: upFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.up
-                    ? 
-                      ProbeService.conditions(
+                    ? ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.up,
                           data
@@ -715,8 +697,7 @@ router.post(
                 failedReasons: degradedFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.degraded
-                    ? 
-                      ProbeService.conditions(
+                    ? ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.degraded,
                           data
@@ -728,8 +709,7 @@ router.post(
                 failedReasons: downFailedReasons,
             } =
                 monitor && monitor.criteria && monitor.criteria.down
-                    ? 
-                      ProbeService.conditions(
+                    ? ProbeService.conditions(
                           monitor.type,
                           monitor.criteria.down,
                           data
@@ -1016,7 +996,7 @@ router.post(
     async function(req, res) {
         try {
             const { projectId, monitorId } = req.params;
-            
+
             const userId = req.user ? req.user.id : null;
             const monitor = await MonitorService.closeBreachedMonitorSla(
                 projectId,
@@ -1100,12 +1080,11 @@ router.post('/:monitorId/calculate-time', async function(req, res) {
 
         if (!monitor) {
             const error = new Error('Monitor not found or does not exist');
-            
+
             error.code = 400;
             throw error;
         }
 
-        
         result.monitorId = monitor._id;
 
         return sendItemResponse(req, res, result);

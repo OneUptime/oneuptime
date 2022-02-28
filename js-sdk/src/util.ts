@@ -74,12 +74,12 @@ class Util {
         const stacktrace = {
             frames,
         };
-        
+
         obj.stacktrace = stacktrace;
 
         // check if  readFile is supported before attempting to read file, this currently works on only NODE
         // check if user opted in for getting code snippet before getting it
-        
+
         if (readFile && this.options.captureCodeSnippet) {
             obj = await this._getErrorCodeSnippet(obj);
         }
@@ -105,9 +105,9 @@ class Util {
                 name: browser.substring(0, browser.indexOf('/')),
                 version: browser.substring(browser.indexOf('/') + 1),
             };
-            
+
             deviceDetails.device = device;
-            
+
             deviceDetails.browser = browserDetails;
         }
         return deviceDetails;

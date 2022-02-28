@@ -53,19 +53,19 @@ export default {
 
     create: async function(data: $TSFixMe) {
         const script = new ScriptModel();
-        
+
         script.name = data.name || null;
-        
+
         script.slug = getSlug(data.name) || null;
-        
+
         script.scriptType = data.scriptType || null;
-        
+
         script.successEvent = data.successEvent || null;
-        
+
         script.failureEvent = data.failureEvent || null;
-        
+
         script.projectId = data.projectId || null;
-        
+
         script.script = data.script || null;
         const newScript = await script.save();
 
@@ -74,21 +74,21 @@ export default {
 
     createLog: async function(id: $TSFixMe, data: $TSFixMe) {
         const scriptLog = new ScriptModelLog();
-        
+
         scriptLog.automationScriptId = id || null;
-        
+
         scriptLog.triggerByUser = data.triggerByUser || null;
-        
+
         scriptLog.triggerByScript = data.triggerByScript || null;
-        
+
         scriptLog.triggerByIncident = data.triggerByIncident || null;
-        
+
         scriptLog.status = data.status || null;
-        
+
         scriptLog.executionTime = data.executionTime || null;
-        
+
         scriptLog.consoleLogs = data.consoleLogs || null;
-        
+
         scriptLog.error = data.error || null;
         const newScriptLog = await scriptLog.save();
 
@@ -195,7 +195,6 @@ export default {
                 };
                 switch (type) {
                     case 'automatedScript':
-                        
                         data.triggerByScript = triggeredId;
                         break;
                     default:
@@ -283,16 +282,13 @@ export default {
             };
         }
         triggeredBy === 'user'
-            ? 
-              (data.triggerByUser = triggeredId)
+            ? (data.triggerByUser = triggeredId)
             : triggeredBy === 'script'
-            ? 
-              (data.triggerByScript = triggeredId)
+            ? (data.triggerByScript = triggeredId)
             : triggeredBy === 'incident'
-            ? 
-              (data.triggerByIncident = triggeredId)
+            ? (data.triggerByIncident = triggeredId)
             : null;
-        
+
         if (data.success && successEvent.length > 0) {
             await _this.runResource({
                 triggeredId: automatedScriptId,
@@ -300,7 +296,7 @@ export default {
                 stackSize,
             });
         }
-        
+
         if (!data.success && failureEvent.length > 0) {
             await _this.runResource({
                 triggeredId: automatedScriptId,

@@ -12,10 +12,9 @@ const errorToLog = (log: $TSFixMe) => {
         message: null,
         level: 'error',
     };
-    
+
     formatted[LEVEL] = 'error';
     if (log.message) {
-        
         formatted.message = `${log.message}: \n${log.stack}`;
     } else {
         formatted.message = log.stack;
@@ -105,7 +104,6 @@ if (
 }
 
 logger.stream = {
-    
     // eslint-disable-next-line no-unused-vars
     write: function(message: $TSFixMe, _encoding: $TSFixMe) {
         logger.http(message);

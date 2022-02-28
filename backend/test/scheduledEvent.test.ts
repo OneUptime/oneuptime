@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -53,11 +52,9 @@ const ongoingScheduledEvent = {
     monitorDuringEvent: false,
 };
 
-
 describe('Scheduled event API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -152,7 +149,6 @@ describe('Scheduled event API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -170,7 +166,6 @@ describe('Scheduled event API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should not create a scheduled event when the fields are null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -188,7 +183,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should not create a scheduled event when a monitor is selected multiple times', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -204,7 +198,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should not create a scheduled event when the start date is greater than end date', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -221,7 +214,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should create a new scheduled event when proper fields are given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -236,7 +228,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should get all scheduled events for a project', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -250,7 +241,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should update a scheduled event when scheduledEventId is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -268,7 +258,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should delete a scheduled event when scheduledEventId is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -280,7 +269,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should get first 10 scheduled events with data length 10, skip 0, limit 10 and count 12', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -309,7 +297,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should get 2 last scheduled events with data length 2, skip 10, limit 10 and count 12', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -337,7 +324,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should get 0 scheduled events with data length 0, skip 20, limit 10 and count 12', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -365,7 +351,6 @@ describe('Scheduled event API', function() {
             });
     });
 
-    
     it('should fetch an onging scheduled event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -389,11 +374,9 @@ describe('Scheduled event API', function() {
     });
 });
 
-
 describe('User from other project have access to read / write and delete API.', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -438,7 +421,6 @@ describe('User from other project have access to read / write and delete API.', 
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -453,7 +435,6 @@ describe('User from other project have access to read / write and delete API.', 
         });
     });
 
-    
     it('should not be able to create new scheduled event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -465,7 +446,7 @@ describe('User from other project have access to read / write and delete API.', 
                 done();
             });
     });
-    
+
     it('should not be able to delete a scheduled event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -476,7 +457,7 @@ describe('User from other project have access to read / write and delete API.', 
                 done();
             });
     });
-    
+
     it('should not be able to get all scheduled events', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -487,7 +468,7 @@ describe('User from other project have access to read / write and delete API.', 
                 done();
             });
     });
-    
+
     it('should not be able to update a scheduled event', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

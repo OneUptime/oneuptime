@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -18,13 +17,10 @@ const dockerPassword = utils.dockerCredential.dockerPassword;
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = 100000;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(100000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,34 +30,32 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the probe page and confirm there are no errors',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageClick(page, '#dockerCredentials');
-            
+
             await init.pageClick(page, '#addCredentialBtn');
-            
+
             await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
-            
+
             await init.pageType(page, '#dockerUsername', dockerUsername);
-            
+
             await init.pageType(page, '#dockerPassword', dockerPassword);
-            
+
             await init.pageClick(page, '#addCredentialModalBtn');
             const spanElement = await page.waitForSelector(
                 `#dockerUsername_${dockerUsername}`

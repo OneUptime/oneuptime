@@ -39,9 +39,8 @@ export function deleteSlack(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
 
         return promise.then(
             function(msTeams) {
-                
                 dispatch(deleteSlackSuccess(msTeams.data));
-                
+
                 return msTeams.data;
             },
             function(error) {
@@ -99,7 +98,6 @@ export function getSlack(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
 
         promise.then(
             function(webhooks) {
-                
                 dispatch(getSlackSuccess(webhooks.data));
             },
             function(error) {
@@ -137,7 +135,6 @@ export function getSlackMonitor(
 
         promise.then(
             function(webhooks) {
-                
                 dispatch(getSlackSuccess(webhooks.data));
             },
             function(error) {
@@ -193,9 +190,8 @@ export function createSlack(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(createSlackRequest());
         return promise.then(
             function(webhook) {
-                
                 dispatch(createSlackSuccess(webhook.data));
-                
+
                 return webhook.data;
             },
             function(error) {
@@ -254,9 +250,8 @@ export function updateSlack(
 
         return promise.then(
             function(webhook) {
-                
                 dispatch(updateSlackSuccess(webhook.data));
-                
+
                 return webhook.data;
             },
             function(error) {

@@ -82,7 +82,7 @@ router.delete('/store/:id', async (req, res) => {
 router.post('/certOrder', async (req, res) => {
     try {
         const domains = [];
-        
+
         const greenlock = global.greenlock;
         // to refresh the managers set clearManager to true
         const { domain, clearManagers } = req.body;
@@ -123,7 +123,6 @@ router.post('/certOrder', async (req, res) => {
                 select: 'domains',
             });
 
-            
             for (const statusPage of statusPages) {
                 for (const domain of statusPage.domains) {
                     if (
@@ -168,7 +167,6 @@ router.post('/certOrder', async (req, res) => {
 // id => domain/subdomain
 router.delete('/certDelete/:id', async (req, res) => {
     try {
-        
         const greenlock = global.greenlock;
         const { id } = req.body;
 

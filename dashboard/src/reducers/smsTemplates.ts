@@ -89,7 +89,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: true,
                 },
                 showingTemplate: action.payload.find(
-                    
                     (temp: $TSFixMe) =>
                         temp.smsType === state.showingTemplate.smsType
                 ),
@@ -136,7 +135,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
                     success: false,
                 },
                 showingTemplate: action.payload.find(
-                    
                     (temp: $TSFixMe) =>
                         temp.smsType === state.showingTemplate.smsType
                 ),
@@ -163,7 +161,6 @@ export default function incident(state = initialState, action: $TSFixMe) {
         case types.CHANGE_SHOWING_TEMPLATE:
             return Object.assign({}, state, {
                 showingTemplate: state.smsTemplates.templates.find(
-                    
                     temp => temp.smsType === action.payload
                 ),
             });

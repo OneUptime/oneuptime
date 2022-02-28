@@ -5,7 +5,7 @@ import Table from 'cli-table';
 import program from 'commander';
 
 program
-    
+
     .option('-m, --mobile', 'Run lighthouse on mobile')
     .option('-w, --web', 'Run lighthouse on the web');
 
@@ -52,24 +52,20 @@ let checksFailed = false;
 child.on('message', function(score) {
     const scores = [
         sites[sitesIndex - 1],
-        
+
         score.performance,
-        
+
         score.accessibility,
-        
+
         score.bestPractices,
-        
+
         score.seo,
     ];
     table.push(scores);
     if (
-        
         score.performance < 50 ||
-        
         score.accessibility < 70 ||
-        
         score.bestPractices < 70 ||
-        
         score.seo < 80
     ) {
         checksFailed = true;
@@ -90,9 +86,7 @@ child.on('message', function(score) {
 });
 
 function pages() {
-    
     if (program.mobile) {
-        
         child.send({ url: sites[sitesIndex], mobile: program.mobile });
     } else {
         child.send({ url: sites[sitesIndex], mobile: false });

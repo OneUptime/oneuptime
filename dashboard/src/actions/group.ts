@@ -24,7 +24,7 @@ export const createGroup = (projectId: $TSFixMe, data: $TSFixMe) => async (
 
     try {
         const response = await postApi(`group/${projectId}`, data);
-        
+
         dispatch(addGroupSuccess(response.data));
         dispatch(getGroups());
         return response;
@@ -67,7 +67,7 @@ export const updateGroup = (
 
     try {
         const response = await putApi(`group/${projectId}/${groupId}`, data);
-        
+
         dispatch(updateGroupSuccess(response.data));
         return response;
     } catch (error) {
@@ -104,7 +104,7 @@ export const getGroups = () => async (dispatch: $TSFixMe) => {
     const projectId = User.getCurrentProjectId();
     try {
         const response = await getApi(`group/${projectId}/groups`);
-        
+
         dispatch(getGroupsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -144,7 +144,7 @@ export const getProjectGroups = (
         const response = await getApi(
             `group/${projectId}?skip=${skip}&limit=${limit}`
         );
-        
+
         dispatch(getProjectGroupsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -180,9 +180,8 @@ export const deleteGroup = (projectId: $TSFixMe, groupId: $TSFixMe) => async (
     dispatch(deleteGroupRequest());
 
     try {
-        
         const response = await deleteApi(`group/${projectId}/${groupId}`);
-        
+
         dispatch(deleteGroupSuccess(response.data));
         dispatch(getGroups());
         return response;

@@ -19,11 +19,8 @@ const monitorName = utils.generateRandomString();
 const scheduledMaintenanceName = utils.generateRandomString();
 const scheduledMaintenanceDescription = utils.generateRandomString();
 
-
 describe('Check scheduled maintenace', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,13 +29,11 @@ describe('Check scheduled maintenace', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should create a status-page',
         async (done: $TSFixMe) => {
@@ -54,7 +49,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#statusPages');
             await init.pageWaitForSelector(
                 page,
@@ -64,7 +59,7 @@ describe('Check scheduled maintenace', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,
@@ -74,20 +69,20 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', statusPageName);
-            
+
             await init.pageClick(page, '#btnCreateStatusPage');
             await init.pageWaitForSelector(page, '#statusPagesListContainer', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageWaitForSelector(page, '#viewStatusPage');
-            
+
             await init.pageClick(page, '#viewStatusPage');
             await init.pageWaitForSelector(page, `#header-${statusPageName}`, {
                 visible: true,
@@ -109,7 +104,6 @@ describe('Check scheduled maintenace', () => {
         init.timeout
     );
 
-    
     test(
         'should create a manual monitor',
         async (done: $TSFixMe) => {
@@ -134,12 +128,12 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', componentName);
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             // Create a Manual Monitor
@@ -152,19 +146,19 @@ describe('Check scheduled maintenace', () => {
                 timeout: init.timeout,
             });
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
-            
+
             await init.pageClick(page, '[data-testId=type_manual]');
             await init.pageWaitForSelector(page, '#description', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#description');
-            
+
             await init.pageType(page, '#description', 'My Manual Monitor');
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
             // To confirm the manual monitor is created
@@ -182,7 +176,6 @@ describe('Check scheduled maintenace', () => {
         init.timeout
     );
 
-    
     test(
         'should add monitor to status-page',
         async (done: $TSFixMe) => {
@@ -194,7 +187,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#statusPages');
             await init.pageWaitForSelector(page, '#statusPagesListContainer', {
                 visible: true,
@@ -204,37 +197,37 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewStatusPage');
             await init.pageWaitForSelector(page, '#addMoreMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addMoreMonitors');
             await init.selectDropdownValue(
                 '#monitor-name-0',
                 `${componentName} / ${monitorName}`,
                 page
             );
-            
+
             await init.pageClick(page, '#monitor-description-0');
-            
+
             await init.pageType(
                 page,
                 '#monitor-description-0',
                 'Status Page Description'
             );
-            
+
             await init.pageClick(page, '#manual-monitor-checkbox-0');
-            
+
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             let link = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
@@ -258,7 +251,6 @@ describe('Check scheduled maintenace', () => {
         init.timeout
     );
 
-    
     test(
         'should create a scheduled maintenance',
         async (done: $TSFixMe) => {
@@ -270,13 +262,13 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduledMaintenance');
             await init.pageWaitForSelector(page, '#addScheduledEventButton', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addScheduledEventButton');
 
             await init.pageWaitForSelector(page, '#scheduledEventForm', {
@@ -287,14 +279,13 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#name');
-            
+
             await init.pageType(page, '#name', scheduledMaintenanceName);
 
-            
             await init.pageClick(page, '#description');
-            
+
             await init.pageType(
                 page,
                 '#description',
@@ -304,9 +295,9 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[name=startDate]');
-            
+
             await init.pageClick(
                 page,
                 'div.MuiDialogActions-root button:nth-child(2)'
@@ -316,21 +307,21 @@ describe('Check scheduled maintenace', () => {
                 'div.MuiDialogActions-root button:nth-child(2)',
                 { hidden: true }
             );
-            
+
             await init.pageClick(page, 'input[name=endDate]');
-            
+
             await init.pageClick(page, '.MuiPickersDay-daySelected'); // To select the current date but pick the last hour
-            
+
             await init.pageClick(
                 page,
                 'span.MuiTypography-body1:nth-child(14)'
             ); // This selects '11'
-            
+
             await init.pageClick(
                 page,
                 'span.MuiPickersClockNumber-clockNumber:nth-child(15)'
             ); // This selects '55'. 11:55 is the highest possible value from the clock library html elements
-            
+
             await init.pageClick(
                 page,
                 'div.MuiDialogActions-root button:nth-child(2)'
@@ -340,7 +331,7 @@ describe('Check scheduled maintenace', () => {
                 'div.MuiDialogActions-root button:nth-child(2)',
                 { hidden: true }
             );
-            
+
             await init.pageClick(page, '#createScheduledEventButton');
             await init.pageWaitForSelector(page, '#scheduledEventForm', {
                 hidden: true,
@@ -364,7 +355,6 @@ describe('Check scheduled maintenace', () => {
         init.timeout
     );
 
-    
     test(
         'should view scheduled maintenance details in status-page',
         async (done: $TSFixMe) => {
@@ -372,7 +362,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#statusPages');
             await init.pageWaitForSelector(page, '#statusPagesListContainer', {
                 visible: true,
@@ -382,14 +372,14 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewStatusPage');
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             let link = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
@@ -399,7 +389,7 @@ describe('Check scheduled maintenace', () => {
             await page.goto(link);
 
             // To confirm scheduled maintenance name
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#event-name-${scheduledMaintenanceName}`

@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -56,11 +55,9 @@ const csvData = {
     ],
 };
 
-
 describe('Subscriber API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -146,7 +143,6 @@ describe('Subscriber API', function() {
         });
     });
 
-    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -167,7 +163,6 @@ describe('Subscriber API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should register subscriber with valid monitorIds and contact email or phone number', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${statusPageId}`)
@@ -191,7 +186,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('should not register subscriber without contact email or phone number', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${statusPageId}`)
@@ -204,7 +198,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('should get list of subscribers to a project', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}`)
@@ -217,7 +210,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('should get list of subscribers to a monitorId', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}/monitor/${monitorId}`)
@@ -230,7 +222,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('should get a subscriber', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}/${subscriberId}`)
@@ -241,7 +232,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('should delete a subscriber', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -253,7 +243,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('Should upload subscribers from a csv file', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
@@ -267,7 +256,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('Should not register subscriber twice on the same monitor', (done: $TSFixMe) => {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
@@ -280,7 +268,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('Should ignore exisiting subscribers and register only new subscribers from the svc file', (done: $TSFixMe) => {
         csvData.data.push({
             alertVia: 'sms',
@@ -304,7 +291,6 @@ describe('Subscriber API', function() {
             });
     });
 
-    
     it('Should not register subscribers if scv file is blank', (done: $TSFixMe) => {
         csvData.data = [];
         request

@@ -46,7 +46,6 @@ export function search(projectId: $TSFixMe, values: $TSFixMe) {
         const promise = postApi(`search/${projectId}`, values);
         promise.then(
             function(result) {
-                
                 const search = result.data;
                 dispatch(searchSuccess(search.data));
             },

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,13 +10,10 @@ const password = '1234567890';
 const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-
 describe('Incident Reports API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -42,16 +38,16 @@ describe('Incident Reports API', () => {
         await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
             e.click()
         );
-        
+
         await init.pageType(page, 'input[id=name]', monitorName);
-        
+
         await init.pageClick(page, '[data-testId=type_url]');
         await init.pageWaitForSelector(page, '#url', {
             visible: true,
             timeout: init.timeout,
         });
         await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
-        
+
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
             e.click()
@@ -61,38 +57,34 @@ describe('Incident Reports API', () => {
         });
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test('should display why degraded incident was created', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
         await page.evaluate(
-            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('statusCode').value = '')
         );
-        
+
         await init.pageWaitForSelector(page, '#responseTime');
-        
+
         await init.pageClick(page, 'input[name=responseTime]');
-        
+
         await init.pageType(page, 'input[name=responseTime]', '5000');
-        
+
         await init.pageWaitForSelector(page, '#statusCode');
-        
+
         await init.pageClick(page, 'input[name=statusCode]');
-        
+
         await init.pageType(page, 'input[name=statusCode]', '200');
-        
+
         await init.pageClick(page, 'button[type=submit]');
-        
+
         await init.pageWaitForSelector(page, '#save-btn');
         await init.pageWaitForSelector(page, '#save-btn', {
             visible: true,
@@ -118,32 +110,29 @@ describe('Incident Reports API', () => {
         ).toEqual(true);
     }, 600000);
 
-    
     test('should display why offline incident was created', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings');
         await page.evaluate(
-            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('statusCode').value = '')
         );
-        
+
         await init.pageWaitForSelector(page, '#responseTime');
-        
+
         await init.pageClick(page, 'input[name=responseTime]');
-        
+
         await init.pageType(page, 'input[name=responseTime]', '0');
-        
+
         await init.pageWaitForSelector(page, '#statusCode');
-        
+
         await init.pageClick(page, 'input[name=statusCode]');
-        
+
         await init.pageType(page, 'input[name=statusCode]', '400');
-        
+
         await init.pageClick(page, 'button[type=submit]');
-        
+
         await init.pageWaitForSelector(page, '#save-btn');
         await init.pageWaitForSelector(page, '#save-btn', {
             visible: true,

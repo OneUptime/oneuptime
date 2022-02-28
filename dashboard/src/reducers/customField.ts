@@ -68,7 +68,6 @@ export default function customField(state = initialState, action: $TSFixMe) {
 
         case types.DELETE_CUSTOM_FIELD_SUCCESS: {
             const fields = state.customFields.fields.filter(
-                
                 field => String(field._id) !== String(action.payload._id)
             );
             return {
@@ -147,9 +146,7 @@ export default function customField(state = initialState, action: $TSFixMe) {
 
         case types.UPDATE_CUSTOM_FIELD_SUCCESS: {
             const fields = state.customFields.fields.map(field => {
-                
                 if (String(field._id) === String(action.payload._id)) {
-                    
                     field = action.payload;
                 }
 

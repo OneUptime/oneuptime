@@ -46,47 +46,43 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
             data = {};
 
         data = req.body;
-        
+
         data.lighthouseScanStatus =
             resp && resp.lighthouseScanStatus
                 ? resp.lighthouseScanStatus
                 : null;
-        
+
         data.performance = resp && resp.performance ? resp.performance : null;
-        
+
         data.accessibility =
             resp && resp.accessibility ? resp.accessibility : null;
-        
+
         data.bestPractices =
             resp && resp.bestPractices ? resp.bestPractices : null;
-        
+
         data.seo = resp && resp.seo ? resp.seo : null;
-        
+
         data.pwa = resp && resp.pwa ? resp.pwa : null;
-        
+
         data.lighthouseData =
             resp && resp.lighthouseData ? resp.lighthouseData : null;
-        
+
         data.monitorId = req.params.monitorId || monitor._id;
-        
+
         const probeId = await ProbeService.findBy({ query: {}, select: '_id' });
-        
+
         data.probeId = probeId ? probeId[0]._id : null;
 
-        
         if (data.lighthouseScanStatus === 'scanning') {
-            
             await MonitorService.updateLighthouseScanStatus(
-                
                 data.monitorId,
-                
+
                 data.lighthouseScanStatus
             );
 
             await LighthouseLogService.updateAllLighthouseLogs(
-                
                 data.monitor.projectId,
-                
+
                 data.monitorId,
                 {
                     scanning: true,
@@ -94,47 +90,43 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
             );
         } else {
             await MonitorService.updateLighthouseScanStatus(
-                
                 data.monitorId,
-                
+
                 data.lighthouseScanStatus,
-                
+
                 data.probeId
             );
 
-            
             if (data.lighthouseData) {
                 // The scanned results are published
-                
+
                 data.scanning = false;
                 log = await ProbeService.saveLighthouseLog(data);
 
                 /* For Email Service */
-                
+
                 const project = await ProjectService.findOneBy({
-                    
                     query: { _id: data.monitor.projectId },
                     select: '_id name users',
                 });
-                
+
                 project.monitor = data.monitor.name;
                 const userIds = project.users
                     .filter((e: $TSFixMe) => e.role !== 'Viewer')
                     .map((e: $TSFixMe) => ({
                         id: e.userId,
                     })); // This cater for projects with multiple registered members
-                
+
                 const performance = data.performance;
-                
+
                 const accessibility = data.accessibility;
-                
+
                 const bestPractices = data.bestPractices;
-                
+
                 const seo = data.seo;
-                
+
                 const pwa = data.pwa;
 
-                
                 const performanceIssues = data.lighthouseData.issues.performance
                     .slice(0, 10)
                     .map((desc: $TSFixMe) => {
@@ -150,7 +142,6 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                         return desc;
                     });
 
-                
                 const accessibilityIssues = data.lighthouseData.issues.accessibility
                     .slice(0, 10)
                     .map((desc: $TSFixMe) => {
@@ -166,7 +157,6 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                         return desc;
                     });
 
-                
                 const bestPracticesIssues = data.lighthouseData.issues[
                     'best-practices'
                 ]
@@ -184,7 +174,6 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                         return desc;
                     });
 
-                
                 const seoIssues = data.lighthouseData.issues.seo
                     .slice(0, 10)
                     .map((desc: $TSFixMe) => {
@@ -199,7 +188,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
 
                         return desc;
                     });
-                
+
                 const pwaIssues = data.lighthouseData.issues.pwa
                     .slice(0, 10)
                     .map((desc: $TSFixMe) => {

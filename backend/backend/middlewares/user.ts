@@ -214,7 +214,6 @@ const _this = {
                             }
                             const [project] = await Promise.all([
                                 ProjectService.findOneBy({
-                                    
                                     _id: projectId,
                                 }),
                                 UserService.updateOneBy(
@@ -261,7 +260,6 @@ const _this = {
         next: $TSFixMe
     ) {
         if (!req.user) {
-            
             req = await _this.getUser(req);
         }
 
@@ -291,7 +289,6 @@ const _this = {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
-            
             if (_this.isUserMasterAdmin(req, res)) {
                 if (next) {
                     return next();
@@ -326,7 +323,6 @@ const _this = {
                 }
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'stripePlanId',

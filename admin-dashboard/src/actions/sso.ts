@@ -29,9 +29,8 @@ export const fetchSsos = (skip: $TSFixMe, limit: $TSFixMe) => async (
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchSsosRequest());
     try {
-        
         const response = await getApi(`sso/?skip=${skip}&limit=${limit}`);
-        
+
         dispatch(fetchSsosSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -72,9 +71,8 @@ export const fetchSsoError = (payload: $TSFixMe) => {
 export const fetchSso = (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(fetchSsoRequest());
     try {
-        
         const response = await getApi(`sso/${ssoId}`);
-        
+
         dispatch(fetchSsoSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -114,7 +112,6 @@ export const deleteSsoError = (payload: $TSFixMe) => {
 export const deleteSso = (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteSsoRequest());
     try {
-        
         await deleteApi(`sso/${ssoId}`);
         dispatch(deleteSsoSuccess());
     } catch (error) {
@@ -155,7 +152,6 @@ export const addSsoError = (payload: $TSFixMe) => {
 export const addSso = ({ data }: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(addSsoRequest());
     try {
-        
         await postApi(`sso/`, data);
         dispatch(addSsoSuccess());
     } catch (error) {

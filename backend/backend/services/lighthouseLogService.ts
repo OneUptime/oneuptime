@@ -2,25 +2,24 @@ export default {
     create: async function(data: $TSFixMe) {
         const Log = new LighthouseLogModel();
 
-        
         Log.monitorId = data.monitorId;
-        
+
         Log.probeId = data.probeId;
-        
+
         Log.data = data.lighthouseData.issues;
-        
+
         Log.url = data.lighthouseData.url;
-        
+
         Log.performance = data.performance;
-        
+
         Log.accessibility = data.accessibility;
-        
+
         Log.bestPractices = data.bestPractices;
-        
+
         Log.seo = data.seo;
-        
+
         Log.pwa = data.pwa;
-        
+
         Log.scanning = data.scanning;
 
         const savedLog = await Log.save();

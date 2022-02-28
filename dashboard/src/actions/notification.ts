@@ -72,7 +72,7 @@ export function fetchNotifications(projectId: $TSFixMe) {
             const notifications = await getApi(`notification/${projectId}`);
 
             dispatch(fetchNotificationsRequest());
-            
+
             dispatch(fetchNotificationsSuccess(notifications.data));
         } catch (error) {
             let payload;
@@ -107,7 +107,6 @@ export function markAsRead(projectId: $TSFixMe, notificationIds: $TSFixMe) {
                 { notificationIds }
             );
 
-            
             for (const notificationId of notifications.data) {
                 dispatch(
                     notificationReadSuccess({
@@ -149,7 +148,6 @@ export function closeNotification(
                 })
             );
 
-            
             await putApi(`notification/${projectId}/${notificationId}/closed`);
         } catch (error) {
             let payload;
@@ -173,7 +171,7 @@ export function markAllAsRead(projectId: $TSFixMe) {
     return async function(dispatch: $TSFixMe) {
         try {
             const userId = User.getUserId();
-            
+
             await putApi(`notification/${projectId}/readAll`);
 
             dispatch(allNotificationReadSuccess(userId));

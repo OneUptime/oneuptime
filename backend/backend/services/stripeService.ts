@@ -9,7 +9,7 @@ const Services = {
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',
             }),
-            
+
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: 'name _id',
@@ -38,7 +38,7 @@ const Services = {
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',
             }),
-            
+
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: 'name _id',
@@ -94,7 +94,7 @@ const Services = {
                 query: { stripeCustomerId: customerId },
                 select: 'name _id',
             }),
-            
+
             ProjectService.findOneBy({
                 query: { stripeSubscriptionId: subscriptionId },
                 select: '_id users',
@@ -148,7 +148,7 @@ const Services = {
         create: async function(tok: $TSFixMe, userId: $TSFixMe) {
             const [tokenCard, cards] = await Promise.all([
                 stripe.tokens.retrieve(tok),
-                
+
                 this.get(userId),
             ]);
             let duplicateCard = false;
@@ -193,7 +193,7 @@ const Services = {
                 return paymentIntent;
             } else {
                 const error = new Error('Cannot add duplicate card');
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -217,11 +217,11 @@ const Services = {
                 select: 'stripeCustomerId',
             });
             const stripeCustomerId = user.stripeCustomerId;
-            
+
             const cards = await this.get(userId);
             if (cards.data.length === 1) {
                 const error = new Error('Cannot delete the only card');
-                
+
                 error.code = 403;
                 throw error;
             }
@@ -287,7 +287,7 @@ const Services = {
                 projectId,
             };
         }
-        
+
         const paymentIntent = await this.createInvoice(
             stripechargeAmount,
             stripeCustomerId,
@@ -376,7 +376,7 @@ const Services = {
         const metadata = {
             projectId,
         };
-        
+
         let paymentIntent = await this.createInvoice(
             stripechargeAmount,
             stripeCustomerId,

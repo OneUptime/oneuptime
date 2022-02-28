@@ -27,69 +27,68 @@ export default {
     create: async function(data: $TSFixMe) {
         if (!data.email) {
             const error = new Error('Email address can not be empty');
-            
+
             error.code = 400;
             throw error;
         }
         const userModel = new UserModel();
-        
+
         userModel.name = data.name || null;
-        
+
         userModel.email = data.email || null;
-        
+
         userModel.role = data.role || 'user';
-        
+
         userModel.companyName = data.companyName || null;
-        
+
         userModel.companyRole = data.companyRole || null;
-        
+
         userModel.companySize = data.companySize || null;
-        
+
         userModel.referral = data.referral || null;
-        
+
         userModel.companyPhoneNumber = data.companyPhoneNumber || null;
-        
+
         userModel.onCallAlert = data.onCallAlert || null;
-        
+
         userModel.profilePic = data.profilePic || null;
-        
+
         userModel.stripeCustomerId = data.stripeCustomerId || null;
-        
+
         userModel.resetPasswordToken = data.resetPasswordToken || null;
-        
+
         userModel.resetPasswordExpires = data.resetPasswordExpires || null;
-        
+
         userModel.createdAt = data.createdAt || Date.now();
-        
+
         userModel.timezone = data.timezone || null;
-        
+
         userModel.lastActive = data.lastActive || Date.now();
-        
+
         userModel.coupon = data.coupon || null;
-        
+
         userModel.adminNotes = data.adminNotes || null;
-        
+
         userModel.tempEmail = data.tempEmail || null;
-        
+
         userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
-        
+
         userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
-        
+
         userModel.otpauth_url = data.otpauth_url || null;
-        
+
         userModel.source = data.source || null;
         if (data.password) {
             const hash = await bcrypt.hash(data.password, constants.saltRounds);
-            
+
             userModel.password = hash;
         }
         // setting isVerified true for master admin
-        
+
         if (data.role == 'master-admin') userModel.isVerified = true;
-        
+
         userModel.jwtRefreshToken = randToken.uid(256);
 
-        
         if (data.sso) userModel.sso = data.sso;
 
         const user = await userModel.save();
@@ -144,7 +143,7 @@ export default {
 
         if ((user && !IS_SAAS_SERVICE) || user) {
             // find user subprojects and parent projects
-            
+
             let userProjects = await ProjectService.findBy({
                 query: { 'users.userId': user._id },
                 select: 'parentProjectId',
@@ -174,7 +173,7 @@ export default {
             ];
             const selectProject =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-            
+
             userProjects = await ProjectService.findBy({
                 query: {
                     $or: [
@@ -293,7 +292,6 @@ export default {
         });
         const verificationToken = await verificationTokenModel.save();
         if (verificationToken) {
-            
             const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
             // Checking for already verified user so that he/she will not recieve another email verification
             try {
@@ -318,7 +316,7 @@ export default {
                     });
             }
         }
-        
+
         return verificationToken.token;
     },
     //Description: signup function for new user.
@@ -339,7 +337,7 @@ export default {
 
             if (user) {
                 const error = new Error('User already exists.');
-                
+
                 error.code = 400;
                 throw error;
             } else {
@@ -353,7 +351,7 @@ export default {
                         const error = new Error(
                             'Unsuccessful attempt to charge card'
                         );
-                        
+
                         error.code = 400;
                         throw error;
                     }
@@ -419,7 +417,7 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -570,14 +568,14 @@ export default {
 
             if (!user) {
                 const error = new Error('User does not exist.');
-                
+
                 error.code = 400;
                 throw error;
             } else if (user.sso) {
                 const error = new Error(
                     'This domain is configured as SSO. Please use SSO to log in to your account'
                 );
-                
+
                 error.code = 401;
                 throw error;
             } else {
@@ -585,7 +583,6 @@ export default {
                     // calculate number of days the subscription renewal has failed.
                     const oneDayInMilliSeconds = 1000 * 60 * 60 * 24;
                     const daysAfterPaymentFailed = Math.round(
-                        
                         (new Date() - user.paymentFailedDate) /
                             oneDayInMilliSeconds
                     );
@@ -599,7 +596,7 @@ export default {
                         const error = new Error(
                             'Your account has been disabled. Kindly contact support@oneuptime.com'
                         );
-                        
+
                         error.code = 400;
                         throw error;
                     }
@@ -610,7 +607,7 @@ export default {
                     const error = new Error(
                         'Your account has been disabled. Kindly contact support@oneuptime.com'
                     );
-                    
+
                     error.code = 400;
                     throw error;
                 }
@@ -620,7 +617,7 @@ export default {
                     NODE_ENV !== 'development'
                 ) {
                     const error = new Error('Verify your email first.');
-                    
+
                     error.code = 401;
                     throw error;
                 }
@@ -628,7 +625,7 @@ export default {
                     const error = new Error(
                         'Your account does not exist. Please sign up.'
                     );
-                    
+
                     error.code = 400;
                     throw error;
                 } else {
@@ -671,7 +668,7 @@ export default {
                             userAgent,
                             'incorrect password'
                         );
-                        
+
                         error.code = 400;
                         throw error;
                     }
@@ -679,7 +676,7 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -699,7 +696,7 @@ export default {
 
             if (!user) {
                 const error = new Error('User does not exist.');
-                
+
                 error.code = 400;
                 throw error;
             } else {
@@ -708,7 +705,7 @@ export default {
                     const error = new Error(
                         'Your account is currently under maintenance. Please try again later'
                     );
-                    
+
                     error.code = 400;
                     throw error;
                 }
@@ -730,7 +727,7 @@ export default {
             }
         } else {
             const error = new Error('Email is not in valid format.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -761,7 +758,7 @@ export default {
                 const error = new Error(
                     'Your account is currently under maintenance. Please try again later'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -793,7 +790,7 @@ export default {
             const error = new Error(
                 'A temporary password is required for admin mode'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -805,7 +802,7 @@ export default {
 
         if (!user) {
             const error = new Error('User not found');
-            
+
             error.code = 400;
             throw error;
         } else {
@@ -845,14 +842,14 @@ export default {
 
         if (!user) {
             const error = new Error('User not found');
-            
+
             error.code = 400;
             throw error;
         } else {
             // ensure user is in admin mode
             if (!user.isAdminMode) {
                 const error = new Error('User is not currently in admin mode');
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -887,7 +884,7 @@ export default {
 
         if (!user) {
             const error = new Error('Invalid Refresh Token');
-            
+
             error.code = 400;
             throw error;
         } else {
@@ -924,7 +921,7 @@ export default {
             const error = new Error(
                 'Your account is currently under maintenance. Please try again later'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -942,7 +939,7 @@ export default {
             return user;
         } else {
             const error = new Error('Current Password is incorrect.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -961,7 +958,7 @@ export default {
         users = await Promise.all(
             users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects
-                
+
                 let userProjects = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
@@ -991,7 +988,7 @@ export default {
                 const populate = [{ path: 'parentProjectId', select: 'name' }];
                 const select =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-                
+
                 userProjects = await ProjectService.findBy({
                     query: {
                         $or: [
@@ -1068,7 +1065,7 @@ export default {
         users = await Promise.all(
             users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects
-                
+
                 let userProjects = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
@@ -1098,7 +1095,7 @@ export default {
                 const populate = [{ path: 'parentProjectId', select: 'name' }];
                 const select =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-                
+
                 userProjects = await ProjectService.findBy({
                     query: {
                         $or: [
@@ -1132,7 +1129,6 @@ export default {
         );
     },
 };
-
 
 import bcrypt from 'bcrypt';
 

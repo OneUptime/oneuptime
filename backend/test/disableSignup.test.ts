@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -19,15 +18,12 @@ import payment from '../backend/config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
 
-
 describe('Disable Sign up test', function() {
-    
     this.timeout(200000);
-    
+
     let token = null;
-    
+
     this.beforeAll(async function() {
-        
         this.timeout(400000);
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
@@ -46,7 +42,6 @@ describe('Disable Sign up test', function() {
         process.env.DISABLE_SIGNUP = 'true'; // this is in quotes because of helm chart and kubernetes.
     });
 
-    
     this.afterAll(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
@@ -54,23 +49,20 @@ describe('Disable Sign up test', function() {
         process.env.DISABLE_SIGNUP = undefined;
     });
 
-    
     it('should not sign up the user when sign up is disabled', async () => {
         const res = await createUser(request, data.user);
         expect(res).to.have.status(400);
         expect(res.body.message).to.be.equal('Sign up is disabled.');
     });
 
-    
     it('should sign up a new user when user is admin', async () => {
-        
         const authorization = `Basic ${token}`;
         const res = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
             email: data.anotherUser.email,
             companyName: data.anotherUser.companyName,
         });
-        
+
         const paymentIntent = await stripe.paymentIntents.confirm(res.body.id);
         expect(paymentIntent).to.have.status('succeeded');
 

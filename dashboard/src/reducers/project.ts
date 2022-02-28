@@ -190,7 +190,7 @@ export default function project(state = initialState, action: $TSFixMe) {
 
         case types.CREATE_PROJECT_SUCCESS:
             newProjects = Object.assign([], state.projects.projects);
-            
+
             newProjects.push(action.payload);
             return Object.assign({}, state, {
                 newProject: {
@@ -229,10 +229,9 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.RESET_PROJECT_TOKEN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                
                 project => project._id !== action.payload._id
             );
-            
+
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
@@ -279,10 +278,9 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.RENAME_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                
                 project => project._id !== action.payload._id
             );
-            
+
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
@@ -344,7 +342,6 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.GET_PROJECT_BALANCE_SUCCESS:
             return Object.assign({}, state, {
                 currentProject: {
-                    
                     ...state.currentProject,
                     balance: action.payload.balance,
                 },
@@ -357,7 +354,6 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.DELETE_PROJECT_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                
                 project => project._id !== action.payload
             );
             return Object.assign({}, state, {
@@ -405,7 +401,6 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.MARK_PROJECT_DELETE_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                
                 project => project._id !== action.payload
             );
             return Object.assign({}, state, {
@@ -502,10 +497,9 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.CHANGE_PLAN_SUCCESS:
             projects = Object.assign([], state.projects.projects);
             projects = projects.filter(
-                
                 project => project._id !== action.payload._id
             );
-            
+
             projects.push(action.payload);
             return Object.assign({}, state, {
                 projects: {
@@ -585,7 +579,6 @@ export default function project(state = initialState, action: $TSFixMe) {
         case types.CHANGE_PROJECT_ROLES:
             return Object.assign({}, state, {
                 currentProject: {
-                    
                     ...state.currentProject,
                     users: action.payload.find(
                         team => team.projectId === state.currentProject._id
@@ -601,7 +594,6 @@ export default function project(state = initialState, action: $TSFixMe) {
                     project: action.payload,
                 },
                 currentProject: {
-                    
                     ...state.currentProject,
                     alertEnable: action.payload.alertEnable,
                     alertOptions: action.payload.alertOptions,

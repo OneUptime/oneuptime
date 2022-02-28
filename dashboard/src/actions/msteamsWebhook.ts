@@ -39,9 +39,8 @@ export function deleteMsTeams(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
 
         return promise.then(
             function(msTeams) {
-                
                 dispatch(deleteMsTeamsSuccess(msTeams.data));
-                
+
                 return msTeams.data;
             },
             function(error) {
@@ -103,7 +102,6 @@ export function getMsTeams(
 
         promise.then(
             function(webhooks) {
-                
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
             function(error) {
@@ -141,7 +139,6 @@ export function getMsTeamsMonitor(
 
         promise.then(
             function(webhooks) {
-                
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
             function(error) {
@@ -197,9 +194,8 @@ export function createMsTeams(projectId: $TSFixMe, data: $TSFixMe) {
         dispatch(createMsTeamsRequest());
         return promise.then(
             function(webhook) {
-                
                 dispatch(createMsTeamsSuccess(webhook.data));
-                
+
                 return webhook.data;
             },
             function(error) {
@@ -258,9 +254,8 @@ export function updateMsTeams(
 
         return promise.then(
             function(webhook) {
-                
                 dispatch(updateMsTeamsSuccess(webhook.data));
-                
+
                 return webhook.data;
             },
             function(error) {

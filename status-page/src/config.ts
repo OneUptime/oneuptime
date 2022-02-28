@@ -1,4 +1,3 @@
-
 import isEmail from 'sane-email-validation';
 
 import validUrl from 'valid-url';
@@ -8,7 +7,6 @@ let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
 export function env(value: $TSFixMe) {
-    
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -192,7 +190,6 @@ export function getServiceStatus(monitorsData: $TSFixMe, probes: $TSFixMe) {
 
     monitorsData.forEach((monitor: $TSFixMe) => {
         probes.forEach((probe: $TSFixMe) => {
-            
             const statuses = filterProbeData(monitor, probe);
             const monitorStatus = monitor.status
                 ? monitor.status
@@ -292,7 +289,7 @@ export const handleResources = (
         return 'All resources are affected';
     } else {
         const result = affectedMonitors
-            
+
             .map(monitor => capitalize(monitor.name))
             .join(', ')
             .replace(/, ([^,]*)$/, ' and $1');
@@ -302,12 +299,10 @@ export const handleResources = (
 
 export const cacheProvider = {
     get: (language: $TSFixMe, key: $TSFixMe) =>
-        
         ((JSON.parse(localStorage.getItem('translations')) || {})[key] || {})[
             language
         ],
     set: (language: $TSFixMe, key: $TSFixMe, value: $TSFixMe) => {
-        
         const existing = JSON.parse(localStorage.getItem('translations')) || {
             [key]: {},
         };

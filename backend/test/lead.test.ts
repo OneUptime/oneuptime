@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import chai from 'chai';
@@ -25,22 +24,18 @@ const leadData = {
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-
 describe('Lead API', function() {
     this.timeout(20000);
 
-    
     before(async function() {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
     });
 
-    
     it('should add lead when requested for type demo or whitepaper', function(done: $TSFixMe) {
         request
             .post('/lead')
@@ -52,7 +47,6 @@ describe('Lead API', function() {
             });
     });
 
-    
     it('should add lead when requested for type demo and check the sent message', function(done: $TSFixMe) {
         this.timeout(60000);
         request

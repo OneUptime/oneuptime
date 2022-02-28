@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -25,11 +24,9 @@ let token: $TSFixMe,
     incidentId: $TSFixMe,
     alertId: $TSFixMe;
 
-
 describe('Enterprise Alert API', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -77,7 +74,6 @@ describe('Enterprise Alert API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -89,7 +85,6 @@ describe('Enterprise Alert API', function() {
         await AlertService.hardDeleteBy({ _id: alertId });
     });
 
-    
     it('should create alert with valid details for project with no billing plan', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

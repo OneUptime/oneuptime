@@ -1,4 +1,3 @@
-
 const monitorStatusCollection = global.db.collection('monitorstatuses');
 import { ObjectId } from 'mongodb';
 import ErrorService from '../services/errorService';
@@ -16,9 +15,9 @@ export default {
     create: async function(data: $TSFixMe) {
         try {
             const query = {};
-            
+
             if (data.monitorId) query.monitorId = data.monitorId;
-            
+
             if (data.probeId) query.probeId = data.probeId;
 
             let previousMonitorStatus = await this.findBy({
@@ -46,7 +45,6 @@ export default {
                     }
                     await this.updateOneBy(
                         {
-                            
                             _id: ObjectId(previousMonitorStatus._id),
                         },
                         {
@@ -66,7 +64,6 @@ export default {
                     deleted: false,
                 };
                 if (data.lastStatus) {
-                    
                     monitorStatusData.lastStatus = data.lastStatus;
                 }
 
@@ -74,7 +71,6 @@ export default {
                     monitorStatusData
                 );
                 const savedMonitorStatus = await this.findOneBy({
-                    
                     _id: ObjectId(result.insertedId),
                 });
 
@@ -168,7 +164,6 @@ export default {
     async sendMonitorStatus(data: $TSFixMe) {
         try {
             const monitor = await MonitorService.findOneBy({
-                
                 query: { _id: ObjectId(data.monitorId) },
                 // select: 'projectId',
                 // populate: [{ path: 'projectId', select: '_id' }],
@@ -176,7 +171,6 @@ export default {
             if (monitor && monitor.projectId) {
                 const project = await ProjectService.findOneBy({
                     query: {
-                        
                         _id: ObjectId(
                             monitor.projectId._id || monitor.projectId
                         ),

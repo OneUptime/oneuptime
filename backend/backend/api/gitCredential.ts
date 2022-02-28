@@ -91,21 +91,17 @@ router.put(
             const data = {};
 
             if (gitUsername) {
-                
                 data.gitUsername = gitUsername;
             }
             if (gitPassword) {
-                
                 data.gitPassword = gitPassword;
             }
 
             if (sshTitle) {
-                
                 data.sshTitle = sshTitle;
             }
 
             if (sshPrivateKey) {
-                
                 data.sshPrivateKey = sshPrivateKey;
             }
 

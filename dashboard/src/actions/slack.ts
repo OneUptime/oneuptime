@@ -39,9 +39,8 @@ export function deleteSlackLink(projectId: $TSFixMe, teamId: $TSFixMe) {
 
         return promise.then(
             function(teams) {
-                
                 dispatch(deleteSlackLinkSuccess(teams.data));
-                
+
                 return teams.data;
             },
             function(error) {
@@ -106,7 +105,6 @@ export function getSlackTeams(
 
         promise.then(
             function(teams) {
-                
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
             function(error) {

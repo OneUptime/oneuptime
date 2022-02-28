@@ -10,21 +10,21 @@ export default {
         subscriberId: $TSFixMe
     ) {
         const alertCharge = new AlertChargeModel();
-        
+
         alertCharge.projectId = projectId;
-        
+
         alertCharge.chargeAmount = chargeAmount;
-        
+
         alertCharge.closingAccountBalance = balanceAfterAlertSent;
-        
+
         alertCharge.alertId = alertId || null;
-        
+
         alertCharge.monitorId = monitorId;
-        
+
         alertCharge.incidentId = incidentId;
-        
+
         alertCharge.sentTo = sentTo;
-        
+
         alertCharge.subscriberAlertId = subscriberId || null;
         alertCharge.save();
         return alertCharge;

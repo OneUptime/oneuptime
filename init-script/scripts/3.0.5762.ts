@@ -1,4 +1,3 @@
-
 import { find, update, removeField, rename } from '../util/db';
 
 const monitorCategoryCollection = 'monitorcategories';

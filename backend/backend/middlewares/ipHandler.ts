@@ -37,14 +37,12 @@ const _this = {
             return next();
         }
 
-        
         if (!statusPage.enableIpWhitelist) {
             return next();
         }
-        
+
         const ipWhitelist = statusPage.ipWhitelist
-            ? 
-              [...statusPage.ipWhitelist]
+            ? [...statusPage.ipWhitelist]
             : [];
         // if ip whitelist is enabled and no ip is saved
         // block the access

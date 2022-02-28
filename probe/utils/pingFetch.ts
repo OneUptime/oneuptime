@@ -33,11 +33,9 @@ const pingfetch = async (
             timeout: 30000,
         };
         if (headers && Object.keys(headers).length > 0) {
-            
             payload.headers = headers;
         }
         if (body && Object.keys(body).length > 0) {
-            
             payload.body = body;
         }
         try {

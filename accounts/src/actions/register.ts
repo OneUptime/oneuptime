@@ -83,21 +83,17 @@ export function signupUser(values: $TSFixMe) {
         dispatch(signUpRequest(promise));
         promise.then(
             function(user) {
-                
                 dispatch(signupSuccess(user.data));
-                
+
                 if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
-                    
                     dispatch(loginSuccess(user.data));
                     dispatch(masterAdminExistsSuccess({ result: true }));
                 }
                 if (values.token) {
-                    
                     dispatch(loginSuccess(user.data));
                 }
-                
+
                 if (user.data.cardRegistered) {
-                    
                     dispatch(loginSuccess(user.data));
                 }
             },
@@ -182,7 +178,6 @@ export function isUserInvited(values: $TSFixMe) {
         dispatch(isUserInvitedRequest(promise));
         promise.then(
             function(response) {
-                
                 dispatch(isUserInvitedSuccess(response.data));
             },
             function(error) {
@@ -233,7 +228,6 @@ export function addCard(data: $TSFixMe) {
 
         promise.then(
             function(card) {
-                
                 dispatch(addCardSuccess(card.data));
             },
             function(error) {
@@ -266,7 +260,6 @@ export function getEmailFromToken(token: $TSFixMe) {
         const promise = getApi(`user/${token}/email`);
         promise.then(
             function(response) {
-                
                 dispatch(getEmailSuccess(response.data));
             },
             function(error) {

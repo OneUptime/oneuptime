@@ -387,7 +387,6 @@ export default function(state = INITIAL_STATE, action: $TSFixMe) {
             const metrics = state.lastMetrics.metrics
                 .filter(
                     metric =>
-                        
                         String(metric.performanceTrackerId) !==
                         String(action.payload.performanceTrackerId)
                 )

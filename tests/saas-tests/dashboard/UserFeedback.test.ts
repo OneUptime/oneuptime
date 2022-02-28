@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -12,9 +11,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 describe('User Feedback', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -30,13 +27,11 @@ describe('User Feedback', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should send feedback in project',
         async (done: $TSFixMe) => {
@@ -45,14 +40,14 @@ describe('User Feedback', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#feedback-div');
             await init.pageClick(page, '#feedback-div', { clickCount: 2 });
-            
+
             await init.pageType(page, '#feedback-textarea', testFeedback);
-            
+
             await init.pageClick(page, '#feedback-button');
-            
+
             await init.pageWaitForSelector(page, '#feedback-div');
 
             const feedbackMessage = await init.page$Eval(

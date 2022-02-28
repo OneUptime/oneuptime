@@ -3,41 +3,38 @@ export default {
         const iv = Crypto.randomBytes(16);
         data.pass = await EncryptDecrypt.encrypt(data.pass, iv);
         const emailSmtpModel = new EmailSmtpModel();
-        
+
         emailSmtpModel.projectId = data.projectId;
-        
+
         emailSmtpModel.user = data.user;
-        
+
         emailSmtpModel.pass = data.pass;
-        
+
         emailSmtpModel.host = data.host;
-        
+
         emailSmtpModel.port = data.port;
-        
+
         emailSmtpModel.from = data.from;
-        
+
         emailSmtpModel.name = data.name;
-        
+
         emailSmtpModel.secure = false;
-        
+
         emailSmtpModel.iv = iv;
         if (data.secure) {
-            
             emailSmtpModel.secure = data.secure;
         }
-        
+
         emailSmtpModel.enabled = true;
         const emailSmtp = await emailSmtpModel.save();
-        
+
         if (emailSmtp && emailSmtp.pass && emailSmtp.iv) {
-            
             emailSmtp.pass = await EncryptDecrypt.decrypt(
-                
                 emailSmtp.pass,
-                
+
                 emailSmtp.iv
             );
-            
+
             delete emailSmtp.iv;
         }
         return emailSmtp;

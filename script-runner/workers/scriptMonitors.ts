@@ -5,7 +5,6 @@ import { run as runScript } from '../utils/scriptSandbox';
 
 // it collects all monitors then ping them one by one to store their response
 export default {
-    
     run: async monitor => {
         try {
             if (monitor && monitor.type === 'script') {

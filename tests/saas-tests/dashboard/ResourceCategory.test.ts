@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,13 +16,10 @@ const user = {
     password,
 };
 
-
 describe('Resource Category', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -36,13 +32,11 @@ describe('Resource Category', () => {
         await init.addComponent(componentName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test.skip(
         'should create a new resource category',
         async (done: $TSFixMe) => {
@@ -53,20 +47,20 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, 'li#resources a', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'li#resources a');
             await init.pageWaitForSelector(
                 page,
@@ -76,15 +70,15 @@ describe('Resource Category', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, '#createResourceCategoryButton');
-            
+
             await init.pageType(
                 page,
                 '#resourceCategoryName',
                 utils.resourceCategoryName
             );
-            
+
             await init.pageClick(page, '#addResourceCategoryButton');
 
             const createdResourceCategorySelector =
@@ -113,7 +107,6 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    
     test.skip(
         'should show created resource category in new monitor dropdown',
         async (done: $TSFixMe) => {
@@ -145,7 +138,6 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    
     test.skip(
         'should create a new monitor by selecting resource category from dropdown',
         async (done: $TSFixMe) => {
@@ -160,28 +152,27 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', utils.monitorName);
             await init.selectDropdownValue(
                 '#resourceCategory',
                 utils.resourceCategoryName,
                 page
             );
-            
+
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(page, '#url', 'https://google.com');
             await Promise.all([
-                
                 init.pageClick(page, 'button[type=submit]'),
                 page.waitForNavigation(),
             ]);
@@ -203,7 +194,6 @@ describe('Resource Category', () => {
         operationTimeOut
     );
 
-    
     test.skip(
         'should delete the created resource category',
         async (done: $TSFixMe) => {
@@ -214,20 +204,20 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, 'li#resources a', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'li#resources a');
 
             const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
@@ -236,13 +226,13 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, deleteButtonSelector);
             await init.pageWaitForSelector(page, '#deleteResourceCategory', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteResourceCategory');
             await init.pageWaitForSelector(page, '#resourceCategoryCount', {
                 visible: true,
@@ -263,13 +253,10 @@ describe('Resource Category', () => {
     );
 });
 
-
 describe('Member Restriction', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -294,13 +281,11 @@ describe('Member Restriction', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test.skip(
         'should show unauthorised modal when trying to add a resource category for a member who is not the admin or owner of the project',
         async (done: $TSFixMe) => {
@@ -316,20 +301,20 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, '#resources', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#resources');
             await init.pageWaitForSelector(
                 page,
@@ -339,7 +324,7 @@ describe('Member Restriction', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, '#createResourceCategoryButton');
             const modal = await init.pageWaitForSelector(
                 page,
@@ -355,7 +340,6 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    
     test.skip(
         'should show unauthorised modal when trying to edit a resource category for a member who is not the admin or owner of the project',
         async (done: $TSFixMe) => {
@@ -366,27 +350,27 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, '#resources', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#resources');
             const editBtn = `#edit_${resourceCategory}`;
             await init.pageWaitForSelector(page, editBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, editBtn);
             const modal = await init.pageWaitForSelector(
                 page,
@@ -402,7 +386,6 @@ describe('Member Restriction', () => {
         operationTimeOut
     );
 
-    
     test.skip(
         'should show unauthorised modal when trying to delete a resource category for a member who is not the admin or owner of the project',
         async (done: $TSFixMe) => {
@@ -413,27 +396,27 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, '#resources', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#resources');
             const deleteBtn = `#delete_${resourceCategory}`;
             await init.pageWaitForSelector(page, deleteBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, deleteBtn);
             const modal = await init.pageWaitForSelector(
                 page,

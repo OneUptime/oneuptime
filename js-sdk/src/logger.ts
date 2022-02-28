@@ -78,7 +78,6 @@ class Logger {
             type: logType,
         };
         if (tags) {
-            
             requestData.tags = tags;
         }
         return new Promise((resolve, reject) => {

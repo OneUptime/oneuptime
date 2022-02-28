@@ -21,7 +21,6 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 
-
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -46,7 +45,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 message: "values can't be null",
             });
         }
-        
+
         data.createdById = req.user ? req.user.id : null;
 
         if (!data.name) {
@@ -68,14 +67,12 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         const component = await ComponentService.create(data);
 
         const user = await UserService.findOneBy({
-            
             query: { _id: req.user.id },
             select: 'name _id',
         });
 
         if (component) {
             try {
-                
                 NotificationService.create(
                     component.projectId._id || component.projectId,
                     `A New Component was Created with name ${component.name} by ${user.name}`,
@@ -205,10 +202,9 @@ router.get(
     async function(req, res) {
         try {
             const type = req.query.type;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
                 ? { projectId: { $in: subProjectIds }, type }
@@ -250,10 +246,9 @@ router.get(
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const query = type
                 ? { _id: componentId, projectId: { $in: subProjectIds }, type }
@@ -288,10 +283,9 @@ router.post(
         try {
             const { startDate, endDate } = req.body;
             const componentId = req.params.componentId;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             // Check that component exists
@@ -349,9 +343,7 @@ router.post(
                             const monitorUptime =
                                 uptimePercents.reduce(
                                     (a, b) =>
-                                        
                                         parseFloat(a || 100) +
-                                        
                                         parseFloat(b || 100)
                                 ) / uptimePercents.length;
 
@@ -391,10 +383,9 @@ router.get(
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             const query = type
@@ -704,10 +695,8 @@ router.get(
     getSubProjects,
     async function(req, res) {
         try {
-            
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             // Call the ComponentService.
@@ -719,7 +708,6 @@ router.get(
             let allComponents: $TSFixMe = [];
 
             components.map(component => {
-                
                 allComponents = [...allComponents, ...component.components];
                 return component;
             });
@@ -736,7 +724,6 @@ router.get(
                 { path: 'resourceCategory', select: 'name' },
             ];
             await Promise.all(
-                
                 allComponents.map(async component => {
                     const componentErrorTrackers = await ErrorTrackerService.findBy(
                         {
@@ -778,7 +765,7 @@ router.delete(
                     componentId: componentId,
                     projectId: projectId,
                 },
-                
+
                 req.user.id
             );
             const component = await ComponentService.deleteBy(
@@ -786,7 +773,7 @@ router.delete(
                     _id: componentId,
                     projectId: projectId,
                 },
-                
+
                 req.user.id
             );
             if (component) {

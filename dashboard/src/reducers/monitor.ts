@@ -240,7 +240,6 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
             let monitorFound = false;
             const monitors = state.monitorsList.monitors.map(monitorData => {
                 let output = {
-                    
                     ...monitorData,
                     monitors: monitorData.monitors.map(monitor => {
                         if (
@@ -359,7 +358,6 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     monitors: state.monitorsList.monitors.map(project => {
                         const subProject = Object.assign({}, project);
                         const subProjectMonitors =
-                            
                             subProject.monitors && subProject.monitors.slice();
 
                         const newMonitor = Object.assign({}, action.payload);
@@ -372,7 +370,6 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                             );
                         const isSubProjectMonitor = monitorIndex > -1;
 
-                        
                         if (subProject._id === newMonitor.projectId) {
                             if (isSubProjectMonitor) {
                                 const oldMonitor = Object.assign(
@@ -410,18 +407,17 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                 newMonitor.count = 0;
 
                                 subProjectMonitors.unshift(newMonitor);
-                                
+
                                 subProject.count += 1;
                             }
                         } else {
                             if (isSubProjectMonitor) {
                                 subProjectMonitors.splice(monitorIndex, 1);
-                                
+
                                 subProject.count -= 1;
                             }
                         }
 
-                        
                         subProject.monitors = subProjectMonitors;
                         return subProject;
                     }),
@@ -464,7 +460,6 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: false,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors = monitor.monitors.map(
                             (monitor: $TSFixMe, i: $TSFixMe) => {
                                 if (
@@ -499,12 +494,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
                                           action.payload.monitorId
@@ -519,8 +511,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -531,12 +522,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
                         monitor => {
-                            
                             monitor.monitors =
-                                
                                 monitor._id === action.payload.projectId
-                                    ? 
-                                      monitor.monitors.map(
+                                    ? monitor.monitors.map(
                                           (monitor: $TSFixMe) => {
                                               if (
                                                   monitor._id ===
@@ -556,8 +544,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               }
                                           }
                                       )
-                                    : 
-                                      monitor.monitors;
+                                    : monitor.monitors;
                             return monitor;
                         }
                     ),
@@ -595,12 +582,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
                                           action.payload.monitorId
@@ -618,8 +602,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -658,12 +641,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
                                           action.payload.monitorId
@@ -675,8 +655,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -687,12 +666,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
                         monitor => {
-                            
                             monitor.monitors =
-                                
                                 monitor._id === action.payload.projectId
-                                    ? 
-                                      monitor.monitors.map(
+                                    ? monitor.monitors.map(
                                           (monitor: $TSFixMe) => {
                                               if (
                                                   monitor._id ===
@@ -706,8 +682,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               }
                                           }
                                       )
-                                    : 
-                                      monitor.monitors;
+                                    : monitor.monitors;
                             return monitor;
                         }
                     ),
@@ -749,12 +724,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
                                           action.payload.monitorId
@@ -766,8 +738,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -778,12 +749,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
                         monitor => {
-                            
                             monitor.monitors =
-                                
                                 monitor._id === action.payload.projectId
-                                    ? 
-                                      monitor.monitors.map(
+                                    ? monitor.monitors.map(
                                           (monitor: $TSFixMe) => {
                                               if (
                                                   monitor._id ===
@@ -797,8 +765,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               }
                                           }
                                       )
-                                    : 
-                                      monitor.monitors;
+                                    : monitor.monitors;
                             return monitor;
                         }
                     ),
@@ -835,12 +802,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
                                           action.payload.monitorId
@@ -868,8 +832,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -880,12 +843,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.paginatedMonitorsList.monitors.map(
                         monitor => {
-                            
                             monitor.monitors =
-                                
                                 monitor._id === action.payload.projectId
-                                    ? 
-                                      monitor.monitors.map(
+                                    ? monitor.monitors.map(
                                           (monitor: $TSFixMe) => {
                                               if (
                                                   monitor._id ===
@@ -920,8 +880,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               }
                                           }
                                       )
-                                    : 
-                                      monitor.monitors;
+                                    : monitor.monitors;
                             return monitor;
                         }
                     ),
@@ -973,9 +932,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
         case 'UPDATE_MONITOR_LOG': {
             const isPresent =
                 state.monitorLogs &&
-                
                 state.monitorLogs[action.payload.monitorId] &&
-                
                 state.monitorLogs[action.payload.monitorId].logs
                     ? true
                     : false;
@@ -983,23 +940,20 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                 ? {
                       ...state.monitorLogs,
                       [action.payload.monitorId]: {
-                          
                           ...state.monitorLogs[action.payload.monitorId],
                           logs: (() => {
-                              
                               state.monitorLogs[
                                   action.payload.monitorId
                               ].logs.unshift(action.payload.logData);
-                              
+
                               state.monitorLogs[
                                   action.payload.monitorId
                               ].logs.pop();
-                              
+
                               return state.monitorLogs[action.payload.monitorId]
                                   .logs;
                           })(),
                           count:
-                              
                               state.monitorLogs[action.payload.monitorId]
                                   .count + 1,
                       },
@@ -1024,12 +978,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
                                           action.payload.monitorId
@@ -1237,8 +1188,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
 
                         return monitor;
                     }),
@@ -1255,12 +1205,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(subProject => {
-                        
                         subProject.monitors =
-                            
                             subProject._id === action.payload.status.projectId
-                                ? 
-                                  subProject.monitors.map(
+                                ? subProject.monitors.map(
                                       (monitor: $TSFixMe) => {
                                           if (
                                               monitor._id ===
@@ -1403,8 +1350,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   )
-                                : 
-                                  subProject.monitors;
+                                : subProject.monitors;
 
                         return subProject;
                     }),
@@ -1420,12 +1366,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor._id ===
                                           action.payload.monitorId
@@ -1468,8 +1411,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -1483,12 +1425,9 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       if (
                                           monitor.data &&
                                           action.payload.data.logs.lighthouseLogs.some(
@@ -1526,8 +1465,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           return monitor;
                                       }
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -1573,8 +1511,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                         monitorType === 'incomingHttpRequest' ||
                         monitorType === 'kubernetes' ||
                         monitorType === 'ip')
-                    ? 
-                      state.monitorCriteria.criteria[monitorType]
+                    ? state.monitorCriteria.criteria[monitorType]
                     : null
             );
 
@@ -1605,17 +1542,14 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors.find(
                             (targetMonitor: $TSFixMe, index: $TSFixMe) => {
                                 if (
                                     targetMonitor._id ===
                                     action.payload.monitorId
                                 ) {
-                                    
                                     monitor.monitors[
                                         index
-                                        
                                     ].subscribers.subscribers = monitor.monitors[
                                         index
                                     ].subscribers.subscribers.filter(
@@ -1642,14 +1576,12 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            
                             subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
                                 ({ _id }: $TSFixMe) =>
                                     String(_id) !== String(action.payload)
                             );
-                            
+
                             subProjectMonitor.count =
-                                
                                 subProjectMonitor.monitors.length;
                             return subProjectMonitor;
                         }
@@ -1690,7 +1622,6 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            
                             subProjectMonitor.monitors = subProjectMonitor.monitors.map(
                                 (monitor: $TSFixMe) => {
                                     if (
@@ -1744,7 +1675,6 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            
                             subProjectMonitor.monitors = subProjectMonitor.monitors.map(
                                 (monitor: $TSFixMe) => {
                                     if (
@@ -1795,7 +1725,6 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
         case DELETE_PROJECT_MONITORS:
             monitors = Object.assign([], state.monitorsList.monitors);
             monitors = monitors.filter(
-                
                 monitor => action.payload !== monitor.projectId
             );
 
@@ -1816,13 +1745,10 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId._id ||
                             action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(
                                                 (incident: $TSFixMe) => {
@@ -1839,8 +1765,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           : [action.payload];
                                       return monitor;
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -1854,13 +1779,10 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.projectId._id ||
                             action.payload.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(
                                                 (incident: $TSFixMe) => {
@@ -1877,8 +1799,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           : [action.payload];
                                       return monitor;
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -1892,13 +1813,10 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.data.projectId._id ||
                             action.payload.data.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(
                                                 (incident: $TSFixMe) => {
@@ -1916,8 +1834,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           : [action.payload.data];
                                       return monitor;
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -1931,13 +1848,10 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id === action.payload.data.projectId._id ||
                             action.payload.data.projectId
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(
                                                 (incident: $TSFixMe) => {
@@ -1955,8 +1869,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           : [action.payload.data];
                                       return monitor;
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -1971,14 +1884,12 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            
                             subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
                                 ({ _id }: $TSFixMe) =>
                                     String(_id) !== String(action.payload)
                             );
-                            
+
                             subProjectMonitor.count =
-                                
                                 subProjectMonitor.monitors.length;
                             return subProjectMonitor;
                         }
@@ -1991,14 +1902,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                 monitorsList: {
                     ...state.monitorsList,
                     monitors: state.monitorsList.monitors.map(monitor => {
-                        
                         monitor.monitors =
-                            
                             monitor._id ===
                             (action.payload.projectId._id ||
                                 action.payload.projectId)
-                                ? 
-                                  monitor.monitors.map((monitor: $TSFixMe) => {
+                                ? monitor.monitors.map((monitor: $TSFixMe) => {
                                       const monitors = action.payload.monitors.map(
                                           (monitor: $TSFixMe) =>
                                               monitor.monitorId
@@ -2057,8 +1965,7 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                       );
                                       return monitor;
                                   })
-                                : 
-                                  monitor.monitors;
+                                : monitor.monitors;
                         return monitor;
                     }),
                 },
@@ -2130,12 +2037,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
         case GET_MONITOR_LOGS_FAILURE: {
             const failureLogs = {
                 ...state.monitorLogs,
-                
+
                 [action.payload.monitorId]: state.monitorLogs[
                     action.payload.monitorId
                 ]
                     ? {
-                          
                           ...state.monitorLogs[action.payload.monitorId],
                           error: action.payload.error,
                       }
@@ -2158,12 +2064,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
         case GET_MONITOR_LOGS_REQUEST: {
             const requestLogs = {
                 ...state.monitorLogs,
-                
+
                 [action.payload.monitorId]: state.monitorLogs[
                     action.payload.monitorId
                 ]
                     ? {
-                          
                           ...state.monitorLogs[action.payload.monitorId],
                           requesting: true,
                       }
@@ -2234,7 +2139,6 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
 
         case CLOSE_BREACHED_MONITOR_SLA_SUCCESS: {
             const slaBreaches = state.monitorSlaBreaches.slaBreaches.filter(
-                
                 monitor => String(monitor._id) !== String(action.payload._id)
             );
 

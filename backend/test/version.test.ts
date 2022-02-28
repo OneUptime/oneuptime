@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import chai from 'chai';
@@ -8,11 +7,9 @@ import app from '../server';
 
 const request = chai.request.agent(app);
 
-
 describe('Version API', function() {
     this.timeout(20000);
 
-    
     it('should get the current server version', function(done: $TSFixMe) {
         request.get('/version').end(function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(200);

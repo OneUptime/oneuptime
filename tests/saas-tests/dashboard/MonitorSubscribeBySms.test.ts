@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,13 +10,10 @@ const password = '1234567890';
 const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,13 +30,11 @@ describe('Monitor Detail API', () => {
         await init.addMonitorToComponent(componentName, monitorName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'When the Contact Number is all Numeric characters',
         async (done: $TSFixMe) => {
@@ -52,15 +46,15 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            
+
             await init.pageWaitForSelector(page, '.subscribers-tab');
-            
+
             await init.pageClick(page, '.subscribers-tab');
 
             const addNewSubscriber = '#addSubscriberButton';
-            
+
             await init.pageWaitForSelector(page, addNewSubscriber);
-            
+
             await init.pageClick(page, addNewSubscriber);
 
             await init.addAnExternalSubscriber(
@@ -78,7 +72,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Check for when an sms subscriber is created',
         async (done: $TSFixMe) => {
@@ -90,9 +83,9 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            
+
             await init.pageWaitForSelector(page, '.subscribers-tab');
-            
+
             await init.pageClick(page, '.subscribers-tab');
 
             const textContent = await init.page$Eval(
@@ -106,7 +99,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'When the Contact Number is not a Numeric characters',
         async (done: $TSFixMe) => {
@@ -118,15 +110,15 @@ describe('Monitor Detail API', () => {
             );
 
             // click on subscribers tab
-            
+
             await init.pageWaitForSelector(page, '.subscribers-tab');
-            
+
             await init.pageClick(page, '.subscribers-tab');
 
             const addNewSubscriber = '#addSubscriberButton';
-            
+
             await init.pageWaitForSelector(page, addNewSubscriber);
-            
+
             await init.pageClick(page, addNewSubscriber);
 
             await init.addAnExternalSubscriber(
@@ -141,9 +133,9 @@ describe('Monitor Detail API', () => {
             );
 
             // click on create subscribers
-            
+
             await init.pageWaitForSelector(page, '#createSubscriber');
-            
+
             await init.pageClick(page, '#createSubscriber');
 
             const textContent = await init.page$Eval(

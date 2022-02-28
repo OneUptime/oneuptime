@@ -2,17 +2,16 @@ export default {
     create: async function(data: $TSFixMe) {
         let incidentMessage = new IncidentMessageModel();
 
-        
         incidentMessage.content = data.content;
-        
+
         incidentMessage.incidentId = data.incidentId;
-        
+
         incidentMessage.createdById = data.createdById;
-        
+
         incidentMessage.type = data.type;
-        
+
         incidentMessage.incident_state = data.incident_state;
-        
+
         incidentMessage.postOnStatusPage = data.post_statuspage;
 
         incidentMessage = await incidentMessage.save();
@@ -35,7 +34,6 @@ export default {
             populate,
         });
 
-        
         if (incidentMessage && incidentMessage.postOnStatusPage) {
             // run in the background
             RealTimeService.addIncidentNote(incidentMessage);

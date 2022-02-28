@@ -14,7 +14,6 @@ const headers = {
 
 export function postApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
 
@@ -44,7 +43,6 @@ export function postApi(url: $TSFixMe, data: $TSFixMe) {
 
 export function getApi(url: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -73,7 +71,6 @@ export function getApi(url: $TSFixMe) {
 
 export function putApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({
@@ -103,7 +100,6 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
 
 export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn())
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
     axios({

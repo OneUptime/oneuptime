@@ -1,4 +1,3 @@
-
 import { find } from '../util/db';
 import payment from '../util/payment';
 import Stripe from 'stripe';
@@ -18,7 +17,6 @@ async function run() {
 
         // fetch the subscription
         if (stripeSubscriptionId) {
-            
             const subscription = await stripe.subscriptions.retrieve(
                 stripeSubscriptionId
             );

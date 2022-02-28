@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,13 +10,10 @@ const user = {
     password: '1234567890',
 };
 
-
 describe('API test', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -28,30 +24,28 @@ describe('API test', () => {
         await init.registerUser(user, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should open the probes details modal if probe is offline',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#probe');
-            
+
             await init.pageClick(page, '#probe a');
             await init.pageWaitForSelector(page, '#probe_0', {
                 visible: true,

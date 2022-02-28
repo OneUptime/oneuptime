@@ -1,4 +1,3 @@
-
 import * as types from '../constants/OnCallSchedule';
 
 export const openOnCallScheduleModal = function() {

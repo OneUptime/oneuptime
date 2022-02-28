@@ -553,7 +553,6 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case CREATE_EXTERNAL_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -585,7 +584,6 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case UPDATE_EXTERNAL_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -617,7 +615,6 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case FETCH_EXTERNAL_STATUSPAGES_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -649,7 +646,6 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case DELETE_EXTERNAL_STATUSPAGE_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -706,9 +702,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
         case CREATE_STATUSPAGE_SUCCESS:
             isExistingStatusPage = state.subProjectStatusPages.find(
                 statusPage =>
-                    
                     statusPage._id === action.payload.projectId ||
-                    
                     statusPage._id === action.payload.projectId._id
             );
             return Object.assign({}, state, {
@@ -721,10 +715,8 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                 subProjectStatusPages: isExistingStatusPage
                     ? state.subProjectStatusPages.length > 0
                         ? state.subProjectStatusPages.map(statusPage => {
-                              
                               return statusPage._id ===
                                   action.payload.projectId ||
-                                  
                                   statusPage._id ===
                                       action.payload.projectId._id
                                   ? {
@@ -733,7 +725,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                                             : action.payload.projectId,
                                         statusPages: [
                                             action.payload,
-                                            
+
                                             ...statusPage.statusPages.filter(
                                                 (
                                                     status: $TSFixMe,
@@ -741,11 +733,11 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                                                 ) => index < 9
                                             ),
                                         ],
-                                        
+
                                         count: statusPage.count + 1,
-                                        
+
                                         skip: statusPage.skip,
-                                        
+
                                         limit: statusPage.limit,
                                     }
                                   : statusPage;
@@ -761,8 +753,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                                   limit: 0,
                               },
                           ]
-                    : 
-                      state.subProjectStatusPages.concat([
+                    : state.subProjectStatusPages.concat([
                           {
                               _id: action.payload.projectId._id
                                   ? action.payload.projectId._id
@@ -960,7 +951,6 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
 
         case VERIFY_DOMAIN_SUCCESS: {
             const updateDomains = JSON.parse(
-                
                 JSON.stringify(state.status.domains)
             ); // deep clone to avoid mutation of state
             updateDomains.forEach(({ domainVerificationToken }: $TSFixMe) => {
@@ -1054,11 +1044,10 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
             });
 
         case 'DELETE_MONITOR_BY_SOCKET': {
-            
             if (state.status._id) {
                 const status = {
                     ...state.status,
-                    
+
                     monitors: state.status.monitors.filter(
                         (monitorData: $TSFixMe) =>
                             String(monitorData.monitor) !==
@@ -1360,7 +1349,6 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
 
         case FETCH_STATUSPAGE_RESET:
             return Object.assign({}, state, {
-                
                 status: INITIAL_STATE.statusPage,
             });
 
@@ -1519,9 +1507,7 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
             return Object.assign({}, state, {
                 subProjectStatusPages: state.subProjectStatusPages.map(
                     statusPage => {
-                        
                         return statusPage._id === action.payload.projectId ||
-                            
                             statusPage._id === action.payload.projectId._id
                             ? {
                                   _id: action.payload.projectId._id
@@ -1547,7 +1533,6 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
             });
 
         case DELETE_PROJECT_STATUSPAGES:
-            
             statusPage = Object.assign([], state.statusPage);
             statusPage = statusPage.filter(
                 (status: $TSFixMe) => status.projectId !== action.payload
@@ -1568,7 +1553,6 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                 ),
                 subProjectStatusPages: state.subProjectStatusPages.map(
                     subProjectStatusPage => {
-                        
                         subProjectStatusPage.statusPages = subProjectStatusPage.statusPages.filter(
                             ({ _id }: $TSFixMe) => _id !== action.payload._id
                         );

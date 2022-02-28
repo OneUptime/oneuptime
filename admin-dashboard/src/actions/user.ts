@@ -31,9 +31,8 @@ export const fetchUsers = (skip: $TSFixMe, limit: $TSFixMe) => async (
     dispatch(fetchUsersRequest());
 
     try {
-        
         const response = await getApi(`user/users?skip=${skip}&limit=${limit}`);
-        
+
         const data = response.data;
 
         dispatch(fetchUsersSuccess(data));
@@ -79,9 +78,8 @@ export const fetchUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(fetchUserRequest());
 
     try {
-        
         const response = await getApi(`user/users/${userId}`);
-        
+
         const data = response.data;
 
         dispatch(fetchUserSuccess(data));
@@ -134,12 +132,11 @@ export const resetAddUser = () => {
 export const addUser = (user: $TSFixMe) => async (dispatch: $TSFixMe) => {
     try {
         dispatch(addUserRequest());
-        
+
         const response = await postApi(`user/signup`, user);
-        
+
         const userResponse = await getApi(`user/users/${response.data.id}`);
 
-        
         dispatch(addUserSuccess(userResponse.data));
         return 'ok';
     } catch (error) {
@@ -201,7 +198,7 @@ export const updateUserSetting = (values: $TSFixMe) => async (
 
     try {
         const response = await putApi(`user/profile/${values._id}`, data);
-        
+
         const user = response.data;
 
         dispatch(updateUserSettingSuccess(user));
@@ -266,9 +263,8 @@ export const deleteUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(deleteUserRequest());
 
     try {
-        
         const response = await deleteApi(`user/${userId}`);
-        
+
         const data = response.data;
 
         dispatch(deleteUserSuccess(data));
@@ -321,9 +317,8 @@ export const restoreUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(restoreUserRequest());
 
     try {
-        
         const response = await putApi(`user/${userId}/restoreUser`);
-        
+
         const data = response.data;
 
         dispatch(restoreUserSuccess(data));
@@ -376,9 +371,8 @@ export const blockUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(blockUserRequest());
 
     try {
-        
         const response = await putApi(`user/${userId}/blockUser`);
-        
+
         const data = response.data;
 
         dispatch(blockUserSuccess(data));
@@ -433,12 +427,11 @@ export const enableAdminMode = (userId: $TSFixMe, values: $TSFixMe) => async (
     dispatch(enableAdminModeRequest());
 
     try {
-        
         const response = await postApi(
             `user/${userId}/switchToAdminMode`,
             values
         );
-        
+
         const data = response.data;
 
         dispatch(enableAdminModeSuccess(data));
@@ -493,9 +486,8 @@ export const disableAdminMode = (userId: $TSFixMe) => async (
     dispatch(disableAdminModeRequest());
 
     try {
-        
         const response = await postApi(`user/${userId}/exitAdminMode`);
-        
+
         const data = response.data;
 
         dispatch(disableAdminModeSuccess(data));
@@ -548,9 +540,8 @@ export const unblockUser = (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
     dispatch(unblockUserRequest());
 
     try {
-        
         const response = await putApi(`user/${userId}/unblockUser`);
-        
+
         const data = response.data;
 
         dispatch(unblockUserSuccess(data));
@@ -605,9 +596,8 @@ export const addUserNote = (userId: $TSFixMe, values: $TSFixMe) => async (
     dispatch(addUserNoteRequest());
 
     try {
-        
         const response = await postApi(`user/${userId}/addNote`, values);
-        
+
         const data = response.data;
 
         dispatch(addUserNoteSuccess(data));
@@ -670,12 +660,11 @@ export const searchUsers = (
     dispatch(searchUsersRequest());
 
     try {
-        
         const response = await postApi(
             `user/users/search?skip=${skip}&limit=${limit}`,
             values
         );
-        
+
         const data = response.data;
 
         dispatch(searchUsersSuccess(data));
@@ -723,7 +712,6 @@ export function updateTwoFactorAuthToken(userId: $TSFixMe, data: $TSFixMe) {
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function(response) {
-                
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
@@ -782,12 +770,10 @@ export function fetchUserloginHistory(
     limit = 10
 ) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = getApi(`history/${userId}?skip=${skip}&limit=${limit}`);
         dispatch(fetchUserHistoryRequest());
         promise.then(
             function(response) {
-                
                 const payload = response.data;
                 dispatch(fetchUserHistorySuccess(payload));
                 return payload;

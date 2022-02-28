@@ -55,11 +55,11 @@ export default {
     create: async function(data: $TSFixMe) {
         const incidentPriority = new incidentPriorityModel();
         const { projectId, name, color } = data;
-        
+
         incidentPriority.projectId = projectId;
-        
+
         incidentPriority.name = name;
-        
+
         incidentPriority.color = color;
         await incidentPriority.save();
         return incidentPriority;

@@ -36,7 +36,6 @@ export function getVersion() {
         let docsPromise = null;
         let dashboardPromise = null;
 
-        
         backendPromise = getApi('version');
         helmChartPromise = getApiHelm('version');
         docsPromise = getApiDocs('version');
@@ -55,7 +54,6 @@ export function getVersion() {
             function(versions) {
                 let versionsObject = {};
                 versions.forEach(version => {
-                    
                     versionsObject = { ...versionsObject, ...version.data };
                 });
 

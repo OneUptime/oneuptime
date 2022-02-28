@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -19,13 +18,10 @@ const user = {
 };
 require('should');
 
-
 describe('Scheduled Event Note', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -42,7 +38,7 @@ describe('Scheduled Event Note', () => {
             null,
             monitorName,
             page,
-            
+
             componentName
         );
         // Create a scheduled maintenance
@@ -56,13 +52,11 @@ describe('Scheduled Event Note', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should create an internal note',
         async (done: $TSFixMe) => {
@@ -73,23 +67,23 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
-            
+
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(page, '#add-internal-message', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#add-internal-message');
             await init.pageWaitForSelector(page, '#event_state', {
                 visible: true,
@@ -100,15 +94,15 @@ describe('Scheduled Event Note', () => {
                 'investigating',
                 page
             );
-            
+
             await init.pageClick(page, '#new-internal');
-            
+
             await init.pageType(
                 page,
                 '#new-internal',
                 'Some random description'
             );
-            
+
             await init.pageClick(page, '#internal-addButton');
             await init.pageWaitForSelector(
                 page,
@@ -126,7 +120,6 @@ describe('Scheduled Event Note', () => {
         operationTimeOut
     );
 
-    
     test(
         'should edit an internal note',
         async (done: $TSFixMe) => {
@@ -137,17 +130,17 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
-            
+
             await init.pageClick(page, '.timeline-tab');
 
             await init.pageWaitForSelector(
@@ -158,21 +151,21 @@ describe('Scheduled Event Note', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, '#edit_Internal_incident_message_0');
             await init.pageWaitForSelector(page, '#update-internal', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#update-internal');
-            
+
             await init.pageType(
                 page,
                 '#update-internal',
                 'An updated description'
             );
-            
+
             await init.pageClick(page, '#internal-updateButton');
             await init.pageWaitForSelector(
                 page,
@@ -190,7 +183,6 @@ describe('Scheduled Event Note', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete an internal note',
         async (done: $TSFixMe) => {
@@ -201,17 +193,17 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
-            
+
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(
                 page,
@@ -221,13 +213,13 @@ describe('Scheduled Event Note', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, '#delete_Internal_incident_message_0');
             await init.pageWaitForSelector(page, '#deleteNote', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteNote');
             await init.pageWaitForSelector(page, '#deleteNote', {
                 hidden: true,
@@ -246,13 +238,10 @@ describe('Scheduled Event Note', () => {
     // Deleted three tests that repeated
 });
 
-
 describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(1000000); // This requires custom timeout
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -290,13 +279,11 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should load first 10 scheduled maintenance note => internal note',
         async (done: $TSFixMe) => {
@@ -307,17 +294,17 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
-            
+
             await init.pageClick(page, '.timeline-tab');
             const tenthItem = await init.pageWaitForSelector(
                 page,
@@ -330,7 +317,6 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         operationTimeOut
     );
 
-    
     test(
         'should load the remaining 5 scheduled maintenance note => internal note',
         async (done: $TSFixMe) => {
@@ -341,23 +327,23 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the note tab section
-            
+
             await init.pageClick(page, '.timeline-tab');
             await init.pageWaitForSelector(page, '#nextBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#nextBtn');
 
             const fifthItem = await init.pageWaitForSelector(
@@ -377,7 +363,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'should visit the advance section and delete the schedule maintenance',
         async (done: $TSFixMe) => {
@@ -388,17 +374,17 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduledMaintenance');
 
             await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewScheduledEvent_0');
             // navigate to the advance tab section
-            
+
             await init.pageClick(page, '.advanced-options-tab');
 
             // look for the delete button and click on it
@@ -406,7 +392,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteScheduleEvent');
 
             // find the confirm delete button in the pop up and click on it
@@ -414,7 +400,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteScheduleModalBtn');
             // confirm that the element is deleted and redirected to the list of all schedule event page
             await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {

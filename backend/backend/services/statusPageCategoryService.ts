@@ -13,7 +13,7 @@ export default {
             const error = new Error(
                 'A status page category with that name already exist.'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -95,7 +95,7 @@ export default {
             const error = new Error(
                 'A status page category with that name already exists.'
             );
-            
+
             error.code = 400;
             throw error;
         }

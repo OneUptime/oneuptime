@@ -10,10 +10,8 @@ import KubernetesMonitors from './kubernetesMonitors';
 let limit = process.env.RESOURCES_LIMIT;
 
 if (limit && typeof limit === 'string') {
-    
     limit = parseInt(limit);
 }
-
 
 import asyncSleep from 'await-sleep';
 

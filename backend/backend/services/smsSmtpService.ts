@@ -3,29 +3,27 @@ export default {
         const iv = Crypto.randomBytes(16);
         data.authToken = await EncryptDecrypt.encrypt(data.authToken, iv);
         const twilioModel = new TwilioModel();
-        
+
         twilioModel.projectId = data.projectId;
-        
+
         twilioModel.accountSid = data.accountSid;
-        
+
         twilioModel.authToken = data.authToken;
-        
+
         twilioModel.phoneNumber = data.phoneNumber;
-        
+
         twilioModel.iv = iv;
-        
+
         twilioModel.enabled = true;
         const twilioSettings = await twilioModel.save();
-        
+
         if (twilioSettings && twilioSettings.authToken && twilioSettings.iv) {
-            
             twilioSettings.authToken = await EncryptDecrypt.decrypt(
-                
                 twilioSettings.authToken,
-                
+
                 twilioSettings.iv
             );
-            
+
             delete twilioSettings.iv;
         }
         return twilioSettings;

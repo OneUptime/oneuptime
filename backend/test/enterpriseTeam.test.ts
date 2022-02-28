@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -18,11 +17,9 @@ let token: $TSFixMe, projectId: $TSFixMe, newProjectId: $TSFixMe;
 
 const teamEmail = 'noreply1@oneuptime.com';
 
-
 describe('Enterprise Team API', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -47,7 +44,6 @@ describe('Enterprise Team API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
@@ -60,7 +56,6 @@ describe('Enterprise Team API', function() {
         });
     });
 
-    
     it('should add new user with valid details for project with no billing plan', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

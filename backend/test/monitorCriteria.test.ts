@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -18,11 +17,9 @@ import AirtableService from '../backend/services/airtableService';
 
 let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 
-
 describe('Monitor Criteria API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -58,7 +55,6 @@ describe('Monitor Criteria API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -70,12 +66,11 @@ describe('Monitor Criteria API', function() {
                 ],
             },
         });
-        
+
         await ProjectService.hardDeleteBy({ _id: projectId }, userId);
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should get the monitor criteria', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

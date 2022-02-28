@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -8,7 +7,6 @@ chai.use(chaihttp);
 import app from '../server';
 import moment from 'moment';
 import GlobalConfig from './utils/globalConfig';
-
 
 const request = chai.request.agent(app);
 
@@ -36,11 +34,9 @@ const startDate = moment()
     .format('YYYY-MM-DD');
 const filter = 'month';
 
-
 describe('Reports API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -94,7 +90,6 @@ describe('Reports API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -113,7 +108,6 @@ describe('Reports API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should return list of most active members', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
 
@@ -131,7 +125,6 @@ describe('Reports API', function() {
             });
     });
 
-    
     it('should return list of most active monitors', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
@@ -148,7 +141,6 @@ describe('Reports API', function() {
             });
     });
 
-    
     it('should return average resolved incidents time', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request
@@ -163,7 +155,6 @@ describe('Reports API', function() {
             });
     });
 
-    
     it('should return number of incidents', (done: $TSFixMe) => {
         const authorization = `Basic ${token}`;
         request

@@ -49,6 +49,5 @@ export default {
     },
 };
 
-
 const projectCollection = global.db.collection('projects');
 import ErrorService from './errorService';

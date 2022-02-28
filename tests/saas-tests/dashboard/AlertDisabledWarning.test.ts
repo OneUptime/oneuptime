@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,9 +16,7 @@ const user = {
 describe('Alert Warning', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -30,13 +27,11 @@ describe('Alert Warning', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should show a warning alert if call and sms alerts are disabled',
         async (done: $TSFixMe) => {
@@ -47,13 +42,13 @@ describe('Alert Warning', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#billing');
 
             const element = await init.pageWaitForSelector(
@@ -70,7 +65,6 @@ describe('Alert Warning', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not show any warning alert if call and sms alerts are enabled',
         async (done: $TSFixMe) => {
@@ -81,13 +75,13 @@ describe('Alert Warning', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#billing', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#billing a');
             await init.pageWaitForSelector(page, '#alertEnable', {
                 visible: true,
@@ -104,9 +98,8 @@ describe('Alert Warning', () => {
                 // enable sms and call alerts
                 // check the box
                 await page.evaluate(() => {
-                    
                     document.querySelector('#alertEnable').click();
-                    
+
                     document.querySelector('#alertOptionSave').click();
                 });
             }

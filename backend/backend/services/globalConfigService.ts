@@ -25,44 +25,35 @@ export default {
         }
 
         let globalConfig = new GlobalConfigModel();
-        
+
         globalConfig.name = name;
-        
+
         globalConfig.value = value;
         globalConfig = await globalConfig.save();
 
-        
         if (globalConfig.name === 'twilio') {
-            
             globalConfig.value[
                 'authentication-token'
             ] = await EncryptDecrypt.decrypt(
-                
                 globalConfig.value['authentication-token'],
-                
+
                 globalConfig.value['iv']
             );
-            
+
             delete globalConfig.value['iv'];
         }
         if (
-            
             globalConfig.name === 'smtp' &&
-            
             (!globalConfig.value.internalSmtp ||
-                
                 (globalConfig.value.internalSmtp &&
-                    
                     globalConfig.value.customSmtp))
         ) {
-            
             globalConfig.value['password'] = await EncryptDecrypt.decrypt(
-                
                 globalConfig.value['password'],
-                
+
                 globalConfig.value['iv']
             );
-            
+
             delete globalConfig.value['iv'];
         }
 

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,7 +10,6 @@ try {
     // try to use local package (with recent changes)
     serverMonitor = require('../../../../js-sdk/src/cli/server-monitor/lib/api');
 } catch (error) {
-    
     import oneuptime from 'oneuptime';
     serverMonitor = oneuptime.ServerMonitor;
 }
@@ -22,13 +20,10 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-
 describe('Server Monitor API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -43,7 +38,6 @@ describe('Server Monitor API', () => {
         await init.loginUser(user, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
@@ -52,7 +46,6 @@ describe('Server Monitor API', () => {
     const componentName = utils.generateRandomString();
     const monitorName = utils.generateRandomString();
 
-    
     test(
         'should create offline incident if no data is uploaded in 3 minutes after creating server monitor',
         async () => {
@@ -60,17 +53,15 @@ describe('Server Monitor API', () => {
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
 
-            
             await init.pageWaitForSelector(page, '#form-new-monitor');
-            
+
             await init.pageClick(page, 'input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
             await init.selectDropdownValue('#type', 'server-monitor', page);
-            
+
             await init.pageClick(page, 'button[type=submit]');
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
@@ -83,7 +74,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             let activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'
@@ -95,7 +86,6 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should auto acknowledge and resolve offline incident',
         async () => {
@@ -103,13 +93,12 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#api');
-            
+
             await init.pageClick(page, '#api a');
 
             let projectId = await init.page$(page, '#projectId', {
@@ -126,7 +115,6 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
-            
             await init.pageClick(page, '#apiKey');
             let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -163,7 +151,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             let activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'
@@ -177,7 +165,6 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create degraded incident',
         async () => {
@@ -185,13 +172,12 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#api');
-            
+
             await init.pageClick(page, '#api a');
 
             let projectId = await init.page$(page, '#projectId', {
@@ -208,7 +194,6 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
-            
             await init.pageClick(page, '#apiKey');
             let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -242,7 +227,7 @@ describe('Server Monitor API', () => {
             monitor.start();
 
             // check status
-            
+
             const element = await init.pageWaitForSelector(
                 page,
                 `#${monitorName}-degraded`
@@ -254,7 +239,6 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create offline incident',
         async () => {
@@ -262,13 +246,12 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#api');
-            
+
             await init.pageClick(page, '#api a');
 
             let projectId = await init.page$(page, '#projectId', {
@@ -285,7 +268,6 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
-            
             await init.pageClick(page, '#apiKey');
             let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -319,7 +301,7 @@ describe('Server Monitor API', () => {
             monitor.start();
 
             // check status
-            
+
             const element = await init.pageWaitForSelector(
                 page,
                 `#${monitorName}-offline`
@@ -331,7 +313,6 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create offline incident 3 minutes after daemon is turned off',
         async () => {
@@ -339,13 +320,12 @@ describe('Server Monitor API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#api');
-            
+
             await init.pageClick(page, '#api a');
 
             let projectId = await init.page$(page, '#projectId', {
@@ -362,7 +342,6 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.getProperty('innerText');
             apiUrl = await apiUrl.jsonValue();
 
-            
             await init.pageClick(page, '#apiKey');
             let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
@@ -401,7 +380,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             let activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'
@@ -413,14 +392,12 @@ describe('Server Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create offline incident 3 minutes after manually resolving incident and daemon is turned off',
         async () => {
             // Navigate to details page of component created
             await init.navigateToComponentDetails(componentName, page);
 
-            
             await init.pageWaitForSelector(
                 page,
                 `#${monitorName}_EditIncidentDetails_0`
@@ -441,7 +418,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             let activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'
@@ -454,7 +431,7 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             activeIncidents = await init.page$(
                 page,
                 'span#activeIncidentsText'

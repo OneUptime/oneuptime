@@ -3,11 +3,9 @@ if ('function' === typeof importScripts) {
         'https://storage.googleapis.com/workbox-cdn/releases/6.1.1/workbox-sw.js'
     );
 
-    
     if (workbox) {
-        
         const { skipWaiting, clientsClaim } = workbox.core;
-        
+
         const { precacheAndRoute, cleanupOutdatedCaches } = workbox.precaching;
 
         // skip waiting and switch to activating stage
@@ -21,13 +19,12 @@ if ('function' === typeof importScripts) {
         // precacheAndRoute([], {
         //     cleanURLs: false,
         // });
-        
+
         precacheAndRoute(self.__WB_MANIFEST, { cleanUrls: false });
 
         self.addEventListener('push', e => {
-            
             const data = e.data.json();
-            
+
             self.registration.showNotification(data.title, {
                 body: data.body,
                 icon:

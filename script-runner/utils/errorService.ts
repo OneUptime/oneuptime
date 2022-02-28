@@ -7,7 +7,6 @@ if (
     process.env.SLACK_ERROR_LOG_WEBHOOK &&
     process.env.SLACK_ERROR_LOG_CHANNEL
 ) {
-    
     winston.add(Slack, {
         webhook_url: process.env.SLACK_ERROR_LOG_WEBHOOK,
         channel: '#' + process.env.SLACK_ERROR_LOG_CHANNEL,
@@ -26,7 +25,7 @@ export default {
                     functionName: String(functionName),
                     stack: new Error().stack,
                 },
-                
+
                 0,
                 2
             )

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,13 +12,10 @@ const newMonitorName = utils.generateRandomString();
 const urlMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,36 +34,34 @@ describe('Monitor Detail API', () => {
         await init.addMonitorToComponent(componentName, monitorName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
-    
+
     test(
         'Should navigate to monitor details and get list of website scans',
         async (done: $TSFixMe) => {
             await init.navigateToComponentDetails(componentName, page);
 
-            
             await init.pageWaitForSelector(page, '#cbMonitors');
-            
+
             await init.pageClick(page, '#newFormId');
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.page$Eval(page, 'input[id=name]', (e: $TSFixMe) =>
                 e.click()
             );
-            
+
             await init.pageType(page, 'input[id=name]', urlMonitorName);
-            
+
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.page$Eval(page, '#url', (e: $TSFixMe) => e.click());
-            
+
             await init.pageType(page, '#url', 'https://google.com');
             await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
                 e.click()
@@ -90,7 +84,6 @@ describe('Monitor Detail API', () => {
                 }
             );
 
-            
             const lighthouseLogsRows = await init.page$$(
                 page,
                 createdLighthouseLogsSelector
@@ -103,7 +96,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and add new site url',
         async (done: $TSFixMe) => {
@@ -114,7 +106,6 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            
             await init.pageWaitForSelector(
                 page,
                 `#addSiteUrl_${urlMonitorName}`
@@ -125,9 +116,8 @@ describe('Monitor Detail API', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            
             await init.pageWaitForSelector(page, 'input[id=siteUrl]');
-            
+
             await init.pageType(
                 page,
                 'input[id=siteUrl]',
@@ -142,10 +132,9 @@ describe('Monitor Detail API', () => {
             });
 
             const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
-            
+
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
-            
             const lighthouseLogsRows = await init.page$$(
                 page,
                 createdLighthouseLogsSelector
@@ -158,7 +147,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and remove site url',
         async (done: $TSFixMe) => {
@@ -169,7 +157,6 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            
             await init.pageWaitForSelector(
                 page,
                 `#removeSiteUrl_${urlMonitorName}_0`
@@ -179,7 +166,7 @@ describe('Monitor Detail API', () => {
                 `#removeSiteUrl_${urlMonitorName}_0`,
                 (e: $TSFixMe) => e.click()
             );
-            
+
             await init.pageWaitForSelector(page, '#websiteUrlDelete');
             await init.page$Eval(page, '#websiteUrlDelete', (e: $TSFixMe) =>
                 e.click()
@@ -190,10 +177,9 @@ describe('Monitor Detail API', () => {
             });
 
             const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
-            
+
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
-            
             const lighthouseLogsRows = await init.page$$(
                 page,
                 createdLighthouseLogsSelector
@@ -206,7 +192,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and edit monitor',
         async (done: $TSFixMe) => {
@@ -226,10 +211,9 @@ describe('Monitor Detail API', () => {
                 e.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageClick(page, 'input[id=name]', { clickCount: 3 });
-            
+
             await init.pageType(page, 'input[id=name]', newMonitorName);
             await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
                 e.click()
@@ -240,7 +224,6 @@ describe('Monitor Detail API', () => {
 
             const selector = `#monitor-title-${newMonitorName}`;
 
-            
             let spanElement = await init.pageWaitForSelector(page, selector);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
@@ -251,7 +234,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and delete monitor',
         async (done: $TSFixMe) => {
@@ -262,7 +244,7 @@ describe('Monitor Detail API', () => {
                 page
             );
             // click on advanced tab
-            
+
             await init.pageClick(page, '.advanced-options-tab');
 
             const deleteButtonSelector = `#delete_${newMonitorName}`;
@@ -271,7 +253,7 @@ describe('Monitor Detail API', () => {
             );
 
             const confirmDeleteButtonSelector = '#deleteMonitor';
-            
+
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector);
             await init.page$Eval(
                 page,

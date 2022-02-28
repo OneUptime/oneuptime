@@ -52,7 +52,7 @@ router.put(
             const response = await DomainVerificationService.updateOneBy(
                 { _id: domainId },
                 { verified: true, verifiedAt: Date.now() },
-                
+
                 subDomain
             );
             return sendItemResponse(req, res, response);
@@ -135,7 +135,7 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
 
         if (!domain || !domain.trim()) {
             const error = new Error('Please specify a domain');
-            
+
             error.code = 400;
             throw error;
         }
@@ -148,7 +148,7 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
             const error = new Error(
                 'Please specify only domains and not sub-domains'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -160,7 +160,7 @@ router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
         );
         if (doesDomainBelongToProject) {
             const error = new Error('Domain already belong to another project');
-            
+
             error.code = 400;
             throw error;
         }
@@ -207,7 +207,7 @@ router.put(
 
             if (!domain || !domain.trim()) {
                 const error = new Error('Please specify a domain');
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -220,7 +220,7 @@ router.put(
                 const error = new Error(
                     'Please specify only domains and not sub-domains'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -234,7 +234,7 @@ router.put(
                 const error = new Error(
                     'Domain already belong to another project'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -278,7 +278,7 @@ router.delete(
             const projectArr = await ProjectService.findSubprojectId(projectId);
             const projectIdInArr = await DomainVerificationService.findDomain(
                 domainId,
-                
+
                 projectArr
             );
             const response = await DomainVerificationService.deleteBy({

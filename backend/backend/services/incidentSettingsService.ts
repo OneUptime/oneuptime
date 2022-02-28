@@ -20,7 +20,7 @@ export default {
             const error = new Error(
                 'Incident template with this name already exist in project'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -38,17 +38,17 @@ export default {
                 }
             );
         }
-        
+
         incidentSettings.projectId = projectId;
-        
+
         incidentSettings.title = title;
-        
+
         incidentSettings.description = description;
-        
+
         incidentSettings.incidentPriority = incidentPriority;
-        
+
         incidentSettings.isDefault = isDefault || false;
-        
+
         incidentSettings.name = name;
         return await incidentSettings.save();
     },
@@ -115,7 +115,7 @@ export default {
                 const error = new Error(
                     'Incident template with this name already exist in project'
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -162,7 +162,7 @@ export default {
         const populate = [{ path: 'incidentPriority', select: 'name color' }];
         const select =
             'projectId title description incidentPriority isDefault name createdAt';
-        
+
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
     },
@@ -174,7 +174,7 @@ export default {
         });
         if (incidentSetting.isDefault) {
             const error = new Error('Default template cannot be deleted');
-            
+
             error.code = 400;
             throw error;
         }

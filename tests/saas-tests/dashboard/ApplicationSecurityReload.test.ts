@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -20,13 +19,10 @@ const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,13 +34,11 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the application security page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -58,58 +52,57 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#application', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#application');
 
             await init.pageWaitForSelector(page, '#applicationSecurityForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addCredentialBtn');
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#gitUsername');
-            
+
             await init.pageType(page, '#gitUsername', gitUsername);
-            
+
             await init.pageClick(page, '#gitPassword');
-            
+
             await init.pageType(page, '#gitPassword', gitPassword);
-            
+
             await init.pageClick(page, '#addCredentialModalBtn');
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
             });
 
-            
             await init.pageClick(page, '#name');
-            
+
             await init.pageType(page, '#name', applicationSecurityName);
             // await init.selectDropdownValue(
             //     '#resourceCategory',
             //     categoryName,
             //     page
             // ); // add category
-            
+
             await init.pageClick(page, '#gitRepositoryUrl');
-            
+
             await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
-            
+
             await init.pageClick(page, '#gitCredential');
-            
+
             await init.pageType(page, '#gitCredential', gitUsername); // select the created credential
             await page.keyboard.press('Enter'); // Enter Key
-            
+
             await init.pageClick(page, '#addApplicationBtn');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -141,7 +134,6 @@ describe('OneUptime Page Reload', () => {
                 }
             );
 
-            
             const spanElement = await init.pageWaitForSelector(
                 page,
                 `#applicationSecurityTitle_${applicationSecurityName}`

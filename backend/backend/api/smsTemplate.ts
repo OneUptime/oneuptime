@@ -3,12 +3,10 @@ import SmsTemplateService from '../services/smsTemplateService';
 
 const router = express.Router();
 
-
 import createDOMPurify from 'dompurify';
 const jsdom = require('jsdom').jsdom;
 const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
-
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
@@ -151,7 +149,7 @@ router.delete(
     async function(req, res) {
         try {
             const smsTemplateId = req.params.smsTemplateId;
-            
+
             const userId = req.user.id;
             const smsTemplate = await SmsTemplateService.deleteBy(
                 { _id: smsTemplateId },

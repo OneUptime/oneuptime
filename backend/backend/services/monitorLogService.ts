@@ -11,50 +11,50 @@ export default {
         } else {
             responseBody = '';
         }
-        
+
         Log.monitorId = data.monitorId;
-        
+
         Log.probeId = data.probeId;
-        
+
         Log.status = data.status;
-        
+
         Log.responseTime = data.responseTime;
-        
+
         Log.responseStatus = data.responseStatus;
-        
+
         Log.responseBody = responseBody;
-        
+
         Log.responseHeader =
             data.rawResp && data.rawResp.headers ? data.rawResp.headers : {};
-        
+
         Log.cpuLoad = data.cpuLoad;
-        
+
         Log.avgCpuLoad = data.avgCpuLoad;
-        
+
         Log.cpuCores = data.cpuCores;
-        
+
         Log.memoryUsed = data.memoryUsed;
-        
+
         Log.totalMemory = data.totalMemory;
-        
+
         Log.swapUsed = data.swapUsed;
-        
+
         Log.storageUsed = data.storageUsed;
-        
+
         Log.totalStorage = data.totalStorage;
-        
+
         Log.storageUsage = data.storageUsage;
-        
+
         Log.mainTemp = data.mainTemp;
-        
+
         Log.maxTemp = data.maxTemp;
-        
+
         Log.sslCertificate = data.sslCertificate;
-        
+
         Log.kubernetesLog = data.kubernetesData || {};
 
         // script log details
-        
+
         Log.scriptMetadata = data.scriptMetadata;
 
         const savedLog = await Log.save();

@@ -85,7 +85,6 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
         const data = req.body;
         data.projectId = req.params.projectId;
         const user = await UserService.findOneBy({
-            
             query: { _id: req.user.id },
             select: 'email',
         });
@@ -167,7 +166,6 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function(
         const data = req.body;
         const emailSmtpId = req.params.emailSmtpId;
         const user = await UserService.findOneBy({
-            
             query: { _id: req.user.id },
             select: 'email',
         });

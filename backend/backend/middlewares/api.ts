@@ -167,7 +167,7 @@ export default {
         let monitor = await MonitorService.findBy({
             query: {
                 type: 'incomingHttpRequest',
-                
+
                 'data.link': `${global.apiHost}/incomingHttpRequest/${id}`,
             },
             select: 'lastPingTime criteria type _id',

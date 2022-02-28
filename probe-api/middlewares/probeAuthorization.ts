@@ -4,11 +4,9 @@ import ErrorService from '../services/errorService';
 
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
-
 global.probes = {};
 
 export default {
-    
     isAuthorizedProbe: async function(req, res, next) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;
@@ -89,16 +87,14 @@ export default {
                 // because if the probe key does not match, we can update probe key later
                 // without updating mognodb database manually.
 
-                
                 if (global.probes[probeName]) {
-                    
                     probeId = global.probes[probeName]._id;
                 } else {
                     const probe = await ProbeService.findOneBy({ probeName });
 
                     if (probe && probe._id) {
                         probeId = probe._id;
-                        
+
                         global.probes[probeName] = {
                             _id: probe._id,
                             probeKey: probe.probeKey,
@@ -107,9 +103,7 @@ export default {
                     }
                 }
             } else {
-                
                 if (global.probes[probeName]) {
-                    
                     probeId = global.probes[probeName]._id;
                 } else {
                     const probe = await ProbeService.findOneBy({
@@ -119,7 +113,7 @@ export default {
 
                     if (probe && probe._id) {
                         probeId = probe._id;
-                        
+
                         global.probes[probeName] = {
                             _id: probe._id,
                             probeKey: probe.probeKey,
@@ -146,7 +140,6 @@ export default {
 
                 probeId = probe._id;
 
-                
                 global.probes[probeName] = {
                     _id: probe._id,
                     probeKey: probe.probeKey,
@@ -154,7 +147,6 @@ export default {
                 };
             }
 
-            
             if (global.probes[probeName].probeKey !== probeKey) {
                 //update probe key becasue it does not match.
                 await ProbeService.updateOneBy(
@@ -171,7 +163,6 @@ export default {
 
                 probeId = probe._id;
 
-                
                 global.probes[probeName] = {
                     _id: probe._id,
                     probeKey: probe.probeKey,
@@ -187,9 +178,7 @@ export default {
 
             if (
                 probeVersion &&
-                
                 (!global.probes[probeName].version ||
-                    
                     global.probes[probeName].version !== probeVersion)
             ) {
                 await ProbeService.updateOneBy(

@@ -1,20 +1,19 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 class MongooseListener {
     private start;
     private end;
-    
+
     constructor(start, end) {
         this.start = start;
         this.end = end;
     }
-    
+
     wrapAsync(orig, name) {
         const _this = this;
         return async function() {
             const uuid = uuidv4();
-            
+
             const operation = this.op;
             name = name || `mongoose.${operation}`; // mongose Query.exec specific
             const result = _this.start(uuid, {
@@ -22,7 +21,6 @@ class MongooseListener {
                 type: 'mongoose',
             });
             try {
-                
                 const res = await orig.apply(this, arguments);
                 _this.end(uuid, result, name);
                 return res;
@@ -33,12 +31,10 @@ class MongooseListener {
         };
     }
 
-    
     _setUpMongooseListener(mod) {
         const proto = Object.getPrototypeOf(mod);
         const exec = proto.Query.prototype.exec;
 
-        
         proto.Query.prototype.exec = this.wrapAsync(exec);
 
         const Model = proto.Model;

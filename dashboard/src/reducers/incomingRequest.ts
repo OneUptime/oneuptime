@@ -84,9 +84,7 @@ export default function incomingRequest(
             let incomingRequests = [...state.incomingRequests.incomingRequests];
             if (action.payload.isDefault) {
                 incomingRequests = incomingRequests.map(request => {
-                    
                     if (request.isDefault) {
-                        
                         request.isDefault = false;
                     }
                     return request;
@@ -132,9 +130,7 @@ export default function incomingRequest(
             let incomingRequests = [...state.incomingRequests.incomingRequests];
             if (action.payload.isDefault) {
                 incomingRequests = incomingRequests.map(request => {
-                    
                     if (request.isDefault) {
-                        
                         request.isDefault = false;
                     }
                     return request;
@@ -142,9 +138,7 @@ export default function incomingRequest(
             }
 
             incomingRequests = incomingRequests.map(request => {
-                
                 if (String(request._id) === String(action.payload._id)) {
-                    
                     request = action.payload;
                 }
                 return request;
@@ -187,7 +181,6 @@ export default function incomingRequest(
 
         case types.DELETE_INCOMING_REQUEST_SUCCESS: {
             const incomingRequests = state.incomingRequests.incomingRequests.filter(
-                
                 request => String(request._id) !== String(action.payload._id)
             );
             return {

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +15,10 @@ const customDomain = `${utils.generateRandomString()}.com`;
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,30 +28,28 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the domains page and confirm there are no errors',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageClick(page, '#domains');
-            
+
             await init.pageClick(page, '#addCustomField');
-            
+
             await init.pageType(page, '#domain', customDomain);
-            
+
             await init.pageClick(page, '#createDomainBtn');
             await init.pageWaitForSelector(page, '#createDomainBtn', {
                 hidden: true,

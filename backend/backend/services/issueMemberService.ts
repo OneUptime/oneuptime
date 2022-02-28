@@ -5,12 +5,10 @@ export default {
         // prepare issue member model
         let issueMember = new IssueMemberModel();
 
-        
         issueMember.userId = data.userId;
-        
+
         issueMember.issueId = data.issueId;
 
-        
         issueMember.createdById = data.createdById;
 
         const savedIssueMember = await issueMember.save();
@@ -76,7 +74,6 @@ export default {
         );
 
         if (unsetData) {
-            
             issueMember = await IssueMemberModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },

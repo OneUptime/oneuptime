@@ -12,7 +12,6 @@ import UserService from '../services/userService';
 import MonitorService from '../services/monitorService';
 const router = express.Router();
 
-
 import { isAuthorized } from '../middlewares/authorization';
 import errorService from 'common-server/utils/error';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -58,7 +57,6 @@ router.post(
         try {
             const { incidentId, name, probeId } = req.body;
 
-            
             const incident = await IncidentService.acknowledge(
                 incidentId,
                 null,
@@ -81,7 +79,6 @@ router.post(
         try {
             const { incidentId, name, probeId } = req.body;
 
-            
             const incident = await IncidentService.resolve(
                 incidentId,
                 null,
@@ -131,16 +128,14 @@ router.post(
             const description = req.body.description;
             const customFields = req.body.customFields;
             const monitors = req.body.monitors;
-            
+
             const userId = req.user
-                ? 
-                  req.user.id === 'API'
+                ? req.user.id === 'API'
                     ? null
-                    : 
-                      req.user.id
+                    : req.user.id
                 : null;
             let createdByApi = false;
-            
+
             if (req.user && req.user.id === 'API') {
                 createdByApi = true;
             }
@@ -258,7 +253,7 @@ router.post(
                 const end = moment(endDate).toDate();
                 query = {
                     'monitors.monitorId': { $in: [monitorId] },
-                    
+
                     createdAt: { $gte: start, $lte: end },
                 };
             }
@@ -519,19 +514,17 @@ router.get(
     getSubProjects,
     async function(req, res) {
         try {
-            
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call the IncidentService.
-            
+
             const userId = req.user ? req.user.id : null;
             const { isHome } = req.query;
             const incident = await IncidentService.getUnresolvedIncidents(
                 subProjectIds,
                 userId,
-                
+
                 isHome
             );
             return sendItemResponse(req, res, incident);
@@ -547,16 +540,13 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            
             const userId = req.user
-                ? 
-                  req.user.id === 'API'
+                ? req.user.id === 'API'
                     ? null
-                    : 
-                      req.user.id
+                    : req.user.id
                 : null;
             let acknowledgedByApi = false;
-            
+
             if (req.user && req.user.id === 'API') {
                 acknowledgedByApi = true;
             }
@@ -566,11 +556,11 @@ router.post(
             const incident = await IncidentService.acknowledge(
                 incidentId,
                 userId,
-                
+
                 req.user.name,
                 null,
                 null,
-                
+
                 null,
                 acknowledgedByApi
             );
@@ -717,16 +707,13 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            
             const userId = req.user
-                ? 
-                  req.user.id === 'API'
+                ? req.user.id === 'API'
                     ? null
-                    : 
-                      req.user.id
+                    : req.user.id
                 : null;
             let resolvedByApi = false;
-            
+
             if (req.user && req.user.id === 'API') {
                 resolvedByApi = true;
             }
@@ -739,7 +726,7 @@ router.post(
                 null,
                 null,
                 null,
-                
+
                 null,
                 resolvedByApi
             );
@@ -883,7 +870,6 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            
             const userId = req.user ? req.user.id : null;
             const { incidentId } = req.params;
             // Call the IncidentService
@@ -984,7 +970,6 @@ router.post(
             });
             const idNumber = incident.idNumber;
 
-            
             const userId = req.user.id;
             if (!data.content) {
                 return sendErrorResponse(req, res, {
@@ -1081,7 +1066,6 @@ router.post(
 
                 // handle creation or updating
                 if (!data.id) {
-                    
                     data.createdById = req.user.id;
                     data.monitors = incident.monitors.map(
                         (monitor: $TSFixMe) => monitor.monitorId
@@ -1218,7 +1202,7 @@ router.post(
                     }),
                     IncidentTimelineService.create({
                         incidentId: incident._id,
-                        
+
                         createdById: req.user.id,
                         incident_state: data.incident_state,
                         status,
@@ -1333,9 +1317,9 @@ router.get(
                     count,
                 } = await StatusPageService.getStatusPagesForIncident(
                     incident._id,
-                    
+
                     parseInt(req.query.skip) || 0,
-                    
+
                     parseInt(req.query.limit) || 10
                 );
                 return sendListResponse(req, res, statusPages, count);
@@ -1378,7 +1362,7 @@ router.delete(
                         _id: incidentMessageId,
                         incidentId,
                     },
-                    
+
                     req.user.id
                 ),
             ]);
@@ -1467,7 +1451,7 @@ router.delete(
                     }),
                     IncidentTimelineService.create({
                         incidentId,
-                        
+
                         createdById: req.user.id,
                         status,
                     }),
@@ -1562,9 +1546,8 @@ router.get(
                 let skip = 0,
                     limit = 0;
                 if (type === 'investigation') {
-                    
                     skip = req.query.skip || 0;
-                    
+
                     limit = req.query.limit || 10;
                 }
 
@@ -1691,7 +1674,6 @@ router.get(
                         ...callScheduleStatus,
                     ];
                     incidentMessages.sort(
-                        
                         (a, b) =>
                             typeof a.schedule !== 'object' &&
                             b.createdAt - a.createdAt
@@ -1702,7 +1684,6 @@ router.get(
                             a.status !== 'internal notes updated'
                     );
 
-                    
                     result = await Services.rearrangeDuty(filteredMsg);
                 }
             }
@@ -1721,7 +1702,7 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
         const { projectId, incidentId } = req.params;
         const incident = await IncidentService.deleteBy(
             { _id: incidentId, projectId },
-            
+
             req.user.id
         );
         if (incident) {
@@ -1774,7 +1755,6 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
-            
             const userId = req.user ? req.user.id : null;
 
             // get incident properties to build url
@@ -1786,7 +1766,7 @@ router.get(
                     select: 'idNumber projectId slug',
                     populate: [{ path: 'projectId', select: 'slug' }],
                 }),
-                
+
                 IncidentService.resolve(incidentId, userId),
             ]);
 
@@ -1797,9 +1777,9 @@ router.get(
                 title_message: 'Incident Resolved',
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
-                
+
                 dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}`,
-                
+
                 apiUrl: global.apiHost,
             });
         } catch (error) {
@@ -1820,7 +1800,6 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
-            
             const userId = req.user ? req.user.id : null;
 
             // get incident properties to build url
@@ -1832,7 +1811,7 @@ router.get(
                     select: 'idNumber projectId slug',
                     populate: [{ path: 'projectId', select: 'slug' }],
                 }),
-                
+
                 IncidentService.acknowledge(incidentId, userId, req.user.name),
             ]);
 
@@ -1843,9 +1822,9 @@ router.get(
                 title_message: 'Incident Acknowledged',
                 body_message: 'Your incident is now acknowledged.',
                 action: 'acknowledge',
-                
+
                 dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}`,
-                
+
                 apiUrl: global.apiHost,
             });
         } catch (error) {

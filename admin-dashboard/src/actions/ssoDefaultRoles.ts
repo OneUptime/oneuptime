@@ -29,11 +29,10 @@ export const fetchSsoDefaultRoles = (skip: $TSFixMe, limit: $TSFixMe) => async (
     limit = limit ? parseInt(limit) : 10;
     dispatch(fetchSsoDefaultRolesRequest());
     try {
-        
         const response = await getApi(
             `ssoDefaultRoles/?skip=${skip}&limit=${limit}`
         );
-        
+
         return dispatch(fetchSsoDefaultRolesSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -76,9 +75,8 @@ export const fetchSsoDefaultRole = (ssoDefaultRoleId: $TSFixMe) => async (
 ) => {
     dispatch(fetchSsoDefaultRoleRequest());
     try {
-        
         const response = await getApi(`ssoDefaultRoles/${ssoDefaultRoleId}`);
-        
+
         dispatch(fetchSsoDefaultRoleSuccess(response.data));
     } catch (error) {
         let errorMsg;
@@ -121,11 +119,10 @@ export const deleteSsoDefaultRole = (ssoId: $TSFixMe) => async (
 ) => {
     dispatch(deleteSsoDefaultRoleRequest());
     try {
-        
         const response = await deleteApi(`ssoDefaultRoles/${ssoId}`);
-        
+
         dispatch(deleteSsoDefaultRoleSuccess(response.data));
-        
+
         dispatch(fetchSsoDefaultRoles());
     } catch (error) {
         let errorMsg;
@@ -167,7 +164,6 @@ export const addSsoDefaultRole = ({ data }: $TSFixMe) => async (
 ) => {
     dispatch(addSsoDefaultRoleRequest());
     try {
-        
         await postApi(`ssoDefaultRoles/`, data);
         dispatch(addSsoDefaultRoleSuccess());
         return true;

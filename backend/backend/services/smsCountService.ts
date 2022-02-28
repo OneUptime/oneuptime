@@ -51,17 +51,17 @@ export default {
         error: $TSFixMe
     ) {
         const smsCountModel = new SmsCountModel();
-        
+
         smsCountModel.userId = userId || null;
-        
+
         smsCountModel.sentTo = sentTo || null;
-        
+
         smsCountModel.projectId = projectId || null;
-        
+
         smsCountModel.content = content || null;
-        
+
         smsCountModel.status = status || null;
-        
+
         smsCountModel.error = error || null;
         const smsCount = await smsCountModel.save();
         return smsCount;
@@ -114,12 +114,10 @@ export default {
         });
         if (smsCount.length > 3) {
             let time = moment(smsCount[3].createdAt).add(1, 'days');
-            
+
             time = time.diff(moment(Date.now()), 'minutes');
             problem = `You have exhausted the maximum limit of sms resends in a day please wait ${Math.floor(
-                
                 time / 60
-                
             )} Hours ${Math.floor(time % 60)} minutes before retrying.`;
         }
         return {

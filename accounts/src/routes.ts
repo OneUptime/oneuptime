@@ -130,19 +130,19 @@ export const allRoutes = groups
                 const newSubRoutes = [];
                 for (const subRoute of route.subRoutes) {
                     newSubRoutes.push(subRoute);
-                    
+
                     const tempRoute = { ...subRoute };
-                    
+
                     tempRoute.path = '/accounts' + subRoute.path;
                     newSubRoutes.push(tempRoute);
                 }
                 return newSubRoutes;
             })
-            
+
             .reduce(joinFn);
         return newRoutes.concat(subRoutes);
     })
-    
+
     .reduce(joinFn);
 
 export const getGroups = () => groups;

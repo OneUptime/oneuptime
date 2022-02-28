@@ -1,4 +1,3 @@
-
 import faker from 'faker';
 
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';

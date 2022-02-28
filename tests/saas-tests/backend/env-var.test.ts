@@ -5,22 +5,18 @@ import puppeteer from 'puppeteer';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
-
 describe('Check Server', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test('should get hosts mapping from server', async (done: $TSFixMe) => {
         await page.goto(`${utils.BACKEND_URL}/server/hosts`, {
             waitUntil: 'networkidle2',
@@ -55,7 +51,6 @@ describe('Check Server', () => {
         done();
     });
 
-    
     test('should get saas status true from server', async (done: $TSFixMe) => {
         await page.goto(`${utils.BACKEND_URL}/server/is-saas-service`, {
             waitUntil: 'networkidle2',

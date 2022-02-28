@@ -72,10 +72,9 @@ class PerformanceTracker {
         return new OutgoingListener(this.start, this.end, this.store);
     }
     setUpDataBaseListener() {
-        
         const load = Module._load;
         const _this = this;
-        
+
         Module._load = function(request: $TSFixMe) {
             const res = load.apply(this, arguments);
             if (request === 'mongoose') {

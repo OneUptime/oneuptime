@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,13 +12,10 @@ const user = {
     password,
 };
 
-
 describe('Project API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -31,13 +27,11 @@ describe('Project API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should create new project from dropdown after login',
         async (done: $TSFixMe) => {
@@ -58,14 +52,14 @@ describe('Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', projectName);
-            
+
             await init.pageClick(page, 'label[for=Startup_month]');
-            
+
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, `#cb${projectName}`, {
                 visible: true,
@@ -76,7 +70,7 @@ describe('Project API', () => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    
+
                     json[key] = localStorage.getItem(key);
                 }
                 return json;

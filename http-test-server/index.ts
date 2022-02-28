@@ -17,7 +17,6 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-
 import express from 'express';
 const app = express();
 import path from 'path';
@@ -29,7 +28,6 @@ const { NODE_ENV } = process.env;
 
 if (NODE_ENV === 'local' || NODE_ENV === 'development')
     require('custom-env').env(process.env.NODE_ENV);
-
 
 global.httpServerResponse = {
     statusCode: 200,
@@ -67,19 +65,15 @@ app.get('/status', function(req: $TSFixMe, res: $TSFixMe) {
 });
 
 app.get('/', function(req: $TSFixMe, res: $TSFixMe) {
-    
     if (http.STATUS_CODES[global.httpServerResponse.statusCode]) {
-        
         res.status(global.httpServerResponse.statusCode);
     } else {
         res.status(422);
     }
     setTimeout(function() {
-        
         if (global.httpServerResponse.responseType.currentType === 'html') {
             res.setHeader('Content-Type', 'text/html');
             try {
-                
                 const header = JSON.parse(global.httpServerResponse.header);
                 if (typeof header === 'object') {
                     for (const key in header) {
@@ -89,14 +83,13 @@ app.get('/', function(req: $TSFixMe, res: $TSFixMe) {
             } catch (e) {
                 //
             }
-            
+
             return res.send(global.httpServerResponse.body);
         } else {
             res.setHeader('Content-Type', 'application/json');
-            
+
             return res.send(global.httpServerResponse.body);
         }
-        
     }, global.httpServerResponse.responseTime);
 });
 
@@ -104,16 +97,16 @@ const hook = {};
 
 app.post('/api/webhooks/:id', function(req: $TSFixMe, res: $TSFixMe) {
     const { id } = req.params;
-    
+
     hook[id] = req.body;
     return res.status(200).json(req.body);
 });
 
 app.get('/api/webhooks/:id', function(req: $TSFixMe, res: $TSFixMe) {
     const { id } = req.params;
-    
+
     if (hook[id] === undefined) return res.status(404).json({});
-    
+
     return res.status(200).json(hook[id]);
 });
 

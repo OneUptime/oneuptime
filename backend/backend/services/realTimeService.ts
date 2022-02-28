@@ -1,12 +1,10 @@
 export default {
     sendCreatedIncident: async (incident: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProjectId _id',
@@ -28,12 +26,10 @@ export default {
 
     sendIncidentTimeline: async (timeline: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: timeline.projectId },
                 select: 'parentProjectId _id',
@@ -67,12 +63,10 @@ export default {
 
     sendSlaCountDown: async (incident: $TSFixMe, countDown: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProjectId _id',
@@ -95,11 +89,10 @@ export default {
 
     deleteIncident: async (incident: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
-            
+
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProjectId _id',
@@ -121,7 +114,6 @@ export default {
 
     addIncidentNote: async (incidentNote: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -131,7 +123,7 @@ export default {
                 },
                 select: 'projectId _id',
             });
-            
+
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProjectId _id',
@@ -153,7 +145,6 @@ export default {
 
     updateIncidentNote: async (incidentNote: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -163,7 +154,7 @@ export default {
                 },
                 select: 'projectId',
             });
-            
+
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -185,11 +176,10 @@ export default {
 
     updateIncidentTimeline: async (incidentTimeline: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
-            
+
             const project = await ProjectService.findOneBy({
                 query: {
                     _id:
@@ -215,12 +205,10 @@ export default {
 
     updateIncident: async (incident: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -242,7 +230,6 @@ export default {
 
     deleteIncidentNote: async (incidentNote: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -252,7 +239,7 @@ export default {
                 },
                 select: 'projectId',
             });
-            
+
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -274,7 +261,6 @@ export default {
 
     addScheduledEvent: async (event: $TSFixMe) => {
         try {
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
@@ -296,7 +282,6 @@ export default {
 
     deleteScheduledEvent: async (event: $TSFixMe) => {
         try {
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
@@ -318,7 +303,6 @@ export default {
 
     updateScheduledEvent: async (event: $TSFixMe) => {
         try {
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
@@ -340,7 +324,6 @@ export default {
 
     resolveScheduledEvent: async (event: $TSFixMe) => {
         try {
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
@@ -362,7 +345,6 @@ export default {
 
     addScheduledEventInternalNote: async (note: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -388,12 +370,10 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -423,7 +403,6 @@ export default {
 
     deleteScheduledEventInternalNote: async (note: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -449,12 +428,10 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -484,7 +461,6 @@ export default {
 
     updateScheduledEventInternalNote: async (note: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -510,12 +486,10 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -545,12 +519,10 @@ export default {
 
     sendComponentCreated: async (component: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
@@ -572,12 +544,10 @@ export default {
 
     sendMonitorCreated: async (monitor: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
@@ -599,12 +569,10 @@ export default {
 
     deleteMonitor: async (monitor: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
@@ -626,12 +594,10 @@ export default {
 
     sendComponentDelete: async (component: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
@@ -653,12 +619,10 @@ export default {
 
     sendMonitorDelete: async (monitor: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
@@ -680,12 +644,10 @@ export default {
 
     incidentResolved: async (incident: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -707,12 +669,10 @@ export default {
 
     incidentAcknowledged: async (incident: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: incident.projectId._id || incident.projectId },
                 select: 'parentProject _id',
@@ -734,7 +694,6 @@ export default {
 
     statusPageEdit: async (statusPage: $TSFixMe) => {
         try {
-            
             const project = await ProjectService.findOneBy({
                 query: {
                     _id: statusPage.projectId._id || statusPage.projectId,
@@ -758,12 +717,10 @@ export default {
 
     componentEdit: async (component: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
@@ -785,12 +742,10 @@ export default {
 
     monitorEdit: async (monitor: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
@@ -816,12 +771,10 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -846,12 +799,10 @@ export default {
 
     updateLighthouseLog: async (data: $TSFixMe, projectId: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -875,12 +826,10 @@ export default {
 
     updateAllLighthouseLog: async (projectId: $TSFixMe, data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -904,12 +853,10 @@ export default {
 
     updateMonitorStatus: async (data: $TSFixMe, projectId: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -933,7 +880,6 @@ export default {
 
     updateProbe: async (data: $TSFixMe, monitorId: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -947,7 +893,6 @@ export default {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId },
                 select: 'parentProject _id',
@@ -966,12 +911,10 @@ export default {
 
     sendNotification: async (data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: data.projectId._id || data.projectId },
                 select: 'parentProjectId _id',
@@ -993,12 +936,10 @@ export default {
 
     updateTeamMemberRole: async (projectId: $TSFixMe, data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -1021,12 +962,10 @@ export default {
 
     createTeamMember: async (projectId: $TSFixMe, data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -1049,12 +988,10 @@ export default {
 
     deleteTeamMember: async (projectId: $TSFixMe, data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
 
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProject _id',
@@ -1077,7 +1014,6 @@ export default {
 
     sendApplicationLogCreated: async (applicationLog: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1097,7 +1033,6 @@ export default {
     },
     sendApplicationLogDelete: async (applicationLog: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1115,7 +1050,6 @@ export default {
     },
     sendLogCreated: async (contentLog: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1132,7 +1066,6 @@ export default {
     },
     applicationLogKeyReset: async (applicationLog: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1150,7 +1083,6 @@ export default {
     },
     sendContainerSecurityCreated: async (containerSecurity: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1171,7 +1103,6 @@ export default {
     },
     sendApplicationSecurityCreated: async (applicationSecurity: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1192,7 +1123,6 @@ export default {
     },
     sendErrorTrackerCreated: async (errorTracker: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1209,7 +1139,6 @@ export default {
     },
     sendErrorTrackerDelete: async (errorTracker: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1227,7 +1156,6 @@ export default {
     },
     errorTrackerKeyReset: async (errorTracker: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1245,7 +1173,6 @@ export default {
     },
     sendErrorEventCreated: async (data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1263,7 +1190,6 @@ export default {
     },
     sendIssueStatusChange: async (issue: $TSFixMe, type: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1281,7 +1207,6 @@ export default {
     },
     sendErrorTrackerIssueDelete: async (issue: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1302,7 +1227,6 @@ export default {
     },
     sendTimeMetrics: async (appId: $TSFixMe, data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1314,7 +1238,6 @@ export default {
     },
     sendThroughputMetrics: async (appId: $TSFixMe, data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1329,7 +1252,6 @@ export default {
     },
     sendErrorMetrics: async (appId: $TSFixMe, data: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1341,7 +1263,6 @@ export default {
     },
     handleScanning: ({ security }: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1355,7 +1276,6 @@ export default {
     },
     handleLog: ({ securityId, securityLog }: $TSFixMe) => {
         try {
-            
             if (!global || !global.io) {
                 return;
             }
@@ -1375,7 +1295,6 @@ export default {
         projectId: $TSFixMe
     ) => {
         try {
-            
             const project = await ProjectService.findOneBy({
                 query: {
                     _id: projectId._id || projectId,

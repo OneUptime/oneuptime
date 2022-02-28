@@ -1,4 +1,3 @@
-
 import { find, update, save } from '../util/db';
 
 const monitorCollection = 'monitors';
@@ -29,7 +28,7 @@ async function run() {
         const query = {
             projectId,
         };
-        
+
         const incidents = await global.db
             .collection(incidentsCollection)
             .find(query)
@@ -54,7 +53,7 @@ async function run() {
         const query = {
             projectId: project._id,
         };
-        
+
         const incidentPriorities = await global.db
             .collection(incidentprioritiesCollection)
             .find(query)

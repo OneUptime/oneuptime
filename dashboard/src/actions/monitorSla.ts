@@ -22,7 +22,7 @@ export const createMonitorSla = (projectId: $TSFixMe, data: $TSFixMe) => async (
         dispatch(createMonitorSlaRequest());
 
         const response = await postApi(`monitorSla/${projectId}`, data);
-        
+
         dispatch(createMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -65,7 +65,7 @@ export const updateMonitorSla = (
             `monitorSla/${projectId}/${monitorSlaId}`,
             data
         );
-        
+
         dispatch(updateMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -105,7 +105,7 @@ export const fetchMonitorSlas = (
         const response = await getApi(
             `monitorSla/${projectId}?skip=${skip}&limit=${limit}`
         );
-        
+
         dispatch(fetchMonitorSlasSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -141,11 +141,10 @@ export const deleteMonitorSla = (
     try {
         dispatch(deleteMonitorSlaRequest());
 
-        
         const response = await deleteApi(
             `monitorSla/${projectId}/${monitorSlaId}`
         );
-        
+
         dispatch(deleteMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -189,7 +188,7 @@ export const fetchDefaultMonitorSla = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `monitorSla/${projectId}/defaultMonitorSla`
         );
-        
+
         dispatch(fetchDefaultMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =

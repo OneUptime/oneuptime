@@ -7,7 +7,7 @@ class OutgoingListener {
     private start;
     private end;
     private store;
-    
+
     constructor(start, end, store) {
         this.start = start;
         this.end = end;
@@ -18,13 +18,13 @@ class OutgoingListener {
         override(Http);
         override(Https);
         const _this = this;
-        
+
         function override(module) {
             const original = module.request;
-            
+
             function wrapper(outgoing) {
                 // Store a call to the original in req
-                
+
                 const req = original.apply(this, arguments);
 
                 const host = outgoing.host || outgoing.hostname;
@@ -41,7 +41,7 @@ class OutgoingListener {
                     type: 'outgoing',
                     method,
                 });
-                
+
                 req.emit = function(eventName, response) {
                     switch (eventName) {
                         case 'response': {

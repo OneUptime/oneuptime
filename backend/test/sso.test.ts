@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -6,7 +5,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-
 
 const request = chai.request.agent(app);
 
@@ -29,11 +27,9 @@ const ssoObject = {
 
 let token: $TSFixMe, userId: $TSFixMe;
 
-
 describe('SSO API', function() {
     this.timeout(300000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -72,7 +68,6 @@ describe('SSO API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ 'users.userId': userId });
@@ -89,23 +84,21 @@ describe('SSO API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     describe('should reject requests from an unauthenticated users', function() {
-        
         it('should reject GET requests', function(done: $TSFixMe) {
             request.get('/sso').end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
         });
-        
+
         it('should reject POST requests', function(done: $TSFixMe) {
             request.post('/sso').end(function(err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
         });
-        
+
         it('should reject PUT requests', function(done: $TSFixMe) {
             request
                 .put('/sso/5ea951228877984ea9f47660')
@@ -114,7 +107,7 @@ describe('SSO API', function() {
                     done();
                 });
         });
-        
+
         it('should reject DELETE requests', function(done: $TSFixMe) {
             request
                 .delete('/sso/5ea951228877984ea9f47660')
@@ -125,9 +118,7 @@ describe('SSO API', function() {
         });
     });
 
-    
     describe('GET /sso/', function() {
-        
         it('should return SSOs list with count', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -141,7 +132,7 @@ describe('SSO API', function() {
                     done();
                 });
         });
-        
+
         it('should return SSOs list with count, skip and limit (when skip&limit specified)', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -158,9 +149,8 @@ describe('SSO API', function() {
                 });
         });
     });
-    
+
     describe('POST /sso', function() {
-        
         it('should create a new SSO', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
@@ -190,11 +180,10 @@ describe('SSO API', function() {
                 });
         });
 
-        
         it('should not create a new SSO if domaine is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
-            
+
             delete payload.domain;
 
             request
@@ -207,11 +196,10 @@ describe('SSO API', function() {
                 });
         });
 
-        
         it('should not create a new SSO if Saml SSO url is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
-            
+
             delete payload.samlSsoUrl;
 
             request
@@ -224,11 +212,10 @@ describe('SSO API', function() {
                 });
         });
 
-        
         it('should not create a new SSO if remote logout url is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
-            
+
             delete payload.remoteLogoutUrl;
 
             request
@@ -242,9 +229,7 @@ describe('SSO API', function() {
         });
     });
 
-    
     describe('DELETE /sso', function() {
-        
         it('should delete sso', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             SsoService.create(ssoObject).then(sso => {
@@ -274,9 +259,7 @@ describe('SSO API', function() {
         });
     });
 
-    
     describe('UPDATE /sso', function() {
-        
         it('should update SSO', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             SsoService.create(ssoObject).then(sso => {

@@ -1,15 +1,12 @@
 require('should');
 
-
 import zapier from 'zapier-platform-core';
 
 import App from '../../index';
 
 const appTester = zapier.createAppTester(App);
 
-
 describe('Create Incident Action', () => {
-    
     it('passes authentication and create new incident', (done: $TSFixMe) => {
         zapier.tools.env.inject();
         const bundle = {

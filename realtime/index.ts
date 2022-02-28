@@ -20,7 +20,6 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-
 import express from 'express';
 const app = express();
 
@@ -47,50 +46,49 @@ global.io = io;
 
 io.sockets.on('connection', socket => {
     // join a particular project room
-    
+
     socket.on('project_switch', projectId => {
         socket.join(projectId);
     });
 
     // join a particular scheduled event room
-    
+
     socket.on('schedule_switch', scheduledEventId => {
         socket.join(scheduledEventId);
     });
 
     // join a particular component room
-    
+
     socket.on('component_switch', componentId => {
         socket.join(componentId);
     });
 
     // join a particular application log room
-    
+
     socket.on('application_log_switch', applicationLogId => {
         socket.join(applicationLogId);
     });
 
     // join a particular error tracker room
-    
+
     socket.on('error_tracker_switch', errorTrackerId => {
         socket.join(errorTrackerId);
     });
 
     // join app id
-    
+
     socket.on('app_id_switch', appId => {
         socket.join(appId);
     });
 
     // join a particular security room
-    
+
     socket.on('security_switch', securityId => {
         socket.join(securityId);
     });
 });
 
 app.use(cors());
-
 
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
@@ -112,7 +110,6 @@ app.use(function(req, res, next) {
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
-
 app.get(['/realtime/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -127,7 +124,6 @@ app.get(['/realtime/status', '/status'], function(req, res) {
 app.use('/realtime', require('./api/realtime'));
 
 app.set('port', process.env.PORT || 3300);
-
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line

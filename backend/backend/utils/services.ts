@@ -7,14 +7,10 @@ export default {
         for (let i = 0; i < arr.length; i++) {
             curr = arr[i];
 
-            
             if (!map[curr.identification]) {
-                
                 map[curr.identification] = curr;
             } else {
-                
                 if (curr.error && !map[curr.identification].error) {
-                    
                     map[curr.identification].error = true;
                 }
             }
@@ -25,7 +21,6 @@ export default {
     rearrangeDuty: async (main = []) => {
         let closeStringId;
         for (let i = 0; i < main.length; i++) {
-            
             if (typeof main[i].schedule == 'object') {
                 closeStringId = i - 1;
             }

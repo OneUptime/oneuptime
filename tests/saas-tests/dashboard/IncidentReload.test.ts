@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +15,10 @@ const monitorName = utils.generateRandomString();
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Monitor Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,20 +28,18 @@ describe('OneUptime Monitor Reload', () => {
         await init.registerUser(user, page); // This automatically routes to dashboard page
         await init.addComponent(componentName, page);
         await init.addNewMonitorToComponent(page, componentName, monitorName);
-        
+
         await init.addIncident(monitorName, 'Offline', page);
-        
+
         await init.pageClick(page, '#closeIncident_0');
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the monitor in component-details page and confirm no error',
         async (done: $TSFixMe) => {
@@ -54,11 +48,11 @@ describe('OneUptime Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#incidentLog');
-            
+
             await init.pageWaitForSelector(page, '#cbIncidents');
-            
+
             await init.pageWaitForSelector(page, `#incident_title_0`);
             //To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
@@ -85,7 +79,6 @@ describe('OneUptime Monitor Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to incident detail page and reload to check errors',
         async (done: $TSFixMe) => {
@@ -94,13 +87,13 @@ describe('OneUptime Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#incidentLog');
             await init.pageWaitForSelector(page, `#incident_title_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClickNavigate(page, `#incident_title_0`);
 
             await init.pageWaitForSelector(page, '#incident_0', {
@@ -132,7 +125,6 @@ describe('OneUptime Monitor Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to incident page, click on the incident and reload to check errors',
         async (done: $TSFixMe) => {
@@ -143,13 +135,13 @@ describe('OneUptime Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#incidents');
             await init.pageWaitForSelector(page, `#incident_title_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClickNavigate(page, `#incident_title_0`);
             await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,

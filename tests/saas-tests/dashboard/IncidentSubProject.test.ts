@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -25,9 +24,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 describe('Incident API With SubProjects', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,21 +35,19 @@ describe('Incident API With SubProjects', () => {
         await init.growthPlanUpgrade(page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should create an incident in parent project for valid `admin`',
         async (done: $TSFixMe) => {
             // add sub-project
             await init.addSubProject(subProjectName, page);
-            
+
             await init.pageClick(page, '#projectFilterToggle');
-            
+
             await init.pageClick(page, `#project-${subProjectName}`);
             // Create Component
             await init.addComponent(componentName, page);
@@ -89,16 +84,16 @@ describe('Incident API With SubProjects', () => {
                 `#create_incident_${projectMonitorName}`,
                 { visible: true, timeout: init.timeout }
             );
-            
+
             await init.pageClick(
                 page,
                 `#create_incident_${projectMonitorName}`
             );
-            
+
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
             // await init.pageType(page, '#title', 'new incident');
-            
+
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
@@ -125,7 +120,7 @@ describe('Incident API With SubProjects', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             const incidentTitleSelector = await init.page$(
                 page,
                 `#incident_${projectMonitorName}_title`
@@ -144,7 +139,6 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not display created incident status in a different component',
         async (done: $TSFixMe) => {
@@ -169,7 +163,6 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should create an incident in sub-project for sub-project `member`',
         async (done: $TSFixMe) => {
@@ -192,27 +185,27 @@ describe('Incident API With SubProjects', () => {
             }
 
             // Navigate to details page of monitor
-            
+
             await init.pageClick(page, '#projectFilterToggle');
-            
+
             await init.pageClick(page, `#project-${subProjectName}`);
             await init.navigateToComponentDetails(componentName, page);
             // create incident
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#create_incident_${projectMonitorName1}`
             );
-            
+
             await init.pageClick(
                 page,
                 `#create_incident_${projectMonitorName1}`
             );
-            
+
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
             // await init.pageType(page, '#title', 'new incident');
-            
+
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
@@ -235,7 +228,7 @@ describe('Incident API With SubProjects', () => {
                     visible: true,
                 }
             );
-            
+
             await init.pageClick(page, `#more-details-${projectMonitorName1}`);
 
             await init.pageWaitForSelector(
@@ -243,7 +236,7 @@ describe('Incident API With SubProjects', () => {
                 `#incident_${projectMonitorName1}_title`,
                 { visible: true }
             );
-            
+
             const incidentTitleSelector = await init.page$(
                 page,
                 `#incident_${projectMonitorName1}_title`
@@ -262,15 +255,13 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should acknowledge incident in sub-project for sub-project `member`',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
-            
             await init.pageWaitForSelector(page, `#incident_0`);
-            
+
             await init.pageClick(page, '#incident_0');
 
             // acknowledge incident
@@ -278,14 +269,13 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#btnAcknowledge_0');
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: operationTimeOut,
             });
 
-            
             const acknowledgeTextSelector = await init.page$(
                 page,
                 '#AcknowledgeText_0'
@@ -297,15 +287,13 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should resolve incident in sub-project for sub-project `member`',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
-            
             await init.pageWaitForSelector(page, `#incident_0`);
-            
+
             await init.pageClick(page, '#incident_0');
 
             // resolve incident
@@ -313,14 +301,13 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#btnResolve_0');
             await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
                 timeout: operationTimeOut,
             });
 
-            
             const resolveTextSelector = await init.page$(
                 page,
                 '#ResolveText_0'
@@ -332,7 +319,6 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    
     test(
         'should update internal and investigation notes of incident in sub-project (Postmortem notes)',
         async (done: $TSFixMe) => {
@@ -361,26 +347,26 @@ describe('Incident API With SubProjects', () => {
 
             const type = 'internal';
             // fill internal message thread form
-            
+
             await init.pageWaitForSelector(page, `#add-${type}-message`);
             await init.page$Eval(page, `#add-${type}-message`, (e: $TSFixMe) =>
                 e.click()
             );
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#form-new-incident-${type}-message`
             );
-            
+
             await init.pageClick(page, '#incident_description');
-            
+
             await init.pageType(page, '#incident_description', internalNote);
             await init.selectDropdownValue(
                 '#incident_state',
                 'investigating',
                 page
             );
-            
+
             await init.pageClick(page, `#${type}-addButton`);
             await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
@@ -394,7 +380,7 @@ describe('Incident API With SubProjects', () => {
                     visible: true,
                 }
             );
-            
+
             const internalMessage = await init.page$(
                 page,
                 `#content_${type}_incident_message_0`
@@ -528,7 +514,6 @@ describe('Incident API With SubProjects', () => {
     //     operationTimeOut
     // );
 
-    
     test(
         'should get list of incidents and paginate for incidents in sub-project',
         async (done: $TSFixMe) => {
@@ -541,9 +526,9 @@ describe('Incident API With SubProjects', () => {
             );
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            
+
             await init.pageClick(page, '#btnAcknowledge_0');
-            
+
             await init.pageClick(page, '#btnResolve_0');
 
             // Navigate to details page of component created
@@ -553,19 +538,18 @@ describe('Incident API With SubProjects', () => {
                 page
             );
 
-            
             await init.pageClick(
                 page,
                 `#createIncident_${projectMonitorName1}`
             );
-            
+
             await init.pageClick(page, `#createIncident`);
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             const incidentRows = await init.page$$(
                 page,
                 'tr.createdIncidentListItem'

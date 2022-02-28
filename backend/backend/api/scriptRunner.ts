@@ -116,16 +116,15 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
 
         // aggregate data for logging
         data = req.body;
-        
+
         data.status = status;
-        
+
         data.reason = reason;
-        
+
         data.matchedCriterion = matchedCriterion;
-        
+
         data.responseStatus = resp && resp.status ? resp.status : null;
 
-        
         data.scriptMetadata = {
             executionTime: resp.executionTime,
             consoleLogs: resp.consoleLogs,
@@ -133,27 +132,22 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             statusText: resp.statusText,
         };
 
-        
         data.monitorId = req.params.monitorId || monitor._id;
-        
+
         data.reason =
-            
             data && data.reason && data.reason.length
-                ? 
-                  data.reason.filter(
+                ? data.reason.filter(
                       (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
                           self.indexOf(item) === pos
                   )
-                : 
-                  data.reason;
+                : data.reason;
 
-        
         data.matchedUpCriterion =
             monitor && monitor.criteria && monitor.criteria.up;
-        
+
         data.matchedDownCriterion =
             monitor && monitor.criteria && monitor.criteria.down;
-        
+
         data.matchedDegradedCriterion =
             monitor && monitor.criteria && monitor.criteria.degraded;
 

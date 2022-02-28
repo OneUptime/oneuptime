@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user';
@@ -6,7 +5,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
-
 
 const request = chai.request.agent(app);
 
@@ -19,11 +17,9 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import GlobalConfig from './utils/globalConfig';
 let projectId: $TSFixMe, userId: $TSFixMe, token: $TSFixMe;
 
-
 describe('Global Config API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(100000);
         GlobalConfig.initTestConfig().then(function() {
@@ -64,7 +60,6 @@ describe('Global Config API', function() {
         });
     });
 
-    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -79,7 +74,6 @@ describe('Global Config API', function() {
         });
     });
 
-    
     it('should create global config when name and value are valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const globalConfig = {
@@ -98,7 +92,6 @@ describe('Global Config API', function() {
             });
     });
 
-    
     it('should create multiple global configs when details are valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const globalConfigs = [
@@ -132,7 +125,6 @@ describe('Global Config API', function() {
             });
     });
 
-    
     it('should not create global config when name and value are not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const globalConfig = { name: null };
@@ -146,7 +138,6 @@ describe('Global Config API', function() {
             });
     });
 
-    
     it('should get multiple global configs when names are provided', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const globalConfigs = ['TestName', 'Other TestName'];
@@ -169,7 +160,6 @@ describe('Global Config API', function() {
             });
     });
 
-    
     it('should get global config by name', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -181,7 +171,7 @@ describe('Global Config API', function() {
                 done();
             });
     });
-    
+
     it('should retrieve global config for audit Log status', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -194,7 +184,7 @@ describe('Global Config API', function() {
                 done();
             });
     });
-    
+
     it('should toggle global config for audit Log status', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

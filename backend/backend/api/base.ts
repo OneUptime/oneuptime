@@ -2,7 +2,6 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-
 import { getUser } from '../middlewares/user';
 
 import { getUserRole } from '../middlewares/project';

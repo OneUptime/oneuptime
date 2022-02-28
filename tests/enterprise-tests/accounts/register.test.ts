@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 
 import should from 'should';
@@ -15,11 +14,8 @@ const user = {
     password,
 };
 
-
 describe('Enterprise Registration API', () => {
-    
     beforeAll(async () => {
-        
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -29,13 +25,11 @@ describe('Enterprise Registration API', () => {
         await otherPage.setUserAgent(utils.agent);
     });
 
-    
     afterAll(async () => {
         await browser.close();
         await otherBrowser.close();
     });
 
-    
     it(
         'Should register Initial User with valid details',
         async () => {
@@ -45,7 +39,7 @@ describe('Enterprise Registration API', () => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    
+
                     json[key] = localStorage.getItem(key);
                 }
                 return json;
@@ -58,7 +52,6 @@ describe('Enterprise Registration API', () => {
         init.timeout
     );
 
-    
     it(
         'Should redirect to Login Page and hide Sign Up Link for Subsequent Users',
         async () => {
@@ -80,7 +73,6 @@ describe('Enterprise Registration API', () => {
         init.timeout
     );
 
-    
     it(
         'Should login Initial User to Admin Dashboard',
         async () => {
@@ -90,7 +82,7 @@ describe('Enterprise Registration API', () => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    
+
                     json[key] = localStorage.getItem(key);
                 }
                 return json;

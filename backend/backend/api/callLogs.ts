@@ -70,7 +70,7 @@ router.post('/', getUser, isUserMasterAdmin, async (req, res) => {
                 message: 'Call Log Content is required',
             });
         }
-        
+
         const callLog = await CallLogsService.create(data);
         return sendItemResponse(req, res, callLog);
     } catch (error) {

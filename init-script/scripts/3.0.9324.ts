@@ -1,4 +1,3 @@
-
 import { find, update } from '../util/db';
 import { ObjectId } from 'mongodb';
 
@@ -16,10 +15,10 @@ async function run() {
         // check if there's no unresolved incident
         const query = {
             deleted: false,
-            
+
             'monitors.monitorId': { $in: [ObjectId(monitor._id)] },
         };
-        
+
         const incidents = await global.db
             .collection(incidentCollection)
             .find(query)

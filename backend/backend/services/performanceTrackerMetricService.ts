@@ -102,17 +102,14 @@ export default {
         for (const metric of performanceTrackerMetrics) {
             const key = `${metric.callIdentifier}__${metric.method}`;
             if (!(key in ptm)) {
-                
                 ptm[key] = [metric];
             } else {
-                
                 ptm[key] = ptm[key].concat(metric);
             }
         }
 
         const trackerMetrics = [];
         for (const [, value] of Object.entries(ptm)) {
-            
             const valueLength = value.length;
             if (valueLength > 0) {
                 const {
@@ -120,7 +117,6 @@ export default {
                     callIdentifier,
                     performanceTrackerId,
                     method,
-                    
                 } = value[0];
                 const result = {
                     type,
@@ -133,7 +129,7 @@ export default {
                     maxTime = 0,
                     throughput = 0,
                     errorCount = 0;
-                
+
                 value.forEach((eachValue: $TSFixMe) => {
                     avgTime += eachValue.metrics.avgTime;
                     maxTime += eachValue.metrics.maxTime;
@@ -141,16 +137,14 @@ export default {
                     errorCount += eachValue.metrics.errorCount;
                 });
 
-                
                 avgTime = numDecimal(avgTime / valueLength);
-                
+
                 maxTime = numDecimal(maxTime / valueLength);
-                
+
                 throughput = numDecimal(throughput / valueLength, 0);
-                
+
                 errorCount = numDecimal(errorCount / valueLength, 0);
 
-                
                 result.metrics = {
                     avgTime,
                     maxTime,
@@ -253,16 +247,15 @@ export default {
                 type,
                 callIdentifier: key,
                 performanceTrackerId: appId,
-                
+
                 method: value.method,
                 metrics: {
-                    
                     avgTime: value.avgTime,
-                    
+
                     maxTime: value.maxTime,
-                    
+
                     throughput: value.requests,
-                    
+
                     errorCount: value.errorCount,
                 },
                 createdAt: receivedAt,
@@ -312,10 +305,8 @@ export default {
         timeMetrics.forEach((metric: $TSFixMe) => {
             const date = moment(metric.createdAt).format();
             if (!(date in dataBank)) {
-                
                 dataBank[date] = [metric];
             } else {
-                
                 dataBank[date] = dataBank[date].concat(metric);
             }
         });
@@ -327,11 +318,11 @@ export default {
         for (const [key, value] of Object.entries(dataBank)) {
             const result = { createdAt: key };
             const { avgTime, avgMaxTime } = calcAvgTime(value);
-            
+
             result.avgTime = avgTime;
-            
+
             result.avgMaxTime = avgMaxTime;
-            
+
             result.value = avgTime;
             finalOutput.push(result);
         }
@@ -368,10 +359,8 @@ export default {
         timeMetrics.forEach((metric: $TSFixMe) => {
             const date = moment(metric.createdAt).format();
             if (!(date in dataBank)) {
-                
                 dataBank[date] = [metric];
             } else {
-                
                 dataBank[date] = dataBank[date].concat(metric);
             }
         });
@@ -383,9 +372,9 @@ export default {
         for (const [key, value] of Object.entries(dataBank)) {
             const result = { createdAt: key };
             const { avgThroughput } = calcAvgThroughput(value);
-            
+
             result.avgThroughput = avgThroughput;
-            
+
             result.value = avgThroughput;
             finalOutput.push(result);
         }
@@ -421,10 +410,8 @@ export default {
         timeMetrics.forEach((metric: $TSFixMe) => {
             const date = moment(metric.createdAt).format();
             if (!(date in dataBank)) {
-                
                 dataBank[date] = [metric];
             } else {
-                
                 dataBank[date] = dataBank[date].concat(metric);
             }
         });
@@ -436,9 +423,9 @@ export default {
         for (const [key, value] of Object.entries(dataBank)) {
             const result = { createdAt: key };
             const { avgErrorCount } = calcAvgError(value);
-            
+
             result.avgErrorCount = avgErrorCount;
-            
+
             result.value = avgErrorCount;
             finalOutput.push(result);
         }

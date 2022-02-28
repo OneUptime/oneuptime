@@ -12,7 +12,6 @@ const getUser = require('../middlewares/user').getUser;
 const isApplicationLogValid = require('../middlewares/applicationLog')
     .isApplicationLogValid;
 
-
 import { isAuthorized } from '../middlewares/authorization';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -42,7 +41,7 @@ router.post(
                     message: "values can't be null",
                 });
             }
-            
+
             data.createdById = req.user ? req.user.id : null;
             if (!data.name) {
                 return sendErrorResponse(req, res, {
@@ -73,17 +72,15 @@ router.post(
                     populate: populateComponent,
                 }),
                 UserService.findOneBy({
-                    
                     query: { _id: req.user.id },
                     select: 'name _id',
                 }),
             ]);
 
             try {
-                
                 NotificationService.create(
                     component.projectId._id,
-                    
+
                     `A New Application Log was Created with name ${applicationLog.name} by ${user.name}`,
                     user._id,
                     'applicationlogaddremove'
@@ -143,7 +140,7 @@ router.delete(
                     _id: applicationLogId,
                     componentId: componentId,
                 },
-                
+
                 req.user.id
             );
             if (applicationLog) {
@@ -215,18 +212,14 @@ router.post(
 
             const query = {};
 
-            
             if (applicationLogId) query.applicationLogId = applicationLogId;
 
-            
             if (type) query.type = type;
 
             if (startDate && endDate)
-                
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             if (filter) {
-                
                 query.stringifiedContent = {
                     $regex: new RegExp(filter),
                     $options: 'i',
@@ -278,7 +271,6 @@ router.post(
 
             const query = {};
 
-            
             if (applicationLogId) query.applicationLogId = applicationLogId;
 
             const stat = {};
@@ -294,13 +286,13 @@ router.post(
                 LogService.countBy({ ...query, type: 'info' }),
                 LogService.countBy({ ...query, type: 'warning' }),
             ]);
-            
+
             stat.all = allCount;
-            
+
             stat.error = errorCount;
-            
+
             stat.info = infoCount;
-            
+
             stat.warning = warningCount;
 
             return sendListResponse(req, res, stat);
@@ -363,7 +355,7 @@ router.put(
                 message: "values can't be null",
             });
         }
-        
+
         data.createdById = req.user ? req.user.id : null;
 
         if (!data.name && data.showQuickStart === undefined) {
@@ -391,7 +383,6 @@ router.put(
         };
 
         if (data.resourceCategory != '') {
-            
             existingQuery.resourceCategory = data.resourceCategory;
         }
         const existingApplicationCount = await ApplicationLogService.countBy(
@@ -412,11 +403,9 @@ router.put(
         // application Log is valid
         const applicationLogUpdate = {};
         if (data.name) {
-            
             applicationLogUpdate.name = data.name;
         }
         if (data.showQuickStart !== undefined) {
-            
             applicationLogUpdate.showQuickStart = data.showQuickStart;
         }
 
@@ -430,7 +419,6 @@ router.put(
                 }
             );
             if (resourceCategoryCount && resourceCategoryCount > 0) {
-                
                 applicationLogUpdate.resourceCategory = data.resourceCategory;
             } else {
                 unsetData = { resourceCategory: '' };
@@ -441,7 +429,7 @@ router.put(
             const applicationLog = await ApplicationLogService.updateOneBy(
                 { _id: currentApplicationLog._id },
                 applicationLogUpdate,
-                
+
                 unsetData
             );
             return sendItemResponse(req, res, applicationLog);
@@ -462,7 +450,6 @@ router.post(
         const endTime = new Date(startTime.getTime() + duration * 60000);
         let response;
         if (filter) {
-            
             response = await LogService.search(
                 { applicationLogId, deleted: false },
                 filter

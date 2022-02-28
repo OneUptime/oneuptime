@@ -20,18 +20,18 @@ export default {
 
         if (existingMonitor && existingMonitor.length > 0) {
             const error = new Error('Monitor with that name already exists.');
-            
+
             error.code = 400;
             throw error;
         }
-        
+
         let project = await ProjectService.findOneBy({
             query: { _id: data.projectId },
             select: 'parentProjectId _id users stripePlanId',
         });
         if (project.parentProjectId) {
             subProject = project;
-            
+
             project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: '_id users stripePlanId',
@@ -40,7 +40,6 @@ export default {
         let subProjectIds: $TSFixMe = [];
         const selectResourceCat = 'projectId name createdById createdAt';
         const [subProjects, count, resourceCategory] = await Promise.all([
-            
             ProjectService.findBy({
                 query: { parentProjectId: project._id },
                 select: '_id users', // Subprojects require it for monitor creation
@@ -73,86 +72,76 @@ export default {
         subProjectIds.push(project._id);
         let plan = Plans.getPlanById(project.stripePlanId);
         // null plan => enterprise plan
-        
+
         plan = plan && plan.category ? plan : { category: 'Enterprise' };
 
         if (!plan && IS_SAAS_SERVICE) {
             const error = new Error('Invalid project plan.');
-            
+
             error.code = 400;
             throw error;
         } else {
             const unlimitedMonitor = ['Scale', 'Enterprise'];
             const monitorCount =
-                
                 plan.category === 'Startup'
                     ? 5
-                    : 
-                    plan.category === 'Growth'
+                    : plan.category === 'Growth'
                     ? 10
                     : 0;
             if (
                 count < userCount * monitorCount ||
                 !IS_SAAS_SERVICE ||
-                
                 unlimitedMonitor.includes(plan.category)
             ) {
                 const monitor = new MonitorModel();
-                
+
                 monitor.name = data.name;
-                
+
                 monitor.type = data.type;
-                
+
                 monitor.monitorSla = data.monitorSla;
-                
+
                 monitor.incidentCommunicationSla =
                     data.incidentCommunicationSla;
-                
+
                 monitor.customFields = data.customFields;
-                
+
                 monitor.createdById = data.createdById;
-                
+
                 monitor.scripts = data.scripts || [];
-                
+
                 monitor.regions = [];
                 if (data.type === 'url' || data.type === 'api') {
-                    
                     monitor.data = {};
-                    
+
                     monitor.data.url = data.data.url;
                 } else if (data.type === 'manual') {
-                    
                     monitor.data = {};
-                    
+
                     monitor.data.description = data.data.description || null;
                 } else if (data.type === 'script') {
-                    
                     monitor.data = {};
-                    
+
                     monitor.data.script = data.data.script;
                 } else if (data.type === 'incomingHttpRequest') {
-                    
                     monitor.data = {};
-                    
+
                     monitor.data.link = data.data.link;
                 } else if (data.type === 'ip') {
-                    
                     monitor.data = {};
-                    
+
                     monitor.data.IPAddress = data.data.IPAddress;
                 }
                 if (resourceCategory) {
-                    
                     monitor.resourceCategory = data.resourceCategory;
                 }
-                
+
                 monitor.visibleOnStatusPage = data.visibleOnStatusPage;
-                
+
                 monitor.componentId = data.componentId;
-                
+
                 monitor.projectId = data.projectId;
                 if (data.agentlessConfig) {
-                    
                     monitor.agentlessConfig = data.agentlessConfig;
                 }
                 if (
@@ -164,41 +153,33 @@ export default {
                     data.type === 'kubernetes' ||
                     data.type === 'ip'
                 ) {
-                    
                     monitor.criteria = _.isEmpty(data.criteria)
                         ? MonitorCriteriaService.create(data.type)
                         : data.criteria;
                 }
 
                 if (data.type === 'kubernetes') {
-                    
                     monitor.kubernetesConfig = data.kubernetesConfig;
-                    
+
                     monitor.kubernetesNamespace = data.kubernetesNamespace;
                 }
 
                 if (data.type === 'api') {
                     if (data.method && data.method.length)
-                        
                         monitor.method = data.method;
                     if (data.bodyType && data.bodyType.length)
-                        
                         monitor.bodyType = data.bodyType;
-                    
+
                     if (data.text && data.text.length) monitor.text = data.text;
                     if (data.formData && data.formData.length)
-                        
                         monitor.formData = data.formData;
                     if (data.headers && data.headers.length)
-                        
                         monitor.headers = data.headers;
                 }
                 if (data.type === 'url') {
-                    
                     monitor.siteUrls = [monitor.data.url];
                 }
                 if (data && data.name) {
-                    
                     monitor.slug = getSlug(data.name);
                 }
                 const savedMonitor = await monitor.save();
@@ -233,7 +214,7 @@ export default {
                 const error = new Error(
                     "You can't add any more monitors. Please upgrade your account."
                 );
-                
+
                 error.code = 400;
                 throw error;
             }
@@ -327,12 +308,10 @@ export default {
         const updateData = {};
 
         if (lighthouseScanStatus !== 'scanning') {
-            
             updateData.lighthouseScannedAt = Date.now();
-            
+
             updateData.lighthouseScannedBy = lighthouseScannedBy;
         } else {
-            
             updateData.fetchLightHouse = null;
         }
 
@@ -448,7 +427,7 @@ export default {
 
         if (errorMsg) {
             const error = new Error(errorMsg);
-            
+
             error.code = 400;
             throw error;
         }
@@ -615,7 +594,7 @@ export default {
 
         if (monitor) {
             let subProject = null;
-            
+
             let project = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProjectId _id seats stripeSubscriptionId',
@@ -624,7 +603,7 @@ export default {
             if (project) {
                 if (project.parentProjectId) {
                     subProject = project;
-                    
+
                     project = await ProjectService.findOneBy({
                         query: { _id: subProject.parentProjectId },
                         select: '_id seats stripeSubscriptionId',
@@ -632,7 +611,7 @@ export default {
                 }
 
                 let subProjectIds = [];
-                
+
                 const subProjects = await ProjectService.findBy({
                     query: { parentProjectId: project._id },
                     select: '_id',
@@ -690,7 +669,6 @@ export default {
             );
 
             try {
-                
                 NotificationService.create(
                     monitor.projectId,
                     `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`,
@@ -810,13 +788,11 @@ export default {
                 const monitorsWithSchedules = await Promise.all(
                     monitorsWithStatus.map(async monitor => {
                         const monitorSchedules = await ScheduleService.findBy({
-                            
                             query: { monitorIds: monitor._id },
                             select: selectSchedule,
                             populate: populateSchedule,
                         });
                         return {
-                            
                             ...monitor,
                             schedules: monitorSchedules,
                         };
@@ -926,13 +902,11 @@ export default {
         const monitorsWithSchedules = await Promise.all(
             monitorsWithStatus.map(async monitor => {
                 const monitorSchedules = await ScheduleService.findBy({
-                    
                     query: { monitorIds: monitor._id },
                     select: selectSchedule,
                     populate: populateSchedule,
                 });
                 return {
-                    
                     ...monitor,
                     schedules: monitorSchedules,
                 };
@@ -1081,7 +1055,6 @@ export default {
     },
 
     async getScriptMonitors({ limit, skip }: $TSFixMe) {
-        
         import moment from 'moment';
         const monitors = await MonitorModel.find({
             $and: [
@@ -1191,7 +1164,7 @@ export default {
             const error = new Error(
                 'Monitor with this Device ID not found in this Project.'
             );
-            
+
             error.code = 400;
             throw error;
         } else {
@@ -1225,7 +1198,6 @@ export default {
             if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
                 probes = [undefined];
             } else {
-                
                 probes = await ProbeService.findBy({
                     query: {},
                     select: '_id',
@@ -1252,7 +1224,6 @@ export default {
                     createdAt: { $gte: start, $lte: end },
                 };
                 if (typeof probe !== 'undefined') {
-                    
                     query.probeId = probe._id;
                 }
 
@@ -1316,7 +1287,6 @@ export default {
         if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
             probes = [undefined];
         } else {
-            
             probes = await ProbeService.findBy({
                 query: {},
                 select: '_id',
@@ -1333,7 +1303,6 @@ export default {
                 createdAt: { $gte: start, $lte: end },
             };
             if (typeof probe !== 'undefined') {
-                
                 query.probeId = probe._id;
             }
             const monitorLogs = await MonitorLogByDayService.findBy({
@@ -1375,7 +1344,6 @@ export default {
         ) {
             probes = [undefined];
         } else {
-            
             probes = await ProbeService.findBy({
                 query: {},
                 select: '_id',
@@ -1398,7 +1366,7 @@ export default {
             };
             if (typeof probe !== 'undefined') {
                 // return manually created statuses in every probe
-                
+
                 query.probeId = { $in: [probe._id, null] };
             }
 
@@ -1421,7 +1389,6 @@ export default {
     },
 
     addSeat: async function(query: $TSFixMe) {
-        
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -1453,14 +1420,13 @@ export default {
             monitor.siteUrls.includes(data.siteUrl)
         ) {
             const error = new Error('Site URL already exists.');
-            
+
             error.code = 400;
             throw error;
         }
 
         const siteUrls = [data.siteUrl, ...monitor.siteUrls];
 
-        
         monitor = await this.updateOneBy(query, { siteUrls });
 
         return monitor;
@@ -1475,7 +1441,7 @@ export default {
 
         if (siteUrlIndex === -1) {
             const error = new Error('Site URL does not exist.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -1485,7 +1451,6 @@ export default {
         }
         const siteUrls = monitor.siteUrls;
 
-        
         monitor = await this.updateOneBy(query, { siteUrls });
 
         return monitor;
@@ -1525,15 +1490,14 @@ export default {
             let incidents = [];
             const temp = {};
             let status = 'online';
-            
+
             temp.date = moment(dateNow)
                 .utc()
                 .subtract(i, 'days');
-            
+
             temp.monitorId = monitorId;
             if (monitorIncidents && monitorIncidents.length) {
                 incidents = monitorIncidents.filter((inc: $TSFixMe) => {
-                    
                     const creatediff = moment(temp.date)
                         .utc()
                         .startOf('day')
@@ -1543,7 +1507,7 @@ export default {
                                 .startOf('day'),
                             'days'
                         );
-                    
+
                     const resolveddiff = moment(temp.date)
                         .utc()
                         .startOf('day')
@@ -1562,7 +1526,6 @@ export default {
                               .utc()
                               .startOf('day')
                               .diff(
-                                  
                                   moment(temp.date)
                                       .utc()
                                       .startOf('day'),
@@ -1574,7 +1537,6 @@ export default {
                     : 'online';
 
                 incidents = incidents.map((inc: $TSFixMe) => {
-                    
                     const creatediff = moment(temp.date)
                         .utc()
                         .startOf('day')
@@ -1585,8 +1547,7 @@ export default {
                             'days'
                         );
                     const resolveddiff = inc.resolvedAt
-                        ? 
-                          moment(temp.date)
+                        ? moment(temp.date)
                               .utc()
                               .startOf('day')
                               .diff(
@@ -1595,8 +1556,7 @@ export default {
                                       .startOf('day'),
                                   'days'
                               )
-                        : 
-                          moment(temp.date)
+                        : moment(temp.date)
                               .utc()
                               .startOf('day')
                               .diff(
@@ -1608,19 +1568,16 @@ export default {
                     if (creatediff > 0 && resolveddiff < 0) {
                         return 1440;
                     } else if (creatediff === 0 && resolveddiff !== 0) {
-                        
                         return moment(temp.date)
                             .utc()
                             .endOf('day')
                             .diff(moment(inc.createdAt).utc(), 'minutes');
                     } else if (creatediff !== 0 && resolveddiff === 0) {
-                        
                         return moment(temp.date)
                             .utc()
                             .startOf('day')
                             .diff(moment(inc.resolvedAt).utc(), 'minutes');
                     } else if (creatediff === 0 && resolveddiff === 0) {
-                        
                         return moment(temp.resolvedAt)
                             .utc()
                             .diff(moment(inc.createdAt).utc(), 'minutes');
@@ -1632,17 +1589,16 @@ export default {
                 const reduced = incidents.reduce(
                     (inc: $TSFixMe, val: $TSFixMe) => inc + val
                 );
-                
+
                 temp.downTime = reduced < 1440 ? reduced : 1440;
-                
+
                 temp.upTime = reduced < 1440 ? 1440 - reduced : 0;
             } else {
-                
                 temp.downTime = 0;
-                
+
                 temp.upTime = 1440;
             }
-            
+
             temp.status = status;
             times.unshift(temp);
         }
@@ -1658,7 +1614,7 @@ export default {
             const monitors = await Promise.all(
                 monitor.map(async (monitor: $TSFixMe) => {
                     const monitorId = monitor._id;
-                    
+
                     monitor = await _this.updateOneBy(
                         { _id: monitorId, deleted: true },
                         {
@@ -1713,7 +1669,6 @@ export default {
             }
 
             if (monitorSla) {
-                
                 startDate = moment(currentDate)
                     .subtract(Number(monitorSla.frequency), 'days')
                     .format();
@@ -1843,7 +1798,7 @@ export default {
                 }
             });
             //Second step
-            
+
             incidentsHappenedDuringTheDay.sort((a, b) =>
                 moment(a.start).isSame(b.start)
                     ? 0
@@ -1950,7 +1905,6 @@ export default {
             }
             //Remove events having start and end time equal.
             incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
-                
                 event => !moment(event.start).isSame(event.end)
             );
             //Last step
@@ -2033,7 +1987,6 @@ export default {
             );
         }
 
-        
         const updatedMonitor = await this.updateOneBy(
             { _id: monitorId },
             { componentId }
@@ -2132,13 +2085,13 @@ export default {
                         });
 
                         timeObj.date = end.toISOString();
-                        
+
                         timeObj.emptytime = null;
                     }
                 }
             );
             //Second step
-            
+
             incidentsHappenedDuringTheDay.sort((a, b) =>
                 moment(a.start).isSame(b.start)
                     ? 0
@@ -2247,7 +2200,6 @@ export default {
             }
             //Remove events having start and end time equal.
             incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
-                
                 event => !moment(event.start).isSame(event.end)
             );
             //Last step
@@ -2281,13 +2233,9 @@ export default {
                 timeObj.downTime +
                 timeObj.disabledTime;
             if (timeObj.status === null || timeObj.status === 'online') {
-                
                 if (timeObj.disabledTime > 0) timeObj.status = 'disabled';
-                
                 else if (timeObj.downTime > 0) timeObj.status = 'offline';
-                
                 else if (timeObj.degradedTime > 0) timeObj.status = 'degraded';
-                
                 else if (timeObj.upTime > 0) timeObj.status = 'online';
             }
             timeBlock.push(Object.assign({}, timeObj));

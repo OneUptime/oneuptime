@@ -31,7 +31,7 @@ export function logoutUser() {
         cookies.remove('data', { path: '/' });
         localStorage.clear();
         dispatch(receiveLogout());
-        
+
         window.location = ACCOUNTS_URL;
     };
 }

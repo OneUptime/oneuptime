@@ -9,24 +9,20 @@ import AlertService from '../services/alertService';
 
 import { IS_SAAS_SERVICE } from '../config/server';
 
-
 const handleFetchingUnpaidSubscriptions = async startAfter => {
     if (startAfter) {
-        
         return await stripe.subscriptions.list({
             status: 'unpaid',
             limit: 100, // default limit is 10 and limit can range between 1 to 100
             starting_after: startAfter,
         });
     } else {
-        
         return await stripe.subscriptions.list({
             status: 'unpaid',
             limit: 100, // default limit is 10 and limit can range between 1 to 100
         });
     }
 };
-
 
 let data = [];
 const _this = {
@@ -38,7 +34,7 @@ const _this = {
      * THE SERVICE TO UPDATE A PROJECT WILL RUN IN THE BACKGROUND, SO WE DON'T DELAY THE SYSTEM UNNECESSARILY
      * THE SERVICE TO ALERT PROJECT OWNERS BY MAIL WILL ALSO RUN IN THE BACKGROUND
      */
-    
+
     handleUnpaidSubscription: async startAfter => {
         try {
             if (IS_SAAS_SERVICE) {
@@ -49,7 +45,7 @@ const _this = {
                 // since stripe have a limit on the amount of items to return in the subscription list
                 // and also because, if we cancel a subscription and the subscription happens to be the last item in the subscription data array
                 // there is no way to fetch the next 100 item, so we are using this approach to fetch every thing once before proceeding to the next stage
-                
+
                 data = [...data, ...subscriptions.data];
                 if (subscriptions && subscriptions.has_more) {
                     const lastIndex = subscriptions.data.length - 1;
@@ -70,7 +66,7 @@ const _this = {
                             query: { stripeCustomerId },
                             select: 'name email',
                         }),
-                        
+
                         ProjectService.findOneBy({
                             query: { stripeSubscriptionId },
                             select:
@@ -103,7 +99,7 @@ const _this = {
                                 14
                         ) {
                             // cancel subscription
-                            
+
                             stripe.subscriptions.del(stripeSubscriptionId);
 
                             // delete project

@@ -4,11 +4,8 @@ import puppeteer from 'puppeteer';
 import init from '../../test-init';
 let page: $TSFixMe, browser: $TSFixMe;
 
-
 describe('Check api-docs up', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -17,13 +14,11 @@ describe('Check api-docs up', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should get title of api docs page',
         async (done: $TSFixMe) => {
@@ -36,7 +31,7 @@ describe('Check api-docs up', () => {
                 (e: $TSFixMe) => {
                     return e.innerHTML;
                 },
-                
+
                 { hidden: true }
             );
             expect(response).toBe('OneUptime API Documentation');

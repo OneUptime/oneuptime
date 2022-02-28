@@ -86,7 +86,6 @@ router.post('/site/opts', async (req, res) => {
         if (issuedBefore) {
             query.$or.push({
                 issuedAt: {
-                    
                     $lt: issuedBefore,
                 },
             });
@@ -94,7 +93,6 @@ router.post('/site/opts', async (req, res) => {
         if (expiresBefore) {
             query.$or.push({
                 expiresAt: {
-                    
                     $lt: expiresBefore,
                 },
             });
@@ -102,13 +100,11 @@ router.post('/site/opts', async (req, res) => {
         if (renewBefore) {
             query.$or.push({
                 renewAt: {
-                    
                     $lt: renewBefore,
                 },
             });
         }
 
-        
         query.deleted = false;
         const sites = await SiteManagerService.findBy({
             query,
@@ -128,7 +124,7 @@ router.delete('/site', async (req, res) => {
         const { domains } = req.body;
 
         let site = null;
-        
+
         if (subject && subject.trim()) {
             site = await SiteManagerService.hardDelete({ subject });
         } else if (domains && domains.length > 0) {

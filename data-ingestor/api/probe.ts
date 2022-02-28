@@ -1,4 +1,3 @@
-
 import express from 'express';
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
@@ -36,7 +35,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
         if (type === 'incomingHttpRequest') {
             const newMonitor = await MonitorService.findOneBy({
-                
                 query: { _id: ObjectId(monitor._id) },
             });
 
@@ -136,9 +134,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         );
                     }
                 }
-                
+
                 data.status = status;
-                
+
                 data.reason = reason;
             }
             if (type === 'ip') {
@@ -202,9 +200,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         );
                     }
                 }
-                
+
                 data.status = status;
-                
+
                 data.reason = reason;
             }
             if (type === 'script') {
@@ -291,9 +289,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     }
                 }
 
-                
                 data.status = status;
-                
+
                 data.reason = reason;
             }
             if (type === 'server-monitor') {
@@ -305,8 +302,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion: matchedUpCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
-                        ? 
-                          ProbeService.conditions(
+                        ? ProbeService.conditions(
                               monitor.type,
                               monitor.criteria.up,
                               data
@@ -323,8 +319,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion: matchedDegradedCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
-                        ? 
-                          ProbeService.conditions(
+                        ? ProbeService.conditions(
                               monitor.type,
                               monitor.criteria.degraded,
                               data
@@ -341,8 +336,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion: matchedDownCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
-                        ? 
-                          ProbeService.conditions(
+                        ? ProbeService.conditions(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
@@ -359,24 +353,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           };
 
                 if (validUp) {
-                    
                     data.status = 'online';
-                    
+
                     data.reason = upSuccessReasons;
                     matchedCriterion = matchedUpCriterion;
                 } else if (validDegraded) {
-                    
                     data.status = 'degraded';
-                    
+
                     data.reason = [
                         ...degradedSuccessReasons,
                         ...upFailedReasons,
                     ];
                     matchedCriterion = matchedDegradedCriterion;
                 } else if (validDown) {
-                    
                     data.status = 'offline';
-                    
+
                     data.reason = [
                         ...downSuccessReasons,
                         ...degradedFailedReasons,
@@ -384,9 +375,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     ];
                     matchedCriterion = matchedDownCriterion;
                 } else {
-                    
                     data.status = 'offline';
-                    
+
                     data.reason = [
                         ...downFailedReasons,
                         ...degradedFailedReasons,
@@ -400,41 +390,41 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }
             } else {
                 data = req.body;
-                
+
                 data.responseTime = res || 0;
-                
+
                 data.responseStatus = resp && resp.status ? resp.status : null;
-                
+
                 data.status = status;
-                
+
                 data.sslCertificate =
                     resp && resp.sslCertificate ? resp.sslCertificate : null;
-                
+
                 data.lighthouseScanStatus =
                     resp && resp.lighthouseScanStatus
                         ? resp.lighthouseScanStatus
                         : null;
-                
+
                 data.performance =
                     resp && resp.performance ? resp.performance : null;
-                
+
                 data.accessibility =
                     resp && resp.accessibility ? resp.accessibility : null;
-                
+
                 data.bestPractices =
                     resp && resp.bestPractices ? resp.bestPractices : null;
-                
+
                 data.seo = resp && resp.seo ? resp.seo : null;
-                
+
                 data.pwa = resp && resp.pwa ? resp.pwa : null;
-                
+
                 data.lighthouseData =
                     resp && resp.lighthouseData ? resp.lighthouseData : null;
-                
+
                 data.retryCount = retryCount || 0;
-                
+
                 data.reason = reason;
-                
+
                 data.response = rawResp;
             }
             if (type === 'kubernetes') {
@@ -447,11 +437,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion: matchedUpCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
-                        ? 
-                          ProbeService.conditions(
+                        ? ProbeService.conditions(
                               monitor.type,
                               monitor.criteria.up,
-                              
+
                               data.kubernetesData
                           )
                         : {
@@ -467,11 +456,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion: matchedDegradedCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
-                        ? 
-                          ProbeService.conditions(
+                        ? ProbeService.conditions(
                               monitor.type,
                               monitor.criteria.degraded,
-                              
+
                               data.kubernetesData
                           )
                         : {
@@ -487,8 +475,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion: matchedDownCriterion,
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
-                        ? 
-                          ProbeService.conditions(
+                        ? ProbeService.conditions(
                               monitor.type,
                               [
                                   ...monitor.criteria.down.filter(
@@ -496,7 +483,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                                           criterion.default !== true
                                   ),
                               ],
-                              
+
                               data.kubernetesData
                           )
                         : {
@@ -506,24 +493,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           };
 
                 if (validUp) {
-                    
                     data.status = 'online';
-                    
+
                     data.reason = upSuccessReasons;
                     matchedCriterion = matchedUpCriterion;
                 } else if (validDegraded) {
-                    
                     data.status = 'degraded';
-                    
+
                     data.reason = [
                         ...degradedSuccessReasons,
                         ...upFailedReasons,
                     ];
                     matchedCriterion = matchedDegradedCriterion;
                 } else if (validDown) {
-                    
                     data.status = 'offline';
-                    
+
                     data.reason = [
                         ...downSuccessReasons,
                         ...degradedFailedReasons,
@@ -531,9 +515,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     ];
                     matchedCriterion = matchedDownCriterion;
                 } else {
-                    
                     data.status = 'offline';
-                    
+
                     data.reason = [
                         ...downFailedReasons,
                         ...degradedFailedReasons,
@@ -548,7 +531,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             }
 
             if (type === 'script') {
-                
                 data.scriptMetadata = {
                     executionTime: resp.executionTime,
                     consoleLogs: resp.consoleLogs,
@@ -557,56 +539,41 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 };
             }
 
-            
             data.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
             await MonitorService.updateCriterion(monitor._id, matchedCriterion);
 
-            
             data.monitorId = monitorId || monitor._id;
-            
+
             data.probeId = req.probe && req.probe.id ? req.probe.id : null;
-            
+
             data.reason =
-                
                 data && data.reason && data.reason.length
-                    ? 
-                      data.reason.filter(
+                    ? data.reason.filter(
                           (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
                               self.indexOf(item) === pos
                       )
-                    : 
-                      data.reason;
+                    : data.reason;
             const index =
-                
                 data.reason && data.reason.indexOf('Request Timed out');
             if (index > -1) {
-                
                 data.reason =
-                    
                     data && data.reason && data.reason.length
-                        ? 
-                          data.reason.filter(
+                        ? data.reason.filter(
                               (item: $TSFixMe) =>
                                   !item.includes('Response Time is')
                           )
-                        : 
-                          data.reason;
+                        : data.reason;
             }
 
-            
             if (data.lighthouseScanStatus) {
-                
                 if (data.lighthouseScanStatus === 'scanning') {
                     await Promise.all([
-                        
                         MonitorService.updateLighthouseScanStatus(
-                            
                             data.monitorId,
                             'scanning'
                         ),
                         LighthouseLogService.updateAllLighthouseLogs(
-                            
                             data.monitorId,
                             { scanning: true }
                         ),
@@ -614,28 +581,24 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 } else {
                     // when this is scanned success or failed.
                     await MonitorService.updateLighthouseScanStatus(
-                        
                         data.monitorId,
-                        
+
                         data.lighthouseScanStatus,
-                        
+
                         data.probeId
                     );
                 }
             } else {
-                
                 if (data.lighthouseData) {
-                    
                     data.scanning = false;
                     log = await ProbeService.saveLighthouseLog(data);
                 } else {
-                    
                     data.matchedUpCriterion =
                         monitor && monitor.criteria && monitor.criteria.up;
-                    
+
                     data.matchedDownCriterion =
                         monitor && monitor.criteria && monitor.criteria.down;
-                    
+
                     data.matchedDegradedCriterion =
                         monitor &&
                         monitor.criteria &&

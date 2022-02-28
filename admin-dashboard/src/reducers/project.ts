@@ -350,7 +350,6 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: false,
                     updating: state.updateUser.updating.concat([
-                        
                         action.payload,
                     ]),
                 },
@@ -612,7 +611,7 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
             return Object.assign({}, state, {
                 projectTeam: {
                     ...state.projectTeam,
-                    
+
                     page: state.projectTeam.page + 1,
                 },
             });
@@ -621,10 +620,8 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                 projectTeam: {
                     ...state.projectTeam,
                     page:
-                        
                         state.projectTeam.page > 1
-                            ? 
-                              state.projectTeam.page - 1
+                            ? state.projectTeam.page - 1
                             : 1,
                 },
             });
@@ -638,7 +635,6 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                     requesting: true,
                     success: false,
                     deleting: state.teamDelete.deleting.concat([
-                        
                         action.payload,
                     ]),
                 },
@@ -949,9 +945,7 @@ export default function project(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     projects: state.projects.projects.map(project => {
-                        
                         if (project._id === action.payload._id) {
-                            
                             project = action.payload;
                         }
                         return project;

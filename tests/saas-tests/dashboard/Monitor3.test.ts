@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -14,13 +13,10 @@ const callSchedule = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 
-
 describe('Monitor API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -37,13 +33,11 @@ describe('Monitor API', () => {
         await init.addMonitorToComponent(componentName, monitorName, page); // This creates a default component and a monitor. The monitor created here will be used by other tests as required
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should create new monitor with call schedules',
         async (done: $TSFixMe) => {
@@ -51,11 +45,11 @@ describe('Monitor API', () => {
             // Redirects automatically component to details page
             await init.navigateToComponentDetails(componentName, page);
             const monitorName = utils.generateRandomString();
-            
+
             await init.pageWaitForSelector(page, '#cbMonitors');
-            
+
             await init.pageClick(page, '#newFormId');
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -65,20 +59,20 @@ describe('Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            
+
             await init.pageType(page, 'input[id=name]', monitorName);
-            
+
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(page, '#url', 'https://google.com');
             // select multiple schedules
             await init.page$$Eval(
@@ -88,10 +82,8 @@ describe('Monitor API', () => {
                     schedules.forEach((schedule: $TSFixMe) => schedule.click())
             );
 
-            
             await init.pageClick(page, 'button[type=submit]');
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
@@ -100,7 +92,6 @@ describe('Monitor API', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(monitorName);
 
-            
             await init.pageClick(page, `#edit_${monitorName}`);
 
             const checkboxValues = await init.page$$Eval(
@@ -119,34 +110,30 @@ describe('Monitor API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not create new monitor when details are incorrect',
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            
             await init.pageWaitForSelector(page, '#cbMonitors');
-            
+
             await init.pageClick(page, '#newFormId');
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
-            
+
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#url');
-            
+
             await init.pageType(page, '#url', 'https://google.com');
 
-            
             await init.pageClick(page, 'button[type=submit]');
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 '#form-new-monitor span#field-error'
@@ -159,7 +146,6 @@ describe('Monitor API', () => {
         operationTimeOut
     );
 
-    
     test('should display SSL enabled status', async (done: $TSFixMe) => {
         // Navigate to Component details
         await init.navigateToMonitorDetails(componentName, monitorName, page);

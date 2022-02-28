@@ -6,7 +6,6 @@ export default {
         try {
             await monitorCollection.updateOne(
                 {
-                    
                     _id: ObjectId(_id),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
@@ -23,7 +22,6 @@ export default {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
                     {
-                        
                         _id: ObjectId(id),
                         $or: [
                             { deleted: false },
@@ -46,7 +44,6 @@ export default {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
                     {
-                        
                         _id: ObjectId(id),
                         $or: [
                             { deleted: false },
@@ -72,7 +69,6 @@ export default {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
                     {
-                        
                         _id: ObjectId(id),
                         $or: [
                             { deleted: false },
@@ -99,18 +95,15 @@ export default {
             const updateData = {};
 
             if (lighthouseScanStatus !== 'scanning') {
-                
                 updateData.lighthouseScannedAt = new Date(moment().format());
-                
+
                 updateData.lighthouseScannedBy = lighthouseScannedBy;
             } else {
-                
                 updateData.fetchLightHouse = null;
             }
 
             await monitorCollection.updateOne(
                 {
-                    
                     _id: ObjectId(_id),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
@@ -138,7 +131,6 @@ export default {
         try {
             await monitorCollection.updateOne(
                 {
-                    
                     _id: ObjectId(_id),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
@@ -179,14 +171,12 @@ export default {
         try {
             await monitorCollection.updateOne(
                 {
-                    
                     _id: ObjectId(id),
                     $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
                 { $set: { lastPingTime: new Date(moment().format()) } }
             );
             const monitor = await monitorCollection.findOne({
-                
                 _id: ObjectId(id),
                 $or: [{ deleted: false }, { deleted: { $exists: false } }],
             });

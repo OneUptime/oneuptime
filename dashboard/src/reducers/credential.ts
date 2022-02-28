@@ -59,9 +59,7 @@ export default function credential(state = initialState, action: $TSFixMe) {
 
         case types.UPDATE_GIT_CREDENTIAL_SUCCESS: {
             const gitCredentials = state.gitCredentials.map(gitCredential => {
-                
                 if (String(gitCredential._id) === String(action.payload._id)) {
-                    
                     gitCredential = action.payload;
                 }
                 return gitCredential;
@@ -133,7 +131,6 @@ export default function credential(state = initialState, action: $TSFixMe) {
             // update the list of git credential
             const gitCredentials = state.gitCredentials.filter(
                 gitCredential =>
-                    
                     String(gitCredential._id) !== String(action.payload._id)
             );
 
@@ -239,11 +236,9 @@ export default function credential(state = initialState, action: $TSFixMe) {
             const dockerCredentials = state.dockerCredentials.map(
                 dockerCredential => {
                     if (
-                        
                         String(dockerCredential._id) ===
                         String(action.payload._id)
                     ) {
-                        
                         dockerCredential = action.payload;
                     }
                     return dockerCredential;
@@ -316,7 +311,6 @@ export default function credential(state = initialState, action: $TSFixMe) {
             // update the list of git credential
             const dockerCredentials = state.dockerCredentials.filter(
                 dockerCredential =>
-                    
                     String(dockerCredential._id) !== String(action.payload._id)
             );
 

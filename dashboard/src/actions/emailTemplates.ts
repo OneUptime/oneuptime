@@ -39,7 +39,6 @@ export function getEmailTemplates(projectId: $TSFixMe) {
 
         promise.then(
             function(emails) {
-                
                 dispatch(emailTemplatesSuccess(emails.data));
             },
             function(error) {
@@ -94,7 +93,6 @@ export function editEmailTemplates(projectId: $TSFixMe, data: $TSFixMe) {
 
         promise.then(
             function(emailTemplate) {
-                
                 dispatch(editEmailTemplateSuccess(emailTemplate.data));
             },
             error => {
@@ -147,7 +145,6 @@ export function resetEmailTemplates(projectId: $TSFixMe, templateId: $TSFixMe) {
 
         promise.then(
             function(emails) {
-                
                 dispatch(resetEmailTemplatesSuccess(emails.data));
             },
             function(error) {
@@ -196,7 +193,6 @@ export function getSmtpConfig(projectId: $TSFixMe) {
 
         promise.then(
             function(data) {
-                
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -208,7 +204,7 @@ export function getSmtpConfig(projectId: $TSFixMe) {
                         payload: false,
                     });
                 }
-                
+
                 dispatch(smtpConfigSuccess(data.data));
             },
             function(error) {
@@ -235,9 +231,8 @@ export function postSmtpConfig(projectId: $TSFixMe, data: $TSFixMe) {
 
         promise.then(
             function(data) {
-                
                 dispatch(smtpConfigSuccess(data.data));
-                
+
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -299,9 +294,8 @@ export function deleteSmtpConfig(
 
         promise.then(
             function(data) {
-                
                 dispatch(deleteSmtpConfigSuccess(data.data));
-                
+
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -342,9 +336,8 @@ export function updateSmtpConfig(
 
         promise.then(
             function(data) {
-                
                 dispatch(smtpConfigSuccess(data.data));
-                
+
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,

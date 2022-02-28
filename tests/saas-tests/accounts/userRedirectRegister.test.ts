@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,11 +12,8 @@ const password = '1234567890';
 const queryString = '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
 let queryObj = {};
 
-
 describe('Home redirect', () => {
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -45,13 +41,11 @@ describe('Home redirect', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'redirected query string should be save as source in the user schema',
         async () => {
@@ -70,7 +64,6 @@ describe('Home redirect', () => {
             const res = await axios(config);
             const sourceObj = res.data[0].source;
             for (const key in sourceObj) {
-                
                 expect(sourceObj[key]).toEqual(queryObj[key]);
             }
         },

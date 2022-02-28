@@ -209,7 +209,7 @@ export default function card(state = initialState, action: $TSFixMe) {
                 },
                 allNumbers: {
                     ...state.allNumbers,
-                    
+
                     numbers: state.allNumbers.numbers.concat([action.payload]),
                 },
             });
@@ -255,7 +255,6 @@ export default function card(state = initialState, action: $TSFixMe) {
                 allNumbers: {
                     ...state.allNumbers,
                     numbers: state.allNumbers.numbers.map(n => {
-                        
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {
@@ -317,7 +316,6 @@ export default function card(state = initialState, action: $TSFixMe) {
                 allNumbers: {
                     ...state.allNumbers,
                     numbers: state.allNumbers.numbers.filter(
-                        
                         n => String(n._id) !== String(action.payload._id)
                     ),
                 },
@@ -388,7 +386,6 @@ export default function card(state = initialState, action: $TSFixMe) {
                         ...state.allNumbers,
                         numbers: state.allNumbers.numbers.map(n => {
                             if (
-                                
                                 String(n._id) ===
                                 String(action.payload.data._id)
                             ) {
@@ -417,7 +414,6 @@ export default function card(state = initialState, action: $TSFixMe) {
                         ...state.allNumbers,
                         numbers: state.allNumbers.numbers.map(n => {
                             if (
-                                
                                 String(n._id) ===
                                 String(action.payload.data._id)
                             ) {
@@ -471,7 +467,6 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 introAudioState: {
-                    
                     ...state.introAudioState,
                     requesting: true,
                     error: null,
@@ -483,7 +478,6 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 introAudioState: {
-                    
                     ...state.introAudioState,
                     requesting: false,
                     error: null,
@@ -492,7 +486,6 @@ export default function card(state = initialState, action: $TSFixMe) {
                 allNumbers: {
                     ...state.allNumbers,
                     numbers: state.allNumbers.numbers.map(n => {
-                        
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {
@@ -506,7 +499,6 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 introAudioState: {
-                    
                     ...state.introAudioState,
                     requesting: false,
                     error: action.payload,
@@ -518,7 +510,6 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 backupIntroAudioState: {
-                    
                     ...state.backupIntroAudioState,
                     requesting: true,
                     error: null,
@@ -530,7 +521,6 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 backupIntroAudioState: {
-                    
                     ...state.backupIntroAudioState,
                     requesting: false,
                     error: null,
@@ -539,7 +529,6 @@ export default function card(state = initialState, action: $TSFixMe) {
                 allNumbers: {
                     ...state.allNumbers,
                     numbers: state.allNumbers.numbers.map(n => {
-                        
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {
@@ -553,7 +542,6 @@ export default function card(state = initialState, action: $TSFixMe) {
             return Object.assign({}, state, {
                 ...state,
                 backupIntroAudioState: {
-                    
                     ...state.backupIntroAudioState,
                     requesting: false,
                     error: action.payload,

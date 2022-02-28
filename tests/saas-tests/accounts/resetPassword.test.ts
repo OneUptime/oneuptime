@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 
 import should from 'should';
@@ -15,23 +14,18 @@ const user = {
     password,
 };
 
-
 describe('Reset Password API', () => {
-    
     beforeAll(async () => {
-        
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     it(
         'Should reset password successfully',
         async () => {
@@ -40,15 +34,15 @@ describe('Reset Password API', () => {
             await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(page, 'input[name=email]', email);
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(page, '#reset-password-success');
             const html = await init.page$Eval(
                 page,
@@ -65,26 +59,25 @@ describe('Reset Password API', () => {
         init.timeout
     );
 
-    
     it(
         'User cannot reset password with non-existing email',
         async () => {
             await page.goto(utils.ACCOUNTS_URL + '/forgot-password', {
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, 'input[name=email]');
-            
+
             await init.pageType(
                 page,
                 'input[name=email]',
                 utils.generateWrongEmail()
             );
-            
+
             await init.pageClick(page, 'button[type=submit]');
-            
+
             await init.pageWaitForSelector(page, '#error-msg');
             const html = await init.page$Eval(
                 page,

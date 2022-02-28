@@ -1,17 +1,14 @@
 require('should');
 
-
 import zapier from 'zapier-platform-core';
 
 import App from '../../index';
 
 const appTester = zapier.createAppTester(App);
 
-
 describe('Acknowledge Trigger', () => {
     zapier.tools.env.inject();
 
-    
     it('passes authentication and returns an acknowledged incident object', (done: $TSFixMe) => {
         const bundle = {
             authData: {

@@ -3,11 +3,9 @@ if ('function' === typeof importScripts) {
         'https://storage.googleapis.com/workbox-cdn/releases/6.1.1/workbox-sw.js'
     );
 
-    
     if (workbox) {
-        
         const { skipWaiting, clientsClaim } = workbox.core;
-        
+
         const { precacheAndRoute, cleanupOutdatedCaches } = workbox.precaching;
 
         // skip waiting and switch to activating stage
@@ -18,7 +16,7 @@ if ('function' === typeof importScripts) {
         cleanupOutdatedCaches();
 
         /* injection point for manifest files.  */
-        
+
         precacheAndRoute(self.__WB_MANIFEST, { cleanUrls: false });
     } else {
         // eslint-disable-next-line no-console

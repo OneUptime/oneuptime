@@ -130,13 +130,11 @@ const ping = (
                                                   (used, partitionUsed) =>
                                                       used + partitionUsed
                                               )
-                                        : 
-                                          storage.used,
+                                        : storage.used,
                                 totalStorage:
                                     storage && storage.length > 0
                                         ? storage[0].size
-                                        : 
-                                          storage.size,
+                                        : storage.size,
                                 storageUsage:
                                     storage && storage.length > 0
                                         ? storage
@@ -145,8 +143,7 @@ const ping = (
                                                   (use, partitionUse) =>
                                                       use + partitionUse
                                               )
-                                        : 
-                                          storage.use,
+                                        : storage.use,
                                 mainTemp: data[3].main,
                                 maxTemp: data[3].max,
                             };

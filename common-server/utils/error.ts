@@ -6,11 +6,10 @@ export default {
     log: (functionName: $TSFixMe, err: $TSFixMe, logdata = {}) => {
         const error = new Error(`${functionName} ${err}`);
 
-        
         logdata.message = `${functionName} ${error}`;
-        
+
         logdata.trace = error;
-        
+
         logdata.level = 'error';
 
         logger.error(logdata);

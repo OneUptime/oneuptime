@@ -15,10 +15,8 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     res
 ) {
     try {
-        
         const subProjectIds = req.user.subProjects
-            ? 
-              req.user.subProjects.map((project: $TSFixMe) => project._id)
+            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
 
         const populateNotification = [
@@ -59,7 +57,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
 router.put('/:projectId/read', getUser, isAuthorized, async function(req, res) {
     try {
         // const notificationId = req.params.notificationId;
-        
+
         const userId = req.user ? req.user.id : null;
 
         const { notificationIds } = req.body;
@@ -87,7 +85,7 @@ router.put(
     async function(req, res) {
         try {
             const notificationId = req.params.notificationId;
-            
+
             const userId = req.user ? req.user.id : null;
             const notification = await NotificationService.updateOneBy(
                 { _id: notificationId },
@@ -97,7 +95,7 @@ router.put(
                 return sendItemResponse(req, res, notification);
             } else {
                 const error = new Error('Notification not found.');
-                
+
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
@@ -114,12 +112,10 @@ router.put(
     getSubProjects,
     async function(req, res) {
         try {
-            
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            
+
             const userId = req.user ? req.user.id : null;
             const notifications = await NotificationService.updateManyBy(
                 { projectId: { $in: subProjectIds } },
@@ -133,7 +129,7 @@ router.put(
                 });
             } else {
                 const error = new Error('No notification found.');
-                
+
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
@@ -158,7 +154,7 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function(
             return sendItemResponse(req, res, notification);
         } else {
             const error = new Error('Notification not found.');
-            
+
             error.code = 400;
             return sendErrorResponse(req, res, error);
         }
@@ -170,10 +166,10 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function(
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        
+
         const userId = req.user ? req.user.id : null;
         const data = req.body;
-        
+
         const notification = await NotificationService.create(
             projectId,
             data.message,

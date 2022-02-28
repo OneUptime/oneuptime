@@ -14,26 +14,26 @@ router.post('/', async function(req, res) {
                 body.volume = JSON.parse(body.volume);
             }
         }
-        
+
         data.type = body.type;
-        
+
         data.name = body.fullname;
-        
+
         data.email = body.email;
-        
+
         data.phone = body.phone;
-        
+
         data.website = body.website;
-        
+
         data.companySize =
             body.volume && body.volume.text ? body.volume.text : null;
-        
+
         data.country = body.country;
-        
+
         data.message = body.message || null;
-        
+
         data.whitepaperName = body.whitepaper_name || null;
-        
+
         data.source = JSON.parse(body.source) || null;
         const lead = await LeadService.create(data);
         return sendItemResponse(req, res, lead);

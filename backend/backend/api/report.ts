@@ -22,10 +22,9 @@ router.get(
     async (req, res) => {
         try {
             const { startDate, endDate, skip, limit } = req.query;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call ReportService
             const members = await ReportService.getMostActiveMembers(
@@ -35,9 +34,9 @@ router.get(
                 skip,
                 limit
             );
-            
+
             const count = members.count;
-            
+
             return sendListResponse(req, res, members.members, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -59,10 +58,9 @@ router.get(
     async (req, res) => {
         try {
             const { startDate, endDate, skip, limit } = req.query;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call Reports Service
             const monitors = await ReportService.getMostActiveMonitors(
@@ -72,9 +70,9 @@ router.get(
                 skip,
                 limit
             );
-            
+
             const count = monitors.count;
-            
+
             return sendListResponse(req, res, monitors.monitors, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -96,10 +94,9 @@ router.get(
     async (req, res) => {
         try {
             const { startDate, endDate, filter } = req.query;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Reports Service
             const resolveTime = await ReportService.getAverageTimeBy(
@@ -129,10 +126,9 @@ router.get(
     async (req, res) => {
         try {
             const { startDate, endDate, filter } = req.query;
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Reports Service
             const incidents = await ReportService.getIncidentCountBy(

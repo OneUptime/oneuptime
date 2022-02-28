@@ -123,7 +123,6 @@ export default function card(state = initialState, action: $TSFixMe) {
                 fetchCards: {
                     ...state.fetchCards,
                     cards: state.fetchCards.cards.filter(card => {
-                        
                         if (action.payload.id === card.id) {
                             return false;
                         }

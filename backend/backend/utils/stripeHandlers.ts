@@ -1,4 +1,3 @@
-
 import { postApi } from './api';
 const SLACK_URL = process.env.SLACK_BILLING_WEBHOOK;
 

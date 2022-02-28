@@ -1,18 +1,15 @@
 const { NODE_ENV } = process.env;
-import customEnv from 'custom-env'; 
+import customEnv from 'custom-env';
 if (!NODE_ENV || NODE_ENV === 'development') {
-    
-customEnv.env();
+    customEnv.env();
 }
 
-import express from 'express'
-import logger from 'common-server/utils/logger'
+import express from 'express';
+import logger from 'common-server/utils/logger';
 
 import expressRequestId from 'express-request-id';
 
-
 const app = express();
-
 
 app.use(expressRequestId);
 
@@ -30,7 +27,7 @@ process.on('uncaughtException', err => {
     logger.error(err);
 });
 
-import path from 'path'
+import path from 'path';
 
 import http from 'http';
 http.createServer(app);
@@ -49,17 +46,17 @@ const io = require('socket.io')(http, {
     },
 });
 // import redisAdapter from 'socket.io-redis'
-import bodyParser from 'body-parser'
-import cors from 'cors'
+import bodyParser from 'body-parser';
+import cors from 'cors';
 // import redis from 'redis'
-import mongoose from './backend/config/db'
+import mongoose from './backend/config/db';
 
-import Gl from 'greenlock'
-import ErrorService from 'common-server/utils/error'
+import Gl from 'greenlock';
+import ErrorService from 'common-server/utils/error';
 
-import { getUser } from './backend/middlewares/user'
+import { getUser } from './backend/middlewares/user';
 
-import { getProjectId } from './backend/middlewares/api'
+import { getProjectId } from './backend/middlewares/api';
 
 // try {
 //     io.adapter(
@@ -79,12 +76,9 @@ import { getProjectId } from './backend/middlewares/api'
 //     console.log('redis error: ', err);
 // }
 
-
 global.io = io;
 
-
 app.use(cors());
-
 
 app.use(async function(req, res, next) {
     const method = req.method;
@@ -101,9 +95,8 @@ app.use(async function(req, res, next) {
     req = (await getUser(req)) || req;
     req = (await getProjectId(req)) || req;
 
-    
     logdata.userId = req.user?.id;
-    
+
     logdata.projectId = req.projectId;
 
     req.logdata = logdata;
@@ -122,7 +115,6 @@ app.use(async function(req, res, next) {
     next();
 });
 
-
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
@@ -138,15 +130,15 @@ app.use(function(req, res, next) {
         return next();
     }
     // Add this to global object, and this can be used anywhere where you need backend host.
-    
+
     global.apiHost = 'https://' + req.hostname + '/api';
-    
+
     global.accountsHost = 'https://' + req.hostname + '/accounts';
-    
+
     global.homeHost = 'https://' + req.hostname;
-    
+
     global.dashboardHost = 'https://' + req.hostname + '/dashboard';
-    
+
     global.statusHost = global.homeHost;
 
     if (
@@ -157,33 +149,31 @@ app.use(function(req, res, next) {
             req.get('host').includes('localhost:') ||
             req.get('host').includes('127.0.0.1:')
         ) {
-            
             global.apiHost =
                 'http://' +
                 req.hostname +
                 ':' +
                 (process.env.PORT || 3002) +
                 '/api';
-            
+
             global.accountsHost =
                 'http://' + req.hostname + ':' + 3003 + '/accounts';
-            
+
             global.homeHost = 'http://' + req.hostname + ':' + 1444;
-            
+
             global.dashboardHost =
                 'http://' + req.hostname + ':' + 3000 + '/dashboard';
-            
+
             global.statusHost = 'http://' + req.hostname + ':' + 3006;
         } else {
-            
             global.apiHost = 'http://' + req.hostname + '/api';
-            
+
             global.accountsHost = 'http://' + req.hostname + '/accounts';
-            
+
             global.homeHost = 'http://' + req.hostname;
-            
+
             global.dashboardHost = 'http://' + req.hostname + '/dashboard';
-            
+
             global.statusHost = global.homeHost;
         }
     }
@@ -213,11 +203,9 @@ app.set('view engine', 'ejs');
 
 app.set('trust proxy', true);
 
-
 app.use(express.static(path.join(__dirname, 'views')));
 
 app.use('/api', express.static(path.join(__dirname, 'views')));
-
 
 app.use(require('./backend/middlewares/auditLogs').log);
 
@@ -286,9 +274,7 @@ app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
 
 app.use(['/webhook', '/api/webhook'], require('./backend/api/webHook'));
 
-
 app.use(['/server', '/api/server'], require('./backend/api/server'));
-
 
 app.use(
     ['/notification', '/api/notification'],
@@ -494,9 +480,7 @@ app.use(
     require('./backend/api/incidentNoteTemplate')
 );
 
-
 app.use(['/api'], require('./backend/api/apiStatus'));
-
 
 app.use('/*', function(req, res) {
     res.status(404).send('Endpoint not found.');
@@ -505,11 +489,9 @@ app.use('/*', function(req, res) {
 //attach cron jobs
 require('./backend/workers/main');
 
-
 app.set('port', process.env.PORT || 3002);
 
 const server = http.listen(app.get('port'), function() {
-    
     logger.info('Server Started on port ' + app.get('port'));
 });
 
@@ -521,7 +503,7 @@ mongoose.connection.on('connected', async () => {
                 packageRoot: process.cwd(),
                 maintainerEmail: 'certs@oneuptime.com',
                 staging: false,
-                
+
                 notify: function(event, details) {
                     if ('error' === event) {
                         // `details` is an error object in this case
@@ -542,7 +524,7 @@ mongoose.connection.on('connected', async () => {
                 agreeToTerms: true,
                 subscriberEmail: 'certs@oneuptime.com',
             });
-            
+
             global.greenlock = greenlock;
         }
     } catch (error) {
@@ -550,7 +532,6 @@ mongoose.connection.on('connected', async () => {
         ErrorService.log('GREENLOCK INIT ERROR: ', error);
     }
 });
-
 
 export default app;
 module.exports.close = function() {

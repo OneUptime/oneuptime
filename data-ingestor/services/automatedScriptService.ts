@@ -1,4 +1,3 @@
-
 import { postApi } from '../utils/api';
 import ErrorService from './errorService';
 
@@ -14,39 +13,35 @@ export default {
     createLog: async function(id: $TSFixMe, data: $TSFixMe) {
         try {
             const scriptLog = {};
-            
+
             scriptLog.automationScriptId = id ? ObjectId(id) : null;
-            
+
             scriptLog.triggerByUser = data.triggerByUser
-                ? 
-                  ObjectId(data.triggerByUser)
+                ? ObjectId(data.triggerByUser)
                 : null;
-            
+
             scriptLog.triggerByScript = data.triggerByScript
-                ? 
-                  ObjectId(data.triggerByScript)
+                ? ObjectId(data.triggerByScript)
                 : null;
-            
+
             scriptLog.triggerByIncident = data.triggerByIncident
-                ? 
-                  ObjectId(data.triggerByIncident)
+                ? ObjectId(data.triggerByIncident)
                 : null;
-            
+
             scriptLog.status = data.status || null;
-            
+
             scriptLog.executionTime = data.executionTime || null;
-            
+
             scriptLog.consoleLogs = data.consoleLogs || null;
-            
+
             scriptLog.error = data.error || null;
-            
+
             scriptLog.createdAt = new Date(moment().format());
-            
+
             scriptLog.deleted = false;
 
             const result = await scriptLogCollection.insertOne(scriptLog);
             const newScriptLog = await this.findOneBy({
-                
                 _id: ObjectId(result.insertedId),
             });
 
@@ -123,7 +118,6 @@ export default {
                     };
                     switch (type) {
                         case 'automatedScript':
-                            
                             data.triggerByScript = triggeredId;
                             break;
                         default:
@@ -180,7 +174,6 @@ export default {
                 successEvent,
                 failureEvent,
             } = await _this.findOneBy({
-                
                 _id: ObjectId(automatedScriptId),
             });
             let data = null;
@@ -219,16 +212,13 @@ export default {
                 };
             }
             triggeredBy === 'user'
-                ? 
-                  (data.triggerByUser = triggeredId)
+                ? (data.triggerByUser = triggeredId)
                 : triggeredBy === 'script'
-                ? 
-                  (data.triggerByScript = triggeredId)
+                ? (data.triggerByScript = triggeredId)
                 : triggeredBy === 'incident'
-                ? 
-                  (data.triggerByIncident = triggeredId)
+                ? (data.triggerByIncident = triggeredId)
                 : null;
-            
+
             if (data.success && successEvent.length > 0) {
                 await _this.runResource({
                     triggeredId: automatedScriptId,
@@ -236,7 +226,7 @@ export default {
                     stackSize,
                 });
             }
-            
+
             if (!data.success && failureEvent.length > 0) {
                 await _this.runResource({
                     triggeredId: automatedScriptId,
@@ -249,7 +239,6 @@ export default {
                 data
             );
             await _this.updateOne(
-                
                 { _id: ObjectId(automatedScriptId) },
                 { updatedAt: new Date(moment().format()) }
             );

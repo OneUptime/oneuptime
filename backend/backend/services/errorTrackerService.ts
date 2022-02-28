@@ -8,7 +8,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -31,7 +31,7 @@ export default {
             const error = new Error(
                 'Error Tracker with that name already exists.'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -40,20 +40,18 @@ export default {
         });
         // prepare error tracker model
         let errorTracker = new ErrorTrackerModel();
-        
+
         errorTracker.name = data.name;
-        
+
         errorTracker.key = uuid.v4(); // generate random string here
-        
+
         errorTracker.componentId = data.componentId;
-        
+
         errorTracker.createdById = data.createdById;
         if (resourceCategoryCount && resourceCategoryCount > 0) {
-            
             errorTracker.resourceCategory = data.resourceCategory;
         }
         if (data && data.name) {
-            
             errorTracker.slug = getSlug(data.name);
         }
         const savedErrorTracker = await errorTracker.save();
@@ -134,7 +132,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -183,9 +181,8 @@ export default {
                 query: { _id: errorTracker.componentId._id },
                 select: 'projectId',
             });
-            
+
             NotificationService.create(
-                
                 component.projectId,
                 `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
                 errorTracker.deletedById._id,
@@ -221,7 +218,6 @@ export default {
         );
 
         if (unsetData) {
-            
             errorTracker = await ErrorTrackerModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },

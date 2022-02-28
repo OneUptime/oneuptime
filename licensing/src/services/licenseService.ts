@@ -17,34 +17,33 @@ export default {
             for (const record of records) {
                 const fetchedLicense = record.get('License Key');
                 if (license === fetchedLicense) {
-                    
                     userRecord['id'] = record.id;
-                    
+
                     userRecord['expiryDate'] = record.get('Expires');
                 }
             }
 
             if (Object.entries(userRecord).length === 0) {
                 const error = new Error('Invalid License');
-                
+
                 error.statusCode = 400;
                 throw error;
             }
 
             const presentTime = new Date().getTime();
-            
+
             const expiryTime = new Date(userRecord.expiryDate).getTime();
 
             if (expiryTime < presentTime) {
                 const error = new Error('License Expired');
-                
+
                 error.statusCode = 400;
                 throw error;
             }
 
             await AirtableService.update({
                 tableName: 'License',
-                
+
                 id: userRecord.id,
                 fields: {
                     'Contact Email': email,

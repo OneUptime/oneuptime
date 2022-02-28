@@ -1,7 +1,6 @@
 import express from 'express';
 const router = express.Router();
 
-
 import { IS_SAAS_SERVICE } from '../config/server';
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
@@ -16,13 +15,12 @@ router.get('/is-saas-service', function(req, res) {
 
 router.get('/hosts', function(req, res) {
     return sendItemResponse(req, res, {
-        
         api: global.apiHost,
-        
+
         home: global.homeHost,
-        
+
         accounts: global.accountsHost,
-        
+
         dashboard: global.dashboardHost,
     });
 });

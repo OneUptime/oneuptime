@@ -23,7 +23,7 @@ export const createCustomField = (
         dispatch(createCustomFieldRequest());
 
         const response = await postApi(`customField/${projectId}`, data);
-        
+
         dispatch(createCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -64,7 +64,7 @@ export const updateCustomField = ({
             `customField/${projectId}/${customFieldId}`,
             data
         );
-        
+
         dispatch(updateCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -109,7 +109,7 @@ export const fetchCustomFields = (
                 `customField/${projectId}?skip=${skip}&limit=${limit}`
             );
         }
-        
+
         dispatch(fetchCustomFieldsSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -145,11 +145,10 @@ export const deleteCustomField = (
     try {
         dispatch(deleteCustomFieldRequest());
 
-        
         const response = await deleteApi(
             `customField/${projectId}/${customFieldId}`
         );
-        
+
         dispatch(deleteCustomFieldSuccess(response.data));
     } catch (error) {
         const errorMsg =

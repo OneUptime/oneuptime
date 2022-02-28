@@ -6,7 +6,6 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     customEnv.env();
 }
 
-
 import express from 'express';
 const app = express();
 
@@ -56,7 +55,6 @@ const client = getMongoClient();
 global.db = client.db(databaseName);
 
 app.use(cors());
-
 
 app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
@@ -113,7 +111,6 @@ app.use(function(req, res, next) {
     return next();
 });
 
-
 app.get(['/data-ingestor/status', '/status'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -128,7 +125,6 @@ app.get(['/data-ingestor/status', '/status'], function(req, res) {
 app.use(['/probe', '/api/probe'], require('./api/probe'));
 
 app.set('port', process.env.PORT || 3200);
-
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line

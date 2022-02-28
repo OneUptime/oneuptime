@@ -71,7 +71,6 @@ export function getInvoice(
 
         promise.then(
             function(invoices) {
-                
                 dispatch(getInvoiceSuccess(invoices.data));
                 if (reqFornext) {
                     dispatch(incrementNextCount());

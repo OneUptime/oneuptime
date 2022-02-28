@@ -1,4 +1,3 @@
-
 import { find, update } from '../util/db';
 
 const monitorCollection = 'monitors';
@@ -62,7 +61,6 @@ async function run() {
                 }
 
                 if (and && and.length > 0) {
-                    
                     cr.and.push(and);
                     up.and = cr;
                 }
@@ -70,7 +68,6 @@ async function run() {
                     up.and = { and: [], or: [] };
                 }
                 if (or && or.length > 0) {
-                    
                     cr.and.push(or);
                     up.or = cr;
                 }
@@ -101,7 +98,6 @@ async function run() {
                 }
 
                 if (and && and.length > 0) {
-                    
                     cr.and.push(and);
                     down.and = cr;
                 }
@@ -109,7 +105,6 @@ async function run() {
                     down.and = { and: [], or: [] };
                 }
                 if (or && or.length > 0) {
-                    
                     cr.and.push(or);
                     down.or = cr;
                 }
@@ -140,7 +135,6 @@ async function run() {
                 }
 
                 if (and && and.length > 0) {
-                    
                     cr.and.push(and);
                     degraded.and = cr;
                 }
@@ -148,7 +142,6 @@ async function run() {
                     degraded.and = { and: [], or: [] };
                 }
                 if (or && or.length > 0) {
-                    
                     cr.and.push(or);
                     degraded.or = cr;
                 }

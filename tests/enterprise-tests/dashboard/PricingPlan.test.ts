@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -14,13 +13,10 @@ const user = {
     password,
 };
 
-
 describe('Status Page', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -31,13 +27,11 @@ describe('Status Page', () => {
         await init.adminLogout(page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not show upgrade modal if IS_SAAS_SERVICE is false',
         async (done: $TSFixMe) => {
@@ -56,7 +50,7 @@ describe('Status Page', () => {
                 'button[type="button"] .bs-FileUploadButton',
                 { visible: true, timeout: init.timeout }
             );
-            
+
             await init.pageClick(
                 page,
                 'button[type="button"] .bs-FileUploadButton'
@@ -65,11 +59,11 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#name');
-            
+
             await init.pageType(page, '#name', pageName);
-            
+
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
             const rowItem = await init.pageWaitForSelector(

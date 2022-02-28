@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -21,13 +20,10 @@ const incidentFieldText = {
         fieldType: 'number',
     };
 
-
 describe('Incident Custom Field', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -39,13 +35,11 @@ describe('Incident Custom Field', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should configure incident custom field in a project',
         async (done: $TSFixMe) => {
@@ -62,7 +56,6 @@ describe('Incident Custom Field', () => {
         operationTimeOut
     );
 
-    
     test(
         'should update a incident custom field in a project',
         async (done: $TSFixMe) => {
@@ -71,14 +64,14 @@ describe('Incident Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#editCustomField_0');
             await init.pageWaitForSelector(page, '#customFieldForm', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#fieldName', { clickCount: 3 });
-            
+
             await init.pageType(
                 page,
                 '#fieldName',
@@ -93,7 +86,7 @@ describe('Incident Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#updateCustomField');
             await init.pageWaitForSelector(page, '#updateCustomField', {
                 hidden: true,
@@ -111,7 +104,6 @@ describe('Incident Custom Field', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete a incident custom field in a project',
         async (done: $TSFixMe) => {
@@ -120,13 +112,13 @@ describe('Incident Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteCustomField_0');
             await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteCustomFieldModalBtn');
             await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 hidden: true,

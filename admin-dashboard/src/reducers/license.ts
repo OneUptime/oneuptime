@@ -39,7 +39,7 @@ export default (state = initialState, action: $TSFixMe) => {
             const data = {};
             for (const config of action.payload.data) {
                 const { name, value } = config;
-                
+
                 data[name] = value;
             }
             return Object.assign({}, state, {
@@ -48,11 +48,10 @@ export default (state = initialState, action: $TSFixMe) => {
                     requesting: false,
                     success: true,
                     data: {
-                        
                         license: data.licenseKey,
-                        
+
                         email: data.licenseEmail,
-                        
+
                         token: data.licenseToken,
                     },
                 },
@@ -92,7 +91,7 @@ export default (state = initialState, action: $TSFixMe) => {
             const data = {};
             for (const config of action.payload.data) {
                 const { name, value } = config;
-                
+
                 data[name] = value;
             }
             return Object.assign({}, state, {
@@ -101,11 +100,10 @@ export default (state = initialState, action: $TSFixMe) => {
                     requesting: false,
                     success: true,
                     data: {
-                        
                         license: data.licenseKey,
-                        
+
                         email: data.licenseEmail,
-                        
+
                         token: data.licenseToken,
                     },
                 },

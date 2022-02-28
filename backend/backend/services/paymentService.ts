@@ -8,13 +8,12 @@ export default {
      * @returns { (Promise<{error : (string) }> | Promise< {closingBalance : number, chargeAmount:number}>} an object containing error or closing balance and charge amount
      */
     chargeAlertAndGetProjectBalance: async function(
-        
         userId,
-        
+
         project,
-        
+
         alertType,
-        
+
         alertPhoneNumber,
         segments = 1
     ) {
@@ -68,17 +67,15 @@ export default {
      * @return {boolean} whether the project has enough balance
      */
     hasEnoughBalance: async (
-        
         projectId,
-        
+
         alertPhoneNumber,
-        
+
         userId,
-        
+
         alertType
     ) => {
         try {
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'balance alertOptions',
@@ -117,7 +114,7 @@ export default {
      * @param {*} project project to add blance to
      * @returns {boolean} whether the balance is recharged to the project
      */
-    
+
     fillProjectBalance: async (userId, project) => {
         try {
             let balanceRecharged;
@@ -150,13 +147,12 @@ export default {
      * @returns {{success : boolean, message : string}} whether the balance is recharged successfully
      */
     checkAndRechargeProjectBalance: async function(
-        
         project,
-        
+
         userId,
-        
+
         alertPhoneNumber,
-        
+
         alertType
     ) {
         // let release;
@@ -180,20 +176,17 @@ export default {
                 project
             );
             if (lowBalanceRecharged) {
-                
                 status.success = true;
-                
+
                 status.message = 'Balance recharged successfully';
             } else {
-                
                 status.success = false;
-                
+
                 status.message = 'Low Balance';
             }
         } else {
-            
             status.success = true;
-            
+
             status.message = 'Balance is enough';
         }
 
@@ -204,9 +197,8 @@ export default {
     //Params:
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
-    
+
     checkPaymentIntent: async function(paymentIntent) {
-        
         const processedPaymentIntent = await stripe.paymentIntents.retrieve(
             paymentIntent.id
         );
@@ -218,9 +210,8 @@ export default {
     //Param 1: stripeToken: Token generated from frontend
     //Param 2: user: User details
     //Returns: promise
-    
+
     createCustomer: async function(email, companyName) {
-        
         const customer = await stripe.customers.create({
             email: email,
             description: companyName,
@@ -228,10 +219,8 @@ export default {
         return customer.id;
     },
 
-    
     // eslint-disable-next-line no-unused-vars
     addPayment: async function(customerId, stripeToken) {
-        
         const card = await stripe.customers.createSource(customerId);
         return card;
     },
@@ -241,7 +230,7 @@ export default {
     //Param 1: stripePlanId: Id generated from frontend.
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
-    
+
     subscribePlan: async function(stripePlanId, stripeCustomerId, coupon) {
         const items = [];
         items.push({
@@ -265,7 +254,7 @@ export default {
                 trial_period_days: 14,
             };
         }
-        
+
         const subscription = await stripe.subscriptions.create(subscriptionObj);
         return {
             stripeSubscriptionId: subscription.id,
@@ -277,11 +266,10 @@ export default {
     //Param 1: stripePlanId: Id generated from frontend.
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
-    
+
     changeSeats: async function(subscriptionId, seats) {
         if (subscriptionId === null) return;
 
-        
         let subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
         let plan = null;
@@ -290,11 +278,10 @@ export default {
             !subscription ||
             !subscription.items ||
             !subscription.items.data ||
-            
             !subscription.items.data.length > 0
         ) {
             const error = new Error('Your subscription cannot be retrieved.');
-            
+
             error.code = 400;
             throw error;
         } else {
@@ -323,13 +310,11 @@ export default {
             }
 
             if (trial_end_date) {
-                
                 subscription = await stripe.subscriptions.update(
                     subscriptionId,
                     { items: items, trial_end: trial_end_date }
                 );
             } else {
-                
                 subscription = await stripe.subscriptions.update(
                     subscriptionId,
                     { items: items }
@@ -340,10 +325,9 @@ export default {
         }
     },
 
-    
     createSubscription: async function(stripeCustomerId, amount) {
         const productId = Plans.getReserveNumberProductId();
-        
+
         const subscriptions = await stripe.subscriptions.create({
             customer: stripeCustomerId,
             items: [
@@ -362,24 +346,21 @@ export default {
         return subscriptions;
     },
 
-    
     removeSubscription: async function(stripeSubscriptionId) {
         const confirmations = [];
-        
+
         confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
         return confirmations;
     },
 
-    
     changePlan: async function(subscriptionId, planId, seats) {
         let subscriptionObj = {};
-        
+
         const subscription = await stripe.subscriptions.retrieve(
             subscriptionId
         );
         const trial_end = subscription.trial_end;
 
-        
         await stripe.subscriptions.del(subscriptionId);
 
         const items = [];
@@ -401,7 +382,7 @@ export default {
                 items: items,
             };
         }
-        
+
         const subscriptions = await stripe.subscriptions.create(
             subscriptionObj
         );
@@ -409,9 +390,7 @@ export default {
         return subscriptions.id;
     },
 
-    
     chargeAlert: async function(userId, projectId, chargeAmount) {
-        
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance alertOptions _id',
@@ -419,7 +398,6 @@ export default {
         const { balance } = project;
         const { minimumBalance, rechargeToBalance } = project.alertOptions;
         if (balance < minimumBalance) {
-            
             const paymentIntent = await StripeService.chargeCustomerForBalance(
                 userId,
                 rechargeToBalance,
@@ -451,7 +429,7 @@ export default {
             // if further process is required the user will need to manually top up the account
             await StripeService.confirmPayment(paymentIntent);
         }
-        
+
         project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance',
@@ -477,14 +455,12 @@ export default {
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
     chargeExtraUser: async function(
-        
         stripeCustomerId,
-        
+
         extraUserPlanId,
-        
+
         extraUsersToAdd
     ) {
-        
         const subscription = await stripe.subscriptions.create({
             customer: stripeCustomerId,
             items: [

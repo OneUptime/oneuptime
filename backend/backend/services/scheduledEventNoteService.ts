@@ -29,23 +29,14 @@ export default {
             populate,
         });
         if (
-            
             scheduledEventMessage.scheduledEventId.alertSubscriber &&
-            
             scheduledEventMessage.type === 'investigation' &&
             !(
-                
-                (
-                    scheduledEventMessage.event_state === 'Resolved' ||
-                    
-                    scheduledEventMessage.event_state === 'Created' ||
-                    
-                    scheduledEventMessage.event_state === 'Started' ||
-                    
-                    scheduledEventMessage.event_state === 'Ended' ||
-                    
-                    scheduledEventMessage.event_state === 'Cancelled'
-                )
+                scheduledEventMessage.event_state === 'Resolved' ||
+                scheduledEventMessage.event_state === 'Created' ||
+                scheduledEventMessage.event_state === 'Started' ||
+                scheduledEventMessage.event_state === 'Ended' ||
+                scheduledEventMessage.event_state === 'Cancelled'
             )
         ) {
             AlertService.sendScheduledEventInvestigationNoteToSubscribers(
@@ -58,7 +49,6 @@ export default {
             });
         }
 
-        
         scheduledEventMessage.type === 'internal'
             ? RealTimeService.addScheduledEventInternalNote(
                   scheduledEventMessage
@@ -97,7 +87,7 @@ export default {
             const error = new Error(
                 'Scheduled Event Note not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -183,14 +173,14 @@ export default {
             deletedAt: Date.now(),
             deletedById: userId,
         };
-        
+
         const deletedEventMessage = await this.updateOneBy(query, data);
 
         if (!deletedEventMessage) {
             const error = new Error(
                 'Scheduled Event Note not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }

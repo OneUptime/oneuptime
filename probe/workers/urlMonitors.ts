@@ -15,7 +15,6 @@ export default {
                     let retry = true;
                     let retryCount = 0;
                     while (retry || retryCount > 2) {
-                        
                         const { res, resp, rawResp } = await pingfetch(
                             monitor.data.url
                         );

@@ -9,7 +9,6 @@ const headers = {
 
 export function postApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn()) {
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
@@ -32,7 +31,6 @@ export function postApi(url: $TSFixMe, data: $TSFixMe) {
 
 export function getApi(url: $TSFixMe) {
     if (User.isLoggedIn()) {
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
@@ -54,7 +52,6 @@ export function getApi(url: $TSFixMe) {
 
 export function putApi(url: $TSFixMe, data: $TSFixMe) {
     if (User.isLoggedIn()) {
-        
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 

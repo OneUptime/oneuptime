@@ -334,7 +334,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 action.payload.monitorIds &&
                 action.payload.monitorIds.length > 0 &&
                 action.payload.monitorIds.find(
-                    
                     (monitor: $TSFixMe) =>
                         monitor._id === state.individualnote._id
                 );
@@ -349,13 +348,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                             ? action.payload.monitorsData.map(
                                   (newMonitorData: $TSFixMe) => {
                                       if (
-                                          
                                           state.statusPage.monitorsData &&
-                                          
                                           state.statusPage.monitorsData.length >
                                               0
                                       ) {
-                                          
                                           state.statusPage.monitorsData.forEach(
                                               (oldMonitorData: $TSFixMe) => {
                                                   if (
@@ -389,12 +385,9 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.statusPage,
 
                     monitorIds:
-                        
                         state.statusPage.monitorIds &&
-                        
                         state.statusPage.monitorIds.length > 0
-                            ? 
-                              state.statusPage.monitorIds.map(
+                            ? state.statusPage.monitorIds.map(
                                   (monitor: $TSFixMe) => {
                                       if (monitor._id === action.payload._id) {
                                           monitor.name = action.payload.name;
@@ -404,12 +397,9 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                               )
                             : [],
                     monitorsData:
-                        
                         state.statusPage.monitorsData &&
-                        
                         state.statusPage.monitorsData.length > 0
-                            ? 
-                              state.statusPage.monitorsData.map(
+                            ? state.statusPage.monitorsData.map(
                                   (monitor: $TSFixMe) => {
                                       if (monitor._id === action.payload._id) {
                                           return {
@@ -431,7 +421,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case 'DELETE_MONITOR': {
             const isIndividualNote =
                 state.individualnote &&
-                
                 state.individualnote._id === action.payload;
             return Object.assign({}, state, {
                 error: null,
@@ -439,23 +428,17 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.statusPage,
 
                     monitorIds:
-                        
                         state.statusPage.monitorIds &&
-                        
                         state.statusPage.monitorIds.length > 0
-                            ? 
-                              state.statusPage.monitorIds.filter(
+                            ? state.statusPage.monitorIds.filter(
                                   (monitor: $TSFixMe) =>
                                       monitor._id !== action.payload
                               )
                             : [],
                     monitorsData:
-                        
                         state.statusPage.monitorsData &&
-                        
                         state.statusPage.monitorsData.length > 0
-                            ? 
-                              state.statusPage.monitorsData.filter(
+                            ? state.statusPage.monitorsData.filter(
                                   (monitor: $TSFixMe) =>
                                       monitor._id !== action.payload
                               )
@@ -507,7 +490,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     notes: state.notes.notes,
                     requesting: false,
                     skip: state.notes.skip,
-                    
+
                     count: state.notes.count,
                 },
             });
@@ -541,43 +524,35 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 result: $TSFixMe = [];
             const check = noteData.find(
                 note =>
-                    
                     String(note._id) === String(action.payload.incidentId._id)
             );
             if (
-                
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId._id)
             ) {
                 addToIncident = true;
-                
+
                 notes = [action.payload, ...notes];
             }
             if (check && noteData) {
                 let oneNote: $TSFixMe;
                 noteData.forEach(item => {
                     if (
-                        
                         String(item._id) ===
                         String(action.payload.incidentId._id)
                     ) {
                         const messageLog =
-                            
                             item.message && item.message.length > 0
-                                ? 
-                                  item.message
+                                ? item.message
                                 : [];
                         oneNote = {
-                            
                             ...item,
                             message: [...messageLog, action.payload],
                         };
                     }
                 });
                 noteData.forEach(elem => {
-                    
                     if (String(elem._id) === String(oneNote._id)) {
-                        
                         elem = oneNote;
                     }
                     result.push(elem);
@@ -604,13 +579,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case 'UPDATE_INCIDENT_NOTE': {
             let notes = [...state.incidentNotes.notes];
             if (
-                
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId._id)
             ) {
-                
                 notes = state.incidentNotes.notes.map(note => {
-                    
                     if (String(note._id) === String(action.payload._id)) {
                         return action.payload;
                     }
@@ -629,7 +601,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'DELETE_INCIDENT_NOTE': {
             const notes = state.incidentNotes.notes.filter(
-                
                 note => String(note._id) !== String(action.payload._id)
             );
             return {
@@ -651,8 +622,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     skip: action.payload.skip,
                     count: action.payload.count
                         ? action.payload.count
-                        : 
-                          state.notes.count,
+                        : state.notes.count,
                 },
                 requestingmore: false,
             });
@@ -664,7 +634,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     notes: state.notes.notes,
                     requesting: false,
                     skip: state.notes.skip,
-                    
+
                     count: state.notes.count,
                 },
                 requestingmore: false,
@@ -707,7 +677,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'RESOLVE_SCHEDULED_EVENT': {
             const events = state.events.events.filter(
-                
                 event => String(event._id) !== String(action.payload._id)
             );
             return {
@@ -793,7 +762,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             let monitorInStatusPage = false;
             let addEvent = false;
             let addFutureEvent = false;
-            
+
             state.statusPage.monitors.map((monitorData: $TSFixMe) => {
                 action.payload.monitors.map((monitor: $TSFixMe) => {
                     if (
@@ -852,12 +821,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             if (startDate > currentDate) {
                 isFutureEvent = true;
                 events = state.futureEvents.events.filter(
-                    
                     event => String(event._id) !== String(action.payload._id)
                 );
             } else {
                 events = state.events.events.filter(
-                    
                     event => String(event._id) !== String(action.payload._id)
                 );
             }
@@ -892,7 +859,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             const startDate = moment(action.payload.startDate).format();
             const endDate = moment(action.payload.endDate).format();
 
-            
             state.statusPage.monitors.map((monitorData: $TSFixMe) => {
                 action.payload.monitors.map((monitor: $TSFixMe) => {
                     if (
@@ -907,42 +873,36 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             });
 
             const updatedEvents = state.events.events.map(event => {
-                
                 if (String(event._id) === String(action.payload._id)) {
                     eventExist = true;
-                    
+
                     event = action.payload;
                 }
                 return event;
             });
 
             const updatedFutureEvent = state.futureEvents.events.map(event => {
-                
                 if (String(event._id) === String(action.payload._id)) {
                     futureEventExist = true;
-                    
+
                     event = action.payload;
                 }
                 return event;
             });
 
             if (!eventExist) {
-                
                 updatedEvents.unshift(action.payload);
             }
 
             if (!futureEventExist) {
-                
                 updatedFutureEvent.unshift(action.payload);
             }
 
             const removeEvent = state.events.events.filter(
-                
                 event => String(event._id) !== String(action.payload._id)
             );
 
             const removeFutureEvent = state.futureEvents.events.filter(
-                
                 event => String(event._id) !== String(action.payload._id)
             );
 
@@ -1153,7 +1113,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 statusPage: {
                     ...state.statusPage,
 
-                    
                     monitorsData: state.statusPage.monitorsData.map(
                         (monitor: $TSFixMe) => {
                             if (
@@ -1190,7 +1149,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 statusPage: {
                     ...state.statusPage,
 
-                    
                     monitorsData: state.statusPage.monitorsData.map(
                         (monitor: $TSFixMe) => {
                             if (
@@ -1409,10 +1367,8 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             });
         case FETCH_MONITOR_LOGS_REQUEST:
             return Object.assign({}, state, {
-                
                 logs: state.logs.some(log => log.monitorId === action.payload)
                     ? state.logs.map(log =>
-                          
                           log.monitorId !== action.payload
                               ? log
                               : {
@@ -1435,7 +1391,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_MONITOR_LOGS_SUCCESS:
             return Object.assign({}, state, {
                 logs: state.logs.map(log =>
-                    
                     log.monitorId !== action.payload.monitorId
                         ? log
                         : {
@@ -1452,7 +1407,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_MONITOR_LOGS_FAILURE:
             return Object.assign({}, state, {
                 logs: state.logs.map(log =>
-                    
                     log.monitorId !== action.payload
                         ? log
                         : {
@@ -1525,12 +1479,11 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             let eventNotes = [...state.eventNoteList.eventNotes];
             let increaseCount = false;
             if (
-                
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
             ) {
                 increaseCount = true;
-                
+
                 eventNotes = [action.payload, ...eventNotes];
             }
             return {
@@ -1549,13 +1502,11 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             let eventNotes = [...state.eventNoteList.eventNotes];
             let reduceCount = false;
             if (
-                
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
             ) {
                 reduceCount = true;
                 eventNotes = state.eventNoteList.eventNotes.filter(
-                    
                     note => String(note._id) !== String(action.payload._id)
                 );
             }
@@ -1574,13 +1525,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case 'UPDATE_EVENT_NOTE': {
             let eventNotes = [...state.eventNoteList.eventNotes];
             if (
-                
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
             ) {
-                
                 eventNotes = state.eventNoteList.eventNotes.map(note => {
-                    
                     if (String(note._id) === String(action.payload._id)) {
                         return action.payload;
                     }
@@ -1734,12 +1682,11 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'INCIDENT_CREATED': {
             let incidentFound = false;
-            
+
             const statusPageMonitorIds = state.statusPage.monitors.map(
                 (monitorData: $TSFixMe) => String(monitorData.monitor._id)
             );
             let notes = state.notes.notes.map(note => {
-                
                 if (String(note._id) === String(action.payload._id)) {
                     incidentFound = true;
                 }
@@ -1757,7 +1704,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     !incidentFound &&
                     statusPageMonitorIds.includes(String(monitor._id))
                 ) {
-                    
                     notes = [action.payload, ...notes];
                     break;
                 }
@@ -1768,17 +1714,14 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                     ...state.notes,
                     notes,
                     count: incidentFound
-                        ? 
-                          state.notes.count
-                        : 
-                          state.notes.count + 1,
+                        ? state.notes.count
+                        : state.notes.count + 1,
                 },
             };
         }
 
         case 'INCIDENT_DELETED': {
             const notes = state.notes.notes.filter(
-                
                 note => String(note._id) !== String(action.payload._id)
             );
             return {
@@ -1786,7 +1729,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 notes: {
                     ...state.notes,
                     notes,
-                    
+
                     count: state.notes.count - 1,
                 },
             };
@@ -1794,9 +1737,7 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
 
         case 'INCIDENT_UPDATED': {
             const notes = state.notes.notes.map(note => {
-                
                 if (String(note._id) === String(action.payload._id)) {
-                    
                     note = action.payload;
                     return note;
                 }
@@ -1962,35 +1903,31 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
             let timelines = state.lastIncidentTimelines.timelines.map(
                 timeline => {
                     if (
-                        
                         String(timeline.incidentId) ===
                         String(action.payload.incidentId)
                     ) {
                         singleTimeline = true;
-                        
+
                         timeline = action.payload;
                     }
-                    
+
                     timelineIds.push(String(timeline.incidentId));
                     return timeline;
                 }
             );
             if (
                 !timelineIds.includes(String(action.payload.incidentId)) &&
-                
                 String(state.incident.incident._id) ===
                     String(action.payload.incidentId)
             ) {
                 singleTimeline = true;
-                
+
                 timelines = [...timelines, action.payload];
             }
             if (!timelineIds.includes(String(action.payload.incidentId))) {
-                
                 timelines = [...timelines, action.payload];
             }
             const timeline =
-                
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId)
                     ? action.payload
@@ -2134,7 +2071,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_EXTERNAL_STATUSPAGES_REQUEST:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    
                     ...state.externalStatusPages,
                     requesting: true,
                     success: false,
@@ -2144,7 +2080,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_EXTERNAL_STATUSPAGES_SUCCESS:
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    
                     ...state.cexternalStatusPages,
                     externalStatusPagesList: action.payload,
                     requesting: false,
@@ -2156,7 +2091,6 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
         case FETCH_EXTERNAL_STATUSPAGES_FAILURE: {
             return Object.assign({}, state, {
                 externalStatusPages: {
-                    
                     ...state.externalStatusPages,
                     requesting: false,
                     success: false,

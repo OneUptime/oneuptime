@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -18,13 +17,10 @@ const projectName = utils.generateRandomString();
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -38,13 +34,11 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the on call-duty page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -71,9 +65,9 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageType(page, '#name', onCallName);
-            
+
             await init.pageClick(page, '#btnCreateSchedule');
             await init.pageWaitForSelector(page, '#name', { hidden: true });
 
@@ -81,19 +75,19 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#viewOnCallSchedule');
             await init.pageWaitForSelector(page, '#scheduleMonitor_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#scheduleMonitor_0');
             await init.pageWaitForSelector(page, '#btnSaveMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#btnSaveMonitors');
 
             await init.selectDropdownValue(
@@ -105,7 +99,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#saveSchedulePolicy');
 
             // To confirm no errors and stays on the same page on reload

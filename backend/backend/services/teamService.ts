@@ -6,7 +6,7 @@ export default {
     //Returns: list of team members
     getTeamMembersBy: async function(query: $TSFixMe) {
         let projectMembers: $TSFixMe = [];
-        
+
         const projects = await ProjectService.findBy({
             query,
             select: 'users parentProjectId',
@@ -14,7 +14,6 @@ export default {
         if (projects && projects.length > 0) {
             // check for parentProject and add parent project users
             if (query.parentProjectId && projects[0]) {
-                
                 const parentProject = await ProjectService.findOneBy({
                     query: {
                         _id: projects[0].parentProjectId,
@@ -33,7 +32,7 @@ export default {
         }
 
         let usersId: $TSFixMe = [];
-        
+
         // eslint-disable-next-line array-callback-return
         projectMembers.map(user => {
             if (user.show) {
@@ -51,7 +50,6 @@ export default {
         const response = [];
         for (let i = 0; i < users.length; i++) {
             const memberDetail = projectMembers.filter(
-                
                 member => member.userId === users[i]._id.toString()
             )[0];
 
@@ -74,14 +72,13 @@ export default {
         let index;
         let subProject = null;
 
-        
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId users',
         });
         if (project.parentProjectId) {
             subProject = project;
-            
+
             project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: 'users',
@@ -109,7 +106,7 @@ export default {
         // Checks if team member is present in the project or not.
         if (index === -1) {
             const error = new Error('Member does not exist in project.');
-            
+
             error.code = 400;
             throw error;
         } else {
@@ -177,18 +174,17 @@ export default {
 
         if (duplicateEmail) {
             const error = new Error('Duplicate email present. Please check.');
-            
+
             error.code = 400;
             throw error;
         } else {
-            
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId seats',
             });
             if (project && project.parentProjectId) {
                 subProject = project;
-                
+
                 project = await ProjectService.findOneBy({
                     query: { _id: subProject.parentProjectId },
                     select: 'seats',
@@ -206,7 +202,7 @@ export default {
                 const error = new Error(
                     'These users are already members of the project.'
                 );
-                
+
                 error.code = 400;
                 throw error;
             } else {
@@ -232,7 +228,6 @@ export default {
                         );
                     }
 
-                    
                     if (isHiddenAdminUser && isHiddenAdminUser.length > 0) {
                         await _this.removeTeamMember(
                             projectId,
@@ -262,13 +257,12 @@ export default {
     //Returns: promise
     getTeamMembers: async function(projectId: $TSFixMe) {
         const _this = this;
-        
+
         const subProject = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
         });
         if (subProject && subProject.parentProjectId) {
-            
             const project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: '_id',
@@ -340,14 +334,14 @@ export default {
         let projectUsers = [];
         const _this = this;
         let subProject = null;
-        
+
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId seats _id users stripeSubscriptionId name',
         });
         if (project && project.parentProjectId) {
             subProject = project;
-            
+
             project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: 'seats _id users stripeSubscriptionId name',
@@ -379,7 +373,6 @@ export default {
         let members = [];
 
         for (const member of invitedTeamMembers) {
-            
             let registerUrl = `${global.accountsHost}/register`;
             if (member.name) {
                 projectUsers = await _this.getTeamMembersBy({
@@ -403,7 +396,7 @@ export default {
                                 member.email
                             );
                         }
-                        
+
                         NotificationService.create(
                             project._id,
                             `New user added to ${subProject.name} subproject by ${addedBy.name}`,
@@ -424,7 +417,7 @@ export default {
                                 member.email
                             );
                         }
-                        
+
                         NotificationService.create(
                             project._id,
                             `New user added to the project by ${addedBy.name}`,
@@ -445,7 +438,6 @@ export default {
                 });
                 const verificationToken = await verificationTokenModel.save();
                 if (verificationToken) {
-                    
                     registerUrl = `${registerUrl}?token=${verificationToken.token}`;
                 }
                 try {
@@ -463,7 +455,7 @@ export default {
                             registerUrl
                         );
                     }
-                    
+
                     NotificationService.create(
                         project._id,
                         `New user added to the project by ${addedBy.name}`,
@@ -499,7 +491,7 @@ export default {
                     { _id: projectId },
                     { users: allProjectMembers }
                 ),
-                
+
                 ProjectService.findBy({
                     query: { parentProjectId: project._id },
                     select: 'users _id',
@@ -557,7 +549,7 @@ export default {
             team: team,
         };
         response.push(teamusers);
-        
+
         const subProjectTeams = await ProjectService.findBy({
             query: { parentProjectId: project._id },
             select: '_id',
@@ -575,7 +567,7 @@ export default {
                     return teamusers;
                 })
             );
-            
+
             response = response.concat(subProjectTeamsUsers);
         }
         return response;
@@ -598,18 +590,17 @@ export default {
 
         if (userId === teamMemberUserId) {
             const error = new Error('Admin User cannot delete himself');
-            
+
             error.code = 400;
             throw error;
         } else {
-            
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId users _id',
             });
             if (project.parentProjectId) {
                 subProject = project;
-                
+
                 project = await ProjectService.findOneBy({
                     query: { _id: subProject.parentProjectId },
                     select: 'users _id',
@@ -639,13 +630,13 @@ export default {
                 const error = new Error(
                     'Member to be deleted from the project does not exist.'
                 );
-                
+
                 error.code = 400;
                 throw error;
             } else {
                 if (subProject) {
                     // removes team member from subProject
-                    
+
                     await ProjectService.exitProject(
                         subProject._id,
                         teamMemberUserId,
@@ -653,14 +644,14 @@ export default {
                     );
                 } else {
                     // removes team member from project
-                    
+
                     await ProjectService.exitProject(
                         project._id,
                         teamMemberUserId,
                         userId
                     );
                     // remove user from all subProjects.
-                    
+
                     const subProjects = await ProjectService.findBy({
                         query: { parentProjectId: project._id },
                         select: '_id',
@@ -668,7 +659,6 @@ export default {
                     if (subProjects.length > 0) {
                         await Promise.all(
                             subProjects.map(async (subProject: $TSFixMe) => {
-                                
                                 await ProjectService.exitProject(
                                     subProject._id,
                                     teamMemberUserId,
@@ -680,7 +670,6 @@ export default {
                 }
 
                 const [projectObj, user, member] = await Promise.all([
-                    
                     ProjectService.findOneBy({
                         query: { _id: project._id },
                         select: '_id name',
@@ -703,7 +692,7 @@ export default {
                             user,
                             member.email
                         );
-                        
+
                         NotificationService.create(
                             project._id,
                             `User removed from subproject ${subProject.name} by ${user.name}`,
@@ -716,7 +705,7 @@ export default {
                             user,
                             member.email
                         );
-                        
+
                         NotificationService.create(
                             project._id,
                             `User removed from the project by ${user.name}`,
@@ -738,7 +727,7 @@ export default {
                     team: team,
                 };
                 response.push(teamusers);
-                
+
                 const subProjectTeams = await ProjectService.findBy({
                     query: { parentProjectId: project._id },
                     select: '_id',
@@ -756,7 +745,7 @@ export default {
                             return teamusers;
                         })
                     );
-                    
+
                     response = response.concat(subProjectTeamsUsers);
                 }
                 team = await _this.getTeamMembersBy({ _id: projectId });
@@ -790,7 +779,7 @@ export default {
         let index;
         let subProject = null;
         let subProjects = null;
-        
+
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId users _id name seats stripeSubscriptionId',
@@ -798,7 +787,7 @@ export default {
 
         if (project.parentProjectId) {
             subProject = project;
-            
+
             project = await ProjectService.findOneBy({
                 query: { _id: subProject.parentProjectId },
                 select: 'users _id name seats stripeSubscriptionId',
@@ -814,7 +803,6 @@ export default {
             );
         }
 
-        
         subProjects = await ProjectService.findBy({
             query: { parentProjectId: project._id },
             select: 'users _id',
@@ -835,7 +823,7 @@ export default {
             const error = new Error(
                 'User whose role is to be changed is not present in the project.'
             );
-            
+
             error.code = 400;
             throw error;
         } else {
@@ -849,7 +837,7 @@ export default {
                 const error = new Error(
                     'Please provide role different from current role and try again.'
                 );
-                
+
                 error.code = 400;
                 throw error;
             } else {
@@ -923,7 +911,7 @@ export default {
                     team: team,
                 };
                 response.push(teamusers);
-                
+
                 const subProjectTeams = await ProjectService.findBy({
                     query: { parentProjectId: project._id },
                     select: '_id',
@@ -941,7 +929,7 @@ export default {
                             return teamusers;
                         })
                     );
-                    
+
                     response = response.concat(subProjectTeamsUsers);
                 }
                 team = await _this.getTeamMembersBy({ _id: projectId });

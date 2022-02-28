@@ -1,4 +1,3 @@
-
 import { find, update, save, updateMany, findOne } from '../util/db';
 import { ObjectId } from 'mongodb';
 import moment from 'moment';
@@ -29,7 +28,7 @@ async function run() {
             });
 
             let updatedMonitors = statusPage.monitors;
-            
+
             const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
                 ObjectId(monitorObj.monitor)
             );
@@ -60,14 +59,13 @@ async function run() {
                         }
                     );
 
-                    
                     let monitorIds = monitors.map((monitor: $TSFixMe) =>
                         ObjectId(monitor._id)
                     );
                     await updateMany(
                         monitorCollection,
                         { _id: { $in: monitorIds } },
-                        
+
                         { statusPageCategory: ObjectId(statusPageCategory._id) }
                     );
 
@@ -78,7 +76,6 @@ async function run() {
                             if (
                                 monitorIds.includes(String(monitorObj.monitor))
                             ) {
-                                
                                 monitorObj.statusPageCategory = ObjectId(
                                     statusPageCategory._id
                                 );
@@ -104,7 +101,7 @@ async function run() {
             });
 
             let updatedMonitors = statusPage.monitors;
-            
+
             const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
                 ObjectId(monitorObj.monitor)
             );
@@ -125,14 +122,13 @@ async function run() {
                         }
                     );
 
-                    
                     let monitorIds = monitors.map((monitor: $TSFixMe) =>
                         ObjectId(monitor._id)
                     );
                     await updateMany(
                         monitorCollection,
                         { _id: { $in: monitorIds } },
-                        
+
                         { statusPageCategory: ObjectId(statusPageCategory._id) }
                     );
 
@@ -143,7 +139,6 @@ async function run() {
                             if (
                                 monitorIds.includes(String(monitorObj.monitor))
                             ) {
-                                
                                 monitorObj.statusPageCategory = ObjectId(
                                     statusPageCategory._id
                                 );

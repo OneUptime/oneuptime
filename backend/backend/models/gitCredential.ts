@@ -2,7 +2,6 @@ import mongoose from '../config/db';
 
 const Schema = mongoose.Schema;
 
-
 const gitCredentialSchema = Schema(
     {
         gitUsername: String,

@@ -1,7 +1,6 @@
 import {
     OPEN_ONCALLSCHEDULE_MODAL,
     CLOSE_ONCALLSCHEDULE_MODAL,
-    
 } from '../constants/OnCallSchedule';
 
 const initialState = {

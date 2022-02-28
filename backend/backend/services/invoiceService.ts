@@ -6,7 +6,7 @@ export default {
     //Param 3: startingAfter: A cursor for use in pagination. startingAfter is an object ID
     //         that helps to fetch items fro the next list.
     //Returns : promise
-    
+
     get: async function(userId, startingAfter, endingBefore) {
         const user = await UserService.findOneBy({
             query: { _id: userId },
@@ -14,11 +14,10 @@ export default {
         });
         if (!user) {
             const error = new Error('User not found.');
-            
+
             error.code = 400;
             throw error;
         } else {
-            
             const invoices = await stripe.invoices.list({
                 customer: user.stripeCustomerId,
                 limit: 10,
@@ -27,7 +26,7 @@ export default {
             });
             if (!invoices || !invoices.data) {
                 const error = new Error('Your invoice cannot be retrieved.');
-                
+
                 error.code = 400;
                 throw error;
             }

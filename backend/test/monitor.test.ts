@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 
 process.env.IS_SAAS_SERVICE = true;
@@ -79,11 +78,9 @@ const httpMonitorCriteria = {
     },
 };
 
-
 describe('Monitor API', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
@@ -130,7 +127,6 @@ describe('Monitor API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ projectId });
@@ -148,7 +144,6 @@ describe('Monitor API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post(`/monitor/${projectId}`)
@@ -161,7 +156,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should not create a monitor when the `name` field is null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -179,7 +173,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should not create a monitor when the `type` field is null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -197,7 +190,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should not create a monitor when the `data` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -215,7 +207,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should not create an agentless server monitor when identityFile authentication is selected and the `identityFile` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -235,7 +226,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should create a new monitor when the correct data is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -255,7 +245,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should add a new site url to a monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -272,7 +261,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should remove a site url from a monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -289,7 +277,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should not create a new monitor with invalid call schedule', function(done: $TSFixMe) {
         const scheduleId = 20;
         const authorization = `Basic ${token}`;
@@ -309,7 +296,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should create a new monitor with valid call schedule', function(done: $TSFixMe) {
         let scheduleId;
         const authorization = `Basic ${token}`;
@@ -351,7 +337,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should create two new monitors and add them to one call schedule', function(done: $TSFixMe) {
         let scheduleId: $TSFixMe;
         const authorization = `Basic ${token}`;
@@ -414,7 +399,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should update a monitor when the correct data is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -434,7 +418,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should get monitors for an authenticated user by ProjectId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -449,7 +432,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should get a monitor for an authenticated user with valid monitorId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -463,7 +445,6 @@ describe('Monitor API', function() {
             });
     });
 
-    
     it('should delete a monitor when monitorId is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -481,11 +462,9 @@ const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
 
-
 describe('API Monitor API', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
@@ -544,7 +523,6 @@ describe('API Monitor API', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
@@ -555,7 +533,6 @@ describe('API Monitor API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should not add API monitor with invalid website url', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -577,7 +554,6 @@ describe('API Monitor API', function() {
             });
     });
 
-    
     it('should not add API monitor with invalid url', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -596,7 +572,6 @@ describe('API Monitor API', function() {
             });
     });
 
-    
     it('should not add API monitor with empty or invalid header', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -616,7 +591,6 @@ describe('API Monitor API', function() {
             });
     });
 
-    
     it('should not add API monitor with empty body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -637,7 +611,6 @@ describe('API Monitor API', function() {
             });
     });
 
-    
     it('should not add API monitor with invalid body', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -660,7 +633,6 @@ describe('API Monitor API', function() {
             });
     });
 
-    
     it('should add API monitor with valid url', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -681,7 +653,6 @@ describe('API Monitor API', function() {
             });
     });
 
-    
     it('should not edit API monitor with invalid url', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -704,11 +675,9 @@ describe('API Monitor API', function() {
     });
 });
 
-
 describe('IncomingHttpRequest Monitor', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
@@ -755,7 +724,6 @@ describe('IncomingHttpRequest Monitor', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
@@ -767,7 +735,6 @@ describe('IncomingHttpRequest Monitor', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should create a new IncomingHttpRequest monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -779,7 +746,6 @@ describe('IncomingHttpRequest Monitor', function() {
                 criteria: httpMonitorCriteria,
                 type: 'incomingHttpRequest',
                 data: {
-                    
                     link: `${global.apiHost}/incomingHttpRequest/${httpMonitorId}`,
                 },
                 componentId,
@@ -792,7 +758,6 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    
     it('should report monitor degraded when api has no body in post request', function(done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
@@ -804,7 +769,6 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    
     it('should report monitor degraded when api has no body in get request', function(done: $TSFixMe) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
@@ -815,7 +779,6 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    
     it('should report monitor up when api has a valid body in post request', function(done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
@@ -827,7 +790,6 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    
     it('should report monitor up when api has a valid body in get request', function(done: $TSFixMe) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
@@ -839,20 +801,19 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    
     it('should create a new IncomingHttpRequest monitor with query params and request headers', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const criteria = { ...httpMonitorCriteria };
         criteria.up.and.push({
             responseType: 'queryString',
             filter: 'contains',
-            
+
             field1: 'abc=xyz',
         });
         criteria.up.and.push({
             responseType: 'headers',
             filter: 'contains',
-            
+
             field1: 'Cache-Control=no-cache',
         });
 
@@ -865,7 +826,6 @@ describe('IncomingHttpRequest Monitor', function() {
                 criteria: criteria,
                 type: 'incomingHttpRequest',
                 data: {
-                    
                     link: `${global.apiHost}/incomingHttpRequest/${httpMonitor2Id}`,
                 },
                 componentId,
@@ -878,7 +838,6 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    
     it('should report monitor offline when api has no query param and request headers in post request', function(done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitor2Id}`)
@@ -890,7 +849,6 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    
     it('should report monitor up when api has the query param and request headers', function(done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitor2Id}?abc=xyz`)
@@ -904,11 +862,9 @@ describe('IncomingHttpRequest Monitor', function() {
     });
 });
 
-
 describe('Monitor API with resource Category', function() {
     this.timeout(30000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -954,7 +910,6 @@ describe('Monitor API with resource Category', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
@@ -962,7 +917,6 @@ describe('Monitor API with resource Category', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should create a new monitor when the resource Category is provided by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -992,10 +946,9 @@ let subProjectId: $TSFixMe,
     newUserToken: $TSFixMe,
     subProjectMonitorId: $TSFixMe;
 
-
 describe('Monitor API with Sub-Projects', function() {
     this.timeout(30000);
-    
+
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
             const authorization = `Basic ${token}`;
@@ -1058,14 +1011,12 @@ describe('Monitor API with Sub-Projects', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await MonitorService.hardDeleteBy({ _id: subProjectMonitorId });
     });
 
-    
     it('should not create a monitor for user not present in project', function(done: $TSFixMe) {
         createUser(request, userData.anotherUser, function(
             err: $TSFixMe,
@@ -1113,7 +1064,6 @@ describe('Monitor API with Sub-Projects', function() {
         });
     });
 
-    
     it('should not create a monitor for user that is not `admin` in project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -1134,7 +1084,6 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    
     it('should create a monitor in parent project by valid admin.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1154,7 +1103,6 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    
     it('should create a monitor in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1174,7 +1122,6 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    
     it("should get only sub-project's monitors for valid sub-project user", function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -1191,7 +1138,6 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    
     it('should get both project and sub-project monitors for valid parent project user.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1208,7 +1154,6 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    
     it('should not delete a monitor for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -1223,7 +1168,6 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    
     it('should delete sub-project monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1235,7 +1179,6 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    
     it('should delete project monitor', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -1247,7 +1190,6 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 });
-
 
 describe('Monitor API - Tests Project Seats With SubProjects', function() {
     this.timeout(30000);
@@ -1305,7 +1247,6 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         },
     ];
 
-    
     before(async function() {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
@@ -1323,7 +1264,6 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         );
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
@@ -1341,7 +1281,6 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         await MonitorService.hardDeleteBy({ projectId });
     });
 
-    
     it('should not create a new monitor because the monitor count limit is reached (Startup Plan -> 5 monitors/user).', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -1363,7 +1302,6 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
             });
     });
 
-    
     it('should be able to create more monitor on upgrade of project to Growth plan.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const growthPlan = 'plan_GoWKgxRnPPBJWy';
@@ -1413,7 +1351,6 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
             });
     });*/
 
-    
     it('should delete a monitor', async () => {
         const authorization = `Basic ${token}`;
         const res = await request

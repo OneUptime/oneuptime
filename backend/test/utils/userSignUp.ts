@@ -1,5 +1,4 @@
 export default {
-    
     createUser: function(request, userData, callback) {
         return new Promise((resolve, reject) => {
             request
@@ -9,7 +8,7 @@ export default {
                     email: userData.email,
                     companyName: userData.companyName,
                 })
-                
+
                 .end(function(err, res) {
                     if (err) {
                         if (callback) {
@@ -17,11 +16,10 @@ export default {
                         }
                         return reject(err);
                     }
-                    
+
                     stripe.paymentIntents.confirm(res.body.id, function(
-                        
                         err,
-                        
+
                         paymentIntent
                     ) {
                         if (err) {
@@ -38,7 +36,7 @@ export default {
                                 },
                                 ...userData,
                             })
-                            
+
                             .end(function(err, res) {
                                 if (callback) {
                                     return callback(err, res);
@@ -54,12 +52,12 @@ export default {
                 });
         });
     },
-    
+
     createEnterpriseUser: function(request, userData, callback) {
         request
             .post('/user/signup')
             .send(userData)
-            
+
             .end(function(err, res) {
                 return callback(err, res);
             });

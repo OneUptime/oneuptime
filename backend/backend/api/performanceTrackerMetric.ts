@@ -45,16 +45,16 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
-        
+
         startDate = decode(startDate);
-        
+
         endDate = decode(endDate);
 
         if (!startDate) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -62,7 +62,7 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify startDate as utc time or millisecond time'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -70,7 +70,7 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -78,18 +78,16 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate as utc time or millisecond time'
             );
-            
+
             error.code = 400;
             throw error;
         }
-        
+
         if (!isNaN(startDate)) {
-            
             startDate = Number(startDate);
         }
-        
+
         if (!isNaN(endDate)) {
-            
             endDate = Number(endDate);
         }
 
@@ -113,16 +111,16 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
-        
+
         startDate = decode(startDate);
-        
+
         endDate = decode(endDate);
 
         if (!startDate) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -130,7 +128,7 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
             const error = new Error(
                 'Please specify startDate as utc time or millisecond time'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -138,7 +136,7 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
             const error = new Error(
                 'Please specify endDate in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -146,18 +144,16 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
             const error = new Error(
                 'Please specify endDate as utc time or millisecond time'
             );
-            
+
             error.code = 400;
             throw error;
         }
-        
+
         if (!isNaN(startDate)) {
-            
             startDate = Number(startDate);
         }
-        
+
         if (!isNaN(endDate)) {
-            
             endDate = Number(endDate);
         }
 
@@ -177,16 +173,16 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
-        
+
         startDate = decode(startDate);
-        
+
         endDate = decode(endDate);
 
         if (!startDate) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -194,7 +190,7 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify startDate as utc time or millisecond time'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -202,7 +198,7 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -210,18 +206,16 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate as utc time or millisecond time'
             );
-            
+
             error.code = 400;
             throw error;
         }
-        
+
         if (!isNaN(startDate)) {
-            
             startDate = Number(startDate);
         }
-        
+
         if (!isNaN(endDate)) {
-            
             endDate = Number(endDate);
         }
 
@@ -244,16 +238,16 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
         const { appId } = req.params;
         const { type, skip, limit } = req.query;
         let { startDate, endDate } = req.query;
-        
+
         startDate = decode(startDate);
-        
+
         endDate = decode(endDate);
 
         if (!type) {
             const error = new Error(
                 'Please specify the type in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -261,7 +255,7 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify startDate in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -269,7 +263,7 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify startDate as utc time or millisecond time'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -277,7 +271,7 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate in the query parameter'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -285,18 +279,16 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             const error = new Error(
                 'Please specify endDate as utc time or millisecond time'
             );
-            
+
             error.code = 400;
             throw error;
         }
-        
+
         if (!isNaN(startDate)) {
-            
             startDate = Number(startDate);
         }
-        
+
         if (!isNaN(endDate)) {
-            
             endDate = Number(endDate);
         }
 

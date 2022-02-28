@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -17,9 +16,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 describe('Components', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch({
@@ -32,13 +29,11 @@ describe('Components', () => {
         await init.registerUser(user, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should show indicator on how to invite new Team members since no other member exist, then goto team page ',
         async (done: $TSFixMe) => {
@@ -46,7 +41,7 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            
+
             const componentBoxElement = await init.pageWaitForSelector(
                 page,
                 '#info-teamMember'
@@ -54,7 +49,7 @@ describe('Components', () => {
             expect(componentBoxElement).toBeDefined();
 
             let spanElement;
-            
+
             spanElement = await init.pageWaitForSelector(
                 page,
                 `span#box-header-teamMember`
@@ -64,13 +59,12 @@ describe('Components', () => {
             spanElement.should.be.exactly('Invite your Team');
 
             // click on the call to action button
-            
+
             await init.pageWaitForSelector(page, '#gotoPage-teamMember');
             await init.page$Eval(page, '#gotoPage-teamMember', (e: $TSFixMe) =>
                 e.click()
             );
 
-            
             const componentFormElement = await init.pageWaitForSelector(
                 page,
                 `#teamMemberPage`
@@ -80,7 +74,7 @@ describe('Components', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should show indicator on how to create a component since no component exist, then goto component creation ',
         async (done: $TSFixMe) => {
@@ -88,7 +82,7 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            
+
             const componentBoxElement = await init.pageWaitForSelector(
                 page,
                 '#info-component'
@@ -96,7 +90,7 @@ describe('Components', () => {
             expect(componentBoxElement).toBeDefined();
 
             let spanElement;
-            
+
             spanElement = await init.pageWaitForSelector(
                 page,
                 `span#box-header-component`
@@ -106,13 +100,12 @@ describe('Components', () => {
             spanElement.should.be.exactly('Create your first Component');
 
             // click on the call to action button
-            
+
             await init.pageWaitForSelector(page, '#gotoPage-component');
             await init.page$Eval(page, '#gotoPage-component', (e: $TSFixMe) =>
                 e.click()
             );
 
-            
             const componentFormElement = await init.pageWaitForSelector(
                 page,
                 '#form-new-component'
@@ -122,7 +115,7 @@ describe('Components', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should create new component',
         async (done: $TSFixMe) => {
@@ -130,15 +123,15 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            
+
             await init.pageWaitForSelector(page, '#components');
             await init.page$Eval(page, '#components', (e: $TSFixMe) =>
                 e.click()
             );
             // Fill and submit New Component form
-            
+
             await init.pageWaitForSelector(page, '#form-new-component');
-            
+
             await init.pageType(page, 'input[id=name]', componentName);
             await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
                 e.click()
@@ -153,7 +146,7 @@ describe('Components', () => {
             );
 
             let spanElement;
-            
+
             spanElement = await init.pageWaitForSelector(
                 page,
                 `span#component-title-${componentName}`
@@ -165,7 +158,7 @@ describe('Components', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should show indicator on how to create a monitor since a component exist, then goto monitor creation',
         async (done: $TSFixMe) => {
@@ -174,7 +167,6 @@ describe('Components', () => {
                 waitUntil: 'networkidle0',
             });
 
-            
             const monitorBoxElement = await init.pageWaitForSelector(
                 page,
                 '#info-monitor'
@@ -182,7 +174,7 @@ describe('Components', () => {
             expect(monitorBoxElement).toBeDefined();
 
             let spanElement;
-            
+
             spanElement = await init.pageWaitForSelector(
                 page,
                 `span#box-header-monitor`
@@ -192,14 +184,14 @@ describe('Components', () => {
             spanElement.should.be.exactly('Create a Monitor');
 
             // click on the call to action button
-            
+
             await init.pageWaitForSelector(page, '#gotoPage-monitor');
             await init.page$Eval(page, '#gotoPage-monitor', (e: $TSFixMe) =>
                 e.click()
             );
 
             // Navigate to Component details
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#more-details-${componentName}`
@@ -209,14 +201,13 @@ describe('Components', () => {
                 `#more-details-${componentName}`,
                 (e: $TSFixMe) => e.click()
             );
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
             done();
         },
         operationTimeOut
     );
 
-    
     test(
         'should show the correct path on the breadcrumbs inside a component',
         async (done: $TSFixMe) => {
@@ -265,7 +256,6 @@ describe('Components', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not create new component when details are incorrect',
         async (done: $TSFixMe) => {
@@ -273,26 +263,25 @@ describe('Components', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            
+
             await init.pageWaitForSelector(page, '#components');
             await init.page$Eval(page, '#components', (e: $TSFixMe) =>
                 e.click()
             );
 
             // Fill and submit New Component form with incorrect details
-            
+
             await init.pageWaitForSelector(page, '#cbComponents');
-            
+
             await init.pageClick(page, '#newFormId');
-            
+
             await init.pageWaitForSelector(page, '#form-new-component');
-            
+
             await init.pageWaitForSelector(page, '#name');
             await init.page$Eval(page, 'button[type=submit]', (e: $TSFixMe) =>
                 e.click()
             );
 
-            
             let spanElement = await init.page$(
                 page,
                 '#form-new-component span#field-error'
@@ -304,7 +293,7 @@ describe('Components', () => {
         },
         operationTimeOut
     );
-    
+
     test(
         'Should show indicator on how to create monitor',
         async (done: $TSFixMe) => {
@@ -313,7 +302,7 @@ describe('Components', () => {
 
             const customTutorialType = 'monitor';
             // confirm that monitor box exist on component details page
-            
+
             const componentBoxElement = await init.pageWaitForSelector(
                 page,
                 `#info-${customTutorialType}`

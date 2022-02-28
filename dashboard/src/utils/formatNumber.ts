@@ -1,4 +1,3 @@
-
 import { isNumber } from 'lodash';
 
 const format = (number: $TSFixMe) => {
@@ -21,7 +20,7 @@ const format = (number: $TSFixMe) => {
 
         let val = (number / currentFormat.value).toFixed(2);
         const remainder = number % currentFormat.value;
-        
+
         const isValueLessThanOne = val < 1;
         let formattedRemainder = '';
 
@@ -44,7 +43,7 @@ const format = (number: $TSFixMe) => {
                 }
             }
             // parse value to integer to get whole number
-            
+
             val = parseInt(number / currentFormat.value);
 
             // prepare the final value with the whole number, remainder and indicator

@@ -1,4 +1,3 @@
-
 const lighthouseLogCollection = global.db.collection('lighthouselogs');
 import probeService from './probeService';
 import ErrorService from './errorService';
@@ -30,14 +29,12 @@ export default {
                 createdAt: new Date(moment().format()),
             });
             const savedLog = await this.findOneBy({
-                
                 _id: ObjectId(result.insertedId),
             });
 
             await this.sendLighthouseLog(savedLog);
 
             if (data.probeId && data.monitorId) {
-                
                 await probeService.sendProbe(data.probeId, data.monitorId);
             }
 
@@ -72,14 +69,12 @@ export default {
     async sendLighthouseLog(data: $TSFixMe) {
         try {
             const monitor = await MonitorService.findOneBy({
-                
                 query: { _id: ObjectId(data.monitorId) },
             });
 
             if (monitor && monitor.projectId) {
                 const project = await ProjectService.findOneBy({
                     query: {
-                        
                         _id: ObjectId(
                             monitor.projectId._id || monitor.projectId
                         ),

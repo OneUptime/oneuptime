@@ -23,7 +23,7 @@ const isLocalhost = Boolean(
 export function register(config: $TSFixMe) {
     if ('serviceWorker' in navigator) {
         // The URL constructor is available in all browsers that support SW.
-        
+
         const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
         if (publicUrl.origin !== window.location.origin) {
             // Our service worker won't work if PUBLIC_URL is on a different origin
@@ -47,15 +47,13 @@ export function register(config: $TSFixMe) {
         });
 
         window.addEventListener('fetch', event => {
-            
             event.respondWith(
-                
                 caches.match(event.request).then(function(response) {
                     // Cache hit - return response
                     if (response) {
                         return response;
                     }
-                    
+
                     return fetch(event.request);
                 })
             );

@@ -220,7 +220,7 @@ export default function user(state = INITIAL_STATE, action: $TSFixMe) {
                                   action.payload,
                                   ...state.users.users.slice(0, -1),
                               ],
-                    
+
                     count: state.users.count + 1,
                 },
                 addUser: {
@@ -280,7 +280,6 @@ export default function user(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     users: state.users.users.map(user =>
-                        
                         user._id === action.payload._id ? action.payload : user
                     ),
                     count: action.payload.count,
@@ -571,9 +570,7 @@ export default function user(state = INITIAL_STATE, action: $TSFixMe) {
                     error: null,
                     success: true,
                     users: state.users.users.map(user => {
-                        
                         if (user._id === action.payload._id) {
-                            
                             user = action.payload;
                         }
                         return user;

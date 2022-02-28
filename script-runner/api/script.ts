@@ -1,4 +1,3 @@
-
 import express from 'express';
 
 import { sendErrorResponse, sendSuccessResponse } from '../utils/response';
@@ -10,7 +9,7 @@ import bashScript from '../utils/bash';
 router.post('/js', async function(req: $TSFixMe, res: $TSFixMe) {
     try {
         const script = req.body.script;
-        
+
         const response = await jsScript.run(script, true);
         return sendSuccessResponse(req, res, response);
     } catch (err) {

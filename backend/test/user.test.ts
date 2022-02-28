@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import data from './data/user';
@@ -28,11 +27,9 @@ import { fetchIdpSAMLResponse } from './utils/test-utils';
 let projectId: $TSFixMe, userId: $TSFixMe, token: $TSFixMe;
 const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };
 
-
 describe('User API', function() {
     this.timeout(20000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
@@ -77,7 +74,6 @@ describe('User API', function() {
         });
     });
 
-    
     after(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -95,7 +91,7 @@ describe('User API', function() {
     });
 
     // 'post /user/signup'
-    
+
     it('should register with name, email, password, companyName, jobRole, referral, companySize, stripeToken, stripePlanId', function(done: $TSFixMe) {
         createUser(request, data.newUser, function(
             err: $TSFixMe,
@@ -107,7 +103,6 @@ describe('User API', function() {
         });
     });
 
-    
     it('should not register when name, email, password, companyName, jobRole, referral, companySize, stripePlanId or stripeToken is null', function(done: $TSFixMe) {
         createUser(request, data.nullUser, function(
             err: $TSFixMe,
@@ -118,7 +113,6 @@ describe('User API', function() {
         });
     });
 
-    
     it('should not register with same email', function(done: $TSFixMe) {
         createUser(request, data.user, function(err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
@@ -126,7 +120,6 @@ describe('User API', function() {
         });
     });
 
-    
     it('should not register with an invalid email', function(done: $TSFixMe) {
         const invalidMailUser = Object.assign({}, data.user);
         invalidMailUser.email = 'invalidMail';
@@ -139,7 +132,6 @@ describe('User API', function() {
         });
     });
 
-    
     it('should not register with a personal email', function(done: $TSFixMe) {
         const personalMailUser = Object.assign({}, data.user);
         personalMailUser.email = 'personalAccount@gmail.com';
@@ -153,7 +145,7 @@ describe('User API', function() {
     });
 
     // post '/user/login'
-    
+
     it('should not login when email is null', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -168,7 +160,7 @@ describe('User API', function() {
     });
 
     // post '/user/login'
-    
+
     it('should not login when password is null', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -182,7 +174,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not allow to login with invalid email', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -196,7 +187,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not allow to login with invalid password', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -210,7 +200,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should track IP and other parameters when login in', async function() {
         const res = await request.post('/user/login').send({
             email: data.user.email,
@@ -225,7 +214,6 @@ describe('User API', function() {
         expect(log.ipLocation.ip).to.be.equal('::ffff:127.0.0.1');
     });
 
-    
     it('should login with valid credentials', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -241,7 +229,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should login with valid credentials, and return sent redirect url', function(done: $TSFixMe) {
         request
             .post('/user/login')
@@ -259,7 +246,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not accept `/forgot-password` request when email is null', function(done: $TSFixMe) {
         request
             .post('/user/forgot-password')
@@ -272,7 +258,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not accept `/forgot-password` request when email is invalid', function(done: $TSFixMe) {
         request
             .post('/user/forgot-password')
@@ -285,7 +270,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should accept `/forgot-password` request when email is valid', function(done: $TSFixMe) {
         request
             .post('/user/forgot-password')
@@ -299,7 +283,7 @@ describe('User API', function() {
     });
 
     // post '/user/reset-password'
-    
+
     it('should not accept `/user/reset-password` request when token is null', function(done: $TSFixMe) {
         request
             .post('/user/reset-password')
@@ -314,7 +298,7 @@ describe('User API', function() {
     });
 
     // post '/user/reset-password'
-    
+
     it('should not accept `/user/reset-password` request when password is null', function(done: $TSFixMe) {
         request
             .post('/user/reset-password')
@@ -328,7 +312,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should accept `/user/reset-password` request when password and token is valid', function(done: $TSFixMe) {
         request
             .post('/user/forgot-password')
@@ -354,7 +337,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not accept `/isInvited` request when email is null', function(done: $TSFixMe) {
         request
             .post('/user/isInvited')
@@ -367,7 +349,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should return a boolean response for the `/isInvited` request', function(done: $TSFixMe) {
         request
             .post('/user/isInvited')
@@ -381,7 +362,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should update the profile settings of an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -398,7 +378,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not change a password when the `currentPassword` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -415,7 +394,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not change a password when the `newPassword` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -432,7 +410,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not change a password when the `confirmPassword` field is not valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -449,7 +426,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should change a password when all fields are valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -467,7 +443,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should get the profile of an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -483,7 +458,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not update the unverified alert phone number through profile update API', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -500,7 +474,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not delete account that belongs to another user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const anotherUserId = '5ef84e17504ba0deaac459d9';
@@ -513,7 +486,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not delete account without confirmation from the user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -525,7 +497,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should generate backup codes when the user tries to generate a QR code.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -544,7 +515,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should generate new backup codes.', async function() {
         const authorization = `Basic ${token}`;
         const user = await UserService.updateOneBy(
@@ -564,7 +534,6 @@ describe('User API', function() {
         expect(res.body[7].counter).to.eql(15);
     });
 
-    
     it('should delete user account and cancel all subscriptions', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -578,7 +547,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('should not delete account twice', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -591,7 +559,6 @@ describe('User API', function() {
             });
     });
 
-    
     it('Should delete user account and remove user from the project', function(done: $TSFixMe) {
         createUser(request, data.anotherUser, function(
             _err: $TSFixMe,
@@ -657,7 +624,7 @@ let ssoId: $TSFixMe;
 
 describe('SSO authentication', function() {
     this.timeout(20000);
-    
+
     before(async () => {
         await SsoModel.deleteMany({});
         const sso = await SsoModel.create({
@@ -670,7 +637,6 @@ describe('SSO authentication', function() {
         ssoId = sso._id;
     });
 
-    
     after(async () => {
         await SsoModel.deleteOne({ _id: ssoId });
         await UserModel.deleteMany({
@@ -682,7 +648,7 @@ describe('SSO authentication', function() {
     });
 
     // GET /user/sso/login
-    
+
     it('Should not accept requests without email as query.', function(done: $TSFixMe) {
         request
             .get('/user/sso/login')
@@ -692,7 +658,6 @@ describe('SSO authentication', function() {
             });
     });
 
-    
     it('Should not accept requests with invalid email.', function(done: $TSFixMe) {
         request
             .get('/user/sso/login?email=invalid@email')
@@ -702,7 +667,6 @@ describe('SSO authentication', function() {
             });
     });
 
-    
     it("Should not accept requests with domains that aren't defined in the ssos collection.", function(done: $TSFixMe) {
         request
             .get('/user/sso/login?email=user@inexistant-domain.hackerbay.io')
@@ -712,7 +676,6 @@ describe('SSO authentication', function() {
             });
     });
 
-    
     it('Should not accept requests with domains having SSO disabled', function(done: $TSFixMe) {
         SsoModel.updateOne(
             { _id: ssoId },
@@ -732,7 +695,6 @@ describe('SSO authentication', function() {
         });
     });
 
-    
     it('Should create a new user and return the login details if the user login successfully', async function() {
         let userCount = await UserModel.find({
             email: 'user1@tests.hackerbay.io',
@@ -784,7 +746,6 @@ describe('SSO authentication', function() {
         expect(userCount).to.eql(1);
     });
 
-    
     it('Should return the login details if the user exists in the database and login successfully.', async function() {
         UserService.create({ email: 'user2@tests.hackerbay.io', sso: ssoId });
 

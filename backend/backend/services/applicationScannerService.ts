@@ -1,5 +1,4 @@
 export default {
-    
     create: async function(data) {
         const _this = this;
         let applicationScannerKey;
@@ -9,7 +8,6 @@ export default {
             applicationScannerKey = uuidv1();
         }
 
-        
         const storedApplicationScanner = await _this.findOneBy({
             query: { applicationScannerName: data.applicationScannerName },
             select: 'applicationScannerName',
@@ -19,24 +17,23 @@ export default {
             storedApplicationScanner.applicationScannerName
         ) {
             const error = new Error('applicationScanner name already exists.');
-            
+
             error.code = 400;
             throw error;
         } else {
             const applicationScanner = new ApplicationScannerModel();
-            
+
             applicationScanner.applicationScannerKey = applicationScannerKey;
-            
+
             applicationScanner.applicationScannerName =
                 data.applicationScannerName;
-            
+
             applicationScanner.version = data.applicationScannerVersion;
             const savedApplicationScanner = await applicationScanner.save();
             return savedApplicationScanner;
         }
     },
 
-    
     updateOneBy: async function(query, data) {
         if (!query) {
             query = {};
@@ -53,7 +50,6 @@ export default {
         return applicationScanner;
     },
 
-    
     findOneBy: async function({ query, select, populate }) {
         if (!query) {
             query = {};
@@ -73,7 +69,6 @@ export default {
         return applicationScanner;
     },
 
-    
     updateApplicationScannerStatus: async function(applicationScannerId) {
         const applicationScanner = await ApplicationScannerModel.findOneAndUpdate(
             { _id: applicationScannerId },

@@ -46,7 +46,6 @@ export function validateToken(token: $TSFixMe) {
 
         promise.then(
             user => {
-                
                 dispatch(validateTokenSuccess(user.data.tokens.jwtAccessToken));
             },
             error => {

@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -21,11 +20,9 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe, projectId: $TSFixMe, userId, smsTemplateId: $TSFixMe;
 
-
 describe('SMS Template API', function() {
     this.timeout(20000);
 
-    
     before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
@@ -46,7 +43,6 @@ describe('SMS Template API', function() {
         token = res1.body.tokens.jwtAccessToken;
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
@@ -65,7 +61,7 @@ describe('SMS Template API', function() {
     });
 
     // 'post /:projectId'
-    
+
     it('should create an sms template with valid data', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -81,7 +77,6 @@ describe('SMS Template API', function() {
         expect(res.body.body).to.be.equal('SMS Body');
     });
 
-    
     it('should sanitize dirty template data sent to endpoint', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -95,7 +90,6 @@ describe('SMS Template API', function() {
         expect(res.body.body).to.be.equal('<img src="x">');
     });
 
-    
     it('should get an array of sms templates by valid projectId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -105,7 +99,6 @@ describe('SMS Template API', function() {
         expect(res.body).to.be.an('array');
     });
 
-    
     it('should get an sms template by valid smsTemplateId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -115,7 +108,6 @@ describe('SMS Template API', function() {
         expect(res.body).to.be.an('object');
     });
 
-    
     it('should update an sms template by valid smsTemplateId', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -129,7 +121,6 @@ describe('SMS Template API', function() {
         expect(res.body.body).to.be.equal('New SMS Body');
     });
 
-    
     it('should update default sms template', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
@@ -146,7 +137,6 @@ describe('SMS Template API', function() {
         expect(res.body[1].body).to.be.equal('Updated SMS Body');
     });
 
-    
     it('should deleted an sms template', async function() {
         const authorization = `Basic ${token}`;
         const res = await request

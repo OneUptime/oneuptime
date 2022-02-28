@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 
 import utils from '../../test-utils';
@@ -9,13 +8,10 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-
 describe('About Modal (IS_SAAS_SERVICE=false)', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -26,19 +22,17 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             email: email,
             password: password,
         };
-        
+
         await init.registerEnterpriseUser(user, page, false);
 
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should show about option in admin dashboard profile menu',
         async () => {
@@ -67,7 +61,6 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should show about modal with app versions',
         async () => {
@@ -138,7 +131,6 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
         operationTimeOut
     );
 
-    
     test(
         'should close about modal',
         async () => {
@@ -163,7 +155,7 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '.bs-Button');
         },
         operationTimeOut

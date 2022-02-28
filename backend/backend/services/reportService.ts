@@ -85,9 +85,9 @@ export default {
             };
             arr.push(result);
         }
-        
+
         wrapper['members'] = arr;
-        
+
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     },
@@ -176,9 +176,9 @@ export default {
             };
             arr.push(monitorObj);
         }
-        
+
         wrapper['monitors'] = arr;
-        
+
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
     },
@@ -301,7 +301,7 @@ export default {
                     10
                 ),
             };
-            
+
             data[filter] = moment(period._id[filter], inputFormat).format(
                 outputFormat
             );
@@ -408,7 +408,7 @@ export default {
             const data = {
                 incidents: period.count,
             };
-            
+
             data[filter] = moment(period._id[filter], inputFormat).format(
                 outputFormat
             );

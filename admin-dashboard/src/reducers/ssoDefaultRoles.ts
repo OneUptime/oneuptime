@@ -106,7 +106,6 @@ export default function ssoDefaultRoles(
                 ssoDefaultRoles: {
                     ...state.ssoDefaultRoles,
                     ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.filter(
-                        
                         element => element._id !== action.payload._id
                     ),
                 },

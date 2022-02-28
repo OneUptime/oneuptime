@@ -46,7 +46,7 @@ router.post(
                     message: "values can't be null",
                 });
             }
-            
+
             data.createdById = req.user ? req.user.id : null;
             if (!data.name) {
                 return sendErrorResponse(req, res, {
@@ -76,17 +76,15 @@ router.post(
                     populate: populateComponent,
                 }),
                 UserService.findOneBy({
-                    
                     query: { _id: req.user.id },
                     select: 'name _id',
                 }),
             ]);
 
             try {
-                
                 NotificationService.create(
                     component.projectId._id,
-                    
+
                     `A New Error Tracker was Created with name ${errorTracker.name} by ${user.name}`,
                     user._id,
                     'errortrackeraddremove'
@@ -146,7 +144,7 @@ router.delete(
                     _id: errorTrackerId,
                     componentId: componentId,
                 },
-                
+
                 req.user.id
             );
             if (errorTracker) {
@@ -223,7 +221,7 @@ router.put(
                 message: "values can't be null",
             });
         }
-        
+
         data.createdById = req.user ? req.user.id : null;
         if (!data.name && data.showQuickStart === undefined) {
             return sendErrorResponse(req, res, {
@@ -255,7 +253,6 @@ router.put(
             componentId: componentId,
         };
         if (data.resourceCategory != '') {
-            
             existingQuery.resourceCategory = data.resourceCategory;
         }
         const existingErrorTracking = await ErrorTrackerService.findBy({
@@ -286,11 +283,9 @@ router.put(
         // Error Tracker is valid
         const errorTrackerUpdate = {};
         if (data.name) {
-            
             errorTrackerUpdate.name = data.name;
         }
         if (data.showQuickStart !== undefined) {
-            
             errorTrackerUpdate.showQuickStart = data.showQuickStart;
         }
 
@@ -304,7 +299,6 @@ router.put(
                 }
             );
             if (resourceCategoryCount && resourceCategoryCount > 0) {
-                
                 errorTrackerUpdate.resourceCategory = data.resourceCategory;
             } else {
                 unsetData = { resourceCategory: '' };
@@ -315,7 +309,7 @@ router.put(
             const errorTracker = await ErrorTrackerService.updateOneBy(
                 { _id: currentErrorTracker._id },
                 errorTrackerUpdate,
-                
+
                 unsetData
             );
             return sendItemResponse(req, res, errorTracker);
@@ -417,16 +411,13 @@ router.post(
 
             const query = {};
 
-            
             if (errorTrackerId) query.errorTrackerId = errorTrackerId;
 
             if (startDate && endDate)
-                
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             if (filters) {
                 for (const [key, value] of Object.entries(filters)) {
-                    
                     query[key] = value;
                 }
             }
@@ -624,7 +615,7 @@ router.post(
                     updateData = {
                         ignored: true,
                         ignoredAt: new Date(),
-                        
+
                         ignoredById: req.user.id,
                         resolved: false,
                         resolvedAt: '',
@@ -658,7 +649,7 @@ router.post(
                         ignoredById: null,
                         resolved: true,
                         resolvedAt: new Date(),
-                        
+
                         resolvedById: req.user.id,
                     };
                     break;
@@ -680,7 +671,7 @@ router.post(
                     // add action to timeline for this particular issue
                     const timelineData = {
                         issueId: currentIssueId,
-                        
+
                         createdById: req.user ? req.user.id : null,
                         status: action,
                     };
@@ -768,14 +759,11 @@ router.post(
 
             const query = {};
 
-            
             query.fingerprintHash = fingerprintHash;
 
-            
             if (errorTrackerId) query.errorTrackerId = errorTrackerId;
 
             if (startDate && endDate)
-                
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             const errorEvents = await ErrorEventService.findBy({
@@ -968,7 +956,7 @@ router.post(
                         const data = {
                             issueId,
                             userId: teamMemberUserId,
-                            
+
                             createdById: req.user ? req.user.id : null,
                         };
                         // find if the issue member exist in the project
@@ -1116,7 +1104,7 @@ router.post(
                         const data = {
                             removed: true,
                             removedAt: new Date(),
-                            
+
                             removedById: req.user ? req.user.id : null,
                         };
                         // find the issueMember by the 3 parameters, and update it
@@ -1203,7 +1191,7 @@ router.delete(
                     _id: issueId,
                     errorTrackerId,
                 },
-                
+
                 req.user.id,
                 componentId
             );

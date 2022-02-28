@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -14,13 +13,10 @@ const priorityName = utils.generateRandomString();
 const incidentTitle = utils.generateRandomString();
 const newIncidentTitle = utils.generateRandomString();
 
-
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -40,13 +36,11 @@ describe('Monitor Detail API', () => {
         await init.addIncidentPriority(priorityName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should navigate to details of monitor created with correct details',
         async (done: $TSFixMe) => {
@@ -57,7 +51,6 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
@@ -70,7 +63,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and create an incident',
         async (done: $TSFixMe) => {
@@ -81,7 +73,6 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            
             await init.pageWaitForSelector(
                 page,
                 `#createIncident_${monitorName}`
@@ -91,7 +82,7 @@ describe('Monitor Detail API', () => {
                 `#createIncident_${monitorName}`,
                 (e: $TSFixMe) => e.click()
             );
-            
+
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
             await init.selectDropdownValue(
@@ -101,7 +92,7 @@ describe('Monitor Detail API', () => {
             );
             await init.pageClick(page, '#title', { clickCount: 3 });
             // await page.keyboard.press('Backspace');
-            
+
             await init.pageType(page, '#title', incidentTitle);
             await init.page$Eval(page, '#createIncident', (e: $TSFixMe) =>
                 e.click()
@@ -114,7 +105,6 @@ describe('Monitor Detail API', () => {
                 elem.click()
             );
 
-            
             await init.pageWaitForSelector(page, '#numberOfIncidents');
 
             const selector = await init.page$Eval(
@@ -140,7 +130,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         "Should navigate to monitor's incident details and edit details",
         async (done: $TSFixMe) => {
@@ -152,7 +141,7 @@ describe('Monitor Detail API', () => {
             );
 
             const selector = `#incident_0`;
-            
+
             await init.pageWaitForSelector(page, selector);
             await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());
             const incidentTitleSelector = '#incidentTitle';
@@ -167,14 +156,14 @@ describe('Monitor Detail API', () => {
             );
             expect(currentTitle).toEqual(incidentTitle);
             // The Edit Button has been removed and replaced with another functions
-            
+
             await init.pageClick(page, '#incidentTitle');
             await init.pageClick(page, '#title', { clickCount: 3 });
             await page.keyboard.press('Backspace');
-            
+
             await init.pageType(page, '#title', newIncidentTitle);
             await page.keyboard.press('Enter');
-            
+
             await init.pageWaitForSelector(page, incidentTitleSelector);
             currentTitle = await init.page$Eval(
                 page,
@@ -187,7 +176,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and open the incident creation pop up',
         async (done: $TSFixMe) => {
@@ -199,7 +187,7 @@ describe('Monitor Detail API', () => {
             );
 
             // tab the create incident button over thee monitor view header
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#monitorCreateIncident_${monitorName}`
@@ -209,9 +197,9 @@ describe('Monitor Detail API', () => {
                 `#monitorCreateIncident_${monitorName}`,
                 (e: $TSFixMe) => e.click()
             );
-            
+
             await init.pageWaitForSelector(page, '#incidentTitleLabel');
-            
+
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#incidentTitleLabel`
@@ -224,7 +212,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and get list of incidents and paginate incidents',
         async (done: $TSFixMe) => {
@@ -235,7 +222,6 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            
             const nextSelector = await init.pageWaitForSelector(
                 page,
                 '#btnNext'
@@ -251,7 +237,6 @@ describe('Monitor Detail API', () => {
             );
             expect(countIncidents).toEqual('1');
 
-            
             const prevSelector = await init.pageWaitForSelector(
                 page,
                 '#btnPrev'
@@ -270,7 +255,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should delete an incident and redirect to the monitor page',
         async (done: $TSFixMe) => {
@@ -281,11 +265,11 @@ describe('Monitor Detail API', () => {
                 page
             );
             const selector = `#incident_0`;
-            
+
             await init.pageWaitForSelector(page, selector);
             await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());
             // click on advance option tab
-            
+
             await init.pageClick(page, '.advanced-tab');
             await init.pageWaitForSelector(page, '#deleteIncidentButton', {
                 visible: true,
@@ -309,10 +293,9 @@ describe('Monitor Detail API', () => {
             });
 
             //click on basic tab
-            
+
             await init.pageClick(page, '.basic-tab');
 
-            
             let incidentCountSpanElement = await init.pageWaitForSelector(
                 page,
                 `#numberOfIncidents`

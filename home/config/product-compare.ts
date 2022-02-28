@@ -484,6 +484,5 @@ export default (product: $TSFixMe) => {
         },
     };
 
-    
     return products[product];
 };

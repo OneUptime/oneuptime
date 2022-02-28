@@ -1,4 +1,3 @@
-
 import { find, update, removeField } from '../util/db';
 
 const scheduledEventNoteCollection = 'scheduledeventnotes';

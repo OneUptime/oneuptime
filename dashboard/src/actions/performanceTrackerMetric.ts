@@ -35,7 +35,6 @@ export const fetchTimeMetrics = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchTimeMetricsSuccess(response.data));
         },
         function(error) {
@@ -86,7 +85,6 @@ export const fetchThroughputMetrics = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchThroughputMetricsSuccess(response.data));
         },
         function(error) {
@@ -137,7 +135,6 @@ export const fetchErrorMetrics = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchErrorMetricsSuccess(response.data));
         },
         function(error) {
@@ -187,30 +184,25 @@ export const setErrorEndDate = (date: $TSFixMe) => ({
     payload: date,
 });
 
-
 export const resetTimeDate = (startDate, endDate) => ({
     type: types.RESET_TIME_DATE,
     payload: { startDate, endDate },
 });
-
 
 export const resetThroughputDate = (startDate, endDate) => ({
     type: types.RESET_THROUGHPUT_DATE,
     payload: { startDate, endDate },
 });
 
-
 export const resetErrorDate = (startDate, endDate) => ({
     type: types.RESET_ERROR_DATE,
     payload: { startDate, endDate },
 });
 
-
 export const resetIncomingDate = (startDate, endDate) => ({
     type: types.RESET_INCOMING_DATE,
     payload: { startDate, endDate },
 });
-
 
 export const resetOutgoingDate = (startDate, endDate) => ({
     type: types.RESET_OUTGOING_DATE,
@@ -267,7 +259,6 @@ export const fetchIncomingMetrics = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchIncomingMetricsSuccess(response.data));
         },
         function(error) {
@@ -319,7 +310,6 @@ export const fetchOutgoingMetrics = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchOutgoingMetricsSuccess(response.data));
         },
         function(error) {
@@ -382,14 +372,12 @@ export const deleteIncomingMetrics = ({ appId, key, metricId }: $TSFixMe) => (
 ) => {
     dispatch(deleteIncomingMetricsRequest());
 
-    
     const promise = deleteApi(
         `performanceMetric/${appId}/key/${key}/${metricId}`
     );
 
     promise.then(
         function(response) {
-            
             dispatch(deleteIncomingMetricsSuccess(response.data));
         },
         function(error) {
@@ -431,14 +419,12 @@ export const deleteOutgoingMetrics = ({ appId, key, metricId }: $TSFixMe) => (
 ) => {
     dispatch(deleteOutgoingMetricsRequest());
 
-    
     const promise = deleteApi(
         `performanceMetric/${appId}/key/${key}/${metricId}`
     );
 
     promise.then(
         function(response) {
-            
             dispatch(deleteOutgoingMetricsSuccess(response.data));
         },
         function(error) {

@@ -20,7 +20,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
         const data = req.body;
-        
+
         data.createdById = req.user ? req.user.id : null;
 
         if (!data) {
@@ -87,7 +87,6 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
 
-        
         const scheduledEvent = await ScheduledEventService.create(
             { projectId },
             data
@@ -218,7 +217,7 @@ router.put(
     async function(req, res) {
         try {
             const data = {};
-            
+
             data.resolvedBy = req.user ? req.user.id : null;
             const { eventId } = req.params;
 
@@ -262,7 +261,6 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
     res
 ) {
     try {
-        
         const userId = req.user ? req.user.id : null;
         const { eventId } = req.params;
 
@@ -283,7 +281,6 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
     res
 ) {
     try {
-        
         const userId = req.user ? req.user.id : null;
         const { eventId } = req.params;
 
@@ -338,7 +335,6 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
                 });
             }
 
-            
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS BEEN CANCELLED',
                 scheduledEventId: scheduledEvent._id,
@@ -420,10 +416,9 @@ router.get(
         try {
             const currentDate = moment();
             // this contains both projectIds and subProjectIds
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             const ongoingScheduledEvents = await ScheduledEventService.getSubProjectOngoingScheduledEvents(
@@ -563,10 +558,9 @@ router.get(
     async function(req, res) {
         try {
             // this contains both projectIds and subProjectIds
-            
+
             const subProjectIds = req.user.subProjects
-                ? 
-                  req.user.subProjects.map((project: $TSFixMe) => project._id)
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             const scheduledEvents = await ScheduledEventService.getSubProjectScheduledEvents(
@@ -664,7 +658,7 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
 ) {
     try {
         const { eventId, projectId } = req.params;
-        
+
         const userId = req.user ? req.user.id : null;
         const data = req.body;
         data.scheduledEventId = eventId;
@@ -888,7 +882,7 @@ router.delete(
     async function(req, res) {
         try {
             const { eventId, noteId, projectId } = req.params;
-            
+
             const userId = req.user ? req.user.id : null;
 
             const deletedEventMessage = await ScheduledEventNoteService.deleteBy(

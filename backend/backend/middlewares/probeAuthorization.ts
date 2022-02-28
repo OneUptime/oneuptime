@@ -94,13 +94,11 @@ export default {
                 // because if the probe key does not match, we can update probe key later
                 // without updating mognodb database manually.
 
-                
                 if (global.probes[probeName]) {
                     // If probeName could not be found, the else statement is called.
-                    
+
                     probeId = global.probes[probeName]._id;
                 } else {
-                    
                     const probe = await ProbeService.findOneBy({
                         query: { probeName },
                         select: selectProbe,
@@ -113,7 +111,7 @@ export default {
                     if (probe && probe._id) {
                         // This gets executed only if probe and probe_id exist. Else, the program will throw an error instead of creating a new probe.
                         probeId = probe._id;
-                        
+
                         global.probes[probeName] = {
                             _id: probe._id,
                             probeKey: probe.probeKey,
@@ -123,12 +121,10 @@ export default {
                 }
             } else {
                 //This executes if clusterKey && CLUSTER_KEY is false
-                
+
                 if (global.probes[probeName]) {
-                    
                     probeId = global.probes[probeName]._id;
                 } else {
-                    
                     const probe = await ProbeService.findOneBy({
                         query: { probeKey, probeName },
                         select: selectProbe,
@@ -136,7 +132,6 @@ export default {
                     if (probe && probe._id) {
                         probeId = probe._id;
 
-                        
                         global.probes[probeName] = {
                             _id: probe._id,
                             probeKey: probe.probeKey,
@@ -161,17 +156,15 @@ export default {
                     probeVersion,
                 });
 
-                
                 global.probes[probeName] = {
                     _id: probe._id,
-                    
+
                     probeKey: probe.probeKey,
-                    
+
                     version: probe.version,
                 };
             }
 
-            
             if (global.probes[probeName].probeKey !== probeKey) {
                 //update probe key becasue it does not match.
                 await ProbeService.updateOneBy(
@@ -181,7 +174,6 @@ export default {
                     { probeKey }
                 );
 
-                
                 const probe = await ProbeService.findOneBy({
                     query: { probeKey, probeName },
                     select: selectProbe,
@@ -189,7 +181,6 @@ export default {
 
                 probeId = probe._id;
 
-                
                 global.probes[probeName] = {
                     _id: probe._id,
                     probeKey: probe.probeKey,
@@ -204,9 +195,7 @@ export default {
 
             if (
                 probeVersion &&
-                
                 (!global.probes[probeName].version ||
-                    
                     global.probes[probeName].version !== probeVersion)
             ) {
                 await ProbeService.updateOneBy(

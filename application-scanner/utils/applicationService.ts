@@ -20,10 +20,8 @@ const {
     updateApplicationSecurityToFailed,
 } = require('./applicationSecurityUpdate');
 
-
 import { Client } from 'ssh2';
 export default {
-    
     scan: async function(security) {
         if (
             security.gitCredential.gitUsername &&
@@ -39,7 +37,7 @@ export default {
             await this.sshScanApplicationSecurity(security);
         }
     },
-    
+
     decryptPassword: async function(security) {
         try {
             const values = [];
@@ -60,11 +58,10 @@ export default {
             throw error;
         }
     },
-    
+
     decrypt: (encText, iv) => {
         const promise = new Promise((resolve, reject) => {
             try {
-                
                 const decipher = crypto.createDecipheriv(algorithm, key, iv);
                 let decoded = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
@@ -75,11 +72,11 @@ export default {
         });
         return promise;
     },
-    
+
     sshScanApplicationSecurity: async security => {
         try {
             let securityDir = 'application_security_dir';
-            
+
             securityDir = await createDir(securityDir);
             const cloneDirectory = `${uuidv1()}security`; // always create unique paths
             const repoPath = Path.resolve(securityDir, cloneDirectory);
@@ -101,7 +98,6 @@ export default {
                                 cwd: repoPath,
                             });
                             output.on('error', error => {
-                                
                                 error.code = 500;
                                 throw error;
                             });
@@ -117,7 +113,6 @@ export default {
                                 );
 
                                 audit.on('error', error => {
-                                    
                                     error.code = 500;
                                     throw error;
                                 });
@@ -130,21 +125,16 @@ export default {
                                 audit.on('close', async () => {
                                     let advisories = [];
                                     auditOutput = JSON.parse(auditOutput); // parse the stringified json
-                                    
+
                                     for (const key in auditOutput.vulnerabilities) {
                                         advisories.push(
-                                            
                                             auditOutput.vulnerabilities[key]
                                         );
                                     }
 
-                                    
                                     const criticalArr = [],
-                                        
                                         highArr = [],
-                                        
                                         moderateArr = [],
-                                        
                                         lowArr = [];
                                     advisories.map(advisory => {
                                         if (advisory.severity === 'critical') {
@@ -164,34 +154,28 @@ export default {
 
                                     // restructure advisories from the most critical case to the least critical(low)
                                     advisories = [
-                                        
                                         ...criticalArr,
-                                        
+
                                         ...highArr,
-                                        
+
                                         ...moderateArr,
-                                        
+
                                         ...lowArr,
                                     ];
 
                                     const auditData = {
                                         dependencies:
-                                            
                                             auditOutput.metadata.dependencies,
                                         devDependencies:
-                                            
                                             auditOutput.metadata
                                                 .devDependencies,
                                         optionalDependencies:
-                                            
                                             auditOutput.metadata
                                                 .optionalDependencies,
                                         totalDependencies:
-                                            
                                             auditOutput.metadata
                                                 .totalDependencies,
                                         vulnerabilities:
-                                            
                                             auditOutput.metadata
                                                 .vulnerabilities,
                                         advisories,
@@ -240,11 +224,11 @@ export default {
             throw error;
         }
     },
-    
+
     scanApplicationSecurity: async security => {
         try {
             let securityDir = 'application_security_dir';
-            
+
             securityDir = await createDir(securityDir);
 
             const USER = security.gitCredential.gitUsername;
@@ -269,7 +253,6 @@ export default {
                             cwd: repoPath,
                         });
                         output.on('error', error => {
-                            
                             error.code = 500;
                             throw error;
                         });
@@ -281,7 +264,6 @@ export default {
                             });
 
                             audit.on('error', error => {
-                                
                                 error.code = 500;
                                 throw error;
                             });
@@ -294,21 +276,16 @@ export default {
                             audit.on('close', async () => {
                                 let advisories = [];
                                 auditOutput = JSON.parse(auditOutput); // parse the stringified json
-                                
+
                                 for (const key in auditOutput.vulnerabilities) {
                                     advisories.push(
-                                        
                                         auditOutput.vulnerabilities[key]
                                     );
                                 }
 
-                                
                                 const criticalArr = [],
-                                    
                                     highArr = [],
-                                    
                                     moderateArr = [],
-                                    
                                     lowArr = [];
                                 advisories.map(advisory => {
                                     if (advisory.severity === 'critical') {
@@ -328,32 +305,26 @@ export default {
 
                                 // restructure advisories from the most critical case to the least critical(low)
                                 advisories = [
-                                    
                                     ...criticalArr,
-                                    
+
                                     ...highArr,
-                                    
+
                                     ...moderateArr,
-                                    
+
                                     ...lowArr,
                                 ];
 
                                 const auditData = {
                                     dependencies:
-                                        
                                         auditOutput.metadata.dependencies,
                                     devDependencies:
-                                        
                                         auditOutput.metadata.devDependencies,
                                     optionalDependencies:
-                                        
                                         auditOutput.metadata
                                             .optionalDependencies,
                                     totalDependencies:
-                                        
                                         auditOutput.metadata.totalDependencies,
                                     vulnerabilities:
-                                        
                                         auditOutput.metadata.vulnerabilities,
                                     advisories,
                                 };
@@ -435,7 +406,6 @@ function formatUrl(url) {
 
     return url;
 }
-
 
 function createDir(dirPath) {
     return new Promise((resolve, reject) => {

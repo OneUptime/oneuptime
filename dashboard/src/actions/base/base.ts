@@ -62,19 +62,19 @@ class BaseAction {
 
         if (this.actionType === 'list') {
             //add pagination actions.
-            
+
             constants.paginateNext =
                 this.actionType.toUpperCase() +
                 '_' +
                 friendlyName +
                 '_PAGINATE_NEXT';
-            
+
             constants.paginatePrevious =
                 this.actionType.toUpperCase() +
                 '_' +
                 friendlyName +
                 '_PAGINATE_PREVIOUS';
-            
+
             constants.paginateToPage =
                 this.actionType.toUpperCase() +
                 '_' +
@@ -90,35 +90,27 @@ class BaseAction {
 
         const actions = {};
 
-        
         actions[this.actionKeys.request] = function() {
             return {
-                
                 type: constants[this.constantKeys.request],
             };
         };
 
-        
         actions[this.actionKeys.success] = function(data: $TSFixMe) {
             return {
-                
                 type: constants[this.constantKeys.success],
                 payload: data,
             };
         };
 
-        
         actions[this.actionKeys.failure] = function(error: $TSFixMe) {
             return {
-                
                 type: constants[this.constantKeys.failure],
                 payload: error,
             };
         };
 
-        
         actions[this.actionKeys.apiCall] = async function(data: $TSFixMe) {
-            
             if (this.isRequestAllowed) {
                 throw 'This request is not allowed';
             }
@@ -130,43 +122,34 @@ class BaseAction {
                     path += `/${data.projectId}`;
                 }
 
-                
                 dispatch(actions[this.actionKeys.request]());
                 let response = null;
                 try {
                     if (this.actionType === 'create') {
-                        
                         response = await postApi(path, data);
                     }
 
                     if (this.actionType === 'list') {
-                        
                         response = await getApi(path, data);
                     }
 
                     if (this.actionType === 'get') {
-                        
                         response = await getApi(path, data);
                     }
 
                     if (this.actionType === 'update') {
-                        
                         response = await putApi(path, data);
                     }
 
                     if (this.actionType === 'delete') {
-                        
                         response = await deleteApi(path, data);
                     }
 
-                    
                     const data = response.data;
 
-                    
                     dispatch(actions[this.actionKeys.success](data));
                 } catch (error) {
                     dispatch(
-                        
                         actions[this.actionKeys.failure](
                             getErrorMessageFromResponse(error)
                         )

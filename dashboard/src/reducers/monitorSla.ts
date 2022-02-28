@@ -75,7 +75,6 @@ export default function monitorSla(state = initialState, action: $TSFixMe) {
 
         case types.DELETE_MONITOR_SLA_SUCCESS: {
             const slas = state.monitorSlas.slas.filter(
-                
                 sla => String(sla._id) !== String(action.payload._id)
             );
             return {
@@ -186,16 +185,12 @@ export default function monitorSla(state = initialState, action: $TSFixMe) {
             const slas = state.monitorSlas.slas.map(sla => {
                 if (
                     action.payload.isDefault &&
-                    
                     String(sla._id) !== String(action.payload._id)
                 ) {
-                    
                     sla.isDefault = false;
                 }
 
-                
                 if (String(sla._id) === String(action.payload._id)) {
-                    
                     sla = action.payload;
                 }
 

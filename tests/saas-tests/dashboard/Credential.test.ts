@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,9 +14,7 @@ describe('Credential Page', () => {
     const gitUsername = utils.gitCredential.gitUsername;
     const gitPassword = utils.gitCredential.gitPassword;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(operationTimeOut);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -33,13 +30,11 @@ describe('Credential Page', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should cancel adding a git credential to a project',
         async (done: $TSFixMe) => {
@@ -49,23 +44,23 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#gitCredentials');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
             // When no git credential is added, no 'tr'.
-            
+
             let noGitCredential = await init.pageWaitForSelector(
                 page,
                 '#noGitCredential'
@@ -80,7 +75,7 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addCredentialBtn');
 
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
@@ -97,7 +92,6 @@ describe('Credential Page', () => {
                 hidden: true,
             });
 
-            
             let noGitCredential2 = await init.pageWaitForSelector(
                 page,
                 '#noGitCredential'
@@ -113,7 +107,6 @@ describe('Credential Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should add a git credential to a project',
         async (done: $TSFixMe) => {
@@ -123,38 +116,38 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#gitCredentials');
             await init.pageWaitForSelector(page, '#addCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addCredentialBtn');
 
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#gitUsername');
-            
+
             await init.pageType(page, '#gitUsername', gitUsername);
-            
+
             await init.pageClick(page, '#gitPassword');
-            
+
             await init.pageType(page, '#gitPassword', gitPassword);
-            
+
             await init.pageClick(page, '#addCredentialModalBtn');
 
             const credentialModal = await init.pageWaitForSelector(
@@ -169,7 +162,6 @@ describe('Credential Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should update a git credential',
         async (done: $TSFixMe) => {
@@ -178,32 +170,32 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#gitCredentials');
 
             await init.pageWaitForSelector(page, '#editCredentialBtn_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#editCredentialBtn_0');
-            
+
             await init.pageWaitForSelector(page, '#gitCredentialForm');
             const gitUsername = 'newusername';
             await init.pageClick(page, '#gitUsername', { clickCount: 3 });
-            
+
             await init.pageType(page, '#gitUsername', gitUsername);
-            
+
             await init.pageClick(page, '#updateCredentialModalBtn');
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
@@ -220,7 +212,6 @@ describe('Credential Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should cancel deleting a git credential in a project',
         async (done: $TSFixMe) => {
@@ -230,37 +221,37 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#gitCredentials');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            
+
             const initialTableRow = await init.page$$(page, 'tbody tr');
-            
+
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#cancelCredentialDeleteBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#cancelCredentialDeleteBtn');
             await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
-            
+
             const finalTableRow = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toEqual(finalTableRow.length);
@@ -270,7 +261,6 @@ describe('Credential Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete a git credential in a project',
         async (done: $TSFixMe) => {
@@ -280,17 +270,17 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#gitCredentials', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#gitCredentials');
 
             await init.pageWaitForSelector(page, 'tbody tr', {
@@ -298,20 +288,19 @@ describe('Credential Page', () => {
                 timeout: init.timeout,
             });
 
-            
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#deleteCredentialBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteCredentialBtn');
             await init.pageWaitForSelector(page, '#deleteCredentialModal', {
                 hidden: true,
             });
             // When no git credential is added, no 'tr'.
-            
+
             let noGitCredential3 = await init.pageWaitForSelector(
                 page,
                 '#noGitCredential'

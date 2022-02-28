@@ -24,7 +24,6 @@ export const createIncidentNoteTemplate = ({ projectId, data }: $TSFixMe) => (
 
     promise.then(
         function(response) {
-            
             dispatch(createIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {
@@ -70,7 +69,6 @@ export const fetchIncidentNoteTemplates = ({
 
     promise.then(
         function(response) {
-            
             dispatch(fetchIncidentNoteTemplatesSuccess(response.data));
         },
         function(error) {
@@ -117,7 +115,6 @@ export const updateIncidentNoteTemplate = ({
 
     promise.then(
         function(response) {
-            
             dispatch(updateIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {
@@ -156,14 +153,13 @@ export const deleteIncidentNoteTemplate = ({
     templateId,
 }: $TSFixMe) => (dispatch: $TSFixMe) => {
     dispatch(deleteIncidentNoteTemplateRequest());
-    
+
     const promise = deleteApi(
         `incidentNoteTemplate/${projectId}/${templateId}`
     );
 
     promise.then(
         function(response) {
-            
             dispatch(deleteIncidentNoteTemplateSuccess(response.data));
         },
         function(error) {

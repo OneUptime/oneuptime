@@ -18,7 +18,6 @@ export function fetchMonitors(projectId: $TSFixMe, skip = 0, limit = 0) {
 
         promise.then(
             function(monitors) {
-                
                 dispatch(fetchMonitorsSuccess(monitors.data));
             },
             function(error) {
@@ -86,7 +85,6 @@ export function fetchPaginatedMonitors({
 
         promise.then(
             function(monitors) {
-                
                 dispatch(fetchPaginatedMonitorsSuccess(monitors.data));
             },
             function(error) {
@@ -138,10 +136,9 @@ export function createMonitor(projectId: $TSFixMe, values: $TSFixMe) {
         const promise = postApi(`monitor/${projectId}`, values);
         promise.then(
             function(monitor) {
-                
                 dispatch(createMonitorSuccess(monitor.data));
                 dispatch(resetFile());
-                
+
                 return monitor.data;
             },
             function(error) {
@@ -174,7 +171,6 @@ export function uploadIdentityFile(projectId: $TSFixMe, file: $TSFixMe) {
             dispatch(uploadIdentityFileRequest());
             promise.then(
                 function(response) {
-                    
                     const data = response.data;
                     dispatch(logFile(data.identityFile));
                     return data;
@@ -258,7 +254,6 @@ export function uploadConfigurationFile(projectId: $TSFixMe, file: $TSFixMe) {
             dispatch(uploadConfigurationFileRequest());
             promise.then(
                 function(response) {
-                    
                     const data = response.data;
                     dispatch(logConfigFile(data.configurationFile));
                     return data;
@@ -338,7 +333,6 @@ export function editMonitor(projectId: $TSFixMe, values: $TSFixMe) {
         }
         promise.then(
             function(monitor) {
-                
                 dispatch(editMonitorSuccess(monitor.data));
             },
             function(error) {
@@ -363,7 +357,6 @@ export function editMonitor(projectId: $TSFixMe, values: $TSFixMe) {
 
 export function editMonitorSuccess(newMonitor: $TSFixMe) {
     if (newMonitor.lighthouseScanStatus === 'scanning') {
-        
         fetchLighthouseLogs(newMonitor.projectId._id, newMonitor._id, 0, 5);
     }
     return {
@@ -413,7 +406,6 @@ export function addSiteUrl(
 
         promise.then(
             function(monitor) {
-                
                 dispatch(editMonitorSuccess(monitor.data));
             },
             function(error) {
@@ -449,7 +441,6 @@ export function deleteSiteUrl(
 
         promise.then(
             function(monitor) {
-                
                 dispatch(editMonitorSuccess(monitor.data));
             },
             function(error) {
@@ -476,13 +467,11 @@ export function deleteSiteUrl(
 //props -> {name: '', type, data -> { data.url}}
 export function deleteMonitor(monitorId: $TSFixMe, projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = deleteApi(`monitor/${projectId}/${monitorId}`);
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(
             function(monitor) {
-                
                 dispatch(deleteMonitorSuccess(monitor.data._id));
             },
             function(error) {
@@ -549,9 +538,8 @@ export function disableMonitor(monitorId: $TSFixMe, projectId: $TSFixMe) {
             function(monitor) {
                 dispatch(
                     disableMonitorSuccess({
-                        
                         monitorId: monitor.data._id,
-                        
+
                         disable: monitor.data.disabled,
                     })
                 );
@@ -616,9 +604,8 @@ export const changeMonitorComponent = (
 
             dispatch(
                 changeMonitorComponentSuccess({
-                    
                     monitorId: monitor.data._id,
-                    
+
                     newComponentId: monitor.data.componentId,
                 })
             );
@@ -691,11 +678,11 @@ export function fetchMonitorsIncidents(
                     fetchMonitorsIncidentsSuccess({
                         projectId,
                         monitorId,
-                        
+
                         incidents: monitors.data,
                         skip,
                         limit,
-                        
+
                         count: monitors.data.count,
                     })
                 );
@@ -759,11 +746,11 @@ export function fetchMonitorsSubscribers(
                     fetchMonitorsSubscribersSuccess({
                         projectId,
                         monitorId,
-                        
+
                         subscribers: subscribers.data,
                         skip: skip,
                         limit: limit,
-                        
+
                         count: subscribers.data.count,
                     })
                 );
@@ -829,7 +816,7 @@ export function fetchMonitorLogs(
                     fetchMonitorLogsSuccess({
                         projectId,
                         monitorId,
-                        
+
                         logs: monitorLogs.data,
                     })
                 );
@@ -902,7 +889,7 @@ export function fetchMonitorStatuses(
                     fetchMonitorStatusesSuccess({
                         projectId,
                         monitorId,
-                        
+
                         statuses: monitorStatuses.data,
                     })
                 );
@@ -1054,11 +1041,11 @@ export function getMonitorLogs(
                 dispatch(
                     getMonitorLogsSuccess({
                         monitorId,
-                        
+
                         logs: monitors.data.data,
                         skip,
                         limit,
-                        
+
                         count: monitors.data.count,
                     })
                 );
@@ -1126,11 +1113,11 @@ export function fetchLighthouseLogs(
                     fetchLighthouseLogsSuccess({
                         projectId,
                         monitorId,
-                        
+
                         logs: lighthouseLogs.data,
                         skip,
                         limit,
-                        
+
                         count: lighthouseLogs.data.count,
                     })
                 );
@@ -1184,7 +1171,6 @@ export function fetchMonitorIssue(projectId: $TSFixMe, issueId: $TSFixMe) {
 
         promise.then(
             function(monitorIssue) {
-                
                 dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
             },
             function(error) {
@@ -1233,9 +1219,8 @@ export function addSeat(projectId: $TSFixMe) {
 
         promise.then(
             function(monitor) {
-                
                 dispatch(createMonitorFailure(monitor.data));
-                
+
                 dispatch(addSeatSuccess(monitor.data));
             },
             function(error) {
@@ -1343,11 +1328,10 @@ export const closeBreachedMonitorSla = (
     try {
         dispatch(closeBreachedMonitorSlaRequest());
 
-        
         const response = await postApi(
             `monitor/${projectId}/closeSla/${monitorId}`
         );
-        
+
         dispatch(closeBreachedMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =
@@ -1385,7 +1369,7 @@ export const fetchBreachedMonitorSla = (projectId: $TSFixMe) => async (
         const response = await getApi(
             `monitor/${projectId}/monitorSlaBreaches`
         );
-        
+
         dispatch(fetchBreachedMonitorSlaSuccess(response.data));
     } catch (error) {
         const errorMsg =

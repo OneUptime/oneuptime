@@ -19,12 +19,11 @@ const {
 import flattenArray from '../utils/flattenArray';
 
 export default {
-    
     scan: async function(security) {
         const decryptedSecurity = await this.decryptPassword(security);
         await this.scanContainerSecurity(decryptedSecurity);
     },
-    
+
     decryptPassword: async function(security) {
         try {
             const values = [];
@@ -42,11 +41,10 @@ export default {
             throw error;
         }
     },
-    
+
     decrypt: (encText, iv) => {
         const promise = new Promise((resolve, reject) => {
             try {
-                
                 const decipher = crypto.createDecipheriv(algorithm, key, iv);
                 let decoded = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
@@ -57,7 +55,7 @@ export default {
         });
         return promise;
     },
-    
+
     scanContainerSecurity: async security => {
         try {
             const { imagePath, imageTags } = security;
@@ -66,7 +64,7 @@ export default {
                 : imagePath;
             const outputFile = `${uuidv1()}result.json`;
             let securityDir = 'container_security_dir';
-            
+
             securityDir = await createDir(securityDir);
             const exactFilePath = Path.resolve(securityDir, outputFile);
             // update container security to scanning true
@@ -87,7 +85,7 @@ export default {
                 output.on('error', async error => {
                     const errorMessage =
                         'Scanning failed please check your docker credential or image path/tag';
-                    
+
                     error.code = 400;
                     error.message = errorMessage;
                     await Promise.all([
@@ -118,7 +116,7 @@ export default {
                         const error = new Error(
                             'Scanning failed please check your docker credential or image path/tag'
                         );
-                        
+
                         error.code = 400;
 
                         await Promise.all([
@@ -146,7 +144,6 @@ export default {
                     });
 
                     clearCache.on('error', async error => {
-                        
                         error.code = 400;
                         error.message =
                             'Unable to clear cache, try again later';
@@ -174,7 +171,6 @@ export default {
                             critical: 0,
                         };
 
-                        
                         auditLogs.map(auditLog => {
                             const log = {
                                 type: auditLog.Type,
@@ -185,7 +181,6 @@ export default {
                                 auditLog.Vulnerabilities &&
                                 auditLog.Vulnerabilities.length > 0
                             ) {
-                                
                                 auditLog.Vulnerabilities.map(vulnerability => {
                                     let severity;
                                     if (vulnerability.Severity === 'LOW') {
@@ -217,14 +212,13 @@ export default {
                                         description: vulnerability.Description,
                                         severity,
                                     };
-                                    
+
                                     log.vulnerabilities.push(vulObj);
 
                                     return vulnerability;
                                 });
                             }
 
-                            
                             auditData.vulnerabilityData.push(log);
                             return auditLog;
                         });
@@ -232,50 +226,41 @@ export default {
                         auditData.vulnerabilityInfo = counter;
 
                         const arrayData = auditData.vulnerabilityData.map(
-                            
                             log => log.vulnerabilities
                         );
 
-                        
                         auditData.vulnerabilityData = flattenArray(arrayData);
 
-                        
                         const criticalArr = [],
-                            
                             highArr = [],
-                            
                             moderateArr = [],
-                            
                             lowArr = [];
                         auditData.vulnerabilityData.map(vulnerability => {
-                            
                             if (vulnerability.severity === 'critical') {
                                 criticalArr.push(vulnerability);
                             }
-                            
+
                             if (vulnerability.severity === 'high') {
                                 highArr.push(vulnerability);
                             }
-                            
+
                             if (vulnerability.severity === 'moderate') {
                                 moderateArr.push(vulnerability);
                             }
-                            
+
                             if (vulnerability.severity === 'low') {
                                 lowArr.push(vulnerability);
                             }
                             return vulnerability;
                         });
 
-                        
                         auditData.vulnerabilityData = [
-                            
                             ...criticalArr,
-                            
+
                             ...highArr,
-                            
+
                             ...moderateArr,
-                            
+
                             ...lowArr,
                         ];
 

@@ -15,7 +15,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
     try {
         const projectId = req.params.projectId;
         const body = req.body;
-        
+
         const userId = req.user ? req.user.id : null;
 
         const monitors = body.monitors;
@@ -140,7 +140,7 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
         const data = req.body;
         const integrationId = req.params.integrationId;
         data.projectId = req.params.projectId;
-        
+
         data.userId = req.user ? req.user.id : null;
         data._id = integrationId;
         const select =
@@ -169,7 +169,6 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
             });
         }
 
-        
         if (!data.monitors || !data.monitors.length > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -254,7 +253,7 @@ router.delete(
         try {
             const projectId = req.params.projectId;
             const integrationId = req.params.integrationId;
-            
+
             const userId = req.user ? req.user.id : null;
             const data = await IntegrationService.deleteBy(
                 { _id: integrationId, projectId: projectId },

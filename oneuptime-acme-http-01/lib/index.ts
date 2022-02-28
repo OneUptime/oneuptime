@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 

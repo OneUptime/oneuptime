@@ -14,7 +14,6 @@ export default {
     },
 
     test: async function(projectId: $TSFixMe, apiKey: $TSFixMe) {
-        
         const project = await ProjectService.findOneBy({
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
@@ -27,7 +26,7 @@ export default {
             const error = new Error(
                 'We are not able to authenticate you because your `API Key` or `Project ID` is not valid. Please go to your project settings and retrieve your API key and Project ID.'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -37,18 +36,17 @@ export default {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
 
         if (project) {
-            
             zapierResponse.projectName = project.name;
-            
+
             zapierResponse.projectId = project._id;
-            
+
             const projects = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -96,18 +94,17 @@ export default {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse = {};
         const _this = this;
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
 
         if (project) {
-            
             zapierResponse.projectName = project.name;
-            
+
             zapierResponse.projectId = project._id;
-            
+
             const projects = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -144,7 +141,6 @@ export default {
             await Promise.all(
                 incidentMessages.map(async (incidentNote: $TSFixMe) => {
                     zapierResponseArray.push(
-                        
                         await _this.mapIncidentToResponse(
                             null,
                             zapierResponse,
@@ -175,13 +171,13 @@ export default {
         await Promise.all(
             data.incidents.map(async (incidentId: $TSFixMe) => {
                 let incidentMessage = new IncidentMessageModel();
-                
+
                 incidentMessage.incidentId = incidentId;
-                
+
                 incidentMessage.createdByZapier = true;
-                
+
                 incidentMessage.type = data.type;
-                
+
                 incidentMessage.content = data.content;
                 incidentMessage = await incidentMessage.save();
                 IncidentService.refreshInterval(incidentId);
@@ -197,7 +193,7 @@ export default {
                 incidentNoteArr.push(incidentMessage);
             })
         );
-        
+
         zapierResponse.incidentMessage = incidentNoteArr;
         return zapierResponse;
     },
@@ -205,17 +201,16 @@ export default {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
         if (project) {
-            
             zapierResponse.projectName = project.name;
-            
+
             zapierResponse.projectId = project._id;
-            
+
             const projects = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -264,17 +259,16 @@ export default {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
-        
+
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'name _id',
         });
         if (project) {
-            
             zapierResponse.projectName = project.name;
-            
+
             zapierResponse.projectId = project._id;
-            
+
             const projects = await ProjectService.findBy({
                 query: {
                     $or: [{ _id: projectId }, { parentProjectId: projectId }],
@@ -330,11 +324,11 @@ export default {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let incident = new IncidentModel();
-                
+
                 incident.projectId = monitorObj.projectId._id;
-                
+
                 incident.monitors = [{ monitorId: monitorObj._id }];
-                
+
                 incident.createdByZapier = true;
                 incident = await incident.save();
 
@@ -346,9 +340,7 @@ export default {
 
                 const msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
                 try {
-                    
                     NotificationService.create(
-                        
                         incident.projectId,
                         msg,
                         null,
@@ -363,13 +355,11 @@ export default {
                 // run in the background
                 RealTimeService.sendCreatedIncident(incident);
 
-                
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.project._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -379,14 +369,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                
+
                 zapierResponse.projectName = project.name;
-                
+
                 zapierResponse.projectId = project._id;
                 incidentArr.push(incident);
             })
         );
-        
+
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -415,13 +405,12 @@ export default {
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                
+
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -431,14 +420,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                
+
                 zapierResponse.projectName = project.name;
-                
+
                 zapierResponse.projectId = project._id;
                 incidentArr.push(lastIncident);
             })
         );
-        
+
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -471,13 +460,12 @@ export default {
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                
+
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -487,14 +475,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                
+
                 zapierResponse.projectName = project.name;
-                
+
                 zapierResponse.projectId = project._id;
                 incidentArr = incidents;
             })
         );
-        
+
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -538,7 +526,7 @@ export default {
                     select,
                     populate,
                 });
-                
+
                 let project = await ProjectService.findOneBy({
                     query: {
                         _id: incidentObj.projectId._id || incidentObj.projectId,
@@ -546,7 +534,6 @@ export default {
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -556,14 +543,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                
+
                 zapierResponse.projectName = project.name;
-                
+
                 zapierResponse.projectId = project._id;
                 incidentArr.push(incidentObj);
             })
         );
-        
+
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -615,13 +602,12 @@ export default {
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                
+
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -631,14 +617,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                
+
                 zapierResponse.projectName = project.name;
-                
+
                 zapierResponse.projectId = project._id;
                 incidentArr.push(lastIncident);
             })
         );
-        
+
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -694,13 +680,12 @@ export default {
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                
+
                 let project = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -710,14 +695,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                
+
                 zapierResponse.projectName = project.name;
-                
+
                 zapierResponse.projectId = project._id;
                 incidentArr = incidents;
             })
         );
-        
+
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -761,7 +746,7 @@ export default {
                     select,
                     populate,
                 });
-                
+
                 let project = await ProjectService.findOneBy({
                     query: {
                         _id: incidentObj.projectId._id || incidentObj.projectId,
@@ -769,7 +754,6 @@ export default {
                     select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
-                    
                     project = await ProjectService.findOneBy({
                         query: {
                             _id:
@@ -779,14 +763,14 @@ export default {
                         select: 'name _id',
                     });
                 }
-                
+
                 zapierResponse.projectName = project.name;
-                
+
                 zapierResponse.projectId = project._id;
                 incidentArr.push(incidentObj);
             })
         );
-        
+
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
     },
@@ -853,13 +837,13 @@ export default {
         monitors: $TSFixMe
     ) {
         const zapier = new ZapierModel();
-        
+
         zapier.projectId = projectId;
-        
+
         zapier.url = url;
-        
+
         zapier.type = type;
-        
+
         zapier.monitors = monitors;
         const zap = await zapier.save();
         return { id: zap._id };
@@ -885,7 +869,7 @@ export default {
     ) {
         const _this = this;
         const projectId = incident.projectId._id || incident.projectId;
-        
+
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId _id name',
@@ -894,7 +878,6 @@ export default {
         let zap = [];
         if (project) {
             if (project.parentProjectId) {
-                
                 project = await ProjectService.findOneBy({
                     query: {
                         _id:
@@ -922,9 +905,8 @@ export default {
             for (const z of zap) {
                 let zapierResponse = {};
                 if (project) {
-                    
                     zapierResponse.projectName = project.name;
-                    
+
                     zapierResponse.projectId = project._id;
                     if (incident) {
                         const monitors = incident.monitors.map(

@@ -158,15 +158,12 @@ export default (state = initialState, action: $TSFixMe) => {
                 // teamMembers: action.payload
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     subProject => {
-                        
                         subProject.teamMembers = action.payload.find(
-                            
                             (team: $TSFixMe) =>
                                 team.projectId === subProject._id
                         ).team;
-                        
+
                         subProject.count = action.payload.find(
-                            
                             (team: $TSFixMe) =>
                                 team.projectId === subProject._id
                         ).team.length;
@@ -195,7 +192,6 @@ export default (state = initialState, action: $TSFixMe) => {
                     requesting: true,
                     success: false,
                     deleting: state.teamdelete.deleting.concat([
-                        
                         action.payload,
                     ]),
                 },
@@ -216,15 +212,13 @@ export default (state = initialState, action: $TSFixMe) => {
                     subProject => {
                         if (action.payload) {
                             const projectObj = action.payload.find(
-                                
                                 (team: $TSFixMe) =>
                                     team.projectId === subProject._id
                             );
 
                             if (projectObj) {
-                                
                                 subProject.teamMembers = projectObj.team;
-                                
+
                                 subProject.count = projectObj.team.length;
                             }
                         }
@@ -302,7 +296,6 @@ export default (state = initialState, action: $TSFixMe) => {
                     requesting: true,
                     success: false,
                     updating: state.teamUpdateRole.updating.concat([
-                        
                         action.payload,
                     ]),
                 },
@@ -321,15 +314,12 @@ export default (state = initialState, action: $TSFixMe) => {
                 // teamMembers: teamMembers,
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     subProject => {
-                        
                         subProject.teamMembers = action.payload.find(
-                            
                             (team: $TSFixMe) =>
                                 team.projectId === subProject._id
                         ).team;
-                        
+
                         subProject.count = action.payload.find(
-                            
                             (team: $TSFixMe) =>
                                 team.projectId === subProject._id
                         ).team.length;
@@ -355,10 +345,9 @@ export default (state = initialState, action: $TSFixMe) => {
                 ...state,
                 pages: {
                     ...state.pages,
-                    
+
                     [action.payload]: state.pages[action.payload]
-                        ? 
-                          state.pages[action.payload] + 1
+                        ? state.pages[action.payload] + 1
                         : 2,
                 },
             };
@@ -368,10 +357,9 @@ export default (state = initialState, action: $TSFixMe) => {
                 ...state,
                 pages: {
                     ...state.pages,
-                    
+
                     [action.payload]: state.pages[action.payload]
-                        ? 
-                          state.pages[action.payload] - 1
+                        ? state.pages[action.payload] - 1
                         : 1,
                 },
             };

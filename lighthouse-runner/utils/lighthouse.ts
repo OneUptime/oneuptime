@@ -1,4 +1,3 @@
-
 import lighthouse from 'lighthouse';
 import chromeLauncher from 'chrome-launcher';
 import ErrorService from './errorService';
@@ -9,7 +8,6 @@ function launchChromeAndRunLighthouse(
     config = null
 ) {
     return chromeLauncher.launch(options).then(chrome => {
-        
         options.port = chrome.port;
         return lighthouse(url, options, config).then((results: $TSFixMe) => {
             return chrome.kill().then(() => results.lhr);
@@ -27,7 +25,7 @@ process.on('message', url => {
                 const ids = categories[category].auditRefs.map(
                     (auditRef: $TSFixMe) => auditRef.id
                 );
-                
+
                 issues[category] = ids
                     .map((id: $TSFixMe) =>
                         audits[id] &&
@@ -53,11 +51,10 @@ process.on('message', url => {
                 seo: Math.ceil(results.categories.seo.score * 100),
                 pwa: Math.ceil(results.categories.pwa.score * 100),
             };
-            
+
             process.send(result);
         })
         .catch(error => {
-            
             process.send({ data: { url }, error });
             ErrorService.log('launchChromeAndRunLighthouse', error);
         });

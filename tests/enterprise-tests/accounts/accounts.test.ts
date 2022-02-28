@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const user = {
     password,
 };
 
-
 describe('Enterprise Accounts API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,13 +28,11 @@ describe('Enterprise Accounts API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         browser.close();
         done();
     });
 
-    
     it(
         'Should login valid user',
         async (done: $TSFixMe) => {
@@ -49,7 +43,7 @@ describe('Enterprise Accounts API', () => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    
+
                     json[key] = localStorage.getItem(key);
                 }
                 return json;

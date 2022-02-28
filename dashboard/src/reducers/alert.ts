@@ -98,9 +98,7 @@ export default (state = initialState, action: $TSFixMe) => {
                     error: null,
                     success: true,
                     data: state.alerts.data.map(alert => {
-                        
                         return alert._id === action.payload.projectId ||
-                            
                             alert._id === action.payload.projectId._id
                             ? {
                                   _id: action.payload.projectId,

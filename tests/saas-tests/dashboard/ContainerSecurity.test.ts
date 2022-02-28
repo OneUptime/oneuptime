@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,9 +15,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 describe('Container Security Page', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(operationTimeOut);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,13 +31,11 @@ describe('Container Security Page', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should create an application security with a resource category and ensure it redirects to the details page and has category attached',
         async (done: $TSFixMe) => {
@@ -62,66 +57,65 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#container');
 
             await init.pageWaitForSelector(page, '#containerSecurityForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#addCredentialBtn');
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#dockerRegistryUrl');
-            
+
             await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
-            
+
             await init.pageClick(page, '#dockerUsername');
-            
+
             await init.pageType(page, '#dockerUsername', dockerUsername);
-            
+
             await init.pageClick(page, '#dockerPassword');
-            
+
             await init.pageType(page, '#dockerPassword', dockerPassword);
-            
+
             await init.pageClick(page, '#addCredentialModalBtn');
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 hidden: true,
             });
 
-            
             await init.pageClick(page, '#name');
-            
+
             await init.pageType(page, '#name', containerSecurityName);
             // await init.selectDropdownValue(
             //     '#resourceCategory',
             //     categoryName,
             //     page
             // ); // add category
-            
+
             await init.pageClick(page, '#dockerCredential');
-            
+
             await init.pageType(page, '#dockerCredential', dockerUsername);
             await page.keyboard.press('Enter');
-            
+
             await init.pageClick(page, '#imagePath');
-            
+
             await init.pageType(page, '#imagePath', imagePath);
-            
+
             await init.pageClick(page, '#imageTags');
-            
+
             await init.pageType(page, '#imageTags', imageTags);
-            
+
             await init.pageClick(page, '#addContainerBtn');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -135,7 +129,7 @@ describe('Container Security Page', () => {
             expect(containerSecurity).toBeDefined();
 
             // find the edit button which appears only on the details page
-            
+
             const editContainerElement = await init.pageWaitForSelector(
                 page,
                 `#edit_${containerSecurityName}`
@@ -156,33 +150,32 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    
     test('should scan a container security', async (done: $TSFixMe) => {
         await page.goto(utils.DASHBOARD_URL);
         await init.pageWaitForSelector(page, '#components', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#components');
 
         await init.pageWaitForSelector(page, '#component0', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, `#more-details-${component}`);
         await init.pageWaitForSelector(page, '#security', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#security');
         await init.pageWaitForSelector(page, '#container', {
             visible: true,
             timeout: init.timeout,
         });
-        
+
         await init.pageClick(page, '#container');
         await init.pageWaitForSelector(page, '#largeSpinner', {
             hidden: true,
@@ -192,7 +185,7 @@ describe('Container Security Page', () => {
             `#scanningContainerSecurity_${containerSecurityName}`,
             { hidden: true, timeout: 600000 } //Pinging takes 5 minutes and scanning takes some more time
         );
-        
+
         await init.pageClick(
             page,
             `#moreContainerSecurity_${containerSecurityName}`
@@ -210,7 +203,6 @@ describe('Container Security Page', () => {
         done();
     }, 600000);
 
-    
     test(
         'should view details of the security log',
         async (done: $TSFixMe) => {
@@ -219,31 +211,31 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
-            
+
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
@@ -264,7 +256,6 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should also view details of the security log on clicking the issue count section',
         async (done: $TSFixMe) => {
@@ -273,32 +264,31 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
 
-            
             await init.pageClick(page, '#issueCount');
             const securityLog = await init.pageWaitForSelector(
                 page,
@@ -316,7 +306,6 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should display log(s) of a container security scan',
         async (done: $TSFixMe) => {
@@ -325,31 +314,31 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
-            
+
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
@@ -361,7 +350,7 @@ describe('Container Security Page', () => {
             });
             // make sure the added container security
             // have atlest one security vulnerability
-            
+
             const logs = await init.page$$(page, '#securityLog tbody tr');
             expect(logs.length).toBeGreaterThanOrEqual(1);
 
@@ -370,7 +359,6 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should edit container security',
         async (done: $TSFixMe) => {
@@ -379,31 +367,31 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
-            
+
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
@@ -417,16 +405,16 @@ describe('Container Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, `#edit_${containerSecurityName}`);
             await init.pageWaitForSelector(page, '#editContainerSecurityForm', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#name', { clickCount: 3 });
-            
+
             await init.pageType(page, '#name', newContainerSecurityName);
-            
+
             await init.pageClick(page, '#editContainerBtn');
             await init.pageWaitForSelector(page, '#editContainerSecurityForm', {
                 hidden: true,
@@ -444,7 +432,6 @@ describe('Container Security Page', () => {
         operationTimeOut
     );
 
-    
     test(
         'should delete container security',
         async (done: $TSFixMe) => {
@@ -453,36 +440,36 @@ describe('Container Security Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#components');
 
             await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, `#more-details-${component}`);
             await init.pageWaitForSelector(page, '#security', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#security');
             await init.pageWaitForSelector(page, '#container', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#container');
             await init.pageWaitForSelector(page, '#largeSpinner', {
                 hidden: true,
             });
-            
+
             await init.pageClick(
                 page,
                 `#moreContainerSecurity_${newContainerSecurityName}`
             );
-            
+
             await init.pageClick(page, '.advanced-options-tab');
             await init.pageWaitForSelector(
                 page,
@@ -492,7 +479,7 @@ describe('Container Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, '#deleteContainerSecurityBtn');
             await init.pageWaitForSelector(
                 page,
@@ -502,7 +489,7 @@ describe('Container Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            
+
             await init.pageClick(page, '#deleteContainerSecurityModalBtn');
 
             const containerSecurity = await init.pageWaitForSelector(

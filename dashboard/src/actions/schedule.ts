@@ -44,7 +44,6 @@ export function fetchSchedules(
         );
         promise.then(
             function(schedule) {
-                
                 dispatch(scheduleSuccess(schedule.data));
             },
             function(error) {
@@ -101,11 +100,10 @@ export function fetchSubProjectSchedules(projectId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(`schedule/${projectId}/schedules`);
-        
+
         dispatch(subProjectScheduleRequest());
         promise.then(
             function(schedule) {
-                
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
             function(error) {
@@ -168,7 +166,6 @@ export function fetchProjectSchedule(
         );
         promise.then(
             function(schedule) {
-                
                 const data = schedule.data;
                 data.projectId = projectId;
                 dispatch(projectScheduleSuccess(data));
@@ -224,7 +221,6 @@ export function createSchedule(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(schedule) {
-                
                 dispatch(createScheduleSuccess(schedule.data));
             },
             function(error) {
@@ -351,7 +347,6 @@ export function deleteScheduleError(error: $TSFixMe) {
 
 export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = deleteApi(`schedule/${projectId}/${scheduleId}`);
 
         dispatch(deleteScheduleRequest());
@@ -362,10 +357,10 @@ export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
                     const data = Object.assign(
                         {},
                         { scheduleId },
-                        
+
                         schedule.data
                     );
-                    
+
                     dispatch(fetchSchedules(projectId));
                     return dispatch(deleteScheduleSuccess({ data }));
                 },
@@ -603,7 +598,6 @@ export function getEscalation(projectId: $TSFixMe, scheduleId: $TSFixMe) {
 
         promise.then(
             function(escalation) {
-                
                 dispatch(escalationSuccess(escalation.data));
             },
             function(error) {
@@ -689,7 +683,6 @@ export function fetchUserSchedule(projectId: $TSFixMe, userId: $TSFixMe) {
 
         promise.then(
             function(schedule) {
-                
                 dispatch(userScheduleSuccess(schedule.data));
             },
             function(error) {

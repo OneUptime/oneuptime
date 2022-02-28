@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +15,10 @@ const user = {
 
 let projectId: $TSFixMe = null;
 
-
 describe('Project', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig, {
@@ -40,13 +36,11 @@ describe('Project', () => {
         await init.loginAdminUser(adminUser, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should upgrade a project to enterprise plan',
         async (done: $TSFixMe) => {
@@ -55,15 +49,14 @@ describe('Project', () => {
             });
             await init.createUserFromAdminDashboard(user, page);
             await page.reload({ waitUntil: 'networkidle2' });
-            
+
             await init.pageClick(page, '#projects');
             await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) =>
                 elem.click()
             );
-            
+
             await init.pageWaitForSelector(page, '.Table > tbody tr');
 
-            
             const project = await init.pageWaitForSelector(page, '.projectId');
             projectId = await (
                 await project.getProperty('innerText')
@@ -71,9 +64,9 @@ describe('Project', () => {
 
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
-                
+
                 elem = Array.from(elem);
-                
+
                 elem[0].click();
             });
 
@@ -107,19 +100,18 @@ describe('Project', () => {
         operationTimeOut
     );
 
-    
     test(
         'should change to any other plan',
         async (done: $TSFixMe) => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            
+
             await init.pageClick(page, '#projects');
             await init.page$Eval(page, '#projects > a', (elem: $TSFixMe) =>
                 elem.click()
             );
-            
+
             await init.pageWaitForSelector(page, '.Table > tbody tr');
-            
+
             await init.pageClick(page, '#project-' + projectId);
 
             await init.pageWaitForSelector(page, '#Growth_annual', {

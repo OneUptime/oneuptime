@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +15,10 @@ const newDefaultIncidentDescription = 'TEST: {{incidentType}}';
 const incidentType = 'offline';
 const changedTitle = `${monitorName} is ${incidentType}.`;
 
-
 describe('Incident Settings API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -37,34 +33,32 @@ describe('Incident Settings API', () => {
         await init.addMonitorToComponent(componentName, monitorName, page);
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     test(
         'Should show priority fields with default values.',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#incidentSettings');
-            
+
             await init.pageClick(page, '#incidentSettings');
 
             // when a project is created a default incident template is created automatically for it
             // the incident template name is set as Default
-            
+
             const defaultTemplate = await init.pageWaitForSelector(
                 page,
                 '#incident_template_Default'
@@ -75,24 +69,23 @@ describe('Incident Settings API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should not be able to delete default priority',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#incidentSettings');
-            
+
             await init.pageClick(page, '#incidentSettings');
 
             const deleteBtn = await init.pageWaitForSelector(
@@ -106,40 +99,38 @@ describe('Incident Settings API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should update title, description and priority fields for a template',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#incidentSettings');
-            
+
             await init.pageClick(page, '#incidentSettings');
 
-            
             await init.pageWaitForSelector(
                 page,
                 '#editIncidentTemplateBtn_Default'
             );
-            
+
             await init.pageClick(page, '#editIncidentTemplateBtn_Default');
-            
+
             await init.pageWaitForSelector(page, '#editTemplateForm');
-            
+
             await init.pageWaitForSelector(page, '#name');
             await init.pageClick(page, '#name', { clickCount: 3 });
             await page.keyboard.press('Backspace');
-            
+
             await init.pageType(page, '#name', newName);
             await init.selectDropdownValue(
                 '#incidentTemplatePriority',
@@ -148,20 +139,20 @@ describe('Incident Settings API', () => {
             );
             await init.pageClick(page, '#title', { clickCount: 3 });
             await page.keyboard.press('Backspace');
-            
+
             await init.pageType(page, '#title', newDefaultIncidentTitle);
-            
+
             await init.pageClick(page, '#description');
             await page.keyboard.down('Control');
             await page.keyboard.press('A');
             await page.keyboard.up('Control');
-            
+
             await init.pageType(
                 page,
                 '#description',
                 newDefaultIncidentDescription
             );
-            
+
             await init.pageClick(page, '#updateIncidentTemplate');
             await init.pageWaitForSelector(page, '#editTemplateForm', {
                 hidden: true,
@@ -170,14 +161,13 @@ describe('Incident Settings API', () => {
                 waitUntil: 'networkidle0',
             });
 
-            
             await init.pageWaitForSelector(
                 page,
                 `#editIncidentTemplateBtn_${newName}`
             );
-            
+
             await init.pageClick(page, `#editIncidentTemplateBtn_${newName}`);
-            
+
             await init.pageWaitForSelector(page, '#editTemplateForm');
             const priorityFieldValue = await init.page$Eval(
                 page,
@@ -196,7 +186,6 @@ describe('Incident Settings API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should substitute variables in title, description when an incident is created',
         async (done: $TSFixMe) => {
@@ -206,19 +195,18 @@ describe('Incident Settings API', () => {
                 page
             );
 
-            
             await init.pageWaitForSelector(
                 page,
                 `#monitorCreateIncident_${monitorName}`
             );
-            
+
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
             await init.pageClick(page, '#title', { clickCount: 3 });
-            
+
             await init.pageType(page, '#title', changedTitle);
-            
+
             await init.pageWaitForSelector(page, '#createIncident');
-            
+
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
@@ -232,7 +220,6 @@ describe('Incident Settings API', () => {
             //Incident Description is no longer on UI
             const incidentPrioritySelector = '#name_Low';
 
-            
             await init.pageWaitForSelector(page, incidentTitleSelector);
             const title = await init.page$Eval(
                 page,

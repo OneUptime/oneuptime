@@ -104,22 +104,18 @@ router.put(
             const data = {};
 
             if (name) {
-                
                 data.name = name;
             }
 
             if (dockerCredential) {
-                
                 data.dockerCredential = dockerCredential;
             }
 
             if (imagePath) {
-                
                 data.imagePath = imagePath;
             }
 
             if (imageTags) {
-                
                 data.imageTags = imageTags;
             }
             let unsetData;
@@ -132,7 +128,6 @@ router.put(
                     }
                 );
                 if (resourceCategoryCount && resourceCategoryCount > 0) {
-                    
                     data.resourceCategory = resourceCategory;
                 } else {
                     unsetData = { resourceCategory: '' };
@@ -142,7 +137,7 @@ router.put(
             const containerSecurity = await ContainerSecurityService.updateOneBy(
                 { _id: containerSecurityId, componentId },
                 data,
-                
+
                 unsetData
             );
             return sendItemResponse(req, res, containerSecurity);
@@ -377,7 +372,7 @@ router.post(
                 const error = new Error(
                     'Container Security not found or does not exist'
                 );
-                
+
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }

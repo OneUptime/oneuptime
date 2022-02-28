@@ -23,7 +23,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         const [IncidentPriorities, count] = await Promise.all([
             IncidentPrioritiesService.findBy(
                 { query: { projectId }, select: selectIncPriority },
-                
+
                 limit,
                 skip
             ),

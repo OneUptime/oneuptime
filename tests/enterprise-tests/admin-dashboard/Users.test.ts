@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 
 import utils from '../../test-utils';
@@ -9,13 +8,10 @@ require('should');
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-
 describe('Users Component (IS_SAAS_SERVICE=false)', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -26,19 +22,17 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
             email: email,
             password: password,
         };
-        
+
         await init.registerEnterpriseUser(user, page, false);
 
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should show a button to add more users to oneuptime from admin dashboard',
         async (done: $TSFixMe) => {

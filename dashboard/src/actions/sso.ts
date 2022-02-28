@@ -20,7 +20,6 @@ export function createSso({ data }: $TSFixMe) {
 
         promise.then(
             function(response) {
-                
                 dispatch(createSsoSuccess(response.data));
             },
             function(error) {
@@ -64,7 +63,6 @@ export function fetchSsos({ projectId, skip, limit }: $TSFixMe) {
 
         promise.then(
             function(response) {
-                
                 dispatch(fetchSsosSuccess(response.data));
             },
             function(error) {
@@ -103,7 +101,6 @@ export function fetchSso(ssoId: $TSFixMe) {
 
         promise.then(
             function(response) {
-                
                 dispatch(fetchSsoSuccess(response.data));
             },
             function(error) {
@@ -142,7 +139,6 @@ export function updateSso({ id, data }: $TSFixMe) {
 
         promise.then(
             function(response) {
-                
                 dispatch(updateSsoSuccess(response.data));
             },
             function(error) {
@@ -176,13 +172,11 @@ export const deleteSsoFailure = (error: $TSFixMe) => ({
 });
 export function deleteSso(ssoId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = deleteApi(`sso/${ssoId}`);
         dispatch(deleteSsoRequest());
 
         promise.then(
             function(response) {
-                
                 dispatch(deleteSsoSuccess(response.data));
             },
             function(error) {

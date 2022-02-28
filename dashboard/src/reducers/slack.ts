@@ -89,12 +89,12 @@ export default (state = initialState, action: $TSFixMe) => {
 
         case DELETE_SLACK_LINK_SUCCESS:
             teams = Object.assign([], state.teams.teams);
-            
+
             index = teams.findIndex(team => team._id === action.payload._id);
             action.payload.n === 1 &&
                 action.payload.ok === 1 &&
                 teams.splice(index, 1);
-            
+
             count = state.teams.count - 1;
 
             return Object.assign({}, state, {

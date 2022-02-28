@@ -22,7 +22,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             req.params.projectId,
             req.body.feedback,
             req.body.page,
-            
+
             req.user.id
         );
         return sendItemResponse(req, res, feedback);

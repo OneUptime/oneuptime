@@ -24,21 +24,21 @@ router.put('/default', async (req, res) => {
         }
 
         const data = {};
-        
+
         if (store) data.store = store;
-        
+
         if (challenges) data.challenges = challenges;
-        
+
         if (renewOffset) data.renewOffset = renewOffset;
-        
+
         if (renewStagger) data.renewStagger = renewStagger;
-        
+
         if (accountKeyType) data.accountKeyType = accountKeyType;
-        
+
         if (serverKeyType) data.serverKeyType = serverKeyType;
-        
+
         if (subscriberEmail) data.subscriberEmail = subscriberEmail;
-        
+
         if (agreeToTerms) data.agreeToTerms = agreeToTerms;
 
         // if there's no default value

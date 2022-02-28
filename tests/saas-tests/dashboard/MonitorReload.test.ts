@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +15,10 @@ const monitorName = utils.generateRandomString();
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Monitor Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -35,13 +31,11 @@ describe('OneUptime Monitor Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the monitor in component-details page and confirm no error',
         async (done: $TSFixMe) => {
@@ -70,7 +64,6 @@ describe('OneUptime Monitor Reload', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should add a new monitor, reload and confirm no error',
         async (done: $TSFixMe) => {

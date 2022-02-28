@@ -6,7 +6,6 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-
 const request = chai.request.agent(process.env.API_URL);
 
 import utils from './test-utils';
@@ -27,11 +26,9 @@ const timeout = 5000,
         data: {},
     };
 
-
 describe('Server Monitor', function() {
     this.timeout(timeout + 1000);
 
-    
     before(function(done: $TSFixMe) {
         this.timeout(30000);
 
@@ -67,9 +64,7 @@ describe('Server Monitor', function() {
             });
     });
 
-    
     it('Should connect when project id, api key and monitor id are provided', (done: $TSFixMe) => {
-        
         const monitor = serverMonitor({
             projectId,
             apiKey,
@@ -86,9 +81,7 @@ describe('Server Monitor', function() {
         });
     });
 
-    
     it('Should connect when project id, custom api url, api key and monitor id are provided', (done: $TSFixMe) => {
-        
         const monitor = serverMonitor({
             projectId,
             apiUrl: 'http://localhost:3002',
@@ -106,9 +99,7 @@ describe('Server Monitor', function() {
         });
     });
 
-    
     it('Should request for monitor id when only project id and api key are provided', (done: $TSFixMe) => {
-        
         const monitor = serverMonitor({
             projectId,
             apiKey,
@@ -133,9 +124,7 @@ describe('Server Monitor', function() {
         });
     });
 
-    
     it('Should disconnect when project id is invalid', (done: $TSFixMe) => {
-        
         const monitor = serverMonitor({
             projectId: invalidProjectId,
             apiKey: badApiKey,
@@ -153,9 +142,7 @@ describe('Server Monitor', function() {
         });
     });
 
-    
     it('Should disconnect when project id or api key are incorrect', (done: $TSFixMe) => {
-        
         const monitor = serverMonitor({
             projectId: badProjectId,
             apiKey: badApiKey,
@@ -175,9 +162,7 @@ describe('Server Monitor', function() {
         });
     });
 
-    
     it('Should disconnect when project id is correct and api key is incorrect', (done: $TSFixMe) => {
-        
         const monitor = serverMonitor({
             projectId,
             apiKey: badApiKey,
@@ -197,9 +182,7 @@ describe('Server Monitor', function() {
         });
     });
 
-    
     it('Should disconnect when project id is incorrect and api key is correct', (done: $TSFixMe) => {
-        
         const monitor = serverMonitor({
             projectId: badProjectId,
             apiKey,
@@ -219,9 +202,7 @@ describe('Server Monitor', function() {
         });
     });
 
-    
     it('Should disconnect when timeout provided is exceeded', (done: $TSFixMe) => {
-        
         const monitor = serverMonitor({
             projectId,
             apiKey,

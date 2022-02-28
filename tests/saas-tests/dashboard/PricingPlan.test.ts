@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,13 +12,10 @@ const user = {
     password,
 };
 
-
 describe('Status Page -> Pricing Plan Component', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -29,32 +25,29 @@ describe('Status Page -> Pricing Plan Component', () => {
         await init.registerUser(user, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should show upgrade modal if project is not available in a particular plan',
         async (done: $TSFixMe) => {
-            
             await init.addProject(page, 'test');
             await init.page$Eval(page, '#statusPages', (elem: $TSFixMe) =>
                 elem.click()
             );
-            
+
             await init.pageWaitForSelector(page, '#btnCreateStatusPage_test');
-            
+
             await init.pageClick(page, '#btnCreateStatusPage_test');
-            
+
             await init.pageWaitForSelector(page, '#name');
-            
+
             await init.pageClick(page, '#name');
-            
+
             await init.pageType(page, '#name', 'test');
-            
+
             await init.pageClick(page, '#btnCreateStatusPage');
             // select the first item from the table row
             const rowItem = await init.pageWaitForSelector(
@@ -92,22 +85,21 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not show upgrade modal if project is subscribed to a particular plan',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#billing');
-            
+
             await init.pageClick(page, '#billing a');
-            
+
             await init.pageWaitForSelector(page, '#alertEnable');
 
             const rowLength = await init.page$$Eval(
@@ -119,13 +111,11 @@ describe('Status Page -> Pricing Plan Component', () => {
             if (rowLength === 1) {
                 // check the box
                 await page.evaluate(() => {
-                    
                     document.querySelector('#alertEnable').click();
                 });
             }
 
             await page.evaluate(() => {
-                
                 document.querySelector('#billingRiskCountries').click();
             });
             const elem = await init.pageWaitForSelector(
@@ -141,7 +131,6 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    
     test(
         'should not upgrade a project when cancel button is clicked',
         async (done: $TSFixMe) => {
@@ -187,7 +176,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#cancelPlanUpgrade');
             const elem = await init.pageWaitForSelector(
                 page,
@@ -203,7 +192,6 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    
     test(
         'should upgrade a plan when upgrade is triggered from pricing plan component',
         async (done: $TSFixMe) => {
@@ -249,7 +237,7 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#confirmPlanUpgrade');
 
             await init.pageWaitForSelector(page, '#pricingPlanModal', {

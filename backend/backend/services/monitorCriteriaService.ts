@@ -414,63 +414,62 @@ const MonitorCriteriaService = {
     },
 
     create: function(monitorType: $TSFixMe) {
-        
         const criteria = this.getCriteria()[monitorType];
         const criteriaObj = {};
         if (criteria) {
             if (criteria.up_1000 && criteria.up_1000.length) {
                 const upCriteria = this.makeCriteria(criteria.up_1000);
-                
+
                 upCriteria.scheduleIds = [];
-                
+
                 upCriteria.createAlert = criteria.up_1000_createAlert
                     ? true
                     : false;
-                
+
                 upCriteria.autoAcknowledge = criteria.up_1000_autoAcknowledge
                     ? true
                     : false;
-                
+
                 upCriteria.autoResolve = criteria.up_1000_autoResolve
                     ? true
                     : false;
-                
+
                 criteriaObj.up = [upCriteria];
             }
             if (criteria.degraded_1000 && criteria.degraded_1000.length) {
                 const degradedCriteria = this.makeCriteria(
                     criteria.degraded_1000
                 );
-                
+
                 degradedCriteria.scheduleIds = [];
-                
+
                 degradedCriteria.createAlert = criteria.degraded_1000_createAlert
                     ? true
                     : false;
-                
+
                 degradedCriteria.autoAcknowledge = criteria.degraded_1000_autoAcknowledge
                     ? true
                     : false;
-                
+
                 degradedCriteria.autoResolve = criteria.degraded_1000_autoResolve
                     ? true
                     : false;
-                
+
                 criteriaObj.degraded = [degradedCriteria];
             }
             if (criteria.down_1000 && criteria.down_1000.length) {
                 const downCriteria = this.makeCriteria(criteria.down_1000);
-                
+
                 downCriteria.scheduleIds = [];
-                
+
                 downCriteria.createAlert = criteria.down_1000_createAlert
                     ? true
                     : false;
-                
+
                 downCriteria.autoAcknowledge = criteria.down_1000_autoAcknowledge
                     ? true
                     : false;
-                
+
                 downCriteria.autoResolve = criteria.down_1000_autoResolve
                     ? true
                     : false;
@@ -479,7 +478,7 @@ const MonitorCriteriaService = {
                     ...downCriteria,
                     default: true,
                 };
-                
+
                 criteriaObj.down = [defaultCriterion];
             }
         }
@@ -494,15 +493,12 @@ const MonitorCriteriaService = {
         for (let i = 0; i < val.length; i++) {
             const val3 = {};
             if (val[i].responseType && val[i].responseType.length) {
-                
                 val3.responseType = val[i].responseType;
             }
             if (val[i].filter && val[i].filter.length) {
-                
                 val3.filter = val[i].filter;
             }
             if (val[i].field1 && val[i].field1.length) {
-                
                 val3.field1 =
                     val[i].field1 &&
                     typeof val[i].field1 === 'string' &&
@@ -511,7 +507,6 @@ const MonitorCriteriaService = {
                         : val[i].field1;
             }
             if (val[i].field2 && val[i].field2.length) {
-                
                 val3.field2 =
                     val[i].field2 &&
                     typeof val[i].field2 === 'string' &&
@@ -527,16 +522,13 @@ const MonitorCriteriaService = {
             criteria.push(...nestVal);
 
             if (val[0].match && val[0].match.length && val[0].match === 'all') {
-                
                 val2.condition = 'and';
             }
             if (val[0].match && val[0].match.length && val[0].match === 'any') {
-                
                 val2.condition = 'or';
             }
         }
 
-        
         val2.criteria = criteria;
         return val2;
     },
@@ -550,15 +542,12 @@ const MonitorCriteriaService = {
                     val.criteria[j].responseType &&
                     val.criteria[j].responseType.length
                 ) {
-                    
                     innerVal.responseType = val.criteria[j].responseType;
                 }
                 if (val.criteria[j].filter && val.criteria[j].filter.length) {
-                    
                     innerVal.filter = val.criteria[j].filter;
                 }
                 if (val.criteria[j].field1 && val.criteria[j].field1.length) {
-                    
                     innerVal.field1 =
                         val.criteria[j].field1 &&
                         typeof val.criteria[j].field1 === 'string' &&
@@ -567,7 +556,6 @@ const MonitorCriteriaService = {
                             : val.criteria[j].field1;
                 }
                 if (val.criteria[j].field2 && val.criteria[j].field2.length) {
-                    
                     innerVal.field2 =
                         val.criteria[j].field2 &&
                         typeof val.criteria[j].field2 === 'string' &&
@@ -603,28 +591,24 @@ const MonitorCriteriaService = {
                     val.criteria.criteria[i].responseType &&
                     val.criteria.criteria[i].responseType.length
                 ) {
-                    
                     val3.responseType = val.criteria.criteria[i].responseType;
                 }
                 if (
                     val.criteria.criteria[i].filter &&
                     val.criteria.criteria[i].filter.length
                 ) {
-                    
                     val3.filter = val.criteria.criteria[i].filter;
                 }
                 if (
                     val.criteria.criteria[i].field1 &&
                     val.criteria.criteria[i].field1.length
                 ) {
-                    
                     val3.field1 = val.criteria.criteria[i].field1;
                 }
                 if (
                     val.criteria.criteria[i].field2 &&
                     val.criteria.criteria[i].field2.length
                 ) {
-                    
                     val3.field2 = val.criteria.criteria[i].field2;
                 }
 
@@ -641,11 +625,9 @@ const MonitorCriteriaService = {
                         val2[val2.length - 1]
                     );
                 } else {
-                    
                     val3.field3 = false;
                 }
                 if (i === 0) {
-                    
                     val3.match = 'all';
                 }
                 if (!isEmpty(val3)) {
@@ -660,28 +642,24 @@ const MonitorCriteriaService = {
                     val.criteria.criteria[i].responseType &&
                     val.criteria.criteria[i].responseType.length
                 ) {
-                    
                     val3.responseType = val.criteria.criteria[i].responseType;
                 }
                 if (
                     val.criteria.criteria[i].filter &&
                     val.criteria.criteria[i].filter.length
                 ) {
-                    
                     val3.filter = val.criteria.criteria[i].filter;
                 }
                 if (
                     val.criteria.criteria[i].field1 &&
                     val.criteria.criteria[i].field1.length
                 ) {
-                    
                     val3.field1 = val.criteria.criteria[i].field1;
                 }
                 if (
                     val.criteria.criteria[i].field2 &&
                     val.criteria.criteria[i].field2.length
                 ) {
-                    
                     val3.field2 = val.criteria.criteria[i].field2;
                 }
 
@@ -698,11 +676,9 @@ const MonitorCriteriaService = {
                         val2[val2.length - 1]
                     );
                 } else {
-                    
                     val3.field3 = false;
                 }
                 if (i === 0) {
-                    
                     val3.match = 'any';
                 }
                 if (!isEmpty(val3)) {
@@ -725,36 +701,30 @@ const MonitorCriteriaService = {
                 criteriaObj.criteria[j].responseType &&
                 criteriaObj.criteria[j].responseType.length
             ) {
-                
                 innerVal.responseType = criteriaObj.criteria[j].responseType;
             }
             if (
                 criteriaObj.criteria[j].filter &&
                 criteriaObj.criteria[j].filter.length
             ) {
-                
                 innerVal.filter = criteriaObj.criteria[j].filter;
             }
             if (
                 criteriaObj.criteria[j].field1 &&
                 criteriaObj.criteria[j].field1.length
             ) {
-                
                 innerVal.field1 = criteriaObj.criteria[j].field1;
             }
             if (
                 criteriaObj.criteria[j].field2 &&
                 criteriaObj.criteria[j].field2.length
             ) {
-                
                 innerVal.field2 = criteriaObj.criteria[j].field2;
             }
 
             if (j === 0 && criteriaObj.condition === 'and') {
-                
                 innerVal.match = 'all';
             } else if (j === 0 && criteriaObj.condition === 'or') {
-                
                 innerVal.match = 'any';
             }
 
@@ -781,7 +751,6 @@ const MonitorCriteriaService = {
         }
     },
 };
-
 
 import { isEmpty } from 'lodash';
 

@@ -24,7 +24,6 @@ export const fetchBasicIncidentSettingsVariables = () => {
             function(incidentBasicSettings) {
                 dispatch(
                     fetchBasicIncidentSettingsVariablesSuccess(
-                        
                         incidentBasicSettings.data
                     )
                 );
@@ -83,7 +82,6 @@ export const fetchIncidentTemplates = ({
     dispatch(fetchIncidentTemplatesRequest());
     promise.then(
         function(incidentBasicSettings) {
-            
             dispatch(fetchIncidentTemplatesSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -128,7 +126,6 @@ export const createIncidentTemplate = ({ projectId, data }: $TSFixMe) => (
     dispatch(createIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            
             dispatch(createIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -175,7 +172,6 @@ export const updateIncidentTemplate = ({
     dispatch(updateIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            
             dispatch(updateIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -216,12 +212,10 @@ export const deleteIncidentTemplate = ({ projectId, templateId }: $TSFixMe) => (
 ) => {
     const url = `incidentSettings/${projectId}/${templateId}`;
 
-    
     const promise = deleteApi(url);
     dispatch(deleteIncidentTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            
             dispatch(deleteIncidentTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -266,7 +260,6 @@ export const setDefaultTemplate = ({ projectId, templateId }: $TSFixMe) => (
     dispatch(setDefaultTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            
             dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {
@@ -317,7 +310,6 @@ export const fetchDefaultTemplate = ({ projectId }: $TSFixMe) => (
     dispatch(fetchDefaultTemplateRequest());
     promise.then(
         function(incidentBasicSettings) {
-            
             dispatch(fetchDefaultTemplateSuccess(incidentBasicSettings.data));
         },
         function(error) {

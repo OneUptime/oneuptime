@@ -53,7 +53,6 @@ export function getProjectIncidents(
 
         promise.then(
             function(incidents) {
-                
                 const data = incidents.data;
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
@@ -98,11 +97,10 @@ export function getProjectComponentIncidents(
 
         promise.then(
             function(incidents) {
-                
                 const data = incidents.data;
-                
+
                 data.count = incidents.data.data.count;
-                
+
                 data.data = incidents.data.data.incidents;
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
@@ -161,7 +159,6 @@ export function getIncidents(projectId: $TSFixMe) {
 
         promise.then(
             function(incidents) {
-                
                 dispatch(incidentsSuccess(incidents.data));
             },
             function(error) {
@@ -193,7 +190,6 @@ export function getComponentIncidents(
 
         promise.then(
             function(incidents) {
-                
                 dispatch(incidentsSuccess(incidents.data));
             },
             function(error) {
@@ -275,15 +271,15 @@ export function createNewIncident(
             function(createIncident) {
                 dispatch({
                     type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
-                    
+
                     payload: createIncident.data,
                 });
                 dispatch({
                     type: 'ADD_NEW_INCIDENT_TO_MONITORS',
-                    
+
                     payload: createIncident.data,
                 });
-                
+
                 dispatch(createIncidentSuccess(createIncident.data));
             },
             function(error) {
@@ -372,7 +368,6 @@ export function getIncident(projectId: $TSFixMe, incidentSlug: $TSFixMe) {
 
         promise.then(
             function(incident) {
-                
                 dispatch(incidentSuccess(incident.data));
             },
             function(error) {
@@ -415,7 +410,6 @@ export function getIncidentTimeline(
 
         promise.then(
             function(timeline) {
-                
                 dispatch(incidentTimelineSuccess(timeline.data));
             },
             function(error) {
@@ -507,7 +501,7 @@ export function acknowledgeIncident(
                     dispatch(
                         acknowledgeIncidentSuccess({
                             multiple: true,
-                            
+
                             data: result.data.incident,
                         })
                     );
@@ -515,27 +509,26 @@ export function acknowledgeIncident(
                     dispatch(
                         acknowledgeIncidentSuccess({
                             multiple: false,
-                            
+
                             data: result.data.incident,
                         })
                     );
                 }
                 dispatch({
                     type: 'ACKNOWLEDGE_INCIDENT_SUCCESS',
-                    
+
                     payload: result.data.incident,
                 });
                 dispatch(
                     fetchIncidentMessagesSuccess({
-                        
                         incidentId: result.data.incident.idNumber, // The incidentID needed is no longer objectID from DB but incident serial ID e.g 1
-                        
+
                         incidentMessages: result.data.data,
-                        
+
                         count: result.data.data.length,
-                        
+
                         type: result.data.type,
-                        
+
                         incidentSlug: result.data.incident.incidentSlug,
                     })
                 );
@@ -613,7 +606,7 @@ export function resolveIncident(
                     dispatch(
                         resolveIncidentSuccess({
                             multiple: true,
-                            
+
                             data: result.data.incident,
                         })
                     );
@@ -621,27 +614,26 @@ export function resolveIncident(
                     dispatch(
                         resolveIncidentSuccess({
                             multiple: false,
-                            
+
                             data: result.data.incident,
                         })
                     );
                 }
                 dispatch({
                     type: 'RESOLVE_INCIDENT_SUCCESS',
-                    
+
                     payload: result.data.incident,
                 });
                 dispatch(
                     fetchIncidentMessagesSuccess({
-                        
                         incidentId: result.data.incident.idNumber, // The incidentID needed is no longer objectID from DB but incident serial ID e.g 1
-                        
+
                         incidentMessages: result.data.data,
-                        
+
                         count: result.data.data.length,
-                        
+
                         type: result.data.type,
-                        
+
                         incidentSlug: result.data.incident.incidentSlug,
                     })
                 );
@@ -710,7 +702,6 @@ export function closeIncident(projectId: $TSFixMe, incidentId: $TSFixMe) {
 
         promise.then(
             function(incident) {
-                
                 dispatch(closeIncidentSuccess(incident.data));
             },
             function(error) {
@@ -773,7 +764,6 @@ export function fetchUnresolvedIncidents(projectId: $TSFixMe, isHome = false) {
 
         promise.then(
             function(incidents) {
-                
                 dispatch(UnresolvedIncidentsSuccess(incidents.data));
             },
             function(error) {
@@ -843,7 +833,6 @@ export function setInvestigationNote(
 
         promise.then(
             function(incidents) {
-                
                 dispatch(investigationNoteSuccess(incidents.data));
             },
             function(error) {
@@ -903,24 +892,21 @@ export function setInternalNote(
 
         promise.then(
             function(incidents) {
-                
                 if (incidents.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
-                            
                             incidentId: incidents.data.idNumber,
-                            
+
                             incidentMessages: incidents.data.data,
-                            
+
                             count: incidents.data.data.length,
-                            
+
                             type: incidents.data.type,
-                            
+
                             incidentSlug: incidents.data.incidentSlug,
                         })
                     );
                 } else {
-                    
                     dispatch(internalNoteSuccess(incidents.data));
                 }
             },
@@ -973,13 +959,11 @@ export function deleteIncidentReset(error: $TSFixMe) {
 //Delete an incident
 export function deleteIncident(projectId: $TSFixMe, incidentId: $TSFixMe) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = deleteApi(`incident/${projectId}/${incidentId}`);
         dispatch(deleteIncidentRequest(incidentId));
 
         promise.then(
             function(incident) {
-                
                 dispatch(deleteIncidentSuccess(incident.data._id));
             },
             function(error) {
@@ -1075,11 +1059,11 @@ export function fetchIncidentMessages(
                 dispatch(
                     fetchIncidentMessagesSuccess({
                         incidentId: incidentSlug,
-                        
+
                         incidentMessages: response.data.data,
                         skip,
                         limit,
-                        
+
                         count: response.data.count,
                         type,
                         incidentSlug: incidentSlug,
@@ -1150,7 +1134,6 @@ export function deleteIncidentMessage(
     incidentMessageId: $TSFixMe
 ) {
     return function(dispatch: $TSFixMe) {
-        
         const promise = deleteApi(
             `incident/${projectId}/incident/${incidentId}/message/${incidentMessageId}`
         );
@@ -1158,25 +1141,22 @@ export function deleteIncidentMessage(
 
         promise.then(
             function(incidentMessage) {
-                
                 if (incidentMessage.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
-                            
                             incidentId: incidentMessage.data.idNumber,
-                            
+
                             incidentMessages: incidentMessage.data.data,
-                            
+
                             count: incidentMessage.data.data.length,
-                            
+
                             type: incidentMessage.data.type,
-                            
+
                             incidentSlug: incidentMessage.data.incidentSlug,
                         })
                     );
                 } else {
                     dispatch(
-                        
                         deleteIncidentMessageSuccess(incidentMessage.data)
                     );
                 }
@@ -1248,7 +1228,6 @@ export function updateIncident(
 
         promise.then(
             function(incident) {
-                
                 dispatch(updateIncidentSuccess(incident.data));
             },
             function(error) {

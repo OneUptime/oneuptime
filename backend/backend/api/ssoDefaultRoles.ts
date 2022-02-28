@@ -27,7 +27,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
                 select: selectDefaultRoleSso,
                 populate: populateDefaultRoleSso,
             }),
-            
+
             SsoDefaultRolesService.countBy(),
         ]);
         return sendListResponse(req, res, ssos, count);
@@ -74,7 +74,7 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
         });
         if (!sso) {
             const error = new Error("Requested resource doesn't exist.");
-            
+
             error.code = 404;
             throw error;
         }

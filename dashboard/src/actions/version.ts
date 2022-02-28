@@ -37,7 +37,6 @@ export function getVersion() {
 
         promise.then(
             function(versions) {
-                
                 dispatch(getVersionSuccess(versions.data));
             },
             function(error) {

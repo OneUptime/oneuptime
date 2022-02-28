@@ -1,4 +1,3 @@
-
 import { find, save, update, removeField } from '../util/db';
 import getDomain from '../util/getDomain';
 import randomChar from '../util/randomChar';

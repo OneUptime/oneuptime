@@ -8,7 +8,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -21,7 +21,7 @@ export default {
             const error = new Error(
                 'Application Log with that name already exists.'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -30,19 +30,18 @@ export default {
         });
         // prepare application log model
         let applicationLog = new ApplicationLogModel();
-        
+
         applicationLog.name = data.name;
-        
+
         applicationLog.key = uuid.v4(); // generate random string here
-        
+
         applicationLog.componentId = data.componentId;
-        
+
         applicationLog.createdById = data.createdById;
         if (resourceCategoryCount && resourceCategoryCount > 0) {
-            
             applicationLog.resourceCategory = data.resourceCategory;
         }
-        
+
         applicationLog.slug = getSlug(data.name);
         const savedApplicationLog = await applicationLog.save();
 
@@ -118,7 +117,7 @@ export default {
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
-            
+
             error.code = 400;
             throw error;
         }
@@ -176,9 +175,8 @@ export default {
                 query: { _id: applicationLog.componentId._id },
                 select: 'projectId',
             });
-            
+
             NotificationService.create(
-                
                 component.projectId,
                 `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,
                 applicationLog.deletedById._id,
@@ -215,7 +213,6 @@ export default {
         );
 
         if (unsetData) {
-            
             applicationLog = await ApplicationLogModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },

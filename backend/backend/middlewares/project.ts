@@ -35,7 +35,7 @@ export default {
                     });
                 }
                 // Calls the ProjectService
-                
+
                 const project = await ProjectService.findOneBy({
                     query: { _id: projectId },
                     select: '_id users',
@@ -55,7 +55,6 @@ export default {
 
                     // if not in project, look at subprojects.
 
-                    
                     const subProjects = await ProjectService.findBy({
                         query: { parentProjectId: project._id },
                         select: 'users _id',
@@ -131,7 +130,7 @@ export default {
                 return next();
             } else {
                 const userId = req.user ? req.user.id : null;
-                
+
                 const project = await ProjectService.findOneBy({
                     query: {
                         'users.userId': userId,
@@ -179,7 +178,7 @@ export default {
                 return next();
             } else {
                 const UserId = req.user ? req.user.id : null;
-                
+
                 const project = await ProjectService.findOneBy({
                     query: {
                         'users.userId': UserId,
@@ -223,7 +222,7 @@ export default {
     getUserRole: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
         try {
             const UserId = req.user ? req.user.id : null;
-            
+
             const project = await ProjectService.findOneBy({
                 query: {
                     'users.userId': UserId,

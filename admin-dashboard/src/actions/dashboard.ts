@@ -31,7 +31,6 @@ export const loadDashboard = () => async (dispatch: $TSFixMe) => {
     dispatch(dashboardLoadRequest());
 
     try {
-        
         const response = await getApi(`user/users?skip=${skip}&limit=${limit}`);
         dispatch(dashboardLoadSuccess());
 

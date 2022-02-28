@@ -100,9 +100,9 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 [],
                 state.incidentPrioritiesList.incidentPriorities
             );
-            
+
             incidentPriorities.push(action.payload);
-            
+
             count = state.incidentPrioritiesList.count + 1;
             return Object.assign({}, state, {
                 incidentPrioritiesList: {
@@ -154,10 +154,9 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 state.incidentPrioritiesList.incidentPriorities
             );
             index = incidentPriorities.findIndex(
-                
                 incidentPriority => incidentPriority._id === action.payload._id
             );
-            
+
             incidentPriorities[index] = action.payload;
 
             return Object.assign({}, state, {
@@ -209,11 +208,10 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                 state.incidentPrioritiesList.incidentPriorities
             );
             index = incidentPriorities.findIndex(
-                
                 incidentPriority => incidentPriority._id === action.payload._id
             );
             incidentPriorities.splice(index, 1);
-            
+
             count = state.incidentPrioritiesList.count - 1;
 
             return Object.assign({}, state, {

@@ -17,7 +17,6 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-
 import express from 'express';
 const app = express();
 import path from 'path';

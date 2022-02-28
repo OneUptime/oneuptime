@@ -1,17 +1,14 @@
 require('should');
 
-
 import zapier from 'zapier-platform-core';
 
 import App from '../index';
 
 const appTester = zapier.createAppTester(App);
 
-
 describe('Authenticate API KEY and ProjectID', () => {
     zapier.tools.env.inject();
 
-    
     it('passes authentication and returns json', (done: $TSFixMe) => {
         const bundle = {
             authData: {

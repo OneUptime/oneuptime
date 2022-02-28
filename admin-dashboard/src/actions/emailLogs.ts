@@ -32,9 +32,8 @@ export const fetchEmailLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
     dispatch(fetchEmailLogsRequest());
 
     try {
-        
         const response = await getApi(`email-logs?skip=${skip}&limit=${limit}`);
-        
+
         const data = response.data;
 
         dispatch(fetchEmailLogsSuccess(data));
@@ -89,12 +88,11 @@ export const searchEmailLogs = (
     dispatch(searchEmailLogsRequest());
 
     try {
-        
         const response = await postApi(
             `email-logs/search?skip=${skip}&limit=${limit}`,
             values
         );
-        
+
         const data = response.data;
 
         dispatch(searchEmailLogsSuccess(data));
@@ -140,9 +138,8 @@ export const deleteEmailLogs = () => async (dispatch: $TSFixMe) => {
     dispatch(deleteEmailLogsRequest());
 
     try {
-        
         const response = await deleteApi(`email-logs`);
-        
+
         const message = response.data.message;
 
         dispatch(deleteEmailLogsSuccess(message));
@@ -193,13 +190,11 @@ export const resetFetchEmailLogStatus = () => {
 
 // Calls the API to fetch emailLogStatus
 export const fetchEmailLogStatus = () => async (dispatch: $TSFixMe) => {
-    
     dispatch(fetchEmailLogStatusRequest());
 
     try {
-        
         const response = await getApi('globalConfig/emailLogMonitoringStatus');
-        
+
         dispatch(fetchEmailLogStatusSuccess(response.data));
         return response;
     } catch (error) {
@@ -252,15 +247,13 @@ export const resetConfirmEmailLogStatus = () => {
 export const emailLogStatusChange = (values: $TSFixMe) => async (
     dispatch: $TSFixMe
 ) => {
-    
     dispatch(changeEmailLogStatusRequest());
 
     try {
-        
         const response = await postApi('globalConfig/', [
             { name: 'emailLogMonitoringStatus', value: values.status },
         ]);
-        
+
         const data = response.data;
         dispatch(changeEmailLogStatusSuccess(data));
         return data;

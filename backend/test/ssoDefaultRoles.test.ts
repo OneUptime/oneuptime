@@ -1,4 +1,3 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user';
@@ -8,7 +7,6 @@ chai.use(chaihttp);
 import app from '../server';
 
 const request = chai.request.agent(app);
-
 
 import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
@@ -20,7 +18,6 @@ import SsoService from '../backend/services/ssoService';
 import SsoDefaultRolesService from '../backend/services/ssoDefaultRolesService';
 import queryString from 'query-string';
 import testUtils from './utils/test-utils';
-
 
 testUtils.setShared({ request });
 let adminId: $TSFixMe,
@@ -79,10 +76,9 @@ const projectCreationPayloads = [
     },
 ];
 
-
 describe('SSO DEFAULT ROLES API', function() {
     this.timeout(300000);
-    
+
     before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
@@ -101,7 +97,7 @@ describe('SSO DEFAULT ROLES API', function() {
         adminAuthorizationHeader = testUtils.getAuthorizationHeader({
             jwtToken: response1.body.tokens.jwtAccessToken,
         });
-        
+
         testUtils.setShared({ authorization: adminAuthorizationHeader });
         await UserService.updateBy(
             {
@@ -126,7 +122,6 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoId2 = sso2.body._id;
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ 'users.userId': userId });
@@ -153,7 +148,7 @@ describe('SSO DEFAULT ROLES API', function() {
         });
         await AirtableService.deleteAll({ tableName: 'User' });
     });
-    
+
     it("should not create an 'Owner' role as default SSO role for a domain, in a project", async () => {
         const payload = {
             domain: ssoId1,
@@ -167,7 +162,6 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(response.body.message).to.equal('Invalid role.');
     });
 
-    
     it('should create a default SSO role for a domain, in a project', async () => {
         const payload = {
             domain: ssoId1,
@@ -184,21 +178,18 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoDefaultRole1 = response.body._id;
     });
 
-    
     it('should not create a default SSO role for a domain that already has a default role for a specific project', async () => {
         const payload = {
             domain: ssoId1,
             project: projectId1,
         };
         for (const role of roles) {
-            
             payload.role = role;
             const response = await testUtils.createSsoDefaultRole({ payload });
             expect(response).to.have.status(400);
         }
     });
 
-    
     it('should create a new default SSO role for a different SSO domain, in the same project', async () => {
         const payload = {
             domain: ssoId2,
@@ -215,9 +206,7 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoDefaultRole2 = response.body._id;
     });
 
-    
     it('should fetch the existing default sso roles', async () => {
-        
         const result = await testUtils.fetchSsoDefaultRoles();
         expect(result.body).to.be.an('Object');
         expect(result.body).to.have.property('count');
@@ -225,7 +214,6 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(result.body.count).to.equal(2);
     });
 
-    
     it('should update the existing default SSO role', async () => {
         const payload = {
             domain: ssoId1,
@@ -248,10 +236,9 @@ describe('SSO DEFAULT ROLES API', function() {
         expect(getEndpointResponse.body.role).to.equal('Administrator');
     });
 
-    
     it('should automatically add the new SSO users to the existing projects with roles defined on default SSO roles', async () => {
         const user = ssoUsers[0];
-        
+
         testUtils.unsetShared('authorization');
         const ssoLoginRequest = await testUtils.ssoLogin({ email: user.email });
         expect(ssoLoginRequest).to.have.status(200);
@@ -270,7 +257,7 @@ describe('SSO DEFAULT ROLES API', function() {
         const {
             header: { location: loginLink },
         } = response;
-        
+
         testUtils.setShared({ authorization: adminAuthorizationHeader });
         const projectRequest = await testUtils.fetchProject({
             projectId: projectId1,
@@ -290,7 +277,6 @@ describe('SSO DEFAULT ROLES API', function() {
         ).to.equal(true);
     });
 
-    
     it('should automatically add existing SSO users to the new projects with roles defined on SSO default roles', async () => {
         const project = await testUtils.createProject({
             payload: projectCreationPayloads[1],
@@ -326,7 +312,6 @@ describe('SSO DEFAULT ROLES API', function() {
         ).to.equal(true);
     });
 
-    
     it('should delete the existing default sso roles with removing the SSO users from existing the projects', async () => {
         const deleteResponse = await testUtils.deleteSsoDefaultRole({
             id: ssoDefaultRole3,
@@ -347,7 +332,6 @@ describe('SSO DEFAULT ROLES API', function() {
         ).to.equal(true);
     });
 
-    
     it('should delete all default SSO roles related to a SSO, when the SSO is deleted', async () => {
         const deleteResponse = await testUtils.deleteSso({ id: ssoId2 });
         expect(deleteResponse).to.have.status(200);
@@ -356,7 +340,7 @@ describe('SSO DEFAULT ROLES API', function() {
         });
         expect(fetchResponse).to.have.status(404);
     });
-    
+
     it('should delete all default SSO roles related to a project, when the project is deleted', async () => {
         const deleteResponse = await testUtils.deleteProject({
             id: projectId2,

@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -22,13 +21,10 @@ const dockerImageTag = utils.dockerCredential.imageTags;
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -40,13 +36,11 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the container security page and confirm there are no errors',
         async (done: $TSFixMe) => {
@@ -57,34 +51,33 @@ describe('OneUptime Page Reload', () => {
             await init.navigateToComponentDetails(componentName, page);
 
             await page.waitForSelector('#security', { visible: true });
-            
+
             await init.pageClick(page, '#security');
-            
+
             await init.pageClick(page, '#container');
 
             await page.waitForSelector('#containerSecurityForm', {
                 visible: true,
             });
-            
+
             await init.pageClick(page, '#addCredentialBtn');
             await page.waitForSelector('#dockerCredentialForm', {
                 visible: true,
             });
-            
+
             await init.pageType(page, '#dockerRegistryUrl', dockerRegistryUrl);
-            
+
             await init.pageType(page, '#dockerUsername', dockerUsername);
-            
+
             await init.pageType(page, '#dockerPassword', dockerPassword);
-            
+
             await init.pageClick(page, '#addCredentialModalBtn');
             await page.waitForSelector('#dockerCredentialForm', {
                 hidden: true,
             });
 
-            
             await init.pageClick(page, '#name');
-            
+
             await init.pageType(page, '#name', containerSecurityName);
             // await init.selectDropdownValue(
             //     '#resourceCategory',
@@ -96,11 +89,11 @@ describe('OneUptime Page Reload', () => {
                 dockerUsername,
                 page
             );
-            
+
             await init.pageType(page, '#imagePath', dockerImagePath); // select the created credential
-            
+
             await init.pageType(page, '#imageTags', dockerImageTag);
-            
+
             await init.pageClick(page, '#addContainerBtn');
 
             const containerSecurity = await page.waitForSelector(

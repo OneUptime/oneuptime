@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -15,13 +14,10 @@ const user = {
     password,
 };
 
-
 describe('Email Templates API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -34,37 +30,35 @@ describe('Email Templates API', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'should not show reset button when no template is saved',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, '#email');
             await init.selectDropdownValue(
                 '#type',
                 'Subscriber Incident Created', // Updated UI
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#name');
             defaultSubject = await init.page$Eval(
                 page,
@@ -85,24 +79,23 @@ describe('Email Templates API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should update default email template',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, '#email');
             await init.selectDropdownValue(
                 '#type',
@@ -110,12 +103,12 @@ describe('Email Templates API', () => {
                 page
             );
             const subject = 'Updated Subject';
-            
+
             await init.pageWaitForSelector(page, '#name');
             await init.pageClick(page, '#name', { clickCount: 3 });
-            
+
             await init.pageType(page, '#name', subject);
-            
+
             await init.pageClick(page, '#saveTemplate');
             await init.pageWaitForSelector(page, '#ball-beat', {
                 hidden: true,
@@ -127,7 +120,7 @@ describe('Email Templates API', () => {
                 'Subscriber Incident Created',
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#name');
             const finalSubject = await init.page$Eval(
                 page,
@@ -142,24 +135,23 @@ describe('Email Templates API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should show reset button when a template is already saved',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, '#email');
             await init.selectDropdownValue(
                 '#type',
@@ -181,24 +173,23 @@ describe('Email Templates API', () => {
         operationTimeOut
     );
 
-    
     test(
         'should reset template to default state',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageWaitForSelector(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageWaitForSelector(page, '#more');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageWaitForSelector(page, '#email');
-            
+
             await init.pageClick(page, '#email');
             await init.selectDropdownValue(
                 '#type',
@@ -209,7 +200,7 @@ describe('Email Templates API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#templateReset');
             await init.pageWaitForSelector(page, '#ball-beat', {
                 hidden: true,
@@ -221,7 +212,7 @@ describe('Email Templates API', () => {
                 'Subscriber Incident Created',
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#name');
             const finalSubject = await init.page$Eval(
                 page,

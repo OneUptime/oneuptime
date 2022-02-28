@@ -56,23 +56,22 @@ export default {
         if (globalConfig && globalConfig.value) {
             let item = new EmailStatusModel();
 
-            
             item.status = status;
-            
+
             item.from = from;
-            
+
             item.to = to;
-            
+
             item.subject = subject;
-            
+
             item.body = body;
-            
+
             item.template = template;
-            
+
             item.content = content;
-            
+
             item.error = error;
-            
+
             item.smtpServer = smtpServer;
             item = await item.save();
 

@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
@@ -6,10 +5,9 @@ const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST
 // to make the necessary updates to the db
 module.exports.create = function(config: $TSFixMe) {
     const store = {};
-    
+
     store.options = config;
 
-    
     store.accounts = {
         setKeypair: function(opts: $TSFixMe) {
             const id =
@@ -47,7 +45,6 @@ module.exports.create = function(config: $TSFixMe) {
         options: config,
     };
 
-    
     store.certificates = {
         setKeypair: function(opts: $TSFixMe) {
             const id =

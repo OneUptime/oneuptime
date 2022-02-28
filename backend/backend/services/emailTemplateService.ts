@@ -1,17 +1,16 @@
 export default {
     create: async function(data: $TSFixMe) {
         const emailTemplateModel = new EmailTemplateModel();
-        
+
         emailTemplateModel.projectId = data.projectId || null;
-        
+
         emailTemplateModel.subject = data.subject || null;
-        
+
         emailTemplateModel.body = data.body || null;
-        
+
         emailTemplateModel.emailType = data.emailType || null;
-        
+
         emailTemplateModel.allowedVariables =
-            
             emailTemplateVariables[[data.emailType]];
         const emailTemplate = await emailTemplateModel.save();
         return emailTemplate;
@@ -25,7 +24,6 @@ export default {
         if (!query.deleted) query.deleted = false;
 
         if (data.emailType && !data.allowedVariables) {
-            
             data.allowedVariables = emailTemplateVariables[[data.emailType]];
         }
         const updatedEmailTemplate = await EmailTemplateModel.findOneAndUpdate(

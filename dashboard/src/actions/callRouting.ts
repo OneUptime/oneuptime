@@ -17,7 +17,6 @@ export function getCallRoutingNumbers(
 
         promise.then(
             function(numbers) {
-                
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -69,9 +68,8 @@ export function getTeamAndSchedules(projectId: $TSFixMe) {
         promise.then(
             function([schedule, team]) {
                 const data = {
-                    
                     teams: team.data,
-                    
+
                     schedules: schedule.data.data,
                 };
                 dispatch(getTeamAndSchedulesSuccess(data));
@@ -125,7 +123,6 @@ export function addCallRoutingNumber(projectId: $TSFixMe, values: $TSFixMe) {
 
         promise.then(
             function(number) {
-                
                 dispatch(addCallRoutingNumberSuccess(number.data));
             },
             function(error) {
@@ -193,7 +190,7 @@ export function uploadCallRoutingAudio(
                     uploadCallRoutingAudioSuccess(
                         callRoutingId,
                         audioFieldName,
-                        
+
                         data.data
                     )
                 );
@@ -270,7 +267,6 @@ export function addCallRoutingSchedule(
 
         promise.then(
             function(data) {
-                
                 dispatch(addCallRoutingScheduleSuccess(data.data));
             },
             function(error) {
@@ -326,7 +322,6 @@ export function fetchNumbers(
 
         promise.then(
             function(numbers) {
-                
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -383,7 +378,6 @@ export function removeNumbers(projectId: $TSFixMe, callRoutingId: $TSFixMe) {
 
         promise.then(
             function(numbers) {
-                
                 dispatch(removeNumbersSuccess(numbers.data));
             },
             function(error) {
@@ -441,9 +435,8 @@ export function getCallRoutingLogs(
             function(logs) {
                 dispatch(
                     getCallRoutingLogsSuccess({
-                        
                         logs: logs.data,
-                        
+
                         count: logs.data.length,
                         skip,
                         limit,
@@ -512,7 +505,6 @@ export function removeIntroAudio(
 
         promise.then(
             function(numbers) {
-                
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
             function(error) {

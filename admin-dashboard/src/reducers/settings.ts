@@ -35,13 +35,10 @@ export default function profileSettings(
 
         case REQUESTING_SETTINGS_SUCCEEDED:
             if (action.payloadType === 'smtp') {
-                
                 settings.smtp = action.payload;
             } else if (action.payloadType === 'twilio') {
-                
                 settings.twilio = action.payload;
             } else if (action.payloadType === 'sso') {
-                
                 settings.sso = action.payload;
             }
             return {

@@ -11,7 +11,6 @@ export default {
     sendFileResponse(req: $TSFixMe, res: $TSFixMe, file: $TSFixMe) {
         /** create read stream */
 
-        
         const gfs = new GridFSBucket(global.client, {
             bucketName: 'uploads',
         });
@@ -72,93 +71,70 @@ export default {
         }
 
         if (list) {
-            
             response.data = list;
         }
 
         if (count) {
-            
             response.count = count;
         } else {
-            
             if (list) response.count = list.length;
         }
 
         if (req.query.skip) {
-            
             response.skip = parseInt(req.query.skip);
         }
 
         if (req.query.limit) {
-            
             response.limit = parseInt(req.query.limit);
         }
 
         //purge request.
         //req = null;
         if (req.query['output-type'] === 'csv') {
-            
             if (!Array.isArray(response.data)) {
-                
                 const properties = Object.keys(response.data);
                 const newObj = {};
                 properties.forEach(prop => {
                     if (
-                        
                         typeof response.data[[prop]] === 'object' &&
-                        
                         response.data[[prop]] !== null
                     ) {
-                        
                         if (response.data[[prop]].name)
-                            
                             response.data[[prop]] = response.data[[prop]].name;
-                        
                         else if (response.data[[prop]].title)
-                            
                             response.data[[prop]] = response.data[[prop]].title;
-                        
                         else if (response.data[[prop]]._id)
-                            
                             response.data[[prop]] = response.data[[prop]]._id;
                     }
-                    
+
                     newObj[[prop]] = response.data[[prop]];
                 });
-                
+
                 response.data = JSON.parse(JSON.stringify(newObj));
-                
+
                 response.data = [response.data];
             } else {
-                
                 response.data = response.data.map((i: $TSFixMe) => {
                     i = i._doc ? i._doc : i;
                     const properties = Object.keys(i);
                     const newObj = {};
                     properties.forEach(prop => {
                         if (
-                            
                             typeof i[[prop]] === 'object' &&
-                            
                             i[[prop]] !== null
                         ) {
-                            
                             if (i[[prop]].name) i[[prop]] = i[[prop]].name;
-                            
                             else if (i[[prop]].title)
-                                
                                 i[[prop]] = i[[prop]].title;
-                            
                             else if (i[[prop]]._id) i[[prop]] = i[[prop]]._id;
                         }
-                        
+
                         newObj[[prop]] = i[[prop]];
                     });
                     return JSON.parse(JSON.stringify(newObj));
                 });
             }
 
-            
             response.data = await JsonToCsv.ToCsv(response.data);
         }
 
@@ -174,23 +150,16 @@ export default {
                 const newObj = {};
                 properties.forEach(prop => {
                     if (
-                        
                         typeof item[[prop]] === 'object' &&
-                        
                         item[[prop]] !== null
                     ) {
-                        
                         if (item[[prop]].name) item[[prop]] = item[[prop]].name;
-                        
                         else if (item[[prop]].title)
-                            
                             item[[prop]] = item[[prop]].title;
-                        
                         else if (item[[prop]]._id)
-                            
                             item[[prop]] = item[[prop]]._id;
                     }
-                    
+
                     newObj[[prop]] = item[[prop]];
                 });
                 item = JSON.parse(JSON.stringify(newObj));
@@ -202,21 +171,15 @@ export default {
                     const newObj = {};
                     properties.forEach(prop => {
                         if (
-                            
                             typeof i[[prop]] === 'object' &&
-                            
                             i[[prop]] !== null
                         ) {
-                            
                             if (i[[prop]].name) i[[prop]] = i[[prop]].name;
-                            
                             else if (i[[prop]].title)
-                                
                                 i[[prop]] = i[[prop]].title;
-                            
                             else if (i[[prop]]._id) i[[prop]] = i[[prop]]._id;
                         }
-                        
+
                         newObj[[prop]] = i[[prop]];
                     });
                     return JSON.parse(JSON.stringify(newObj));

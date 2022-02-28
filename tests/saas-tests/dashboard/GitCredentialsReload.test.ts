@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -16,13 +15,10 @@ const gitPassword = utils.gitCredential.gitPassword;
  * It stays on the same page on reload
  */
 
-
 describe('OneUptime Page Reload', () => {
     const operationTimeOut = 100000;
 
-    
     beforeAll(async (done: $TSFixMe) => {
-        
         jest.setTimeout(100000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -32,34 +28,32 @@ describe('OneUptime Page Reload', () => {
         done();
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test(
         'Should reload the probe page and confirm there are no errors',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            
+
             await init.pageClick(page, '#projectSettings');
-            
+
             await init.pageClick(page, '#more');
-            
+
             await init.pageClick(page, '#gitCredentials');
-            
+
             await init.pageClick(page, '#addCredentialBtn');
-            
+
             await init.pageType(page, '#gitUsername', gitUsername);
-            
+
             await init.pageType(page, '#gitPassword', gitPassword);
-            
+
             await init.pageClick(page, '#addCredentialModalBtn');
-            
+
             const spanElement = await init.pageWaitForSelector(
                 page,
                 `#gitUsername_${gitUsername}`
@@ -75,7 +69,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             const spanElement2 = await init.pageWaitForSelector(
                 page,
                 `#gitUsername_${gitUsername}`

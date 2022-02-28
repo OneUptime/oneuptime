@@ -33,24 +33,22 @@ export const resetProbe = () => {
 
 // Gets project Probes
 export function getProbes(skip = 0, limit = 10) {
-    
     skip = parseInt(skip);
-    
+
     limit = parseInt(limit);
 
     return function(dispatch: $TSFixMe) {
         let promise = null;
-        
+
         promise = getApi(`probe/?skip=${skip}&limit=${limit}`);
         dispatch(probeRequest(promise));
 
         promise.then(
             function(probes) {
-                
                 probes.data.skip = skip || 0;
-                
+
                 probes.data.limit = limit || 10;
-                
+
                 dispatch(probeSuccess(probes.data));
             },
             function(error) {
@@ -104,7 +102,6 @@ export const deleteProbe = (probeId: $TSFixMe) => async (
     dispatch(deleteProbeRequest());
 
     try {
-        
         const response = await deleteApi(`probe/${probeId}`);
         dispatch(deleteProbeSuccess(probeId));
         return response;
@@ -164,9 +161,8 @@ export const addProbe = (probeKey: $TSFixMe, probeName: $TSFixMe) => async (
     dispatch(addProbeRequest());
 
     try {
-        
         const response = await postApi('probe/', { probeKey, probeName });
-        
+
         const data = response.data;
         dispatch(addProbeSuccess(data));
         return 'ok';
@@ -224,7 +220,7 @@ export const updateProbe = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
         data.append('id', values.id);
 
         const response = await putApi('probe/update/image', data);
-        
+
         const resp = response.data;
         if (Object.keys(resp).length > 0) {
             dispatch(updateProbeSuccess(resp));

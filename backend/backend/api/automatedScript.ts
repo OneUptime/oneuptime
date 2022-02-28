@@ -51,12 +51,10 @@ router.get(
             });
 
             if (details.successEvent.length > 0) {
-                
                 details.successEvent = formatEvent(details.successEvent);
             }
 
             if (details.failureEvent.length > 0) {
-                
                 details.failureEvent = formatEvent(details.failureEvent);
             }
 
@@ -221,7 +219,7 @@ router.put(
     async (req, res) => {
         try {
             const { automatedScriptId } = req.params;
-            
+
             const triggeredId = req.user ? req.user.id : null;
             const response = await AutomatedScriptService.runResource({
                 triggeredId,
@@ -253,7 +251,7 @@ router.delete(
                 select,
                 populate,
             });
-            
+
             const userId = req.user ? req.user.id : null;
             const response = await AutomatedScriptService.deleteBy(
                 {

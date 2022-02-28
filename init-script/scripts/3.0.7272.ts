@@ -1,4 +1,3 @@
-
 import { find, update } from '../util/db';
 
 const PROJECT_COLLECTION = 'projects';
@@ -33,7 +32,6 @@ async function run() {
                     'enableInvestigationNoteNotificationSMS'
                 )
             ) {
-                
                 updateValues.enableInvestigationNoteNotificationSMS = true;
             }
             if (
@@ -42,7 +40,6 @@ async function run() {
                     'enableInvestigationNoteNotificationEmail'
                 )
             ) {
-                
                 updateValues.enableInvestigationNoteNotificationEmail = true;
             }
             if (
@@ -51,7 +48,6 @@ async function run() {
                     'enableInvestigationNoteNotificationWebhook'
                 )
             ) {
-                
                 updateValues.enableInvestigationNoteNotificationWebhook = true;
             }
 

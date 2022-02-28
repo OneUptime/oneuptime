@@ -16,7 +16,6 @@ import ErrorService from 'common-server/utils/error';
 import { toXML } from 'jstoxml';
 import moment from 'moment';
 
-
 import { getUser, checkUser } from '../middlewares/user';
 
 import { isUserAdmin } from '../middlewares/project';
@@ -133,7 +132,7 @@ router.put(
 
             const updatedStatusPage = await StatusPageService.getStatusPage({
                 query: { _id: statusPage._id },
-                
+
                 userId: req.user.id,
                 populate: populateStatusPage,
                 select: selectStatusPage,
@@ -184,7 +183,7 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
 
         const updatedStatusPage = await StatusPageService.getStatusPage({
             query: { _id: statusPage._id },
-            
+
             userId: req.user.id,
             populate: populateStatusPage,
             select: selectStatusPage,
@@ -364,9 +363,8 @@ router.post('/:projectId/certFile', async function(req, res) {
             if (error) {
                 return sendErrorResponse(req, res, error);
             }
-            
+
             if (req.files && req.files.cert && req.files.cert[0].filename) {
-                
                 cert = req.files.cert[0].filename;
             }
             return sendItemResponse(req, res, { cert });
@@ -393,12 +391,9 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
             }
             if (
                 req.files &&
-                
                 req.files.privateKey &&
-                
                 req.files.privateKey[0].filename
             ) {
-                
                 privateKey = req.files.privateKey[0].filename;
             }
             return sendItemResponse(req, res, { privateKey });
@@ -413,7 +408,7 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
 router.get('/tlsCredential', async function(req, res) {
     try {
         const { domain } = req.query;
-        
+
         const user = req.user;
 
         if (!domain) {
@@ -445,15 +440,14 @@ router.get('/tlsCredential', async function(req, res) {
             });
 
         return sendItemResponse(req, res, {
-            
             cert: domainObj.cert,
-            
+
             privateKey: domainObj.privateKey,
-            
+
             autoProvisioning: domainObj.autoProvisioning,
-            
+
             enableHttps: domainObj.enableHttps,
-            
+
             domain: domainObj.domain,
         });
     } catch (error) {
@@ -568,10 +562,9 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         const files = req.files || {};
         const data = req.body;
         data.projectId = req.params.projectId;
-        
+
         data.subProjectId = req.params.subProjectId;
         if (error) {
-            
             ErrorService.log(error);
             return sendErrorResponse(req, res, error);
         }
@@ -583,11 +576,10 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 select: 'faviconPath logoPath bannerPath',
             });
             const imagesPath = {
-                
                 faviconPath: statusPage.faviconPath,
-                
+
                 logoPath: statusPage.logoPath,
-                
+
                 bannerPath: statusPage.bannerPath,
             };
             if (
@@ -607,20 +599,15 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     data.bannerPath = null;
                 }
             } else {
-                
                 if (files && files.favicon && files.favicon[0].filename) {
-                    
                     data.faviconPath = files.favicon[0].filename;
                 }
 
-                
                 if (files && files.logo && files.logo[0].filename) {
-                    
                     data.logoPath = files.logo[0].filename;
                 }
-                
+
                 if (files && files.banner && files.banner[0].filename) {
-                    
                     data.bannerPath = files.banner[0].filename;
                 }
             }
@@ -660,7 +647,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
             const updatedStatusPage = await StatusPageService.getStatusPage({
                 query: { _id: statusPage._id },
-                
+
                 userId: req.user.id,
                 populate: populateStatusPage,
                 select: selectStatusPage,
@@ -700,7 +687,7 @@ router.get('/statusBubble', async function(req, res) {
     try {
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-        
+
         const probes = await ProbeService.findBy({
             query: {},
             limit: 0,
@@ -748,7 +735,7 @@ router.get('/statusBubble', async function(req, res) {
             populate: populateStatusPage,
             select: selectStatusPage,
         });
-        
+
         if (!(statusPages && statusPages.length)) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -892,7 +879,7 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
 ) {
     const statusPageSlug = req.params.statusPageSlug;
     const url = req.query.url;
-    
+
     const user = req.user;
     let statusPage = {};
     const populateStatusPage = [
@@ -941,7 +928,6 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
             });
         }
 
-        
         if (statusPage.isPrivate && !req.user) {
             return sendErrorResponse(req, res, {
                 code: 401,
@@ -975,7 +961,6 @@ router.post(
             let statusPageProjectId = projectId;
             let filterMonitors = false;
             if (subProjectId) {
-                
                 statusPageProjectId = subProjectId;
                 filterMonitors = true;
             }
@@ -997,7 +982,7 @@ router.post(
 router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
-    
+
     const user = req.user;
     let statusPage = {};
 
@@ -1022,7 +1007,6 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
             });
         }
 
-        
         if (statusPage.isPrivate && !req.user) {
             return sendErrorResponse(req, res, {
                 code: 401,
@@ -1037,7 +1021,7 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 refinedIncidents.push({
                     item: {
                         title: incident.title,
-                        
+
                         guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
                         pubDate: new Date(incident.createdAt).toUTCString(),
                         description: `<![CDATA[Description: ${
@@ -1069,7 +1053,6 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                 _content: {
                     channel: [
                         {
-                            
                             title: `Incidents for status page ${statusPage.name}`,
                         },
                         {
@@ -1077,7 +1060,6 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                                 'RSS feed for all incidents related to monitors attached to status page',
                         },
                         {
-                            
                             link: `${global.apiHost}/status-page/${statusPageId}/rss`,
                         },
                         {
@@ -1137,7 +1119,7 @@ router.get(
                         });
                     }
                 }
-                
+
                 result = formatNotes(updatedNotes, days);
                 result = checkDuplicateDates(result);
             } else {
@@ -1201,26 +1183,24 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     res
 ) {
     let date = req.query.date;
-    
+
     date = new Date(date);
     const theme = req.query.theme;
     const start = new Date(
-        
         date.getFullYear(),
-        
+
         date.getMonth(),
-        
+
         date.getDate(),
         0,
         0,
         0
     );
     const end = new Date(
-        
         date.getFullYear(),
-        
+
         date.getMonth(),
-        
+
         date.getDate(),
         23,
         59,
@@ -1286,7 +1266,7 @@ router.get(
                 { slug: statusPageSlug },
                 skip,
                 limit,
-                
+
                 theme
             );
 
@@ -1359,7 +1339,6 @@ const fetchNotes = async (events: $TSFixMe, limit: $TSFixMe) => {
     const updatedEvents = [];
     if (events.length > 0) {
         for (const event of events) {
-            
             const statusPageEvent = await StatusPageService.getEventNotes({
                 scheduledEventId: event._id,
                 type: 'investigation',
@@ -1370,7 +1349,6 @@ const fetchNotes = async (events: $TSFixMe, limit: $TSFixMe) => {
             });
         }
 
-        
         events = formatNotes(updatedEvents, limit);
         events = checkDuplicateDates(events);
         return events;
@@ -1408,7 +1386,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
     res
 ) {
     let date = req.query.date;
-    
+
     date = moment(date)
         .endOf('day')
         .format();
@@ -1441,7 +1419,6 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
             const updatedEvents = [];
             if (events.length > 0) {
                 for (const event of events) {
-                    
                     const statusPageEvent = await StatusPageService.getEventNotes(
                         { scheduledEventId: event._id, type: 'investigation' }
                     );
@@ -1547,7 +1524,6 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
         const [probes, count] = await Promise.all([
-            
             ProbeService.findBy({
                 query: {},
                 limit,
@@ -1569,7 +1545,7 @@ router.delete(
     isUserAdmin,
     async function(req, res) {
         const statusPageSlug = req.params.statusPageSlug;
-        
+
         const userId = req.user ? req.user.id : null;
         try {
             // Call the StatusPageService.
@@ -1629,7 +1605,6 @@ router.get(
         try {
             const { statusPageSlug } = req.params;
 
-            
             const incidents = await StatusPageService.getNotes({
                 slug: statusPageSlug,
             });
@@ -1664,7 +1639,6 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
             populate: populateStatusPage,
         });
 
-        
         const monitors = statusPage.monitors.map(
             (mon: $TSFixMe) => mon.monitor._id
         );
@@ -1705,9 +1679,8 @@ router.post(
             const { name, url } = req.body;
             const data = {};
 
-            
             data.name = name;
-            
+
             data.url = url;
 
             if (!data) {
@@ -1717,14 +1690,13 @@ router.post(
                 });
             }
 
-            
             if (!data.name || !data.name.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'External Status Page Name is required.',
                 });
             }
-            
+
             if (!data.url || !data.url.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1741,11 +1713,11 @@ router.post(
             // To confirm the name and url is not created already
             const nameQuery = { name };
             const urlQuery = { url };
-            
+
             const existingExternalStatusPageId = await StatusPageService.getExternalStatusPage(
                 nameQuery
             );
-            
+
             const existingExternalStatusPageUrl = await StatusPageService.getExternalStatusPage(
                 urlQuery
             );
@@ -1763,7 +1735,6 @@ router.post(
             }
             // This scrapes the External Status Page
             try {
-                
                 const res = await axios.get(`${data.url}`);
                 const $ = cheerio.load(res.data);
                 const status = $('span.status.font-large')
@@ -1779,7 +1750,6 @@ router.post(
                     });
                 }
                 if (status === 'All Systems Operational') {
-                    
                     data.description = status;
                 } else {
                     $('div.component-container.border-color').each((i, el) => {
@@ -1788,7 +1758,6 @@ router.post(
                             .text()
                             .replace(/\s\s+/g, '');
                         if (componentStatus !== 'Operational') {
-                            
                             data.description = componentStatus;
                         }
                     });
@@ -1800,15 +1769,14 @@ router.post(
                 });
             }
 
-            
             data.createdById = req.user ? req.user.id : null;
-            
+
             data.projectId = projectId;
-            
+
             data.statusPageId = statusPageId;
 
             await StatusPageService.createExternalStatusPage(data);
-            
+
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -1825,9 +1793,9 @@ router.post(
             const { projectId, externalStatusPageId } = req.params;
             const { name, url } = req.body;
             const data = {};
-            
+
             data.name = name;
-            
+
             data.url = url;
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -1835,14 +1803,14 @@ router.post(
                     message: "Values can't be null",
                 });
             }
-            
+
             if (!data.name || !data.name.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'External Status Page Name is required.',
                 });
             }
-            
+
             if (!data.url || !data.url.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1863,7 +1831,6 @@ router.post(
             }
             // This scrapes the External Status Page
             try {
-                
                 const res = await axios.get(`${data.url}`);
                 const $ = cheerio.load(res.data);
                 const status = $('span.status.font-large')
@@ -1879,7 +1846,6 @@ router.post(
                     });
                 }
                 if (status === 'All Systems Operational') {
-                    
                     data.description = status;
                 } else {
                     $('div.component-container.border-color').each((i, el) => {
@@ -1888,7 +1854,6 @@ router.post(
                             .text()
                             .replace(/\s\s+/g, '');
                         if (componentStatus !== 'Operational') {
-                            
                             data.description = componentStatus;
                         }
                     });
@@ -1905,7 +1870,7 @@ router.post(
                 externalStatusPageId,
                 data
             );
-            
+
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -1937,7 +1902,6 @@ router.get(
             // To fetch all created external statuspages
             const query = { projectId, statusPageId };
 
-            
             const response = await StatusPageService.getExternalStatusPage(
                 query
             );
@@ -1955,7 +1919,7 @@ router.post(
     async function(req, res) {
         try {
             const { projectId, externalStatusPageId } = req.params;
-            
+
             const userId = req.user ? req.user.id : null;
 
             if (!projectId) {
@@ -1978,7 +1942,6 @@ router.post(
                 userId
             );
 
-            
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -1994,7 +1957,7 @@ router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
     try {
         const { projectId, statusPageId } = req.params;
         const { data } = req.body;
-        
+
         data.createdById = req.user ? req.user.id : null;
 
         if (!data) {
@@ -2043,7 +2006,7 @@ router.put(
         try {
             const { projectId, statusPageId, announcementId } = req.params;
             const { data } = req.body;
-            
+
             data.createdById = req.user ? req.user.id : null;
 
             if (!data.announcementToggle) {
@@ -2091,27 +2054,25 @@ router.put(
             if (response && data.announcementToggle) {
                 const date = new Date();
                 const log = {};
-                
+
                 log.statusPageId = statusPageId;
                 if (data.hideAnnouncement) {
-                    
                     log.endDate = date;
-                    
+
                     log.updatedById = data.createdById;
-                    
+
                     log.active = false;
                     await StatusPageService.updateAnnouncementLog(
                         { active: true },
                         log
                     );
                 } else {
-                    
                     log.announcementId = announcementId;
-                    
+
                     log.createdById = data.createdById;
-                    
+
                     log.startDate = date;
-                    
+
                     log.active = true;
                     await StatusPageService.createAnnouncementLog(log);
                 }
@@ -2150,7 +2111,7 @@ router.get(
                 for (const log of announcementLogs) {
                     updatedLogs.push({ ...log });
                 }
-                
+
                 announcementLogs = formatNotes(updatedLogs, 20);
                 announcementLogs = checkDuplicateDates(announcementLogs);
             }
@@ -2175,7 +2136,7 @@ router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
         const { projectId, statusPageId } = req.params;
         const { skip, limit, show } = req.query;
         const query = { projectId, statusPageId };
-        
+
         if (show) query.hideAnnouncement = false;
 
         const [allAnnouncements, count] = await Promise.all([
@@ -2200,7 +2161,7 @@ router.get(
     async function(req, res) {
         try {
             const { projectId, statusPageSlug, announcementSlug } = req.params;
-            
+
             const { _id } = await StatusPageService.findOneBy({
                 query: { slug: statusPageSlug },
                 select: '_id',
@@ -2223,7 +2184,7 @@ router.delete(
     async function(req, res) {
         try {
             const { projectId, announcementId } = req.params;
-            
+
             const userId = req.user ? req.user.id : null;
             const response = await StatusPageService.deleteAnnouncement(
                 {
@@ -2245,7 +2206,7 @@ router.delete(
     async function(req, res) {
         try {
             const { announcementLogId } = req.params;
-            
+
             const userId = req.user ? req.user.id : null;
             const response = await StatusPageService.deleteAnnouncementLog(
                 {
@@ -2299,10 +2260,9 @@ function checkDuplicateDates(items: $TSFixMe) {
     for (const item of items) {
         const date = String(item.createdAt).slice(0, 10);
 
-        
         if (!track[date]) {
             item.style = true;
-            
+
             track[date] = date;
         } else {
             item.style = false;
@@ -2340,15 +2300,14 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
             const ongoingEvents = await getOngoingScheduledEvents(
                 req,
-                
+
                 statusPage.slug
             );
 
@@ -2369,13 +2328,11 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            
             const futureEvents = await getFutureEvents(req, statusPage.slug);
 
             return sendItemResponse(req, res, futureEvents);
@@ -2395,13 +2352,11 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            
             const pastEvents = await getPastEvents(req, statusPage.slug);
 
             return sendItemResponse(req, res, pastEvents);
@@ -2421,9 +2376,8 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
@@ -2446,13 +2400,11 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            
             const monitorLogs = await getMonitorLogs(req, statusPage.monitors);
 
             return sendItemResponse(req, res, monitorLogs);
@@ -2472,13 +2424,11 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            
             const { _id: statusPageId, projectId } = statusPage;
 
             const announcements = await getAnnouncements(
@@ -2504,9 +2454,8 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
@@ -2529,13 +2478,11 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            
             const timelines = await getMonitorTimelines(statusPage.slug);
 
             return sendItemResponse(req, res, timelines);
@@ -2555,17 +2502,16 @@ router.get(
 
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
             const statusPageNote = await getStatusPageNote(
                 req,
-                
+
                 statusPage.slug,
-                
+
                 statusPage.theme
             );
 
@@ -2587,28 +2533,22 @@ router.get(
             const response = {};
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
-            
+
             if (statusPage.error) {
-                
                 return sendErrorResponse(req, res, statusPage.data);
             }
 
-            
             const { monitors } = statusPage;
 
             const monitorStatus = await getMonitorStatuses(req, monitors);
 
-            
             response.monitorStatus = monitorStatus || {};
 
-            
             statusPage.monitorsData.map((data: $TSFixMe) => {
-                
                 data.statuses = response.monitorStatus[data._id];
                 return data;
             });
 
-            
             response.statusPages = statusPage;
 
             const probes = await getProbes(req);
@@ -2620,7 +2560,6 @@ router.get(
                 range
             );
 
-            
             response.time = time || {};
             return sendItemResponse(req, res, response);
         } catch (error) {
@@ -2681,7 +2620,6 @@ async function getStatusPage(req: $TSFixMe, statusPageSlug: $TSFixMe) {
         };
     }
 
-    
     if (statusPage.isPrivate && !req.user) {
         return {
             error: true,
@@ -2705,7 +2643,7 @@ async function getOngoingScheduledEvents(
         { slug: statusPageSlug },
         skip,
         limit,
-        
+
         theme
     );
 
@@ -2750,7 +2688,7 @@ async function getProbes(req: $TSFixMe) {
     const limit = req.query.limit || 0;
     const selectProbe =
         'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-    
+
     const probes = await ProbeService.findBy({
         query: {},
         limit,
@@ -2820,7 +2758,7 @@ async function getAnnouncements(
 ) {
     const { skip, limit, show = true } = req.query;
     const query = { projectId, statusPageId };
-    
+
     if (show) query.hideAnnouncement = false;
 
     const allAnnouncements = await StatusPageService.getAnnouncements(
@@ -2850,7 +2788,7 @@ async function getMonitorStatuses(req: $TSFixMe, monitors: $TSFixMe) {
             startDate,
             endDate
         );
-        
+
         status[monitorId] = monitorStatuses;
     }
 
@@ -2858,7 +2796,6 @@ async function getMonitorStatuses(req: $TSFixMe, monitors: $TSFixMe) {
 }
 //get timelines
 async function getMonitorTimelines(statusPageSlug: $TSFixMe) {
-    
     const incidents = await StatusPageService.getNotes({
         slug: statusPageSlug,
     });
@@ -2904,7 +2841,7 @@ async function getStatusPageNote(
                 });
             }
         }
-        
+
         result = formatNotes(updatedNotes, days);
         result = checkDuplicateDates(result);
     } else {
@@ -2930,13 +2867,12 @@ async function getAnnouncementLogs(statusPage: $TSFixMe, limit = 5, skip = 0) {
         statusPageId: statusPage._id,
     });
 
-    
     if ((theme && typeof theme === 'boolean') || theme === 'true') {
         const updatedLogs = [];
         for (const log of announcementLogs) {
             updatedLogs.push({ ...log });
         }
-        
+
         announcementLogs = formatNotes(updatedLogs, 20);
         announcementLogs = checkDuplicateDates(announcementLogs);
     }
@@ -2981,7 +2917,7 @@ async function calculateTime(
             );
 
             const time = await MonitorService.calcTime(statuses, start, range);
-            
+
             result[monitorId] = time;
         })
     );

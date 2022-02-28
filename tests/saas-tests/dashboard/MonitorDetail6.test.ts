@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -11,13 +10,10 @@ const password = '1234567890';
 const urlMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
 
-    
     beforeAll(async () => {
-        
         jest.setTimeout(600000);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
@@ -36,13 +32,11 @@ describe('Monitor Detail API', () => {
         await init.addMonitorToComponent(componentName, urlMonitorName, page);
     });
 
-    
     afterAll(async (done: $TSFixMe) => {
         await browser.close();
         done();
     });
 
-    
     test('Should navigate to monitor details and trigger website scan', async (done: $TSFixMe) => {
         // Navigate to Monitor details
         await init.navigateToMonitorDetails(
@@ -58,16 +52,16 @@ describe('Monitor Detail API', () => {
             `#lighthouse-performance-${urlMonitorName}`,
             { visible: true, timeout: 600000 }
         );
-        
+
         await init.pageWaitForSelector(page, '#website_postscan');
-        
+
         await init.pageWaitForSelector(page, `#scanWebsites_${urlMonitorName}`);
         await init.page$Eval(
             page,
             `#scanWebsites_${urlMonitorName}`,
             (e: $TSFixMe) => e.click()
         );
-        
+
         await init.pageWaitForSelector(page, '#website_prescan');
         await init.pageWaitForSelector(page, '#website_scanning', {
             timeout: 600000,
@@ -88,7 +82,6 @@ describe('Monitor Detail API', () => {
         done();
     }, 600000);
 
-    
     test(
         'should display multiple probes and monitor chart on refresh',
         async (done: $TSFixMe) => {
@@ -103,9 +96,8 @@ describe('Monitor Detail API', () => {
                 waitUntil: ['networkidle0', 'domcontentloaded'],
             });
 
-            
             const probe0 = await init.pageWaitForSelector(page, '#probes-btn0');
-            
+
             const probe1 = await init.pageWaitForSelector(page, '#probes-btn1');
 
             expect(probe0).toBeDefined();
@@ -129,7 +121,6 @@ describe('Monitor Detail API', () => {
         operationTimeOut
     );
 
-    
     test(
         'Should navigate to monitor details and get lighthouse scores and website issues',
         async (done: $TSFixMe) => {
@@ -140,7 +131,6 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            
             await init.pageWaitForSelector(page, '#website_postscan');
 
             let lighthousePerformanceElement = await init.pageWaitForSelector(
@@ -198,15 +188,13 @@ describe('Monitor Detail API', () => {
             lighthousePwaElement = await lighthousePwaElement.jsonValue();
             lighthousePwaElement.should.endWith('%');
 
-            
             await init.pageClick(page, `#lighthouseUrl_${urlMonitorName}_0`);
 
             const websiteIssuesSelector =
                 '#performance #websiteIssuesList > tbody >tr.websiteIssuesListItem';
-            
+
             await init.pageWaitForSelector(page, websiteIssuesSelector);
 
-            
             const websiteIssuesRows = await init.page$$(
                 page,
                 websiteIssuesSelector

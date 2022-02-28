@@ -38,7 +38,7 @@ export default {
             const error = new Error(
                 'Container security with this name already exist in this component'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -47,7 +47,7 @@ export default {
             const error = new Error(
                 'Container security with this image path already exist in this component'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -56,7 +56,7 @@ export default {
             const error = new Error(
                 'Docker Credential not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -136,7 +136,6 @@ export default {
         );
 
         if (unsetData) {
-            
             containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
                 query,
                 { $unset: unsetData },
@@ -150,7 +149,7 @@ export default {
             const error = new Error(
                 'Container Security not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -183,7 +182,7 @@ export default {
             const error = new Error(
                 'Container Security not found or does not exist'
             );
-            
+
             error.code = 400;
             throw error;
         }
@@ -195,7 +194,6 @@ export default {
 
         if (securityLog) {
             await ContainerSecurityLogService.deleteBy({
-                
                 _id: securityLog._id,
             });
         }

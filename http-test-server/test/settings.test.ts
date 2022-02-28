@@ -1,4 +1,3 @@
-
 import puppeteer from 'puppeteer';
 import should from 'should';
 import utils from './test-utils';
@@ -8,11 +7,8 @@ import init from './test-init';
 let browser: $TSFixMe;
 let page: $TSFixMe;
 
-
 describe('HTTP Settings page', () => {
-    
     beforeAll(async () => {
-        
         jest.setTimeout(15000);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -21,25 +17,21 @@ describe('HTTP Settings page', () => {
         );
     });
 
-    
     afterAll(async () => {
         await browser.close();
     });
 
-    
     it('Should return error if status code is not a valid staus code', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
         await page.evaluate(
-            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('statusCode').value = '')
         );
-        
+
         await page.evaluate(() => (document.getElementById('body').value = ''));
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
@@ -66,20 +58,17 @@ describe('HTTP Settings page', () => {
         html.should.containEql('Please provide a valid status code');
     }, 160000);
 
-    
     it('Should return error if response time is not a number', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
         await page.evaluate(
-            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('statusCode').value = '')
         );
-        
+
         await page.evaluate(() => (document.getElementById('body').value = ''));
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
@@ -106,20 +95,17 @@ describe('HTTP Settings page', () => {
         html.should.containEql('Response Time should be a number');
     }, 160000);
 
-    
     it('Should return error if server status is not a number', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
         await page.evaluate(
-            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('statusCode').value = '')
         );
-        
+
         await page.evaluate(() => (document.getElementById('body').value = ''));
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
@@ -146,20 +132,17 @@ describe('HTTP Settings page', () => {
         html.should.containEql('Status code should be a number');
     }, 160000);
 
-    
     it('Should return', async () => {
         await page.goto(utils.HTTP_TEST_SERVER_URL + '/settings', {
             waitUntil: 'networkidle2',
         });
         await page.evaluate(
-            
             () => (document.getElementById('responseTime').value = '')
         );
         await page.evaluate(
-            
             () => (document.getElementById('statusCode').value = '')
         );
-        
+
         await page.evaluate(() => (document.getElementById('body').value = ''));
         await page.waitForSelector('#responseTime');
         await page.click('input[name=responseTime]');
