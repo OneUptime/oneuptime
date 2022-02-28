@@ -1,9 +1,10 @@
 import { expect } from "chai"
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./scriptSandbox"' has no exported member ... Remove this comment to see the full error message
 import { runScript } from "./scriptSandbox"
+import axios from 'axios';
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('ScriptMonitor V2', function(this: $TSFixMe) {
+describe('ScriptMonitor V2', function() {
   this.timeout(10000);
   // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
   describe("runScript function", function(){
@@ -28,14 +29,10 @@ describe('ScriptMonitor V2', function(this: $TSFixMe) {
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it("should return success for a valid script", async function() {     
       const someFunction = async (done: $TSFixMe) => {
-        // make api requests using "axios" or "request"
-        const axios = require("axios").default;
-        // import request from "request-promise"
+
+        
 
         const res = await axios.get("http://localhost:5050/test");
-        // const res = await request.get("http://localhost:5050/test");
-        console.log("hello");
-        console.log("world!");
         
         done();
       }

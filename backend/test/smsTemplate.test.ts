@@ -4,7 +4,7 @@ const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
 import chai-http from 'chai-http';
-chai.use(chai-http);
+chai.use(chaihttp);
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
@@ -22,11 +22,11 @@ import VerificationTokenModel from '../backend/models/verificationToken'
 let token: $TSFixMe, projectId: $TSFixMe, userId, smsTemplateId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('SMS Template API', function(this: $TSFixMe) {
+describe('SMS Template API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);

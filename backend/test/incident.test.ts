@@ -68,10 +68,10 @@ const testServerMonitor = {
 };
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Incident API', function(this: $TSFixMe) {
+describe('Incident API', function() {
     this.timeout(500000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(90000);
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
@@ -715,10 +715,10 @@ describe('Incident API', function(this: $TSFixMe) {
 let subProjectId: $TSFixMe, newUserToken: $TSFixMe, subProjectIncidentId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Incident API with Sub-Projects', function(this: $TSFixMe) {
+describe('Incident API with Sub-Projects', function() {
     this.timeout(60000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(60000);
 
         incidentData.monitors = [monitorId];

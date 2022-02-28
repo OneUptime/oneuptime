@@ -28,11 +28,11 @@ let projectId: $TSFixMe, userId: $TSFixMe, token: $TSFixMe;
 const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('User API', function(this: $TSFixMe) {
+describe('User API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, data.user, function(err: $TSFixMe, res: $TSFixMe) {
@@ -630,7 +630,7 @@ describe('User API', function(this: $TSFixMe) {
 
 let ssoId: $TSFixMe;
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('SSO authentication', function(this: $TSFixMe) {
+describe('SSO authentication', function() {
     this.timeout(20000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
     before(async () => {

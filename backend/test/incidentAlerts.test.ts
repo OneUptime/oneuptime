@@ -71,11 +71,11 @@ const sleep = (waitTimeInMs: $TSFixMe) => new Promise(resolve => setTimeout(reso
 let authorization: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe, componentId: $TSFixMe, monitorId: $TSFixMe, scheduleId;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('SMS/Calls Incident Alerts', function(this: $TSFixMe) {
+describe('SMS/Calls Incident Alerts', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
         const user = await createUser(request, userData.user);
@@ -887,7 +887,7 @@ describe('SMS/Calls Incident Alerts', function(this: $TSFixMe) {
          * SMS/Call alerts enabled for the project (billing): true
          */
         // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-        it('should notify the team set for a schedule, which is associated with a monitor criteriad', async function(this: $TSFixMe) {
+        it('should notify the team set for a schedule, which is associated with a monitor criteriad', async function() {
             /*
              * run the probe server for this test
              */
@@ -1038,7 +1038,7 @@ describe('SMS/Calls Incident Alerts', function(this: $TSFixMe) {
                 .is.true;
         });
         // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-        it('should notify the team set for a schedule, which is associated with a monitor criteria (incomingHttp monitor)', async function(this: $TSFixMe) {
+        it('should notify the team set for a schedule, which is associated with a monitor criteria (incomingHttp monitor)', async function() {
             /*
              * run the probe server for this test
              */
@@ -1207,7 +1207,7 @@ describe('SMS/Calls Incident Alerts', function(this: $TSFixMe) {
          * SMS/Call alerts enabled for the project (billing): true
          */
         // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-        it('should use default criterion if no criterion is matched for an incident', async function(this: $TSFixMe) {
+        it('should use default criterion if no criterion is matched for an incident', async function() {
             /*
              * run the probe server for this test
              */
@@ -2102,7 +2102,7 @@ describe('SMS/Calls Incident Alerts', function(this: $TSFixMe) {
          * SMS/Call alerts enabled for the project (billing): true
          */
         // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-        it('should correctly register closing balance for alert charges', async function(this: $TSFixMe) {
+        it('should correctly register closing balance for alert charges', async function() {
             this.timeout(60 * 1000);
 
             // update global setting to enable call and sms
@@ -2610,7 +2610,7 @@ describe('SMS/Calls Incident Alerts', function(this: $TSFixMe) {
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Email Incident Alerts', function() {
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(30000);
         const createdUser = await createUser(request, userData.user);
         const project = createdUser.body.project;
@@ -2710,7 +2710,7 @@ describe('Email Incident Alerts', function() {
     });
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
-    after(async function(this: $TSFixMe) {
+    after(async function() {
         this.timeout(30000);
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
@@ -2740,7 +2740,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : not set.
      */
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should not send Email alerts if no SMTP configurations are set.', async function(this: $TSFixMe) {
+    it('should not send Email alerts if no SMTP configurations are set.', async function() {
         this.timeout(30000);
         const newIncident = await createIncident({
             request,
@@ -2837,7 +2837,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : not set.
      */
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should not send Email alerts if global SMTP configurations are set and email are disabled in global configurations.', async function(this: $TSFixMe) {
+    it('should not send Email alerts if global SMTP configurations are set and email are disabled in global configurations.', async function() {
         this.timeout(30000);
         await GlobalConfigService.create({
             name: 'smtp',
@@ -2943,7 +2943,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : not set.
      */
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should send Email alerts if global SMTP configurations are set and email are enabled in global configurations.', async function(this: $TSFixMe) {
+    it('should send Email alerts if global SMTP configurations are set and email are enabled in global configurations.', async function() {
         this.timeout(30000);
         await GlobalConfigService.create({
             name: 'smtp',
@@ -3043,7 +3043,7 @@ describe('Email Incident Alerts', function() {
      * investigation note email notification : not set
      */
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should not send statusPageNote(investigation note) Email notification when disabled', async function(this: $TSFixMe) {
+    it('should not send statusPageNote(investigation note) Email notification when disabled', async function() {
         this.timeout(30 * 1000);
         // update global smtp settings
         await GlobalConfigService.create({
@@ -3138,7 +3138,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : set.
      */
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should send Email alerts if global SMTP configurations are set, email alerts disabled in global configurations, and custom SMTP settings are set.', async function(this: $TSFixMe) {
+    it('should send Email alerts if global SMTP configurations are set, email alerts disabled in global configurations, and custom SMTP settings are set.', async function() {
         this.timeout(30000);
         await GlobalConfigService.create({
             name: 'smtp',
@@ -3248,7 +3248,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : set.
      */
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should send Email alerts if global SMTP configurations are not set, and custom SMTP settings are set.', async function(this: $TSFixMe) {
+    it('should send Email alerts if global SMTP configurations are not set, and custom SMTP settings are set.', async function() {
         this.timeout(30000);
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
         await EmailSmtpService.create({
@@ -3341,10 +3341,10 @@ describe('Email Incident Alerts', function() {
 });
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Webhook Incident Alerts', function(this: $TSFixMe) {
+describe('Webhook Incident Alerts', function() {
     this.timeout(30 * 1000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(30000);
         const createdUser = await createUser(request, userData.user);
         const project = createdUser.body.project;
@@ -3448,7 +3448,7 @@ describe('Webhook Incident Alerts', function(this: $TSFixMe) {
     });
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'after'.
-    after(async function(this: $TSFixMe) {
+    after(async function() {
         this.timeout(30000);
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });

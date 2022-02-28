@@ -17,10 +17,10 @@ let token: $TSFixMe,
     projectId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Slack API', function(this: $TSFixMe) {
+describe('Slack API', function() {
     this.timeout(20000);
 
-    this.beforeAll(function(this: $TSFixMe, done: $TSFixMe) {
+    this.beforeAll(function( done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
             request

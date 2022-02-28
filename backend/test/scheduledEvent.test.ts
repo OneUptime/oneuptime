@@ -4,7 +4,7 @@ const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
 import chai-http from 'chai-http';
-chai.use(chai-http);
+chai.use(chaihttp);
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
@@ -49,11 +49,11 @@ const ongoingScheduledEvent = {
 };
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Scheduled event API', function(this: $TSFixMe) {
+describe('Scheduled event API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
@@ -379,11 +379,11 @@ describe('Scheduled event API', function(this: $TSFixMe) {
 });
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('User from other project have access to read / write and delete API.', function(this: $TSFixMe) {
+describe('User from other project have access to read / write and delete API.', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {

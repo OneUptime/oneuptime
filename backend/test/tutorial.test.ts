@@ -20,11 +20,11 @@ import VerificationTokenModel from '../backend/models/verificationToken'
 let projectId: $TSFixMe, userId: $TSFixMe, token: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Tutorial API', function(this: $TSFixMe) {
+describe('Tutorial API', function() {
     this.timeout(80000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(120000);
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);

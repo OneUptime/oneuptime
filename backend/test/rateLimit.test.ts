@@ -6,7 +6,7 @@ const requests: $TSFixMe = [];
 let app, request: $TSFixMe, sandbox: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('API limit rate', function(this: $TSFixMe) {
+describe('API limit rate', function() {
     this.timeout(10000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
     before(function(done: $TSFixMe) {

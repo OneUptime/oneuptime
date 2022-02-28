@@ -21,11 +21,11 @@ let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Audit Logs API', function(this: $TSFixMe) {
+describe('Audit Logs API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         testSuiteStartTime = new Date();
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {

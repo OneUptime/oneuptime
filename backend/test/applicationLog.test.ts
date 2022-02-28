@@ -31,11 +31,11 @@ const logCount = {
 };
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Application Log API', function(this: $TSFixMe) {
+describe('Application Log API', function() {
     this.timeout(80000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(90000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {

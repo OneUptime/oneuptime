@@ -4,7 +4,7 @@ const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
 import chai-http from 'chai-http';
-chai.use(chai-http);
+chai.use(chaihttp);
 import app from '../server'
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message

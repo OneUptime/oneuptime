@@ -41,11 +41,11 @@ const sleep = (waitTimeInMs: $TSFixMe) => new Promise(resolve => setTimeout(reso
 let authorization: $TSFixMe, token, userId: $TSFixMe, projectId: $TSFixMe, componentId, monitorId: $TSFixMe, scheduleId;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Incident Alerts', function(this: $TSFixMe) {
+describe('Incident Alerts', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(() => {
             createEnterpriseUser(request, userData.user, async function(

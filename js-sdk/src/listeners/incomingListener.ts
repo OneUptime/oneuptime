@@ -1,24 +1,24 @@
 'use strict';
 
 /*eslint-disable no-unused-vars*/
-import Http from 'http'
-import Https from 'https'
+import Http from 'http';
+import Https from 'https';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v4 as uuidv4} from 'uuid'
-import { getRoutes } from 'get-routes'
-import UrlPattern from 'url-pattern'
+import { v4 as uuidv4 } from 'uuid';
+import { getRoutes } from 'get-routes';
+import UrlPattern from 'url-pattern';
 
 class IncomingListener {
-    #start;
-    #end;
-    #store;
-    #app;
+    private start;
+    private end;
+    private store;
+    private app;
     // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'start' implicitly has an 'any' type.
     constructor(start, end, store, app) {
-        this.#start = start;
-        this.#end = end;
-        this.#store = store;
-        this.#app = app;
+        this.start = start;
+        this.end = end;
+        this.store = store;
+        this.app = app;
         this._setUpIncomingListener();
     }
     _setUpIncomingListener() {
@@ -36,8 +36,8 @@ class IncomingListener {
                     let finalPattern = path;
 
                     // this will only work with express application
-                    if (_this.#app && _this.#app._router) {
-                        const routes = getRoutes(_this.#app);
+                    if (_this.app && _this.app._router) {
+                        const routes = getRoutes(_this.app);
                         for (const [key, value] of Object.entries(routes)) {
                             if (key === String(method).toLowerCase()) {
                                 for (const val of value) {
@@ -55,7 +55,7 @@ class IncomingListener {
 
                     req.apm = {};
                     req.apm.uuid = uuidv4();
-                    const result = _this.#start(req.apm.uuid, {
+                    const result = _this.start(req.apm.uuid, {
                         path: finalPattern,
                         type: 'incoming',
                         method,
@@ -68,19 +68,19 @@ class IncomingListener {
                             res.statusCode < 600
                         ) {
                             // error must have occurred
-                            const originalValue = _this.#store.getValue(
+                            const originalValue = _this.store.getValue(
                                 req.apm.uuid
                             );
                             if (originalValue && originalValue !== undefined) {
                                 originalValue.errorCount = 1;
-                                _this.#store.setValue(
+                                _this.store.setValue(
                                     req.apm.uuid,
                                     originalValue
                                 );
                             }
                         }
 
-                        _this.#end(req.apm.uuid, result, 'request');
+                        _this.end(req.apm.uuid, result, 'request');
                     });
                 }
                 return emit.apply(this, arguments);

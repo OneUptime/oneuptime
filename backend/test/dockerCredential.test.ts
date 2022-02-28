@@ -20,7 +20,7 @@ import DockerCredentialService from '../backend/services/dockerCredentialService
 import AirtableService from '../backend/services/airtableService'
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Docker Credential API', function(this: $TSFixMe) {
+describe('Docker Credential API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe, userId, token: $TSFixMe, credentialId: $TSFixMe;
     const dockerRegistryUrl = dockerCredential.dockerRegistryUrl;

@@ -4,7 +4,7 @@ const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
 import chai-http from 'chai-http';
-chai.use(chai-http);
+chai.use(chaihttp);
 import app from '../server'
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
@@ -80,10 +80,10 @@ const projectCreationPayloads = [
 ];
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('SSO DEFAULT ROLES API', function(this: $TSFixMe) {
+describe('SSO DEFAULT ROLES API', function() {
     this.timeout(300000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
         const response = await createUser(request, userData.adminUser);

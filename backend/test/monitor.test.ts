@@ -6,7 +6,7 @@ const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
 import chai-http from 'chai-http';
-chai.use(chai-http);
+chai.use(chaihttp);
 chai.use(require('chai-subset'));
 import app from '../server'
 import GlobalConfig from './utils/globalConfig'
@@ -75,11 +75,11 @@ const httpMonitorCriteria = {
 };
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Monitor API', function(this: $TSFixMe) {
+describe('Monitor API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
@@ -468,11 +468,11 @@ const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('API Monitor API', function(this: $TSFixMe) {
+describe('API Monitor API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
@@ -685,11 +685,11 @@ describe('API Monitor API', function(this: $TSFixMe) {
 });
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('IncomingHttpRequest Monitor', function(this: $TSFixMe) {
+describe('IncomingHttpRequest Monitor', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
@@ -879,11 +879,11 @@ describe('IncomingHttpRequest Monitor', function(this: $TSFixMe) {
 });
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Monitor API with resource Category', function(this: $TSFixMe) {
+describe('Monitor API with resource Category', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
@@ -959,7 +959,7 @@ describe('Monitor API with resource Category', function(this: $TSFixMe) {
 let subProjectId: $TSFixMe, newUserToken: $TSFixMe, subProjectMonitorId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Monitor API with Sub-Projects', function(this: $TSFixMe) {
+describe('Monitor API with Sub-Projects', function() {
     this.timeout(30000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
     before(function(done: $TSFixMe) {
@@ -1203,7 +1203,7 @@ describe('Monitor API with Sub-Projects', function(this: $TSFixMe) {
 });
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Monitor API - Tests Project Seats With SubProjects', function(this: $TSFixMe) {
+describe('Monitor API - Tests Project Seats With SubProjects', function() {
     this.timeout(30000);
 
     const monitorDataArray = [
@@ -1260,7 +1260,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function(this: $T
     ];
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
         const authorization = `Basic ${token}`;

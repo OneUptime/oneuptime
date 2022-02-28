@@ -24,7 +24,7 @@ const incidentSlaPayload = {
     isDefault: true,
 };
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Incident Communication SLA', function(this: $TSFixMe) {
+describe('Incident Communication SLA', function() {
     const timeout = 30000;
     let projectId: $TSFixMe, userId, token, authorization: $TSFixMe, slaId: $TSFixMe;
 

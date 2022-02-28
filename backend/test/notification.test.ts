@@ -5,7 +5,7 @@ import userData from './data/user'
 import projectData from './data/project'
 import chai from 'chai'
 import chai-http from 'chai-http';
-chai.use(chai-http);
+chai.use(chaihttp);
 import app from '../server'
 
 import UserService from '../backend/services/userService'
@@ -23,11 +23,11 @@ import { createUser } from './utils/userSignUp'
 let projectId: $TSFixMe, token: $TSFixMe, userId;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Notification API', function(this: $TSFixMe) {
+describe('Notification API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {

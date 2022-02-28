@@ -31,11 +31,11 @@ let token: $TSFixMe,
     resourceCount = 0;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Component API', function(this: $TSFixMe) {
+describe('Component API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(80000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
@@ -395,10 +395,10 @@ let subProjectId: $TSFixMe,
     newComponentId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Component API with Sub-Projects', function(this: $TSFixMe) {
+describe('Component API with Sub-Projects', function() {
     this.timeout(30000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
         // create a subproject for parent project

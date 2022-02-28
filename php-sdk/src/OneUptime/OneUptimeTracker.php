@@ -231,7 +231,7 @@ class OneUptimeTracker
         // get current timeline
         $timeline = $this->getTimeline();
         // TODO get device location and details
-        // const deviceDetails = this.#utilObj._getUserDeviceDetails();
+        // const deviceDetails = this.utilObj._getUserDeviceDetails();
         $tags = $this->getTags();
         $fingerprint = $this->getFingerprint($errorStackTrace->message); // default fingerprint will be the message from the error stacktrace
         // get event ID

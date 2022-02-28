@@ -3,7 +3,7 @@ process.env.PORT = 3020;
 const expect = require('chai').expect;
 import chai from 'chai'
 import chai-http from 'chai-http';
-chai.use(chai-http);
+chai.use(chaihttp);
 import app from '../server'
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
@@ -26,11 +26,11 @@ const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Lead API', function(this: $TSFixMe) {
+describe('Lead API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
     });
@@ -53,7 +53,7 @@ describe('Lead API', function(this: $TSFixMe) {
     });
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should add lead when requested for type demo and check the sent message', function(this: $TSFixMe, done: $TSFixMe) {
+    it('should add lead when requested for type demo and check the sent message', function( done: $TSFixMe) {
         this.timeout(60000);
         request
             .post('/lead')

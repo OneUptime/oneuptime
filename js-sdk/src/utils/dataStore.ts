@@ -3,25 +3,25 @@
 /*eslint-disable no-unused-vars*/
 import axios from 'axios';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
-import cron from 'node-cron'
+import cron from 'node-cron';
 class DataStore {
-    #store;
-    #incoming;
-    #outgoing;
-    #mongoose;
-    #apiUrl;
-    #appId;
-    #appKey;
-    #sendingData;
+    private store;
+    private incoming;
+    private outgoing;
+    private mongoose;
+    private apiUrl;
+    private appId;
+    private appKey;
+    private sendingData;
     constructor(url: $TSFixMe, appId: $TSFixMe, appKey: $TSFixMe) {
-        this.#apiUrl = url;
-        this.#appId = appId;
-        this.#appKey = appKey;
-        this.#store = new Map();
-        this.#incoming = new Map();
-        this.#outgoing = new Map();
-        this.#mongoose = new Map();
-        this.#sendingData = false;
+        this.apiUrl = url;
+        this.appId = appId;
+        this.appKey = appKey;
+        this.store = new Map();
+        this.incoming = new Map();
+        this.outgoing = new Map();
+        this.mongoose = new Map();
+        this.sendingData = false;
         this.runCron();
     }
     runCron() {
@@ -30,7 +30,13 @@ class DataStore {
             _this.sendData();
         });
     }
-    mapValue(path: $TSFixMe, store: $TSFixMe, time: $TSFixMe, method: $TSFixMe, errorCount: $TSFixMe) {
+    mapValue(
+        path: $TSFixMe,
+        store: $TSFixMe,
+        time: $TSFixMe,
+        method: $TSFixMe,
+        errorCount: $TSFixMe
+    ) {
         if (store.has(path)) {
             const s = store.get(path);
             const avg = s.avgTime,
@@ -56,29 +62,29 @@ class DataStore {
         }
     }
     destroy(id: $TSFixMe) {
-        if (this.#store.has(id)) {
-            this.#store.delete(id);
+        if (this.store.has(id)) {
+            this.store.delete(id);
         }
     }
 
     getValue(id: $TSFixMe) {
-        return this.#store.get(id);
+        return this.store.get(id);
     }
 
     getAllData() {
         return {
-            incoming: this.#incoming,
-            outgoing: this.#outgoing,
-            mongoose: this.#mongoose,
+            incoming: this.incoming,
+            outgoing: this.outgoing,
+            mongoose: this.mongoose,
         };
     }
     clear() {
-        return this.#store.clear();
+        return this.store.clear();
     }
     clearData() {
-        this.#incoming.clear();
-        this.#outgoing.clear();
-        this.#mongoose.clear();
+        this.incoming.clear();
+        this.outgoing.clear();
+        this.mongoose.clear();
         return {};
     }
     setData(value: $TSFixMe) {
@@ -89,44 +95,44 @@ class DataStore {
         const errorCount = value.errorCount || 0;
         let val = {};
         if (type === 'incoming') {
-            val = this.mapValue(path, this.#incoming, time, method, errorCount);
-            return this.#incoming.set(path, val);
+            val = this.mapValue(path, this.incoming, time, method, errorCount);
+            return this.incoming.set(path, val);
         } else if (type === 'outgoing') {
-            val = this.mapValue(path, this.#outgoing, time, method, errorCount);
-            return this.#outgoing.set(path, val);
+            val = this.mapValue(path, this.outgoing, time, method, errorCount);
+            return this.outgoing.set(path, val);
         } else if (type === 'mongoose') {
             // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 3.
-            val = this.mapValue(path, this.#mongoose, time);
-            return this.#mongoose.set(path, val);
+            val = this.mapValue(path, this.mongoose, time);
+            return this.mongoose.set(path, val);
         }
     }
     setValue(id: $TSFixMe, value: $TSFixMe) {
-        return this.#store.set(id, value);
+        return this.store.set(id, value);
     }
     async sendData() {
         const data = {
             // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
-            incoming: Object.fromEntries(this.#incoming),
+            incoming: Object.fromEntries(this.incoming),
             // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
-            outgoing: Object.fromEntries(this.#outgoing),
+            outgoing: Object.fromEntries(this.outgoing),
             // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
-            mongoose: Object.fromEntries(this.#mongoose),
+            mongoose: Object.fromEntries(this.mongoose),
             sentAt: Date.now(),
         };
         await this._makeApiRequest(data);
         this.clearData();
     }
     async processDataOnExit() {
-        if (!this.#sendingData) {
-            this.#sendingData = true;
+        if (!this.sendingData) {
+            this.sendingData = true;
 
             const data = {
                 // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
-                incoming: Object.fromEntries(this.#incoming),
+                incoming: Object.fromEntries(this.incoming),
                 // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
-                outgoing: Object.fromEntries(this.#outgoing),
+                outgoing: Object.fromEntries(this.outgoing),
                 // @ts-expect-error ts-migrate(2550) FIXME: Property 'fromEntries' does not exist on type 'Obj... Remove this comment to see the full error message
-                mongoose: Object.fromEntries(this.#mongoose),
+                mongoose: Object.fromEntries(this.mongoose),
                 sentAt: Date.now(),
             };
             await this._makeApiRequest(data);
@@ -138,9 +144,7 @@ class DataStore {
         return new Promise((resolve, reject) => {
             axios
                 .post(
-                    `${this.#apiUrl}/performanceMetric/${this.#appId}/key/${
-                        this.#appKey
-                    }`,
+                    `${this.apiUrl}/performanceMetric/${this.appId}/key/${this.appKey}`,
                     data
                 )
                 .then(res => {

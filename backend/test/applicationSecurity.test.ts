@@ -23,7 +23,7 @@ import ApplicationSecurityLogService from '../backend/services/applicationSecuri
 import AirtableService from '../backend/services/airtableService'
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Application Security API', function(this: $TSFixMe) {
+describe('Application Security API', function() {
     const timeout = 300000;
     let projectId: $TSFixMe,
         componentId: $TSFixMe,
@@ -201,7 +201,7 @@ describe('Application Security API', function(this: $TSFixMe) {
     });
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should scan an application security', function(this: $TSFixMe, done: $TSFixMe) {
+    it('should scan an application security', function( done: $TSFixMe) {
         this.timeout(300000);
         const authorization = `Basic ${token}`;
 

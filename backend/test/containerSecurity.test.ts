@@ -23,7 +23,7 @@ import ContainerSecurityLogService from '../backend/services/containerSecurityLo
 import AirtableService from '../backend/services/airtableService'
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Container Security API', function(this: $TSFixMe) {
+describe('Container Security API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe,
         componentId: $TSFixMe,
@@ -197,7 +197,7 @@ describe('Container Security API', function(this: $TSFixMe) {
     });
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should scan a container security', function(this: $TSFixMe, done: $TSFixMe) {
+    it('should scan a container security', function( done: $TSFixMe) {
         this.timeout(300000);
         const authorization = `Basic ${token}`;
 
@@ -213,7 +213,7 @@ describe('Container Security API', function(this: $TSFixMe) {
     });
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should throw error if scanning with an invalid docker credentials or invalid image path', function(this: $TSFixMe, done: $TSFixMe) {
+    it('should throw error if scanning with an invalid docker credentials or invalid image path', function( done: $TSFixMe) {
         this.timeout(500000);
         const authorization = `Basic ${token}`;
         const data = {

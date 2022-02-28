@@ -22,11 +22,11 @@ import VerificationTokenModel from '../backend/models/verificationToken'
 let cardId: $TSFixMe, authorization: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Stripe payment API', function(this: $TSFixMe) {
+describe('Stripe payment API', function() {
     this.timeout(50000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {

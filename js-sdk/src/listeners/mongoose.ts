@@ -2,15 +2,15 @@
 
 /*eslint-disable no-unused-vars*/
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v4 as uuidv4} from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 
 class MongooseListener {
-    #start;
-    #end;
+    private start;
+    private end;
     // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'start' implicitly has an 'any' type.
     constructor(start, end) {
-        this.#start = start;
-        this.#end = end;
+        this.start = start;
+        this.end = end;
     }
     // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'orig' implicitly has an 'any' type.
     wrapAsync(orig, name) {
@@ -20,17 +20,17 @@ class MongooseListener {
             // @ts-expect-error ts-migrate(2683) FIXME: 'this' implicitly has type 'any' because it does n... Remove this comment to see the full error message
             const operation = this.op;
             name = name || `mongoose.${operation}`; // mongose Query.exec specific
-            const result = _this.#start(uuid, {
+            const result = _this.start(uuid, {
                 path: operation,
                 type: 'mongoose',
             });
             try {
                 // @ts-expect-error ts-migrate(2683) FIXME: 'this' implicitly has type 'any' because it does n... Remove this comment to see the full error message
                 const res = await orig.apply(this, arguments);
-                _this.#end(uuid, result, name);
+                _this.end(uuid, result, name);
                 return res;
             } catch (err) {
-                _this.#end(uuid, result, name);
+                _this.end(uuid, result, name);
                 throw err;
             }
         };

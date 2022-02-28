@@ -1,20 +1,20 @@
 'use strict';
 
 /*eslint-disable no-unused-vars*/
-import Http from 'http'
-import Https from 'https'
+import Http from 'http';
+import Https from 'https';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import { v4 as uuidv4} from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 
 class OutgoingListener {
-    #start;
-    #end;
-    #store;
+    private start;
+    private end;
+    private store;
     // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'start' implicitly has an 'any' type.
     constructor(start, end, store) {
-        this.#start = start;
-        this.#end = end;
-        this.#store = store;
+        this.start = start;
+        this.end = end;
+        this.store = store;
         this._setUpOutgoingListener();
     }
     _setUpOutgoingListener() {
@@ -39,7 +39,7 @@ class OutgoingListener {
                 const emit = req.emit;
                 req.apm = {};
                 req.apm.uuid = uuidv4();
-                const result = _this.#start(req.apm.uuid, {
+                const result = _this.start(req.apm.uuid, {
                     path: `${protocol}//${host}${path}`, // store full path for outgoing requests
                     type: 'outgoing',
                     method,
@@ -49,22 +49,22 @@ class OutgoingListener {
                     switch (eventName) {
                         case 'response': {
                             response.on('end', () => {
-                                _this.#end(req.apm.uuid, result, 'response');
+                                _this.end(req.apm.uuid, result, 'response');
                             });
                             break;
                         }
                         case 'error': {
-                            const originalValue = _this.#store.getValue(
+                            const originalValue = _this.store.getValue(
                                 req.apm.uuid
                             );
                             if (originalValue && originalValue !== undefined) {
                                 originalValue.errorCount = 1;
-                                _this.#store.setValue(
+                                _this.store.setValue(
                                     req.apm.uuid,
                                     originalValue
                                 );
                             }
-                            _this.#end(req.apm.uuid, result, 'response');
+                            _this.end(req.apm.uuid, result, 'response');
                             break;
                         }
                     }

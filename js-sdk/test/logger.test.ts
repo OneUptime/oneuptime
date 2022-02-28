@@ -11,7 +11,7 @@ const timeout = 5000;
 import OneUptimeLogger from '../src/logger';
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('OneUptimeLogger', function(this: $TSFixMe) {
+describe('OneUptimeLogger', function() {
     const sleep = (milliseconds: $TSFixMe) => {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
@@ -24,7 +24,7 @@ describe('OneUptimeLogger', function(this: $TSFixMe) {
     const component = { name: 'Our Component' };
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(60000);
         sleep(5000).then(() => {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{ name: s... Remove this comment to see the full error message

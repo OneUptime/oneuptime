@@ -18,11 +18,11 @@ import AirtableService from '../backend/services/airtableService'
 let token;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Admin process.env login API', function(this: $TSFixMe) {
+describe('Admin process.env login API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(40000);
         await UserService.hardDeleteBy({});
         await GlobalConfig.initTestConfig();

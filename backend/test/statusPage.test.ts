@@ -61,11 +61,11 @@ const scheduledEvent = {
 };
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Status API', function(this: $TSFixMe) {
+describe('Status API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(async function() {
             createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
@@ -926,10 +926,10 @@ describe('Status API', function(this: $TSFixMe) {
 let subProjectId: $TSFixMe, newUserToken: $TSFixMe, anotherUserToken: $TSFixMe, subProjectStatusPageId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('StatusPage API with Sub-Projects', function(this: $TSFixMe) {
+describe('StatusPage API with Sub-Projects', function() {
     this.timeout(30000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function(this: $TSFixMe, done: $TSFixMe) {
+    before(function( done: $TSFixMe) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
         GlobalConfig.initTestConfig().then(function() {

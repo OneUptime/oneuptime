@@ -33,7 +33,7 @@ const {
 } = require('./data/incomingHttpRequest');
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Incoming HTTP Request API', function(this: $TSFixMe) {
+describe('Incoming HTTP Request API', function() {
     const timeout = 30000;
     let projectId: $TSFixMe,
         componentId,

@@ -46,11 +46,11 @@ const probeServerRequestHeader = ({
 let probeServerName1: $TSFixMe, probeServerName2: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
-describe('Probe API', function(this: $TSFixMe) {
+describe('Probe API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(async function(this: $TSFixMe) {
+    before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
         // remove every monitor in DB
@@ -254,7 +254,7 @@ describe('Probe API', function(this: $TSFixMe) {
     });
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ', async function(this: $TSFixMe) {
+    it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ', async function() {
         this.timeout(100000);
         const monitor = await MonitorService.create({
             projectId,
@@ -337,7 +337,7 @@ describe('Probe API', function(this: $TSFixMe) {
     });
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min', async function(this: $TSFixMe) {
+    it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min', async function() {
         this.timeout(100000);
         const monitor = await MonitorService.create({
             projectId,
