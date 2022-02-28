@@ -1,6 +1,3 @@
-'use strict';
-
-/*eslint-disable no-unused-vars*/
 import DataStore from './dataStore';
 class HrTimer {
     private dataStore;

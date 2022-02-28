@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+
 
 // See https://git.coolaj86.com/coolaj86/acme-challenge-test.js
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'acme-challenge-test' or its co... Remove this comment to see the full error message

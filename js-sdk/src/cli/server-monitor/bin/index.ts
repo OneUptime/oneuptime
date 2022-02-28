@@ -7,7 +7,7 @@
  * @see module:api
  */
 
-'use strict';
+
 
 import dotenv from 'dotenv'
 dotenv.config();

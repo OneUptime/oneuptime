@@ -1,22 +1,22 @@
 // @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from 'chai'
-import chai-http from 'chai-http';
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import app from '../server'
-import EmailStatusService from '../backend/services/emailStatusService'
+import app from '../server';
+import EmailStatusService from '../backend/services/emailStatusService';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import FeedbackService from '../backend/services/feedbackService'
-import ProjectService from '../backend/services/projectService'
-import VerificationTokenModel from '../backend/models/verificationToken'
-import AirtableService from '../backend/services/airtableService'
-import GlobalConfig from './utils/globalConfig'
+import { createUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import FeedbackService from '../backend/services/feedbackService';
+import ProjectService from '../backend/services/projectService';
+import VerificationTokenModel from '../backend/models/verificationToken';
+import AirtableService from '../backend/services/airtableService';
+import GlobalConfig from './utils/globalConfig';
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
@@ -27,11 +27,14 @@ describe('Feedback API', function() {
     this.timeout(50000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             GlobalConfig.enableEmailLog().then(function() {
-                createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+                createUser(request, userData.user, function(
+                    err: $TSFixMe,
+                    res: $TSFixMe
+                ) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -52,7 +55,10 @@ describe('Feedback API', function() {
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
                                     });

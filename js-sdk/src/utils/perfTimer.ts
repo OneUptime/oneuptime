@@ -1,6 +1,3 @@
-'use strict';
-
-/*eslint-disable no-unused-vars*/
 import { performance, PerformanceObserver } from 'perf_hooks';
 import DataStore from './dataStore';
 class PerfTimer {

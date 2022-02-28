@@ -1,28 +1,28 @@
 // @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from 'chai'
-import chai-http from 'chai-http';
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import app from '../server'
-import moment from 'moment'
-import GlobalConfig from './utils/globalConfig'
+import app from '../server';
+import moment from 'moment';
+import GlobalConfig from './utils/globalConfig';
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
+import { createUser } from './utils/userSignUp';
 
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import IncidentService from '../backend/services/incidentService'
-import MonitorService from '../backend/services/monitorService'
-import NotificationService from '../backend/services/notificationService'
-import AirtableService from '../backend/services/airtableService'
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import IncidentService from '../backend/services/incidentService';
+import MonitorService from '../backend/services/monitorService';
+import NotificationService from '../backend/services/notificationService';
+import AirtableService from '../backend/services/airtableService';
 
-import VerificationTokenModel from '../backend/models/verificationToken'
-import ComponentModel from '../backend/models/component'
+import VerificationTokenModel from '../backend/models/verificationToken';
+import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe, userId, projectId: $TSFixMe, monitorId: $TSFixMe;
 const monitor = {
@@ -41,10 +41,13 @@ describe('Reports API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -76,7 +79,10 @@ describe('Reports API', function() {
                                                 ...monitor,
                                                 componentId: component._id,
                                             })
-                                            .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                            .end(function(
+                                                err: $TSFixMe,
+                                                res: $TSFixMe
+                                            ) {
                                                 monitorId = res.body._id;
                                                 done();
                                             });

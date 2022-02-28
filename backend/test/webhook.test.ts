@@ -1,23 +1,23 @@
 // @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from 'chai'
-import chai-http from 'chai-http';
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import app from '../server'
+import app from '../server';
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import MonitorService from '../backend/services/monitorService'
-import AirtableService from '../backend/services/airtableService'
-import IntegrationService from '../backend/services/integrationService'
-import VerificationTokenModel from '../backend/models/verificationToken'
-import GlobalConfig from './utils/globalConfig'
+import { createUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import MonitorService from '../backend/services/monitorService';
+import AirtableService from '../backend/services/airtableService';
+import IntegrationService from '../backend/services/integrationService';
+import VerificationTokenModel from '../backend/models/verificationToken';
+import GlobalConfig from './utils/globalConfig';
 
 // eslint-disable-next-line
 let token: $TSFixMe, userId, projectId: $TSFixMe, monitorId: $TSFixMe, msTeamsId: $TSFixMe,msTeamsId1: $TSFixMe,slackId: $TSFixMe,slackId1: $TSFixMe;
@@ -50,10 +50,13 @@ describe('Webhook API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, async function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, async function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
@@ -84,7 +87,10 @@ describe('Webhook API', function() {
                                         .post(`/monitor/${projectId}`)
                                         .set('Authorization', authorization)
                                         .send(monitor)
-                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                        .end(function(
+                                            err: $TSFixMe,
+                                            res: $TSFixMe
+                                        ) {
                                             monitorId = res.body._id;
                                             msTeamsPayload.monitorId = monitorId;
                                             slackPayload.monitorId = monitorId;
@@ -122,10 +128,12 @@ describe('Webhook API', function() {
     //MS Teams
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should prevent unauthenticated users from creating webhooks.', function(done: $TSFixMe) {
-        request.post(`/webhook/${projectId}/create`).end(function(err: $TSFixMe, res: $TSFixMe) {
-            expect(res).to.have.status(401);
-            done();
-        });
+        request
+            .post(`/webhook/${projectId}/create`)
+            .end(function(err: $TSFixMe, res: $TSFixMe) {
+                expect(res).to.have.status(401);
+                done();
+            });
     });
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message

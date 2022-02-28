@@ -1,15 +1,15 @@
 // @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import chai from 'chai'
-import chai-http from 'chai-http';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import app from '../server'
+import app from '../server';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
-import GlobalConfig from './utils/globalConfig'
-import leadService from '../backend/services/leadService'
-import EmailStatusService from '../backend/services/emailStatusService'
+import GlobalConfig from './utils/globalConfig';
+import leadService from '../backend/services/leadService';
+import EmailStatusService from '../backend/services/emailStatusService';
 
 const leadData = {
     'csrf-token': '1',
@@ -53,7 +53,7 @@ describe('Lead API', function() {
     });
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
-    it('should add lead when requested for type demo and check the sent message', function( done: $TSFixMe) {
+    it('should add lead when requested for type demo and check the sent message', function(done: $TSFixMe) {
         this.timeout(60000);
         request
             .post('/lead')

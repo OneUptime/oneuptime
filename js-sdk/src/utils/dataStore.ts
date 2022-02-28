@@ -1,6 +1,3 @@
-'use strict';
-
-/*eslint-disable no-unused-vars*/
 import axios from 'axios';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'node... Remove this comment to see the full error message
 import cron from 'node-cron';

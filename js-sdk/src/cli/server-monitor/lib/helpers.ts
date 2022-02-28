@@ -6,8 +6,6 @@
  * @see module:logger
  */
 
-'use strict';
-
 import axios from 'axios';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./config"' has no exported member 'API_UR... Remove this comment to see the full error message
 import { API_URL } from './config';

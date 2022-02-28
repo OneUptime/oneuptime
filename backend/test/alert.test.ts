@@ -2,30 +2,36 @@
 process.env.PORT = 3020;
 process.env.NODE_ENV = 'development';
 const expect = require('chai').expect;
-import userData from './data/user'
-import incidentData from './data/incident'
-import chai from 'chai'
-import chai-http from 'chai-http';
+import userData from './data/user';
+import incidentData from './data/incident';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import app from '../server'
+import app from '../server';
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import UserModel from '../backend/models/user'
-import IncidentService from '../backend/services/incidentService'
-import GlobalConfig from './utils/globalConfig'
-import ProjectService from '../backend/services/projectService'
-import StatusPageService from '../backend/services/statusPageService'
-import MonitorService from '../backend/services/monitorService'
-import AlertService from '../backend/services/alertService'
-import AirtableService from '../backend/services/airtableService'
-import NotificationService from '../backend/services/notificationService'
-import ComponentModel from '../backend/models/component'
+import { createUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import UserModel from '../backend/models/user';
+import IncidentService from '../backend/services/incidentService';
+import GlobalConfig from './utils/globalConfig';
+import ProjectService from '../backend/services/projectService';
+import StatusPageService from '../backend/services/statusPageService';
+import MonitorService from '../backend/services/monitorService';
+import AlertService from '../backend/services/alertService';
+import AirtableService from '../backend/services/airtableService';
+import NotificationService from '../backend/services/notificationService';
+import ComponentModel from '../backend/models/component';
 
-let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe, subProjectId: $TSFixMe, incidentId: $TSFixMe, alertId: $TSFixMe, monitorId: $TSFixMe;
+let token: $TSFixMe,
+    userId: $TSFixMe,
+    projectId: $TSFixMe,
+    subProjectId: $TSFixMe,
+    incidentId: $TSFixMe,
+    alertId: $TSFixMe,
+    monitorId: $TSFixMe;
 
 const monitor = {
     name: 'New Monitor',
@@ -44,10 +50,13 @@ describe('Alert API', function() {
         this.timeout(30000);
 
         // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-        before(function( done: $TSFixMe) {
+        before(function(done: $TSFixMe) {
             this.timeout(30000);
             GlobalConfig.initTestConfig().then(function() {
-                createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+                createUser(request, userData.user, function(
+                    err: $TSFixMe,
+                    res: $TSFixMe
+                ) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -64,7 +73,10 @@ describe('Alert API', function() {
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                        .end(function(
+                                            err: $TSFixMe,
+                                            res: $TSFixMe
+                                        ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
                                             const authorization = `Basic ${token}`;
@@ -78,7 +90,10 @@ describe('Alert API', function() {
                                                     ...monitor,
                                                     componentId: component._id,
                                                 })
-                                                .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                                .end(function(
+                                                    err: $TSFixMe,
+                                                    res: $TSFixMe
+                                                ) {
                                                     monitorId = res.body._id;
                                                     incidentData.monitors = [
                                                         monitorId,
@@ -203,7 +218,7 @@ describe('Alert API', function() {
     describe('Alert API with Sub-Projects', function() {
         this.timeout(40000);
         // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-        before(function( done: $TSFixMe) {
+        before(function(done: $TSFixMe) {
             this.timeout(30000);
             const authorization = `Basic ${token}`;
             // create a subproject for parent project
@@ -230,7 +245,10 @@ describe('Alert API', function() {
                                             email: userData.newUser.email,
                                             password: userData.newUser.password,
                                         })
-                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                        .end(function(
+                                            err: $TSFixMe,
+                                            res: $TSFixMe
+                                        ) {
                                             newUserToken =
                                                 res.body.tokens.jwtAccessToken;
                                             const authorization = `Basic ${token}`;
@@ -279,7 +297,10 @@ describe('Alert API', function() {
 
         // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
         it('should not create alert for user not in the project.', function(done: $TSFixMe) {
-            createUser(request, userData.anotherUser, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.anotherUser, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 userId = res.body.id;
                 UserModel.findByIdAndUpdate(
                     userId,
@@ -301,7 +322,10 @@ describe('Alert API', function() {
                                         alertVia: 'email',
                                         incidentId: incidentId,
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         alertId = res.body._id;
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(

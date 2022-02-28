@@ -4,8 +4,6 @@
  * @module config
  */
 
-'use strict';
-
 import path from 'path';
 
 /** The api url to send server information. */

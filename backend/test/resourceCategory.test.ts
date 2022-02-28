@@ -3,7 +3,7 @@ process.env.PORT = 3020;
 const expect = require('chai').expect;
 import userData from './data/user'
 import chai from 'chai'
-import chai-http from 'chai-http';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server'
 

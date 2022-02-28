@@ -2,21 +2,21 @@
 process.env.PORT = 3020;
 // @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
-import chai from 'chai'
-const expect = re..ai').expect;
-import userData from './data/user'
-import app from '../server'
+import chai from 'chai';
+const expect = chai.expect;
+import userData from './data/user';
+import app from '../server';
 chai.use(require('chai-http'));
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
-import GlobalConfig from './utils/globalConfig'
+import GlobalConfig from './utils/globalConfig';
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import VerificationTokenModel from '../backend/models/verificationToken'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import GitCredentialService from '../backend/services/gitCredentialService'
-import AirtableService from '../backend/services/airtableService'
+import { createUser } from './utils/userSignUp';
+import VerificationTokenModel from '../backend/models/verificationToken';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import GitCredentialService from '../backend/services/gitCredentialService';
+import AirtableService from '../backend/services/airtableService';
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Git Credential API', function() {
@@ -27,7 +27,10 @@ describe('Git Credential API', function() {
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
     before(function(done: $TSFixMe) {
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;

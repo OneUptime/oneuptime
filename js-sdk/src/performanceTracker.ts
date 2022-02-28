@@ -1,4 +1,3 @@
-/*eslint-disable no-unused-vars*/
 import Module from 'module';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'semv... Remove this comment to see the full error message
 import semver from 'semver';

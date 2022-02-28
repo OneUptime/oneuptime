@@ -1,24 +1,24 @@
 // @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import userData from './data/user'
-import projectData from './data/project'
-import chai from 'chai'
-import chai-http from 'chai-http';
+import userData from './data/user';
+import projectData from './data/project';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import app from '../server'
+import app from '../server';
 
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import NotificationService from '../backend/services/notificationService'
-import AirtableService from '../backend/services/airtableService'
-import GlobalConfig from './utils/globalConfig'
-import VerificationTokenModel from '../backend/models/verificationToken'
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import NotificationService from '../backend/services/notificationService';
+import AirtableService from '../backend/services/airtableService';
+import GlobalConfig from './utils/globalConfig';
+import VerificationTokenModel from '../backend/models/verificationToken';
 
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
+import { createUser } from './utils/userSignUp';
 
 let projectId: $TSFixMe, token: $TSFixMe, userId;
 
@@ -27,10 +27,13 @@ describe('Notification API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;

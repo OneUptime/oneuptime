@@ -274,7 +274,7 @@ Strut.isRetina = window.devicePixelRatio > 1.3, Strut.mobileViewportWidth = 670,
         new globalNavDropdowns('.globalNav'), new globalNavPopup('.globalNav .navSection.mobile'), new globalNavPopup('.globalFooterNav .select.country'), new globalNavPopup('.globalFooterNav .select.language')
     }),
     function() {
-        'use strict';
+        
 
         function t() {
             var t = [].slice.call(arguments);

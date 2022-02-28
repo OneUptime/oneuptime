@@ -1,23 +1,23 @@
 // @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from 'chai'
-import chai-http from 'chai-http';
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import app from '../server'
-import GlobalConfig from './utils/globalConfig'
+import app from '../server';
+import GlobalConfig from './utils/globalConfig';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
+import { createUser } from './utils/userSignUp';
 // let log = require('./data/log');
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import ScheduleService from '../backend/services/scheduleService'
-import AirtableService from '../backend/services/airtableService'
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import ScheduleService from '../backend/services/scheduleService';
+import AirtableService from '../backend/services/airtableService';
 
-import VerificationTokenModel from '../backend/models/verificationToken'
+import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe, projectId: $TSFixMe, scheduleId: $TSFixMe, userId;
 
@@ -26,10 +26,13 @@ describe('Schedule API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
@@ -166,13 +169,15 @@ describe('Schedule API', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-let subProjectId: $TSFixMe, newUserToken: $TSFixMe, subProjectScheduleId: $TSFixMe;
+let subProjectId: $TSFixMe,
+    newUserToken: $TSFixMe,
+    subProjectScheduleId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Schedule API with Sub-Projects', function() {
     this.timeout(30000);
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
@@ -184,10 +189,16 @@ describe('Schedule API with Sub-Projects', function() {
                 .end(function(err: $TSFixMe, res: $TSFixMe) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(err: $TSFixMe, res: $TSFixMe) {
+                    createUser(request, userData.newUser, function(
+                        err: $TSFixMe,
+                        res: $TSFixMe
+                    ) {
                         VerificationTokenModel.findOne(
                             { userId: res.body.id },
-                            function(err: $TSFixMe, verificationToken: $TSFixMe) {
+                            function(
+                                err: $TSFixMe,
+                                verificationToken: $TSFixMe
+                            ) {
                                 request
                                     .get(
                                         `/user/confirmation/${verificationToken.token}`
@@ -201,7 +212,10 @@ describe('Schedule API with Sub-Projects', function() {
                                                 password:
                                                     userData.newUser.password,
                                             })
-                                            .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                            .end(function(
+                                                err: $TSFixMe,
+                                                res: $TSFixMe
+                                            ) {
                                                 newUserToken =
                                                     res.body.tokens
                                                         .jwtAccessToken;
@@ -252,7 +266,10 @@ describe('Schedule API with Sub-Projects', function() {
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create a schedule for user not present in project', function(done: $TSFixMe) {
-        createUser(request, userData.anotherUser, function(err: $TSFixMe, res: $TSFixMe) {
+        createUser(request, userData.anotherUser, function(
+            err: $TSFixMe,
+            res: $TSFixMe
+        ) {
             VerificationTokenModel.findOne({ userId: res.body.id }, function(
                 err: $TSFixMe,
                 res: $TSFixMe
@@ -275,7 +292,10 @@ describe('Schedule API with Sub-Projects', function() {
                                     .send({
                                         name: 'Valid Schedule',
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
                                             'You are not present in this project.'

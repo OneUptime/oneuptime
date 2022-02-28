@@ -6,8 +6,6 @@
  * @see module:logger
  */
 
-'use strict';
-
 import dotenv from 'dotenv';
 dotenv.config();
 

@@ -3,30 +3,35 @@ process.env.PORT = 3020;
 // @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from 'chai'
-import chai-http from 'chai-http';
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
 chai.use(require('chai-subset'));
-import app from '../server'
-import GlobalConfig from './utils/globalConfig'
+import app from '../server';
+import GlobalConfig from './utils/globalConfig';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import MonitorService from '../backend/services/monitorService'
-import ResourceCategoryService from '../backend/services/resourceCategoryService'
-import NotificationService from '../backend/services/notificationService'
-import AirtableService from '../backend/services/airtableService'
+import { createUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import MonitorService from '../backend/services/monitorService';
+import ResourceCategoryService from '../backend/services/resourceCategoryService';
+import NotificationService from '../backend/services/notificationService';
+import AirtableService from '../backend/services/airtableService';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
-import uuid from 'uuid'
+import uuid from 'uuid';
 
-import VerificationTokenModel from '../backend/models/verificationToken'
-import ComponentModel from '../backend/models/component'
+import VerificationTokenModel from '../backend/models/verificationToken';
+import ComponentModel from '../backend/models/component';
 
-let token: $TSFixMe, userId: $TSFixMe, projectId: $TSFixMe, monitorId: $TSFixMe, resourceCategoryId: $TSFixMe, monitor2Id: $TSFixMe;
+let token: $TSFixMe,
+    userId: $TSFixMe,
+    projectId: $TSFixMe,
+    monitorId: $TSFixMe,
+    resourceCategoryId: $TSFixMe,
+    monitor2Id: $TSFixMe;
 const httpMonitorId = uuid.v4();
 const httpMonitor2Id = uuid.v4();
 const resourceCategory = {
@@ -79,10 +84,13 @@ describe('Monitor API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -108,7 +116,10 @@ describe('Monitor API', function() {
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
                                     });
@@ -379,7 +390,10 @@ describe('Monitor API', function() {
                                 request
                                     .get(`/schedule/${projectId}`)
                                     .set('Authorization', authorization)
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         expect(res).to.have.status(200);
                                         expect(res.body).to.be.an('object');
                                         expect(res.body).to.have.property(
@@ -472,10 +486,13 @@ describe('API Monitor API', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -501,7 +518,10 @@ describe('API Monitor API', function() {
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         token = res.body.tokens.jwtAccessToken;
                                         testServer
                                             .post('/api/settings')
@@ -689,10 +709,13 @@ describe('IncomingHttpRequest Monitor', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -718,7 +741,10 @@ describe('IncomingHttpRequest Monitor', function() {
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
                                     });
@@ -883,10 +909,13 @@ describe('Monitor API with resource Category', function() {
     this.timeout(30000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -911,7 +940,10 @@ describe('Monitor API with resource Category', function() {
                                         .post(`/resourceCategory/${projectId}`)
                                         .set('Authorization', authorization)
                                         .send(resourceCategory)
-                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                        .end(function(
+                                            err: $TSFixMe,
+                                            res: $TSFixMe
+                                        ) {
                                             resourceCategoryId = res.body._id;
                                             done();
                                         });
@@ -956,7 +988,9 @@ describe('Monitor API with resource Category', function() {
 });
 
 // eslint-disable-next-line no-unused-vars
-let subProjectId: $TSFixMe, newUserToken: $TSFixMe, subProjectMonitorId: $TSFixMe;
+let subProjectId: $TSFixMe,
+    newUserToken: $TSFixMe,
+    subProjectMonitorId: $TSFixMe;
 
 // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'describe'. Do you need to instal... Remove this comment to see the full error message
 describe('Monitor API with Sub-Projects', function() {
@@ -973,7 +1007,10 @@ describe('Monitor API with Sub-Projects', function() {
                 .end(function(err: $TSFixMe, res: $TSFixMe) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(err: $TSFixMe, res: $TSFixMe) {
+                    createUser(request, userData.newUser, function(
+                        err: $TSFixMe,
+                        res: $TSFixMe
+                    ) {
                         userId = res.body.id;
                         VerificationTokenModel.findOne({ userId }, function(
                             err: $TSFixMe,
@@ -991,7 +1028,10 @@ describe('Monitor API with Sub-Projects', function() {
                                             email: userData.newUser.email,
                                             password: userData.newUser.password,
                                         })
-                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                        .end(function(
+                                            err: $TSFixMe,
+                                            res: $TSFixMe
+                                        ) {
                                             newUserToken =
                                                 res.body.tokens.jwtAccessToken;
                                             const authorization = `Basic ${token}`;
@@ -1027,7 +1067,10 @@ describe('Monitor API with Sub-Projects', function() {
 
     // @ts-expect-error ts-migrate(2582) FIXME: Cannot find name 'it'. Do you need to install type... Remove this comment to see the full error message
     it('should not create a monitor for user not present in project', function(done: $TSFixMe) {
-        createUser(request, userData.anotherUser, function(err: $TSFixMe, res: $TSFixMe) {
+        createUser(request, userData.anotherUser, function(
+            err: $TSFixMe,
+            res: $TSFixMe
+        ) {
             userId = res.body.id;
             VerificationTokenModel.findOne({ userId }, function(
                 err: $TSFixMe,
@@ -1054,7 +1097,10 @@ describe('Monitor API with Sub-Projects', function() {
                                         data: { url: 'http://www.tests.org' },
                                         componentId,
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
                                             'You are not present in this project.'

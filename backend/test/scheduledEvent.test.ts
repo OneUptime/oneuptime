@@ -1,26 +1,31 @@
 // @ts-expect-error ts-migrate(2322) FIXME: Type '3020' is not assignable to type 'string | un... Remove this comment to see the full error message
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from 'chai'
-import chai-http from 'chai-http';
+import userData from './data/user';
+import chai from 'chai';
+import chaihttp from 'chai-http';
 chai.use(chaihttp);
-import app from '../server'
-import GlobalConfig from './utils/globalConfig'
+import app from '../server';
+import GlobalConfig from './utils/globalConfig';
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'request' does not exist on type 'ChaiSta... Remove this comment to see the full error message
 const request = chai.request.agent(app);
 // @ts-expect-error ts-migrate(2614) FIXME: Module '"./utils/userSignUp"' has no exported memb... Remove this comment to see the full error message
-import { createUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import ScheduledEventService from '../backend/services/scheduledEventService'
-import MonitorService from '../backend/services/monitorService'
-import AirtableService from '../backend/services/airtableService'
-import moment from 'moment'
-import VerificationTokenModel from '../backend/models/verificationToken'
-import ComponentModel from '../backend/models/component'
+import { createUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import ScheduledEventService from '../backend/services/scheduledEventService';
+import MonitorService from '../backend/services/monitorService';
+import AirtableService from '../backend/services/airtableService';
+import moment from 'moment';
+import VerificationTokenModel from '../backend/models/verificationToken';
+import ComponentModel from '../backend/models/component';
 
-let token: $TSFixMe, userId, projectId: $TSFixMe, scheduleEventId: $TSFixMe, monitorId: $TSFixMe, componentId;
+let token: $TSFixMe,
+    userId,
+    projectId: $TSFixMe,
+    scheduleEventId: $TSFixMe,
+    monitorId: $TSFixMe,
+    componentId;
 
 const scheduledEvent = {
     name: 'New scheduled Event',
@@ -53,10 +58,13 @@ describe('Scheduled event API', function() {
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 userId = res.body.id;
                 projectId = project._id;
@@ -93,7 +101,10 @@ describe('Scheduled event API', function() {
                                                 },
                                                 componentId,
                                             })
-                                            .end(async function(err: $TSFixMe, res: $TSFixMe) {
+                                            .end(async function(
+                                                err: $TSFixMe,
+                                                res: $TSFixMe
+                                            ) {
                                                 monitorId = res.body._id;
 
                                                 const scheduledEvents = [];
@@ -383,13 +394,19 @@ describe('User from other project have access to read / write and delete API.', 
     this.timeout(20000);
 
     // @ts-expect-error ts-migrate(2304) FIXME: Cannot find name 'before'.
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
-                createUser(request, userData.newUser, function(err: $TSFixMe, res: $TSFixMe) {
+                createUser(request, userData.newUser, function(
+                    err: $TSFixMe,
+                    res: $TSFixMe
+                ) {
                     userId = res.body.id;
                     VerificationTokenModel.findOne({ userId }, function(
                         err: $TSFixMe,
@@ -407,7 +424,10 @@ describe('User from other project have access to read / write and delete API.', 
                                         email: userData.newUser.email,
                                         password: userData.newUser.password,
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
                                     });

@@ -1,6 +1,3 @@
-'use strict';
-
-/*eslint-disable no-unused-vars*/
 import Http from 'http';
 import Https from 'https';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
