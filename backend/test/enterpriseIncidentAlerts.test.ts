@@ -1,52 +1,57 @@
-
 process.env.PORT = 3020;
-import userData from './data/user'
-import chai from 'chai'
+import userData from './data/user';
+import chai from 'chai';
 const expect = require('chai').expect;
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-chai.use(require(..set'));
-import app from '../server'
-import GlobalConfig from './utils/globalConfig'
+import chaiSubset from 'chai-subset';
+chai.use(chaiSubset);
+import app from '../server';
+import GlobalConfig from './utils/globalConfig';
 
 const request = chai.request.agent(app);
 
-import { createEnterpriseUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import ComponentService from '../backend/services/componentService'
-import MonitorService from '../backend/services/monitorService'
-import NotificationService from '../backend/services/notificationService'
-import OnCallScheduleStatusService from '../backend/services/onCallScheduleStatusService'
-import SubscriberService from '../backend/services/subscriberService'
-import SubscriberAlertService from '../backend/services/subscriberAlertService'
-import ScheduleService from '../backend/services/scheduleService'
-import EscalationService from '../backend/services/escalationService'
-import MonitorStatusModel from '../backend/models/monitorStatus'
-import IncidentService from '../backend/services/incidentService'
-import IncidentSMSActionModel from '../backend/models/incidentSMSAction'
-import IncidentPriorityModel from '../backend/models/incidentPriority'
-import IncidentMessageModel from '../backend/models/incidentMessage'
-import IncidentTimelineModel from '../backend/models/incidentTimeline'
-import AlertService from '../backend/services/alertService'
-import AlertChargeModel from '../backend/models/alertCharge'
-import TwilioModel from '../backend/models/twilio'
-import VerificationToken from '../backend/models/verificationToken'
-import LoginIPLog from '../backend/models/loginIPLog'
+import { createEnterpriseUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import ComponentService from '../backend/services/componentService';
+import MonitorService from '../backend/services/monitorService';
+import NotificationService from '../backend/services/notificationService';
+import OnCallScheduleStatusService from '../backend/services/onCallScheduleStatusService';
+import SubscriberService from '../backend/services/subscriberService';
+import SubscriberAlertService from '../backend/services/subscriberAlertService';
+import ScheduleService from '../backend/services/scheduleService';
+import EscalationService from '../backend/services/escalationService';
+import MonitorStatusModel from '../backend/models/monitorStatus';
+import IncidentService from '../backend/services/incidentService';
+import IncidentSMSActionModel from '../backend/models/incidentSMSAction';
+import IncidentPriorityModel from '../backend/models/incidentPriority';
+import IncidentMessageModel from '../backend/models/incidentMessage';
+import IncidentTimelineModel from '../backend/models/incidentTimeline';
+import AlertService from '../backend/services/alertService';
+import AlertChargeModel from '../backend/models/alertCharge';
+import TwilioModel from '../backend/models/twilio';
+import VerificationToken from '../backend/models/verificationToken';
+import LoginIPLog from '../backend/models/loginIPLog';
 
-import UserModel from '../backend/models/user'
-import GlobalConfigModel from '../backend/models/globalConfig'
+import UserModel from '../backend/models/user';
+import GlobalConfigModel from '../backend/models/globalConfig';
 
-const sleep = (waitTimeInMs: $TSFixMe) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+const sleep = (waitTimeInMs: $TSFixMe) =>
+    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let authorization: $TSFixMe, token, userId: $TSFixMe, projectId: $TSFixMe, componentId, monitorId: $TSFixMe, scheduleId;
-
+let authorization: $TSFixMe,
+    token,
+    userId: $TSFixMe,
+    projectId: $TSFixMe,
+    componentId,
+    monitorId: $TSFixMe,
+    scheduleId;
 
 describe('Incident Alerts', function() {
     this.timeout(30000);
 
-    
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(() => {
             createEnterpriseUser(request, userData.user, async function(
@@ -154,7 +159,6 @@ describe('Incident Alerts', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
@@ -180,14 +184,13 @@ describe('Incident Alerts', function() {
         await NotificationService.hardDeleteBy({ projectId: projectId });
     });
 
-    
     describe('Global twilio credentials set (and Custom twilio settings not set)', async () => {
         /**
          * Global twilio settings: set
          * Custom twilio settings: not set
          * Global twilio settings (SMS/Call) enable : true
          */
-        
+
         it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -272,7 +275,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings SMS enable : true
          * Global twilio settings Call enable : false
          */
-        
+
         it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -365,7 +368,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings SMS enable : false
          * Global twilio settings Call enable : true
          */
-        
+
         it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -455,7 +458,7 @@ describe('Incident Alerts', function() {
             expect(alertsSentList.includes('call')).to.equal(true);
         });
     });
-    
+
     describe('Custom twilio settings are set', async () => {
         /**
          * Global twilio settings: set
@@ -463,7 +466,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings SMS enable : false
          * Global twilio settings Call enable : false
          */
-        
+
         it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async function() {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -569,7 +572,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings: not set
          * Custom twilio settings: not set
          */
-        
+
         it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function() {
             await GlobalConfigModel.deleteMany({
                 name: 'twilio',

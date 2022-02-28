@@ -1,41 +1,42 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import chai from 'chai'
+import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-chai.use(require(..set'));
-import app from '../server'
-import userData from './data/user'
+import chaiSubset from 'chai-subset';
+chai.use(chaiSubset);
+import app from '../server';
+import userData from './data/user';
 
-import { newProject } from './data/project'
-import gitCredential from './data/gitCredential'
-import dockerCredential from './data/dockerCredential'
+import { newProject } from './data/project';
+import gitCredential from './data/gitCredential';
+import dockerCredential from './data/dockerCredential';
 
-import { createUser } from './utils/userSignUp'
-import VerificationTokenModel from '../backend/models/verificationToken'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
+import { createUser } from './utils/userSignUp';
+import VerificationTokenModel from '../backend/models/verificationToken';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
 
 const request = chai.request.agent(app);
-import ProbeService from '../backend/services/probeService'
-import MonitorService from '../backend/services/monitorService'
-import ComponentService from '../backend/services/componentService'
-import GitCredentialService from '../backend/services/gitCredentialService'
-import ApplicationSecurityService from '../backend/services/applicationSecurityService'
-import DockerCredentialService from '../backend/services/dockerCredentialService'
-import ContainerSecurityService from '../backend/services/containerSecurityService'
+import ProbeService from '../backend/services/probeService';
+import MonitorService from '../backend/services/monitorService';
+import ComponentService from '../backend/services/componentService';
+import GitCredentialService from '../backend/services/gitCredentialService';
+import ApplicationSecurityService from '../backend/services/applicationSecurityService';
+import DockerCredentialService from '../backend/services/dockerCredentialService';
+import ContainerSecurityService from '../backend/services/containerSecurityService';
 let probeId: $TSFixMe;
-import GlobalConfig from './utils/globalConfig'
-import AirtableService from '../backend/services/airtableService'
+import GlobalConfig from './utils/globalConfig';
+import AirtableService from '../backend/services/airtableService';
 let token: $TSFixMe, userId, projectId: $TSFixMe, componentId: $TSFixMe;
 const probeKey = 'test-key';
-const sleep = (waitTimeInMs: $TSFixMe) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+const sleep = (waitTimeInMs: $TSFixMe) =>
+    new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 const generateRandomString = require('./utils/string').generateRandomString;
 const probeServerRequestHeader = ({
     probeName,
     probeKey,
-    clusterKey
+    clusterKey,
 }: $TSFixMe) => ({
     'Access-Control-Allow-Origin': '*',
     Accept: 'application/json',
@@ -46,11 +47,9 @@ const probeServerRequestHeader = ({
 });
 let probeServerName1: $TSFixMe, probeServerName2: $TSFixMe;
 
-
 describe('Probe API', function() {
     this.timeout(20000);
 
-    
     before(async function() {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
@@ -85,7 +84,6 @@ describe('Probe API', function() {
         return Promise.resolve();
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProbeService.hardDeleteBy({ _id: probeId });
@@ -112,7 +110,6 @@ describe('Probe API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should add a probe by admin', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
@@ -131,10 +128,12 @@ describe('Probe API', function() {
             });
     });
 
-    
     it('should not add a probe if not admin', function(done: $TSFixMe) {
         const probeName = generateRandomString();
-        createUser(request, userData.newUser, function(err: $TSFixMe, res: $TSFixMe) {
+        createUser(request, userData.newUser, function(
+            err: $TSFixMe,
+            res: $TSFixMe
+        ) {
             userId = res.body.id;
             VerificationTokenModel.findOne({ userId }, function(
                 err: $TSFixMe,
@@ -159,7 +158,10 @@ describe('Probe API', function() {
                                         probeName: probeName,
                                         probeKey: '',
                                     })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         expect(res).to.have.status(400);
                                         done();
                                     });
@@ -169,7 +171,6 @@ describe('Probe API', function() {
         });
     });
 
-    
     it('should reject a probe if same name already exists', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
@@ -196,7 +197,6 @@ describe('Probe API', function() {
             });
     });
 
-    
     it('should get probes', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -209,7 +209,6 @@ describe('Probe API', function() {
             });
     });
 
-    
     it('should delete a probe by admin', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
@@ -234,7 +233,6 @@ describe('Probe API', function() {
             });
     });
 
-    
     it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async function() {
         probeServerName1 = generateRandomString();
         const res = await request.get('/probe/monitors').set(
@@ -246,7 +244,7 @@ describe('Probe API', function() {
         );
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
-        
+
         const probe = await ProbeService.findOneBy({
             query: { probeName: probeServerName1 },
             select: '_id',
@@ -254,7 +252,6 @@ describe('Probe API', function() {
         expect(probe).to.not.eql(null);
     });
 
-    
     it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ', async function() {
         this.timeout(100000);
         const monitor = await MonitorService.create({
@@ -337,7 +334,6 @@ describe('Probe API', function() {
         await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 
-    
     it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min', async function() {
         this.timeout(100000);
         const monitor = await MonitorService.create({
@@ -421,7 +417,6 @@ describe('Probe API', function() {
         await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 
-    
     it('should get application securities yet to be scanned or scanned 24hrs ago', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = 'US';
@@ -436,7 +431,7 @@ describe('Probe API', function() {
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
-                
+
                 gitCredential: credential._id,
             };
 
@@ -461,7 +456,6 @@ describe('Probe API', function() {
         });
     });
 
-    
     it('should get container securities yet to be scanned or scanned 24hrs ago', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = 'US';

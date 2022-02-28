@@ -1,28 +1,28 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from 'chai'
+import userData from './data/user';
+import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-chai.use(require(..set'));
-import app from '../server'
-import GlobalConfig from './utils/globalConfig'
+import chaiSubset from 'chai-subset';
+chai.use(chaiSubset);
+import app from '../server';
+import GlobalConfig from './utils/globalConfig';
 
 const request = chai.request.agent(app);
 
-import { createUser } from './utils/userSignUp'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import ComponentService from '../backend/services/componentService'
-import NotificationService from '../backend/services/notificationService'
-import AirtableService from '../backend/services/airtableService'
-import gitCredential from './data/gitCredential'
-import GitCredentialService from '../backend/services/gitCredentialService'
-import dockerCredential from './data/dockerCredential'
-import DockerCredentialService from '../backend/services/dockerCredentialService'
+import { createUser } from './utils/userSignUp';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import ComponentService from '../backend/services/componentService';
+import NotificationService from '../backend/services/notificationService';
+import AirtableService from '../backend/services/airtableService';
+import gitCredential from './data/gitCredential';
+import GitCredentialService from '../backend/services/gitCredentialService';
+import dockerCredential from './data/dockerCredential';
+import DockerCredentialService from '../backend/services/dockerCredentialService';
 
-import VerificationTokenModel from '../backend/models/verificationToken'
+import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe,
     userId,
@@ -31,15 +31,16 @@ let token: $TSFixMe,
     monitorId: $TSFixMe,
     resourceCount = 0;
 
-
 describe('Component API', function() {
     this.timeout(30000);
 
-    
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(80000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -68,7 +69,6 @@ describe('Component API', function() {
         });
     });
 
-    
     it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post(`/component/${projectId}`)
@@ -81,7 +81,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should not create a component when the `name` field is null', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -96,7 +95,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should create a new component when the correct data is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -113,7 +111,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should update a component when the correct data is given by an authenticated user', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -129,7 +126,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should get components for an authenticated user by ProjectId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -144,7 +140,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should get a component for an authenticated user with valid componentId', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -158,7 +153,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should create a new monitor when `componentId` is given`', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -179,7 +173,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should return a list of all resources under component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -194,7 +187,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should create a new application log when `componentId` is given then get list of resources`', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -226,7 +218,7 @@ describe('Component API', function() {
                     });
             });
     });
-    
+
     it('should create a new application log then creater a log when `componentId` is given then get list of resources`', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -276,7 +268,6 @@ describe('Component API', function() {
             });
     });
 
-    
     it('should create an application security then get list of resources', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -288,7 +279,7 @@ describe('Component API', function() {
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
-                
+
                 gitCredential: credential._id,
             };
 
@@ -322,7 +313,6 @@ describe('Component API', function() {
         });
     });
 
-    
     it('should create a container security', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
@@ -365,7 +355,6 @@ describe('Component API', function() {
         });
     });
 
-    
     it('should delete a component and its monitor when componentId is valid', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -395,11 +384,10 @@ let subProjectId: $TSFixMe,
     subProjectComponentId: $TSFixMe,
     newComponentId: $TSFixMe;
 
-
 describe('Component API with Sub-Projects', function() {
     this.timeout(30000);
-    
-    before(function( done: $TSFixMe) {
+
+    before(function(done: $TSFixMe) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
@@ -411,14 +399,20 @@ describe('Component API with Sub-Projects', function() {
                 .end(function(err: $TSFixMe, res: $TSFixMe) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(err: $TSFixMe, res: $TSFixMe) {
+                    createUser(request, userData.newUser, function(
+                        err: $TSFixMe,
+                        res: $TSFixMe
+                    ) {
                         const project = res.body.project;
                         newProjectId = project._id;
                         newUserId = res.body.id;
 
                         VerificationTokenModel.findOne(
                             { userId: newUserId },
-                            function(err: $TSFixMe, verificationToken: $TSFixMe) {
+                            function(
+                                err: $TSFixMe,
+                                verificationToken: $TSFixMe
+                            ) {
                                 request
                                     .get(
                                         `/user/confirmation/${verificationToken.token}`
@@ -432,7 +426,10 @@ describe('Component API with Sub-Projects', function() {
                                                 password:
                                                     userData.newUser.password,
                                             })
-                                            .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                            .end(function(
+                                                err: $TSFixMe,
+                                                res: $TSFixMe
+                                            ) {
                                                 newUserToken =
                                                     res.body.tokens
                                                         .jwtAccessToken;
@@ -464,7 +461,6 @@ describe('Component API with Sub-Projects', function() {
         });
     });
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
@@ -492,9 +488,11 @@ describe('Component API with Sub-Projects', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    
     it('should not create a component for user not present in project', function(done: $TSFixMe) {
-        createUser(request, userData.anotherUser, function(err: $TSFixMe, res: $TSFixMe) {
+        createUser(request, userData.anotherUser, function(
+            err: $TSFixMe,
+            res: $TSFixMe
+        ) {
             const project = res.body.project;
             otherProjectId = project._id;
             otherUserId = res.body.id;
@@ -519,7 +517,10 @@ describe('Component API with Sub-Projects', function() {
                                     .post(`/component/${projectId}`)
                                     .set('Authorization', authorization)
                                     .send({ name: 'New Component 1' })
-                                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                    .end(function(
+                                        err: $TSFixMe,
+                                        res: $TSFixMe
+                                    ) {
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
                                             'You are not present in this project.'
@@ -532,7 +533,6 @@ describe('Component API with Sub-Projects', function() {
         });
     });
 
-    
     it('should not create a component for user that is not `admin` in project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -550,7 +550,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it('should create a component in parent project by valid admin.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -567,7 +566,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it('should not create a component with exisiting name in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -585,7 +583,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it('should create a component in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -602,7 +599,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it("should get only sub-project's components for valid sub-project user", function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -619,7 +615,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it('should get project components for valid parent project user.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -635,7 +630,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it('should get sub-project components for valid parent project user.', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -651,7 +645,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it('should not delete a component for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
@@ -666,7 +659,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it('should delete sub-project component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -678,7 +670,6 @@ describe('Component API with Sub-Projects', function() {
             });
     });
 
-    
     it('should delete project component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request

@@ -1,25 +1,29 @@
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
-import userData from './data/user'
-import chai from 'chai'
+import userData from './data/user';
+import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-chai.use(require(..set'));
-import app from '../server'
-import GlobalConfig from './utils/globalConfig'
+import chaiSubset from 'chai-subset';
+chai.use(chaiSubset);
+import app from '../server';
+import GlobalConfig from './utils/globalConfig';
 
 const request = chai.request.agent(app);
 
-import { createUser } from './utils/userSignUp'
-import VerificationTokenModel from '../backend/models/verificationToken'
-import ApplicationLogService from '../backend/services/applicationLogService'
-import UserService from '../backend/services/userService'
-import ProjectService from '../backend/services/projectService'
-import NotificationService from '../backend/services/notificationService'
-import AirtableService from '../backend/services/airtableService'
+import { createUser } from './utils/userSignUp';
+import VerificationTokenModel from '../backend/models/verificationToken';
+import ApplicationLogService from '../backend/services/applicationLogService';
+import UserService from '../backend/services/userService';
+import ProjectService from '../backend/services/projectService';
+import NotificationService from '../backend/services/notificationService';
+import AirtableService from '../backend/services/airtableService';
 
-let token: $TSFixMe, userId, projectId: $TSFixMe, componentId: $TSFixMe, applicationLog: $TSFixMe;
+let token: $TSFixMe,
+    userId,
+    projectId: $TSFixMe,
+    componentId: $TSFixMe,
+    applicationLog: $TSFixMe;
 const log = {
     applicationLogKey: 'Wrong-key',
     content: 'this is a log',
@@ -31,15 +35,16 @@ const logCount = {
     warning: 0,
 };
 
-
 describe('Application Log API', function() {
     this.timeout(80000);
 
-    
-    before(function( done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(90000);
         GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err: $TSFixMe, res: $TSFixMe) {
+            createUser(request, userData.user, function(
+                err: $TSFixMe,
+                res: $TSFixMe
+            ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
@@ -67,7 +72,10 @@ describe('Application Log API', function() {
                                         .send({
                                             name: 'New Component',
                                         })
-                                        .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                        .end(function(
+                                            err: $TSFixMe,
+                                            res: $TSFixMe
+                                        ) {
                                             componentId = res.body._id;
                                             expect(res).to.have.status(200);
                                             expect(res.body.name).to.be.equal(
@@ -82,7 +90,6 @@ describe('Application Log API', function() {
         });
     });
 
-    
     it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post(`/application-log/${projectId}/${componentId}/create`)
@@ -94,7 +101,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should reject the request of an empty application log name', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -108,7 +115,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should create the application log', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -124,7 +131,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should return a list of application logs under component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -136,7 +143,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should not return a list of application logs under wrong component', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -150,7 +157,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should not create a log with wrong application key', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -165,7 +172,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should create a log with correct application log key', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         log.applicationLogKey = applicationLog.key;
@@ -184,7 +191,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should create a log with correct application log key with type error', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         log.applicationLogKey = applicationLog.key;
@@ -204,12 +211,12 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should create a log with correct application log key with type error and one tag', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         log.applicationLogKey = applicationLog.key;
         log.type = 'error';
-        
+
         log.tags = 'server-side';
         request
             .post(`/application-log/${applicationLog._id}/log`)
@@ -221,18 +228,18 @@ describe('Application Log API', function() {
                 expect(res.body).to.include({ type: log.type });
                 expect(res.body.tags).to.be.an('array');
                 expect(res.body.tags).to.have.lengthOf(1);
-                
+
                 expect(res.body.tags).to.include(log.tags);
                 logCount.error++;
                 done();
             });
     });
-    
+
     it('should not create a log with correct application log key with type error but invalid tag', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         log.applicationLogKey = applicationLog.key;
         log.type = 'error';
-        
+
         log.tags = { key: 'server-side' };
         request
             .post(`/application-log/${applicationLog._id}/log`)
@@ -244,17 +251,17 @@ describe('Application Log API', function() {
                     'Application Log Tags must be of type String or Array of Strings'
                 );
                 // remove the invalid tag
-                
+
                 delete log['tags'];
                 done();
             });
     });
-    
+
     it('should create a log with correct application log key with type error and 5 tags', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         log.applicationLogKey = applicationLog.key;
         log.type = 'error';
-        
+
         log.tags = ['server', 'side', 'monitor', 'watcher', 'testing'];
         request
             .post(`/application-log/${applicationLog._id}/log`)
@@ -265,22 +272,22 @@ describe('Application Log API', function() {
                 expect(res.body).to.include({ content: log.content });
                 expect(res.body).to.include({ type: log.type });
                 expect(res.body.tags).to.be.an('array');
-                
+
                 expect(res.body.tags).to.have.lengthOf(log.tags.length);
                 logCount.error++;
-                
+
                 delete log['tags'];
                 done();
             });
     });
-    
+
     it('should fetch logs related to application log with tag search params', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         // create a log
         log.applicationLogKey = applicationLog.key;
         log.content = 'another content';
         log.type = 'warning';
-        
+
         log.tags = ['server', 'side', 'monitor', 'watcher', 'testing'];
         request
             .post(`/application-log/${applicationLog._id}/log`)
@@ -303,7 +310,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should not create a log with correct application log key and invalid type', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         log.applicationLogKey = applicationLog.key;
@@ -320,7 +327,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should not reset the application log key for wrong application log id', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -338,7 +345,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should reset the application log key', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -357,7 +364,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should fetch logs related to application log', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -376,7 +383,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should fetch logs related to application log with search params', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         // create a log
@@ -404,12 +411,12 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should fetch logs related to application log with search params related to content', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         // create a log
         log.applicationLogKey = applicationLog.key;
-        
+
         log.content = { code: '007', name: 'james', location: 'berlin' }; // log an object of type error
         log.type = 'error';
         request
@@ -446,12 +453,12 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should fetch logs all log stat related to application log', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         // create a log
         log.applicationLogKey = applicationLog.key;
-        
+
         log.content = { code: '007', name: 'james', location: 'berlin' }; // log an object of type error
         log.type = 'error';
         request
@@ -478,7 +485,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should not edit an application log with empty name', function(done: $TSFixMe) {
         const newName = '';
         const authorization = `Basic ${token}`;
@@ -496,7 +503,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should not edit an application log with same name as existing application log', function(done: $TSFixMe) {
         const newName = 'Astro';
         const authorization = `Basic ${token}`;
@@ -525,7 +532,7 @@ describe('Application Log API', function() {
                     });
             });
     });
-    
+
     it('should edit an application log', function(done: $TSFixMe) {
         const newName = 'Rodeo';
         const authorization = `Basic ${token}`;
@@ -542,7 +549,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should edit an application log but not change application log key', function(done: $TSFixMe) {
         const newName = 'Rodeo II';
         const authorization = `Basic ${token}`;
@@ -560,7 +567,7 @@ describe('Application Log API', function() {
                 done();
             });
     });
-    
+
     it('should delete an application log', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
@@ -578,7 +585,6 @@ describe('Application Log API', function() {
 
     // Yet to figure out how thi works
 
-    
     after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
