@@ -56,7 +56,7 @@ global.db = client.db(databaseName);
 
 app.use(cors());
 
-app.use(function(req, res, next) {
+app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -85,7 +85,7 @@ const getActualRequestDurationInMilliseconds = start => {
     return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
 };
 
-app.use(function(req, res, next) {
+app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
     const current_datetime = new Date();
     const formatted_date =
         current_datetime.getFullYear() +
@@ -111,7 +111,7 @@ app.use(function(req, res, next) {
     return next();
 });
 
-app.get(['/data-ingestor/status', '/status'], function(req, res) {
+app.get(['/data-ingestor/status', '/status'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

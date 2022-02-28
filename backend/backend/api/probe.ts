@@ -16,7 +16,7 @@ import { isAuthorized } from '../middlewares/authorization';
 import multer from 'multer';
 import storage from '../middlewares/upload';
 
-router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
+router.post('/', getUser, isAuthorizedAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
         const probe = await ProbeService.create(data);
@@ -26,7 +26,7 @@ router.post('/', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
+router.get('/', getUser, isAuthorizedAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -47,7 +47,7 @@ router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.put('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
+router.put('/:id', getUser, isAuthorizedAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
         const probe = await ProbeService.updateOneBy(
@@ -60,7 +60,7 @@ router.put('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
     }
 });
 
-router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
+router.delete('/:id', getUser, isAuthorizedAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const probe = await ProbeService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, probe);
@@ -75,7 +75,7 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
 
-router.put('/update/image', getUser, async function(req, res) {
+router.put('/update/image', getUser, async function(req:express.Request, res: express.Response) {
     try {
         const upload = multer({
             storage,
@@ -109,7 +109,7 @@ router.put('/update/image', getUser, async function(req, res) {
     }
 });
 
-router.get('/monitors', isAuthorizedProbe, async function(req, res) {
+router.get('/monitors', isAuthorizedProbe, async function(req:express.Request, res: express.Response) {
     try {
         const monitors = await MonitorService.getProbeMonitors(
             req.probe.id,
@@ -743,7 +743,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req, res) {
+router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
 
@@ -756,7 +756,7 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function(req, res) {
     }
 });
 
-router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req, res) {
+router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
 

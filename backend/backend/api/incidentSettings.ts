@@ -11,7 +11,7 @@ import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
 import { variables } from '../config/incidentDefaultSettings';
 
-router.get('/variables', async function(req, res) {
+router.get('/variables', async function(req:express.Request, res: express.Response) {
     try {
         return sendItemResponse(req, res, variables);
     } catch (error) {
@@ -48,7 +48,7 @@ router.get('/:projectId/default', getUser, isAuthorized, async function(
 });
 
 // fetch all incident template in a project
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
@@ -85,7 +85,7 @@ router.put(
     '/:projectId/:templateId/setDefault',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         const { projectId, templateId } = req.params;
         if (!projectId)
             return sendErrorResponse(req, res, {
@@ -208,7 +208,7 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { projectId } = req.params;
         // description is optional

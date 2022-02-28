@@ -1,3 +1,13 @@
+import ErrorService from './errorService';
+import moment from 'moment';
+import { ObjectId } from 'mongodb';
+import Database from 'common-server/utils/database';
+const probeCollection = Database.getDatabase().collection('probes');
+import { v1 as uuidv1 } from 'uuid';
+import { postApi } from '../utils/api';
+import { realtimeUrl } from '../utils/config';
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+
 export default {
     create: async function(data) {
         try {
@@ -117,15 +127,4 @@ export default {
     },
 };
 
-import ErrorService from './errorService';
-import moment from 'moment';
-import { ObjectId } from 'mongodb';
 
-const probeCollection = global.db.collection('probes');
-
-import { v1 as uuidv1 } from 'uuid';
-
-import { postApi } from '../utils/api';
-
-import { realtimeUrl } from '../utils/config';
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;

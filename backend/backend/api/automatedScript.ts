@@ -11,7 +11,7 @@ import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';
 
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
@@ -36,7 +36,7 @@ router.get(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const { automatedSlug } = req.params;
             const { skip, limit } = req.query;
@@ -85,7 +85,7 @@ router.get(
 // Route Description: Creates a new script
 // req.body -> {name, scriptType, script, successEvent, failureEvent}
 // Returns: response new script created
-router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
+router.post('/:projectId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
@@ -149,7 +149,7 @@ router.put(
     '/:projectId/:automatedScriptId',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const automatedScriptId = req.params.automatedScriptId;
             const data = req.body;
@@ -216,7 +216,7 @@ router.put(
     '/:projectId/:automatedScriptId/run',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const { automatedScriptId } = req.params;
 
@@ -237,7 +237,7 @@ router.delete(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, automatedSlug } = req.params;
             const query = {

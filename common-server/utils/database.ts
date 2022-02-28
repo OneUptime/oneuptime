@@ -1,5 +1,5 @@
 import MongoDB from 'mongodb';
-import { mongoUrl, databaseName } from './config';
+import { databaseUrl, databaseName } from '../config';
 
 export default class Database {
 
@@ -7,7 +7,7 @@ export default class Database {
     static databaseConnected: boolean = false; 
 
     static getClient(): MongoDB.MongoClient{
-        this.databaseClient = new MongoDB.MongoClient(mongoUrl, {
+        this.databaseClient = new MongoDB.MongoClient(databaseUrl, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });

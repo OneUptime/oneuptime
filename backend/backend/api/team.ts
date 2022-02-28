@@ -18,7 +18,7 @@ import ErrorService from 'common-server/utils/error';
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId}; req.user-> {id}
 // Returns: 200: An array of users belonging to the project.
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     const projectId = req.params.projectId;
 
     try {
@@ -35,7 +35,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
@@ -210,7 +210,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         const userId = req.user ? req.user.id : null;
         const teamMemberUserId = req.params.teamMemberId;
         const projectId = req.params.projectId;
@@ -255,7 +255,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         const data = req.body;
         const projectId = req.params.projectId;
         data.teamMemberId = req.params.teamMemberId;

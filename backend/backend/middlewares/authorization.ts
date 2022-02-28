@@ -20,10 +20,10 @@ export default {
             }
 
             if (apiMiddleware.hasAPIKey(req)) {
-                return apiMiddleware.isValidProjectIdAndApiKey(req, res, next);
+                return apiMiddleware.isValidProjectIdAndApiKey(req:express.Request, res: express.Response, next: express.RequestHandler);
             }
         }
 
-        doesUserBelongToProject(req, res, next);
+        doesUserBelongToProject(req:express.Request, res: express.Response, next: express.RequestHandler);
     },
 };

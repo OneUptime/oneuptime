@@ -8,7 +8,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     const { projectId } = req.params;
     const { skip = 0, limit = 10 } = req.query;
     if (!projectId) {
@@ -35,7 +35,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     const { projectId } = req.params;
     const { name, color } = req.body;
     if (!projectId) {
@@ -69,7 +69,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.put('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     const { projectId } = req.params;
     const { _id, name, color } = req.body;
 
@@ -112,7 +112,7 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.delete('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.delete('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     const { projectId } = req.params;
     const { _id } = req.body;
 

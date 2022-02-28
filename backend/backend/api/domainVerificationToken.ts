@@ -23,7 +23,7 @@ router.put(
     '/:projectId/verify/:domainId',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         const { domain: subDomain, verificationToken } = req.body;
         // id of the base domain
         const { domainId } = req.params;
@@ -66,7 +66,7 @@ router.put(
     '/:projectId/forceVerify/:domainId',
     getUser,
     isUserMasterAdmin,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         // id of the base domain
         const { domainId } = req.params;
         try {
@@ -85,7 +85,7 @@ router.put(
     '/:projectId/unverify/:domainId',
     getUser,
     isUserMasterAdmin,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const { domainId } = req.params;
             const response = await DomainVerificationService.updateOneBy(
@@ -101,7 +101,7 @@ router.put(
     }
 );
 
-router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
+router.get('/:projectId/domains', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     const { projectId } = req.params;
     const { skip, limit } = req.query;
     const selectDomainVerify =
@@ -128,7 +128,7 @@ router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     }
 });
 
-router.post('/:projectId/domain', getUser, isAuthorized, async (req, res) => {
+router.post('/:projectId/domain', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     try {
         const { projectId } = req.params;
         const { domain } = req.body;
@@ -183,7 +183,7 @@ router.put(
     '/:projectId/resetDomain/:domainId',
     getUser,
     isUserMasterAdmin,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const { domainId } = req.params;
             const domain = await DomainVerificationService.resetDomain(
@@ -200,7 +200,7 @@ router.put(
     '/:projectId/domain/:domainId',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const { projectId, domainId } = req.params;
             const { domain } = req.body;
@@ -272,7 +272,7 @@ router.delete(
     '/:projectId/domain/:domainId',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const { projectId, domainId } = req.params;
             const projectArr = await ProjectService.findSubprojectId(projectId);

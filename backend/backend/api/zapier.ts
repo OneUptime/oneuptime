@@ -10,7 +10,7 @@ const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 
 const router = express.Router();
 
-router.get('/test', isAuthorized, async function(req, res) {
+router.get('/test', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const apiKey = req.query.apiKey;
         const projectId = req.query.projectId;
@@ -21,7 +21,7 @@ router.get('/test', isAuthorized, async function(req, res) {
     }
 });
 
-router.get('/monitors', isAuthorized, async function(req, res) {
+router.get('/monitors', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.query.projectId;
 
@@ -51,7 +51,7 @@ router.get('/monitors', isAuthorized, async function(req, res) {
     }
 });
 
-router.post('/incident/createIncident', isAuthorized, async function(req, res) {
+router.post('/incident/createIncident', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const monitors = req.body.monitors || [];
         const incident = await ZapierService.createIncident(monitors);
@@ -61,7 +61,7 @@ router.post('/incident/createIncident', isAuthorized, async function(req, res) {
     }
 });
 
-router.get('/incidents', isAuthorized, async function(req, res) {
+router.get('/incidents', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.query.projectId;
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
@@ -73,7 +73,7 @@ router.get('/incidents', isAuthorized, async function(req, res) {
     }
 });
 
-router.get('/incident-note', isAuthorized, async function(req, res) {
+router.get('/incident-note', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.query.projectId;
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
@@ -85,7 +85,7 @@ router.get('/incident-note', isAuthorized, async function(req, res) {
     }
 });
 
-router.post('/incident/incident-note', isAuthorized, async function(req, res) {
+router.post('/incident/incident-note', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { data } = req.body;
         const incidentNote = await ZapierService.createIncidentNote(data);
@@ -95,7 +95,7 @@ router.post('/incident/incident-note', isAuthorized, async function(req, res) {
     }
 });
 
-router.get('/incident/resolved', isAuthorized, async function(req, res) {
+router.get('/incident/resolved', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.query.projectId;
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
@@ -155,7 +155,7 @@ router.post('/incident/resolveIncident', isAuthorized, async function(
     }
 });
 
-router.get('/incident/acknowledged', isAuthorized, async function(req, res) {
+router.get('/incident/acknowledged', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.query.projectId;
         // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
@@ -220,7 +220,7 @@ router.post('/incident/acknowledgeIncident', isAuthorized, async function(
     }
 });
 
-router.post('/subscribe', isAuthorized, async function(req, res) {
+router.post('/subscribe', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const url = req.body.url;
         const type = req.body.type;
@@ -256,11 +256,11 @@ router.post('/subscribe', isAuthorized, async function(req, res) {
     }
 });
 
-router.delete('/unsubscribe/:id', isAuthorized, async function(req, res) {
+router.delete('/unsubscribe/:id', isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const id = req.params.id;
         await ZapierService.unsubscribe(id);
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

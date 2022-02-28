@@ -42,7 +42,7 @@ const cronMinuteStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3015);
 
-app.get(['/lighthouse/status', '/status'], function(req, res) {
+app.get(['/lighthouse/status', '/status'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -55,7 +55,7 @@ app.get(['/lighthouse/status', '/status'], function(req, res) {
 
 //App Version
 
-app.get(['/lighthouse/version', '/version'], function(req, res) {
+app.get(['/lighthouse/version', '/version'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ lighthouseVersion: process.env.npm_package_version });
 });

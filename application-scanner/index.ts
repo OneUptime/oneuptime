@@ -44,7 +44,7 @@ const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3005);
 
-app.get(['/application/status', '/status'], function(req, res) {
+app.get(['/application/status', '/status'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -57,7 +57,7 @@ app.get(['/application/status', '/status'], function(req, res) {
 
 //App Version
 
-app.get(['/application/version', '/version'], function(req, res) {
+app.get(['/application/version', '/version'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ applicationScannerVersion: process.env.npm_package_version });
 });

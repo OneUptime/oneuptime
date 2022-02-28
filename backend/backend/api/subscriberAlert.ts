@@ -10,7 +10,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 import IncidentService from '../services/incidentService';
 
-router.post('/:projectId/:subscriberId', async (req, res) => {
+router.post('/:projectId/:subscriberId', async (req:express.Request, res: express.Response) => {
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
@@ -37,7 +37,7 @@ router.post('/:projectId/:subscriberId', async (req, res) => {
 });
 
 // Mark alert as viewed
-router.get('/:projectId/:alertId/viewed', async function(req, res) {
+router.get('/:projectId/:alertId/viewed', async function(req:express.Request, res: express.Response) {
     try {
         const alertId = req.params.alertId;
         const projectId = req.params.projectId;
@@ -67,7 +67,7 @@ router.get('/:projectId/:alertId/viewed', async function(req, res) {
 // get subscribers alerts by projectId
 // req.params-> {projectId};
 // Returns: response subscriber alerts, error message
-router.get('/:projectId', async (req, res) => {
+router.get('/:projectId', async (req:express.Request, res: express.Response) => {
     try {
         const projectId = req.params.projectId;
         const skip = req.query.skip || 0;
@@ -104,7 +104,7 @@ router.get('/:projectId', async (req, res) => {
 //get subscribers by incidentSlug
 // req.params-> {projectId, incidentSlug};
 // Returns: response subscriber alerts, error message
-router.get('/:projectId/incident/:incidentSlug', async (req, res) => {
+router.get('/:projectId/incident/:incidentSlug', async (req:express.Request, res: express.Response) => {
     try {
         const projectId = req.params.projectId;
         const incidentSlug = req.params.incidentSlug;

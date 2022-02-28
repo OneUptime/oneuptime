@@ -2,11 +2,10 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 import Express from 'common-server/utils/express';
-import Database from 'common-server/utils/database';
 
 const app = Express.launchApplication();
 
-app.get(['/probe-api/status', '/status'], function(req, res) {
+app.get(['/probe-api/status', '/status'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

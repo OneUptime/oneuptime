@@ -13,7 +13,7 @@ import twilioService from '../services/twilioService';
 // Body: [{name, value}] | {name, value}
 // Return: [{name, value, createdAt}] | {name, value, createdAt}
 
-router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         let configs;
 
@@ -100,7 +100,7 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
 // Params: [name];
 // Return: [{name, value, createdAt}]
 
-router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/configs', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const names = req.body;
 
@@ -127,7 +127,7 @@ router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
 // Params: {name};
 // Return: {name, value, createdAt}
 
-router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/:name', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const selectConfig = 'name value createdAt';
         const { name } = req.params;

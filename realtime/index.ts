@@ -90,7 +90,7 @@ io.sockets.on('connection', socket => {
 
 app.use(cors());
 
-app.use(function(req, res, next) {
+app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -110,7 +110,7 @@ app.use(function(req, res, next) {
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
-app.get(['/realtime/status', '/status'], function(req, res) {
+app.get(['/realtime/status', '/status'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

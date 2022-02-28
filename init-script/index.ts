@@ -68,11 +68,11 @@ if (process.env['NODE_ENV'] === 'development') {
     });
 
     app.get('/:dbFunction', async function(req: $TSFixMe, res: $TSFixMe) {
-        return await interactWithDB(req, res);
+        return await interactWithDB(req:express.Request, res: express.Response);
     });
 
     app.post('/:dbFunction', async function(req: $TSFixMe, res: $TSFixMe) {
-        return await interactWithDB(req, res);
+        return await interactWithDB(req:express.Request, res: express.Response);
     });
 }
 

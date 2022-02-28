@@ -6,7 +6,7 @@ import SslService from '../services/sslService';
 const router = express.Router();
 
 // store acme challenge to the db
-router.post('/challenge', async (req, res) => {
+router.post('/challenge', async (req:express.Request, res: express.Response) => {
     try {
         const data = req.body;
 
@@ -18,7 +18,7 @@ router.post('/challenge', async (req, res) => {
 });
 
 // fetch an acme challenge
-router.get('/challenge/:token', async (req, res) => {
+router.get('/challenge/:token', async (req:express.Request, res: express.Response) => {
     try {
         const { token } = req.params;
         const acmeChallenge = await SslService.findOneBy({
@@ -34,7 +34,7 @@ router.get('/challenge/:token', async (req, res) => {
 
 // fetch keyAuthorization for a token
 // api to be consumed from the statuspage
-router.get('/challenge/authorization/:token', async (req, res) => {
+router.get('/challenge/authorization/:token', async (req:express.Request, res: express.Response) => {
     try {
         const { token } = req.params;
         const acmeChallenge = await SslService.findOneBy({
@@ -51,7 +51,7 @@ router.get('/challenge/authorization/:token', async (req, res) => {
 });
 
 // delete an acme challenge
-router.delete('/challenge/:token', async (req, res) => {
+router.delete('/challenge/:token', async (req:express.Request, res: express.Response) => {
     try {
         const { token } = req.params;
 

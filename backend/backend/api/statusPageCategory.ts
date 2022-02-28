@@ -14,7 +14,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageCategoryName } = req.body;
             const { statusPageId } = req.params;
@@ -66,7 +66,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageCategoryId } = req.params;
 
@@ -105,7 +105,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageCategoryId } = req.params;
             const { statusPageCategoryName } = req.body;

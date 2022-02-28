@@ -33,7 +33,7 @@ import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import Ip from '../middlewares/ipHandler';
 
-router.post('/signup', async function(req, res) {
+router.post('/signup', async function(req:express.Request, res: express.Response) {
     try {
         if (
             typeof process.env.DISABLE_SIGNUP === 'string' &&
@@ -293,7 +293,7 @@ router.post('/signup', async function(req, res) {
     }
 });
 
-router.get('/masterAdminExists', async function(req, res) {
+router.get('/masterAdminExists', async function(req:express.Request, res: express.Response) {
     try {
         const masterAdmin = await UserService.findBy({
             query: { role: 'master-admin' },
@@ -315,7 +315,7 @@ router.get('/masterAdminExists', async function(req, res) {
 // Params:
 // Param 1: req.query-> {email }
 // Returns: 400: Error; 500: Server Error; 200: redirect to login page
-router.get('/sso/login', async function(req, res) {
+router.get('/sso/login', async function(req:express.Request, res: express.Response) {
     const { email } = req.query;
     if (!email) {
         return sendErrorResponse(req, res, {
@@ -381,7 +381,7 @@ router.get('/sso/login', async function(req, res) {
 // Route
 // Description: Callback function after SSO authentication page
 // param: query->{domain}
-router.post('/sso/callback', async function(req, res) {
+router.post('/sso/callback', async function(req:express.Request, res: express.Response) {
     const options = {
         request_body: req.body,
         allow_unencrypted_assertion: true,
@@ -534,7 +534,7 @@ router.post('/sso/callback', async function(req, res) {
 // Params:
 // Param 1: req.body-> {email, password }
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/login', async function(req, res) {
+router.post('/login', async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
         const clientIP = Ip.getClientIp(req)[0];
@@ -611,7 +611,7 @@ router.post('/login', async function(req, res) {
 // Params:
 // Param 1: req.body-> {token}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/totp/verifyToken', async function(req, res) {
+router.post('/totp/verifyToken', async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
         const token = data.token;
@@ -677,7 +677,7 @@ router.post('/totp/verifyToken', async function(req, res) {
 // Params:
 // Param 1: req.body-> {code}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/verify/backupCode', async function(req, res) {
+router.post('/verify/backupCode', async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
         // Call the UserService
@@ -761,7 +761,7 @@ router.post('/verify/backupCode', async function(req, res) {
 // Params:
 // None
 // Return: return the new list of backup codes.
-router.post('/generate/backupCode', getUser, async function(req, res) {
+router.post('/generate/backupCode', getUser, async function(req:express.Request, res: express.Response) {
     const userId = req.user.id || null;
     const user = await UserService.findOneBy({
         query: { _id: userId },
@@ -812,7 +812,7 @@ router.post('/generate/backupCode', getUser, async function(req, res) {
 // Params:
 // Param 1: req.params-> {userId}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/totp/token/:userId', async function(req, res) {
+router.post('/totp/token/:userId', async function(req:express.Request, res: express.Response) {
     try {
         const userId = req.params.userId;
         const user = await UserService.findOneBy({
@@ -844,7 +844,7 @@ router.post('/totp/token/:userId', async function(req, res) {
 // Param 1: req.body-> {email}; req.headers-> {host}
 // Returns: 400: Error; 500: Server Error: 200: User password has been reset successfully.
 
-router.post('/forgot-password', async function(req, res) {
+router.post('/forgot-password', async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
 
@@ -885,7 +885,7 @@ router.post('/forgot-password', async function(req, res) {
 // Params:
 // Param 1: req.body-> {password}; req.params-> {token}
 // Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
-router.post('/reset-password', async function(req, res) {
+router.post('/reset-password', async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
 
@@ -945,7 +945,7 @@ router.post('/reset-password', async function(req, res) {
 // Params:
 // Param 1: req.body-> {email, password }
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/isInvited', async function(req, res) {
+router.post('/isInvited', async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
 
@@ -971,7 +971,7 @@ router.post('/isInvited', async function(req, res) {
 });
 
 // I used to validate token given to redirected urls such as status page
-router.post('/isAuthenticated', getUser, async (req, res) => {
+router.post('/isAuthenticated', getUser, async (req:express.Request, res: express.Response) => {
     // request will get here if user is authenticated.
 
     return sendItemResponse(req, res, { authenticated: true, user: req.user });
@@ -982,7 +982,7 @@ router.post('/isAuthenticated', getUser, async (req, res) => {
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/profile', getUser, async function(req, res) {
+router.put('/profile', getUser, async function(req:express.Request, res: express.Response) {
     try {
         const upload = multer({
             storage,
@@ -1033,7 +1033,7 @@ router.put('/profile', getUser, async function(req, res) {
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/push-notification', getUser, async function(req, res) {
+router.put('/push-notification', getUser, async function(req:express.Request, res: express.Response) {
     try {
         const userId = req.user ? req.user.id : null;
         const data = req.body;
@@ -1049,7 +1049,7 @@ router.put('/push-notification', getUser, async function(req, res) {
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/:userId/2fa', isUserMasterAdmin, async function(req, res) {
+router.put('/:userId/2fa', isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const { userId } = req.params;
         const data = req.body;
@@ -1115,7 +1115,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function(
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic}; req.data- {currentPassword, newPassword, confirmPassword}
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/changePassword', getUser, async function(req, res) {
+router.put('/changePassword', getUser, async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
 
@@ -1207,7 +1207,7 @@ router.put('/changePassword', getUser, async function(req, res) {
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.get('/profile', getUser, async function(req, res) {
+router.get('/profile', getUser, async function(req:express.Request, res: express.Response) {
     try {
         const userId = req.user ? req.user.id : null;
 
@@ -1264,7 +1264,7 @@ router.get('/profile', getUser, async function(req, res) {
     }
 });
 
-router.get('/confirmation/:token', async function(req, res) {
+router.get('/confirmation/:token', async function(req:express.Request, res: express.Response) {
     try {
         if (req.params && req.params.token) {
             const token = await VerificationTokenModel.findOne({
@@ -1319,7 +1319,7 @@ router.get('/confirmation/:token', async function(req, res) {
     }
 });
 
-router.post('/resend', async function(req, res) {
+router.post('/resend', async function(req:express.Request, res: express.Response) {
     if (req.body && req.body.email) {
         const { email, userId } = req.body;
         let user;
@@ -1367,7 +1367,7 @@ router.post('/resend', async function(req, res) {
     }
 });
 
-router.get('/users', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/users', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
@@ -1403,7 +1403,7 @@ router.get('/users/:userId', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
+router.delete('/:userId', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const userId = req.params.userId;
 
@@ -1512,7 +1512,7 @@ router.post(
     '/:userId/switchToAdminMode',
     getUser,
     isUserMasterAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const userId = req.params.userId;
 
@@ -1546,7 +1546,7 @@ router.post(
     '/:userId/exitAdminMode',
     getUser,
     isUserMasterAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const userId = req.params.userId;
 
@@ -1658,7 +1658,7 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function(
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
-router.delete('/:userId/delete', getUser, async function(req, res) {
+router.delete('/:userId/delete', getUser, async function(req:express.Request, res: express.Response) {
     try {
         if (req.params.userId !== req.user.id) {
             return sendErrorResponse(req, res, {
@@ -1735,7 +1735,7 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
     }
 });
 
-router.get('/:token/email', async function(req, res) {
+router.get('/:token/email', async function(req:express.Request, res: express.Response) {
     try {
         const token = await VerificationTokenModel.findOne({
             token: req.params.token,

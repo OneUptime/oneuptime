@@ -80,7 +80,7 @@ global.io = io;
 
 app.use(cors());
 
-app.use(async function(req, res, next) {
+app.use(async function(req:express.Request, res: express.Response, next: express.RequestHandler) {
     const method = req.method;
     const url = req.url;
     const requestStartedAt = Date.now();
@@ -115,7 +115,7 @@ app.use(async function(req, res, next) {
     next();
 });
 
-app.use(function(req, res, next) {
+app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -482,7 +482,7 @@ app.use(
 
 app.use(['/api'], require('./backend/api/apiStatus'));
 
-app.use('/*', function(req, res) {
+app.use('/*', function(req:express.Request, res: express.Response) {
     res.status(404).send('Endpoint not found.');
 });
 

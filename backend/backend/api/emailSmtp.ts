@@ -11,7 +11,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 import UserService from '../services/userService';
 
-router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/test', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         let data = req.body;
         if (data.smtpToUse === 'customSmtp') {
@@ -80,7 +80,7 @@ router.post('/test', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
@@ -142,7 +142,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.params.projectId;
         const select =

@@ -22,7 +22,7 @@ import SmsCountService from '../services/smsCountService';
  * @returns Twiml with 'Content-Type', 'text/xml' in headers for twilio to understand.
  */
 
-router.get('/voice/status', async (req, res) => {
+router.get('/voice/status', async (req:express.Request, res: express.Response) => {
     try {
         const {
             accessToken,
@@ -130,7 +130,7 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
+router.post('/sms/verify', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { to, code } = req.body;
 
@@ -180,7 +180,7 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.post('/sms/test', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/sms/test', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const data = req.body;
 

@@ -9,7 +9,7 @@ import MonitorSlaService from '../services/monitorSlaService';
 
 const router = express.Router();
 
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { projectId } = req.params;
         const { limit, skip } = req.query;
@@ -39,7 +39,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { projectId } = req.params;
         const { name, frequency, monitorUptime } = req.body;
@@ -186,7 +186,7 @@ router.delete(
     '/:projectId/:monitorSlaId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, monitorSlaId } = req.params;
 
@@ -205,7 +205,7 @@ router.get(
     '/:projectId/defaultMonitorSla',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId } = req.params;
             const selectMonSla =

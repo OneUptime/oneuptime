@@ -16,7 +16,7 @@ import moment from 'moment';
 import MonitorService from '../services/monitorService';
 import ErrorService from 'common-server/utils/error';
 
-router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.params.projectId;
         const data = req.body;
@@ -214,7 +214,7 @@ router.put(
     '/:projectId/resolve/:eventId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const data = {};
 
@@ -412,7 +412,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const currentDate = moment();
             // this contains both projectIds and subProjectIds
@@ -499,7 +499,7 @@ router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { projectId } = req.params;
 
@@ -555,7 +555,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             // this contains both projectIds and subProjectIds
 
@@ -576,7 +576,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/statusPage',
     checkUserBelongToProject,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const projectId = req.params.projectId;
             const monitorId = req.params.monitorId;
@@ -795,7 +795,7 @@ router.put(
     '/:projectId/:eventId/notes/:noteId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { eventId, noteId, projectId } = req.params;
             const data = req.body;
@@ -879,7 +879,7 @@ router.delete(
     '/:projectId/:eventId/notes/:noteId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { eventId, noteId, projectId } = req.params;
 

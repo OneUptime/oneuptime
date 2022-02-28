@@ -7,7 +7,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 
-router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 10;
 
@@ -36,7 +36,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.delete('/:id', getUser, isUserMasterAdmin, async function(req, res) {
+router.delete('/:id', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         if (!req.params.id) throw new Error('Id must be defined');
         const sso = await SsoDefaultRolesService.deleteBy({
@@ -48,7 +48,7 @@ router.delete('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     const data = req.body;
     try {
         const ssoDefaultRole = await SsoDefaultRolesService.create(data);
@@ -58,7 +58,7 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/:id', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const populateDefaultRoleSso = [
             { path: 'domain', select: '_id domain' },
@@ -84,7 +84,7 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.put('/:id', getUser, isUserMasterAdmin, async function(req, res) {
+router.put('/:id', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const id = req.params.id;
         const ssoDefaultRole = await SsoDefaultRolesService.updateById(

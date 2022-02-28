@@ -91,7 +91,7 @@ router.post('/routeBackupCall', backupCallForward);
 router.get('/statusCallback', callStatus);
 router.post('/statusCallback', callStatus);
 
-router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
+router.get('/:projectId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     try {
         let { skip, limit } = req.query;
         const { projectId } = req.params;
@@ -120,7 +120,7 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
     }
 });
 
-router.get('/:projectId/logs', getUser, isAuthorized, async (req, res) => {
+router.get('/:projectId/logs', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     try {
         const { projectId } = req.params;
         const logs = await CallRoutingService.getCallRoutingLogs(projectId);
@@ -134,7 +134,7 @@ router.get(
     '/:projectId/routingNumbers',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const { countryCode, numberType } = req.query;
             const { projectId } = req.params;
@@ -198,7 +198,7 @@ router.put(
     '/:projectId/:callRoutingId/:audioFieldName',
     getUser,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { audioFieldName, callRoutingId } = req.params;
             const upload = multer({
@@ -242,7 +242,7 @@ router.delete(
     '/:projectId/:callRoutingId',
     getUser,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, callRoutingId } = req.params;
 
@@ -271,7 +271,7 @@ router.delete(
     '/:projectId/:callRoutingId/removeAudio',
     getUser,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { callRoutingId, backup } = req.body;
             if (!callRoutingId) {

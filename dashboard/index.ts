@@ -138,7 +138,7 @@ app.use(
 app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 // app.use(
 //     /^\/dashboard\/static\/js\/([0-9]|[1-9][0-9]|[1-9][0-9][0-9])\.(.+)\.chunk\.js$/,
-//     function(req, res, next) {
+//     function(req:express.Request, res: express.Response, next: express.RequestHandler) {
 //         let baseUrls = req.baseUrl;
 //         baseUrls = baseUrls.split('/');
 

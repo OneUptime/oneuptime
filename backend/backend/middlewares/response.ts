@@ -34,7 +34,7 @@ export default {
 
         res.status(200).send();
 
-        return logResponse(req, res);
+        return logResponse(req:express.Request, res: express.Response);
     },
 
     sendFileResponse(req: $TSFixMe, res: $TSFixMe, file: $TSFixMe) {

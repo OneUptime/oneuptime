@@ -67,7 +67,7 @@ ApiBase({
 });
 
 //fetch tweets from user twitter handle
-router.post('/:projectId/tweets', checkUser, async (req, res) => {
+router.post('/:projectId/tweets', checkUser, async (req:express.Request, res: express.Response) => {
     try {
         let { handle } = req.body;
 
@@ -98,7 +98,7 @@ router.put(
     '/:projectId/:statusPageId/resetBubbleId',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         const { projectId, statusPageId } = req.params;
         const newStatusBubbleId = uuid.v4();
         try {
@@ -150,7 +150,7 @@ router.put(
     }
 );
 
-router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
+router.put('/:projectId/theme', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     const { projectId } = req.params;
     const { theme, statusPageId } = req.body;
     try {
@@ -207,7 +207,7 @@ router.put(
     '/:projectId/:statusPageId/domain',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         const { projectId, statusPageId } = req.params;
         const {
             domain: subDomain,
@@ -276,7 +276,7 @@ router.put(
     '/:projectId/:statusPageId/resetColors',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         const { projectId, statusPageId } = req.params;
         const defaultBrandColor = defaultStatusPageColors.default;
         try {
@@ -305,7 +305,7 @@ router.put(
     '/:projectId/:statusPageId/:domainId',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         const { projectId, statusPageId, domainId } = req.params;
         const {
             domain: newDomain,
@@ -348,7 +348,7 @@ router.put(
     }
 );
 
-router.post('/:projectId/certFile', async function(req, res) {
+router.post('/:projectId/certFile', async function(req:express.Request, res: express.Response) {
     try {
         const upload = multer({
             storage,
@@ -374,7 +374,7 @@ router.post('/:projectId/certFile', async function(req, res) {
     }
 });
 
-router.post('/:projectId/privateKeyFile', async function(req, res) {
+router.post('/:projectId/privateKeyFile', async function(req:express.Request, res: express.Response) {
     try {
         const upload = multer({
             storage,
@@ -405,7 +405,7 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
 
 // fetch details about a custom domain
 // to be consumed by the status page
-router.get('/tlsCredential', async function(req, res) {
+router.get('/tlsCredential', async function(req:express.Request, res: express.Response) {
     try {
         const { domain } = req.query;
 
@@ -466,7 +466,7 @@ router.delete(
     '/:projectId/:statusPageId/:domainId',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         const { statusPageId, domainId } = req.params;
 
         try {
@@ -681,7 +681,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     });
 });
 
-router.get('/statusBubble', async function(req, res) {
+router.get('/statusBubble', async function(req:express.Request, res: express.Response) {
     const statusPageId = req.query.statusPageId;
     const statusBubbleId = req.query.statusBubbleId;
     try {
@@ -945,7 +945,7 @@ router.post(
     '/:projectId/:statusPageSlug/duplicateStatusPage',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, statusPageSlug } = req.params;
             const { subProjectId } = req.query;
@@ -979,7 +979,7 @@ router.post(
     }
 );
 
-router.get('/:statusPageId/rss', checkUser, async function(req, res) {
+router.get('/:statusPageId/rss', checkUser, async function(req:express.Request, res: express.Response) {
     const statusPageId = req.params.statusPageId;
     const url = req.query.url;
 
@@ -1084,7 +1084,7 @@ router.get(
     '/:projectId/:statusPageSlug/notes',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         let result;
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
@@ -1255,7 +1255,7 @@ router.get(
     '/:projectId/:statusPageSlug/events',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
@@ -1287,7 +1287,7 @@ router.get(
     '/:projectId/:statusPageSlug/futureEvents',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
             const { skip = 0, limit = 5, theme } = req.query;
@@ -1312,7 +1312,7 @@ router.get(
     '/:projectId/:statusPageSlug/pastEvents',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
             const { skip = 0, limit = 5, theme } = req.query;
@@ -1440,7 +1440,7 @@ router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
 router.get(
     '/:projectId/scheduledEvent/:scheduledEventId',
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         const { scheduledEventId } = req.params;
 
         try {
@@ -1517,7 +1517,7 @@ router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(
     }
 });
 
-router.get('/:projectId/probes', checkUser, async function(req, res) {
+router.get('/:projectId/probes', checkUser, async function(req:express.Request, res: express.Response) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
@@ -1543,7 +1543,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         const statusPageSlug = req.params.statusPageSlug;
 
         const userId = req.user ? req.user.id : null;
@@ -1601,7 +1601,7 @@ router.get(
     '/:projectId/:statusPageSlug/timelines',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -1673,7 +1673,7 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
 router.post(
     '/:projectId/createExternalstatus-page/:statusPageId',
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, statusPageId } = req.params;
             const { name, url } = req.body;
@@ -1788,7 +1788,7 @@ router.post(
 router.post(
     '/:projectId/updateExternalstatus-page/:externalStatusPageId',
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, externalStatusPageId } = req.params;
             const { name, url } = req.body;
@@ -1882,7 +1882,7 @@ router.post(
 router.get(
     '/:projectId/fetchExternalStatusPages/:statusPageId',
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, statusPageId } = req.params;
 
@@ -1916,7 +1916,7 @@ router.get(
 router.post(
     '/:projectId/deleteExternalstatus-page/:externalStatusPageId',
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, externalStatusPageId } = req.params;
 
@@ -2002,7 +2002,7 @@ router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
 router.put(
     '/:projectId/announcement/:statusPageId/:announcementId',
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, statusPageId, announcementId } = req.params;
             const { data } = req.body;
@@ -2088,7 +2088,7 @@ router.put(
 router.get(
     '/:projectId/announcementLogs/:statusPageId',
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageId } = req.params;
             const { skip, limit, theme } = req.query;
@@ -2158,7 +2158,7 @@ router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
 router.get(
     '/:projectId/announcement/:statusPageSlug/single/:announcementSlug',
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, statusPageSlug, announcementSlug } = req.params;
 
@@ -2181,7 +2181,7 @@ router.get(
 router.delete(
     `/:projectId/announcement/:announcementId/delete`,
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, announcementId } = req.params;
 
@@ -2203,7 +2203,7 @@ router.delete(
 router.delete(
     `/:projectId/announcementLog/:announcementLogId/delete`,
     checkUser,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { announcementLogId } = req.params;
 
@@ -2294,7 +2294,7 @@ router.get(
     '/resources/:statusPageSlug/ongoing-events',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2322,7 +2322,7 @@ router.get(
     '/resources/:statusPageSlug/future-events',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2346,7 +2346,7 @@ router.get(
     '/resources/:statusPageSlug/past-events',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2370,7 +2370,7 @@ router.get(
     '/resources/:statusPageSlug/probes',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2394,7 +2394,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-logs',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2418,7 +2418,7 @@ router.get(
     '/resources/:statusPageSlug/announcements',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2448,7 +2448,7 @@ router.get(
     '/resources/:statusPageSlug/announcement-logs',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2472,7 +2472,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-timelines',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2496,7 +2496,7 @@ router.get(
     '/resources/:statusPageSlug/statuspage-notes',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2526,7 +2526,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-statuses',
     checkUser,
     ipWhitelist,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { statusPageSlug } = req.params;
             const { range } = req.query;

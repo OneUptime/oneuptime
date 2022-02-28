@@ -34,7 +34,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.params.projectId;
         const populate = [
@@ -86,7 +86,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -148,7 +148,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, scheduleId } = req.params;
             const data = req.body;
@@ -168,7 +168,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const scheduleId = req.params.scheduleId;
 
@@ -196,7 +196,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -217,7 +217,7 @@ router.get(
     '/:projectId/:scheduleId/getescalation',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const scheduleId = req.params.scheduleId;
             const response = await ScheduleService.getEscalations(scheduleId);
@@ -238,7 +238,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const userId = req.user ? req.user.id : null;
             const scheduleId = req.params.scheduleId;

@@ -10,7 +10,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 
 import { sendItemResponse } from '../middlewares/response';
 
-router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
+router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const query = {};
         const skip = req.query.skip;
@@ -27,7 +27,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.post('/', getUser, isUserMasterAdmin, async (req, res) => {
+router.post('/', getUser, isUserMasterAdmin, async (req:express.Request, res: express.Response) => {
     try {
         const data = req.body;
 
@@ -78,7 +78,7 @@ router.post('/', getUser, isUserMasterAdmin, async (req, res) => {
     }
 });
 
-router.post('/search', getUser, isUserMasterAdmin, async function(req, res) {
+router.post('/search', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const filter = req.body.filter;
         const skip = req.query.skip;
@@ -95,7 +95,7 @@ router.post('/search', getUser, isUserMasterAdmin, async function(req, res) {
     }
 });
 
-router.delete('/', getUser, isUserMasterAdmin, async function(req, res) {
+router.delete('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
     try {
         const query = {};
 

@@ -271,7 +271,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     }
 });
 
-router.post('/:projectId/identityFile', async function(req, res) {
+router.post('/:projectId/identityFile', async function(req:express.Request, res: express.Response) {
     try {
         const upload = multer({
             storage,
@@ -300,7 +300,7 @@ router.post('/:projectId/identityFile', async function(req, res) {
     }
 });
 
-router.post('/:projectId/configurationFile', async function(req, res) {
+router.post('/:projectId/configurationFile', async function(req:express.Request, res: express.Response) {
     try {
         const upload = multer({
             storage,
@@ -334,7 +334,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const data = req.body;
             const { monitorId } = req.params;
@@ -495,7 +495,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const type = req.query.type;
 
@@ -540,7 +540,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const monitorId = req.params.monitorId;
             const type = req.query.type;
@@ -580,7 +580,7 @@ router.post(
     '/:projectId/monitorLogs/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const {
                 skip,
@@ -636,7 +636,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         const { monitorId, projectId } = req.params;
         try {
             const monitor = await MonitorService.deleteBy(
@@ -667,7 +667,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const monitorId = req.params.monitorId || req.body._id;
             const data = req.body;
@@ -762,7 +762,7 @@ router.post(
     '/:projectId/monitorLog/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { startDate, endDate } = req.body;
             const monitorId = req.params.monitorId;
@@ -784,7 +784,7 @@ router.post(
     '/:projectId/monitorStatuses/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { startDate, endDate } = req.body;
             const monitorId = req.params.monitorId;
@@ -806,7 +806,7 @@ router.get(
     '/:projectId/lighthouseLog/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { skip, limit, url } = req.query;
             const monitorId = req.params.monitorId;
@@ -832,7 +832,7 @@ router.get(
     '/:projectId/lighthouseIssue/:issueId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const selectLighthouseLogs =
                 'monitorId probeId data url performance accessibility bestPractices seo pwa createdAt scanning';
@@ -861,8 +861,8 @@ router.post(
     '/:projectId/inbound/:deviceId',
     getUser,
     isAuthorized,
-    async function(req, res) {
-        return await _updateDeviceMonitorPingTime(req, res);
+    async function(req:express.Request, res: express.Response) {
+        return await _updateDeviceMonitorPingTime(req:express.Request, res: express.Response);
     }
 );
 
@@ -870,8 +870,8 @@ router.get(
     '/:projectId/inbound/:deviceId',
     getUser,
     isAuthorized,
-    async function(req, res) {
-        return await _updateDeviceMonitorPingTime(req, res);
+    async function(req:express.Request, res: express.Response) {
+        return await _updateDeviceMonitorPingTime(req:express.Request, res: express.Response);
     }
 );
 
@@ -933,7 +933,7 @@ router.post(
     '/:projectId/siteUrl/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { siteUrl } = req.body;
             const monitor = await MonitorService.addSiteUrl(
@@ -953,7 +953,7 @@ router.delete(
     '/:projectId/siteUrl/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { siteUrl } = req.body;
             const monitor = await MonitorService.removeSiteUrl(
@@ -973,7 +973,7 @@ router.get(
     '/:projectId/monitorSlaBreaches',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId } = req.params;
             const select =
@@ -993,7 +993,7 @@ router.post(
     '/:projectId/closeSla/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, monitorId } = req.params;
 
@@ -1015,7 +1015,7 @@ router.post(
     '/:projectId/disableMonitor/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { monitorId } = req.params;
             const select = 'disabled';
@@ -1050,7 +1050,7 @@ router.post(
     '/:projectId/changeComponent/:monitorId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, monitorId } = req.params;
             const { newComponentId } = req.body;
@@ -1067,7 +1067,7 @@ router.post(
 );
 
 // api to calculate time for monitorInfo (status page)
-router.post('/:monitorId/calculate-time', async function(req, res) {
+router.post('/:monitorId/calculate-time', async function(req:express.Request, res: express.Response) {
     try {
         const { monitorId } = req.params;
         const { statuses, start, range } = req.body;

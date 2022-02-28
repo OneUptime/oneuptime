@@ -16,7 +16,7 @@ router.post('/send-created-incident', isAuthorizedService, async function(
         const { projectId, incident } = req.body;
 
         RealtimeService.sendCreatedIncident({ projectId, incident });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -30,7 +30,7 @@ router.post('/send-incident-timeline', isAuthorizedService, async function(
         const { projectId, data } = req.body;
 
         RealtimeService.sendIncidentTimeline({ projectId, data });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -48,7 +48,7 @@ router.post('/send-sla-countdown', isAuthorizedService, async function(
             incident,
             countDown,
         });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -62,7 +62,7 @@ router.post('/delete-incident', isAuthorizedService, async function(
         const { projectId, incident } = req.body;
 
         RealtimeService.deleteIncident({ projectId, incident });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -76,7 +76,7 @@ router.post('/add-incident-note', isAuthorizedService, async function(
         const { projectId, incidentNote } = req.body;
 
         RealtimeService.addIncidentNote({ projectId, incidentNote });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -90,7 +90,7 @@ router.post('/update-incident-note', isAuthorizedService, async function(
         const { projectId, incidentNote } = req.body;
 
         RealtimeService.updateIncidentNote({ projectId, incidentNote });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -104,7 +104,7 @@ router.post('/update-incident-timeline', isAuthorizedService, async function(
         const { incidentTimeline, projectId } = req.body;
 
         RealtimeService.updateIncidentTimeline({ incidentTimeline, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -118,7 +118,7 @@ router.post('/update-incident', isAuthorizedService, async function(
         const { incident, projectId } = req.body;
 
         RealtimeService.updateIncident({ incident, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -132,7 +132,7 @@ router.post('/delete-incident-note', isAuthorizedService, async function(
         const { incidentNote, projectId } = req.body;
 
         RealtimeService.deleteIncidentNote({ incidentNote, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -146,7 +146,7 @@ router.post('/add-scheduled-event', isAuthorizedService, async function(
         const { event, projectId } = req.body;
 
         RealtimeService.addScheduledEvent({ event, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -160,7 +160,7 @@ router.post('/delete-scheduled-event', isAuthorizedService, async function(
         const { event, projectId } = req.body;
 
         RealtimeService.deleteScheduledEvent({ event, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -174,7 +174,7 @@ router.post('/update-scheduled-event', isAuthorizedService, async function(
         const { event, projectId } = req.body;
 
         RealtimeService.updateScheduledEvent({ event, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -188,7 +188,7 @@ router.post('/resolve-scheduled-event', isAuthorizedService, async function(
         const { event, projectId } = req.body;
 
         RealtimeService.resolveScheduledEvent({ event, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -205,7 +205,7 @@ router.post(
                 note,
                 scheduledEventId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -224,7 +224,7 @@ router.post(
                 scheduledEventId,
                 projectId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -242,7 +242,7 @@ router.post(
                 note,
                 scheduledEventId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -261,7 +261,7 @@ router.post(
                 scheduledEventId,
                 projectId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -280,7 +280,7 @@ router.post(
                 scheduledEventId,
                 projectId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -298,7 +298,7 @@ router.post(
                 note,
                 scheduledEventId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -313,7 +313,7 @@ router.post('/send-component-created', isAuthorizedService, async function(
         const { component, projectId } = req.body;
 
         RealtimeService.sendComponentCreated({ component, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -327,7 +327,7 @@ router.post('/send-monitor-created', isAuthorizedService, async function(
         const { monitor, projectId } = req.body;
 
         RealtimeService.sendMonitorCreated({ monitor, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -341,7 +341,7 @@ router.post('/send-monitor-delete', isAuthorizedService, async function(
         const { monitor, projectId } = req.body;
 
         RealtimeService.sendMonitorDelete({ monitor, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -355,7 +355,7 @@ router.post('/send-component-delete', isAuthorizedService, async function(
         const { component, projectId } = req.body;
 
         RealtimeService.sendComponentDelete({ component, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -369,7 +369,7 @@ router.post('/incident-resolved', isAuthorizedService, async function(
         const { incident, projectId } = req.body;
 
         RealtimeService.incidentResolved({ incident, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -383,7 +383,7 @@ router.post('/incident-acknowledged', isAuthorizedService, async function(
         const { incident, projectId } = req.body;
 
         RealtimeService.incidentAcknowledged({ incident, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -397,7 +397,7 @@ router.post('/status-page-edit', isAuthorizedService, async function(
         const { statusPage, projectId } = req.body;
 
         RealtimeService.statusPageEdit({ projectId, statusPage });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -411,7 +411,7 @@ router.post('/component-edit', isAuthorizedService, async function(
         const { component, projectId } = req.body;
 
         RealtimeService.componentEdit({ component, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -425,7 +425,7 @@ router.post('/monitor-edit', isAuthorizedService, async function(
         const { monitor, projectId } = req.body;
 
         RealtimeService.monitorEdit({ monitor, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -451,7 +451,7 @@ router.post('/update-monitor-log', isAuthorizedService, async function(
             parentProjectId,
             monitorId,
         });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -471,7 +471,7 @@ router.post('/update-lighthouse-log', isAuthorizedService, async function(
             monitorId,
             parentProjectId,
         });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -490,7 +490,7 @@ router.post('/update-all-lighthouse-log', isAuthorizedService, async function(
             parentProjectId,
             monitorId,
         });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -509,7 +509,7 @@ router.post('/update-monitor-status', isAuthorizedService, async function(
             parentProjectId,
             monitorId,
         });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -523,7 +523,7 @@ router.post('/update-probe', isAuthorizedService, async function(
         const { data } = req.body;
 
         RealtimeService.updateProbe({ data });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -537,7 +537,7 @@ router.post('/send-notification', isAuthorizedService, async function(
         const { data, projectId } = req.body;
 
         RealtimeService.sendNotification({ data, projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -551,7 +551,7 @@ router.post('/update-team-member-role', isAuthorizedService, async function(
         const { projectId, data } = req.body;
 
         RealtimeService.updateTeamMemberRole({ projectId, data });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -565,7 +565,7 @@ router.post('/create-team-member', isAuthorizedService, async function(
         const { projectId, data } = req.body;
 
         RealtimeService.createTeamMember({ projectId, data });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -579,7 +579,7 @@ router.post('/delete-team-member', isAuthorizedService, async function(
         const { projectId, data } = req.body;
 
         RealtimeService.deleteTeamMember({ projectId, data });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -596,7 +596,7 @@ router.post(
                 applicationLog,
                 componentId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -614,7 +614,7 @@ router.post('/send-application-log-delete', isAuthorizedService, async function(
             applicationLog,
             componentId,
         });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -628,7 +628,7 @@ router.post('/send-log-created', isAuthorizedService, async function(
         const { contentLog, applicationLogId } = req.body;
 
         RealtimeService.sendLogCreated({ contentLog, applicationLogId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -642,7 +642,7 @@ router.post('/application-log-key-reset', isAuthorizedService, async function(
         const { applicationLog, componentId } = req.body;
 
         RealtimeService.applicationLogKeyReset({ applicationLog, componentId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -659,7 +659,7 @@ router.post(
                 containerSecurity,
                 componentId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -677,7 +677,7 @@ router.post(
                 applicationSecurity,
                 componentId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -692,7 +692,7 @@ router.post('/send-error-tracker-created', isAuthorizedService, async function(
         const { errorTracker, componentId } = req.body;
 
         RealtimeService.sendErrorTrackerCreated({ errorTracker, componentId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -706,7 +706,7 @@ router.post('/send-error-tracker-delete', isAuthorizedService, async function(
         const { errorTracker, componentId } = req.body;
 
         RealtimeService.sendErrorTrackerDelete({ errorTracker, componentId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -720,7 +720,7 @@ router.post('/error-tracker-key-reset', isAuthorizedService, async function(
         const { errorTracker, componentId } = req.body;
 
         RealtimeService.errorTrackerKeyReset({ errorTracker, componentId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -734,7 +734,7 @@ router.post('/send-error-event-created', isAuthorizedService, async function(
         const { data, errorTrackerId } = req.body;
 
         RealtimeService.sendErrorEventCreated({ data, errorTrackerId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -748,7 +748,7 @@ router.post('/send-issue-status-change', isAuthorizedService, async function(
         const { issue, type, errorTrackerId } = req.body;
 
         RealtimeService.sendIssueStatusChange({ issue, type, errorTrackerId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -765,7 +765,7 @@ router.post(
                 issue,
                 errorTrackerId,
             });
-            return sendEmptyResponse(req, res);
+            return sendEmptyResponse(req:express.Request, res: express.Response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -780,7 +780,7 @@ router.post('/send-time-metrics', isAuthorizedService, async function(
         const { appId, data } = req.body;
 
         RealtimeService.sendTimeMetrics({ appId, data });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -794,7 +794,7 @@ router.post('/send-throughput-metrics', isAuthorizedService, async function(
         const { appId, data } = req.body;
 
         RealtimeService.sendThroughputMetrics({ appId, data });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -808,7 +808,7 @@ router.post('/send-error-metrics', isAuthorizedService, async function(
         const { appId, data } = req.body;
 
         RealtimeService.sendErrorMetrics({ appId, data });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -822,7 +822,7 @@ router.post('/handle-scanning', isAuthorizedService, async function(
         const { security } = req.body;
 
         RealtimeService.handleScanning({ security });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -836,7 +836,7 @@ router.post('/handle-log', isAuthorizedService, async function(
         const { securityId, securityLog } = req.body;
 
         RealtimeService.handleLog({ securityId, securityLog });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -850,7 +850,7 @@ router.post('/status-page-update-tweets', isAuthorizedService, async function(
         const { tweets, statusPageId, _projectId } = req.body;
 
         RealtimeService.updateTweets({ tweets, statusPageId, _projectId });
-        return sendEmptyResponse(req, res);
+        return sendEmptyResponse(req:express.Request, res: express.Response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

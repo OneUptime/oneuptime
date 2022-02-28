@@ -1,3 +1,10 @@
+
+import ErrorService from './errorService';
+import moment from 'moment';
+import Database from 'common-server/utils/database';
+
+const monitorCollection = Database.getDatabase().collection('monitors');
+
 export default {
     async getProbeMonitors(probeId: $TSFixMe, limit = 10) {
         //get monitors that have not been pinged for the last minute.
@@ -71,7 +78,3 @@ export default {
     },
 };
 
-import ErrorService from './errorService';
-import moment from 'moment';
-
-const monitorCollection = global.db.collection('monitors');

@@ -9,7 +9,7 @@ import IncidentCommunicationSlaService from '../services/incidentCommunicationSl
 
 const router = express.Router();
 
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { projectId } = req.params;
         const { limit, skip } = req.query;
@@ -41,7 +41,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const { projectId } = req.params;
         const { name, alertTime, duration } = req.body;
@@ -152,7 +152,7 @@ router.delete(
     '/:projectId/:incidentSlaId',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId, incidentSlaId } = req.params;
 
@@ -173,7 +173,7 @@ router.get(
     '/:projectId/defaultCommunicationSla',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const { projectId } = req.params;
 

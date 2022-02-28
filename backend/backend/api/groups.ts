@@ -11,7 +11,7 @@ import EscalationService from '../services/escalationService';
 
 const router = express.Router();
 
-router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
+router.post('/:projectId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     try {
         const { name, teams } = req.body;
         const { projectId } = req.params;
@@ -42,7 +42,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => {
                   return { id: project._id, name: project.name };
@@ -67,7 +67,7 @@ router.get(
     }
 );
 
-router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
+router.get('/:projectId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     try {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
@@ -84,7 +84,7 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
     }
 });
 
-router.put('/:projectId/:groupId', getUser, isAuthorized, async (req, res) => {
+router.put('/:projectId/:groupId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
     try {
         const { groupId, projectId } = req.params;
         const { name, teams } = req.body;
@@ -112,7 +112,7 @@ router.delete(
     '/:projectId/:groupId',
     getUser,
     isAuthorized,
-    async (req, res) => {
+    async (req:express.Request, res: express.Response) => {
         try {
             const { groupId, projectId } = req.params;
 

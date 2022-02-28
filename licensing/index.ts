@@ -33,7 +33,7 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function(req, res, next) {
+app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -68,7 +68,7 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-app.get(['/', '/license'], function(req, res) {
+app.get(['/', '/license'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -79,7 +79,7 @@ app.get(['/', '/license'], function(req, res) {
     );
 });
 
-app.use('/*', function(req, res) {
+app.use('/*', function(req:express.Request, res: express.Response) {
     res.status(404).render('notFound.ejs', {});
 });
 

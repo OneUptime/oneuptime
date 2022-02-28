@@ -6,7 +6,7 @@ import AccountStoreService from '../services/accountStoreService';
 const router = express.Router();
 
 // store account details to the db
-router.post('/store', async (req, res) => {
+router.post('/store', async (req:express.Request, res: express.Response) => {
     try {
         const data = req.body;
 
@@ -18,7 +18,7 @@ router.post('/store', async (req, res) => {
 });
 
 // update account details in the db
-router.put('/store/:id', async (req, res) => {
+router.put('/store/:id', async (req:express.Request, res: express.Response) => {
     try {
         const { id } = req.params;
         const account = await AccountStoreService.updateOneBy({ id }, req.body);
@@ -30,7 +30,7 @@ router.put('/store/:id', async (req, res) => {
 });
 
 // fetch an account detail
-router.get('/store/:id', async (req, res) => {
+router.get('/store/:id', async (req:express.Request, res: express.Response) => {
     try {
         const { id } = req.params;
         const account = await AccountStoreService.findOneBy({
@@ -46,7 +46,7 @@ router.get('/store/:id', async (req, res) => {
 });
 
 // delete an account detail
-router.delete('/store/:id', async (req, res) => {
+router.delete('/store/:id', async (req:express.Request, res: express.Response) => {
     try {
         const { id } = req.params;
 

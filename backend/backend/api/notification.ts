@@ -54,7 +54,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     }
 });
 
-router.put('/:projectId/read', getUser, isAuthorized, async function(req, res) {
+router.put('/:projectId/read', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         // const notificationId = req.params.notificationId;
 
@@ -82,7 +82,7 @@ router.put(
     '/:projectId/:notificationId/closed',
     getUser,
     isAuthorized,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const notificationId = req.params.notificationId;
 
@@ -110,7 +110,7 @@ router.put(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req, res) {
+    async function(req:express.Request, res: express.Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -163,7 +163,7 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
+router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
     try {
         const projectId = req.params.projectId;
 

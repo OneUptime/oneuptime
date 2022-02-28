@@ -1,17 +1,21 @@
 import express from 'express';
 import cors from 'cors';
+import logger from './logger';
 
 class Express {
 
     static app: express.Application;
 
+    static getExpress(): express.Express{
+        return express;
+    }
 
     static setupExpress() {
         this.app = express();
         this.app.set('port', process.env.PORT);
 
         this.app.use(cors());
-        this.app.use(function (req, res, next) {
+        this.app.use(function (req:express.Request, res: express.Response, next: express.RequestHandler) {
             if (typeof req.body === 'string') {
                 req.body = JSON.parse(req.body);
             }
@@ -31,15 +35,8 @@ class Express {
         this.app.use(express.urlencoded({ limit: '10mb', extended: true }));
         this.app.use(express.json({ limit: '10mb' }));
 
-        const getActualRequestDurationInMilliseconds = start => {
-            const NS_PER_SEC = 1e9; //  convert to nanoseconds
-            const NS_TO_MS = 1e6; // convert to milliseconds
-            const diff = process.hrtime(start);
-            return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
-        };
 
-
-        this.app.use(function (req, res, next) {
+        this.app.use(function (req:express.Request, res: express.Response, next: express.RequestHandler) {
             const current_datetime = new Date();
             const formatted_date =
                 current_datetime.getFullYear() +
@@ -57,11 +54,9 @@ class Express {
             const url = req.url;
             const status = res.statusCode;
             const start = process.hrtime();
-            const durationInMilliseconds = getActualRequestDurationInMilliseconds(
-                start
-            );
-            const log = `[${formatted_date}] ${method}:${url} ${status} ${durationInMilliseconds.toLocaleString()} ms`;
-            console.log(log);
+
+            const log = `[${formatted_date}] ${method}:${url} ${status}`;
+            logger.info(log);
             return next();
         });
 
@@ -76,13 +71,14 @@ class Express {
     }
 
     static launchApplication() {
+
         if(!this.app){
             this.setupExpress();
         }
 
-        this.app.listen(this.app.get('port'), function() {
+        this.app.listen(this.app.get('port'), () => {
             // eslint-disable-next-line
-            console.log('probe-api server started on port ' + this.app.get('port'));
+            logger.info(`Server started on port: ${this.app.get('port')}`);
         });
         
         return this.app; 

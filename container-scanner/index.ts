@@ -42,7 +42,7 @@ const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3055);
 
-app.get(['/container/status', '/status'], function(req, res) {
+app.get(['/container/status', '/status'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -55,7 +55,7 @@ app.get(['/container/status', '/status'], function(req, res) {
 
 //App Version
 
-app.get(['/container/version', '/version'], function(req, res) {
+app.get(['/container/version', '/version'], function(req:express.Request, res: express.Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ containerScannerVersion: process.env.npm_package_version });
 });
