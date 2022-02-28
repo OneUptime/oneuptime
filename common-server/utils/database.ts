@@ -1,0 +1,34 @@
+import MongoDB from 'mongodb';
+import { mongoUrl, databaseName } from './config';
+
+export default class Database {
+
+    static databaseClient: MongoDB.MongoClient; 
+    static databaseConnected: boolean = false; 
+
+    static getClient(): MongoDB.MongoClient{
+        this.databaseClient = new MongoDB.MongoClient(mongoUrl, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+
+        return this.databaseClient;
+    }
+
+    static async connect(){
+        if(!this.databaseClient){
+            await this.getClient();
+        }
+        await this.databaseClient.connect();
+    }
+
+    static async getDatabase() : MongoDB.Db {
+        if(!this.databaseConnected){
+            await this.connect();
+            this.databaseConnected = true; 
+        }
+        return this.databaseClient.db(databaseName);
+    }
+}
+
+

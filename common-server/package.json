@@ -10,8 +10,16 @@
     "license": "ISC",
     "type": "module",
     "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
         "winston": "^3.4.0",
         "winston-logstash-transport": "^2.0.0",
         "winston-slack-webhook-transport": "^2.1.0"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.12",
+        "@types/express": "^4.17.13",
+        "@types/node": "^17.0.21"
     }
 }
