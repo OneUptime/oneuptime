@@ -133,10 +133,10 @@ class OneUptimeListener {
                     _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
                 }
             });
-            this.addEventListener('error', function(this: $TSFixMe) {
+            this.addEventListener('error', function(thisObj: $TSFixMe) {
                 // check if it is not a request to OneUptime servers
                 if (!url.startsWith(_this.BASE_URL)) {
-                    obj.status_code = this.status;
+                    obj.status_code = thisObj.status;
                     _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
                 }
             });

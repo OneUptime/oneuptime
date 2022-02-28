@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
 const { NODE_ENV } = process.env;
-
+import customEnv from 'custom-env';
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /data-ingestor/.env
-    import customEnv from 'custom-env';
+    
     customEnv.env();
 }
 
@@ -62,7 +62,7 @@ app.use(function(req, res, next) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
-    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Origin', req.headers.origin);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header(

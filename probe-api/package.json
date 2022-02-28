@@ -28,6 +28,8 @@
         "winston-slack-webhook-transport": "^2.1.0"
     },
     "devDependencies": {
+        "@types/cors": "^2.8.12",
+        "@types/express": "^4.17.13",
         "ts-node-dev": "^1.1.8"
     }
 }
