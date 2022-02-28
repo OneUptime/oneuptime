@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 
-
 // See https://git.coolaj86.com/coolaj86/acme-challenge-test.js
 
-import tester from 'acme-challenge-test'
+import tester from 'acme-challenge-test';
 require('dotenv').config();
 
 // Usage: node ./test.js example.com username xxxxxxxxx
 const record = process.argv[2] || process.env.RECORD;
 
-import challenger from './index.js').create({}
+import Challenger from './index.js';
+const challenger = Challenger.create({});
 
 // The dry-run tests can pass on, literally, 'example.com'
 // but the integration tests require that you have control over the domain
@@ -20,7 +20,7 @@ tester
         // eslint-disable-next-line no-console
         console.info('PASS', record);
     })
-    
+
     .catch(function(e) {
         // eslint-disable-next-line no-console
         console.error(e.message);

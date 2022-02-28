@@ -7,32 +7,30 @@
  * @see module:api
  */
 
-
-
-import dotenv from 'dotenv'
+import dotenv from 'dotenv';
 dotenv.config();
 
-import program from 'commander'
-import Promise from 'promise'
+import program from 'commander';
+import Promise from 'promise';
+import os from 'os';
+import { version } from '../../../../package.json';
 
-import { version } from '../../../../package.json'
+import { prompt } from 'inquirer';
+import fs from 'fs';
+import logger from '../lib/logger';
 
-import { prompt } from 'inquirer'
-import fs from 'fs'
-import logger from '../lib/logger'
-
-import { API_URL, LOG_PATH } from '../lib/config'
-import serverMonitor from '../lib/api'
+import { API_URL, LOG_PATH } from '../lib/config';
+import serverMonitor from '../lib/api';
 
 program
-    
+
     .version(version, '-v, --version')
     .description('OneUptime Monitoring Shell');
 
 program.name('server-monitor');
 
 program
-    
+
     .option(
         '-p, --project-id [projectId]',
         "Use Project ID from project's API settings"
@@ -86,19 +84,16 @@ const questions = [
  */
 
 const checkParams = params => {
-    
     const values = [];
 
     return new Promise(resolve => {
         resolve(
             params.reduce(
-                
                 (promiseChain, param) =>
                     promiseChain.then(() =>
                         getParamValue(params, param.name).then(value => {
                             values.push(value);
 
-                            
                             return values;
                         })
                     ),
@@ -116,7 +111,6 @@ const checkParams = params => {
  */
 
 const getParamValue = (params, name) => {
-    
     const options = program.opts();
     return new Promise(resolve => {
         if (options[name] === true || options[name] === undefined) {
@@ -132,9 +126,7 @@ const getParamValue = (params, name) => {
                         resolve(null);
                     } else {
                         prompt(
-                            
                             params.filter(param => param.name === name)
-                        
                         ).then(values => {
                             resolve(values[name]);
                         });
@@ -149,32 +141,25 @@ const getParamValue = (params, name) => {
 
 /** Init server monitor cli. */
 checkParams(questions).then(values => {
-    
     const [projectId, apiUrl, apiKey, monitorId, daemon] = values;
 
     if (daemon) {
-        
-        import os from 'os').platform(
+        os.platform();
 
-        
         let Service;
-        
+
         switch (os) {
             case 'linux':
-                
                 Service = require('node-linux').Service;
                 break;
             case 'darwin':
-                
                 Service = require('node-mac').Service;
                 break;
             case 'win32':
-                
                 Service = require('node-windows').Service;
                 break;
         }
 
-        
         const svc = new Service({
             name: 'OneUptime Server Monitor',
             description: 'OneUptime Monitoring Shell',
@@ -186,7 +171,7 @@ checkParams(questions).then(values => {
                 },
                 {
                     name: 'apiUrl',
-                    
+
                     value: apiUrl,
                 },
                 {
@@ -195,7 +180,7 @@ checkParams(questions).then(values => {
                 },
                 {
                     name: 'monitorId',
-                    
+
                     value: monitorId,
                 },
             ],
@@ -224,48 +209,36 @@ checkParams(questions).then(values => {
             logger.info('OneUptime Server Monitor uninstalled');
         });
 
-        
         if (daemon === 'errors') {
             logger.error(
-                
                 fs.readFileSync(LOG_PATH[os].error, {
                     encoding: 'utf8',
                     flag: 'r',
                 })
             );
-        
         } else if (daemon === 'logs') {
             logger.info(
-                
                 fs.readFileSync(LOG_PATH[os].log, {
                     encoding: 'utf8',
                     flag: 'r',
                 })
             );
-        
         } else if (daemon === 'uninstall') {
             svc.uninstall();
-        
         } else if (daemon === 'stop') {
             svc.stop();
-        
         } else if (daemon === 'restart') {
             svc.restart();
-        
         } else if (daemon === 'start') {
             svc.start();
         } else if (
             projectId &&
-            
             apiUrl &&
             apiKey &&
-            
             monitorId &&
-            
             (typeof daemon === 'boolean' || daemon === 'install')
         ) {
             svc.install();
-        
         } else if (!monitorId) {
             logger.error('Server Monitor ID is required');
 
@@ -278,29 +251,24 @@ checkParams(questions).then(values => {
             process.exitCode = 1;
         }
     } else {
-        
         serverMonitor({
             projectId,
-            
+
             apiUrl,
             apiKey,
             monitorId:
-                
                 monitorId ||
-                
                 (data => {
                     return new Promise(resolve => {
                         const question = questions.filter(
                             param => param.name === 'monitorId'
                         );
-                        
+
                         question[0].choices = data.map(
-                            
                             monitor =>
                                 `${monitor.componentId.name} / ${monitor.name} (${monitor._id})`
                         );
 
-                        
                         prompt(question).then(({ monitorId }) => {
                             resolve(
                                 monitorId
