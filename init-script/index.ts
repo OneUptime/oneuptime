@@ -1,29 +1,5 @@
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Shutting Shutdown');
-});
-
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-const { NODE_ENV } = process.env;
-import dotenv from 'dotenv';
-if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /backend/.env
-
-    dotenv.config();
-}
+import 'common-server/utils/env';
+import 'common-server/utils/process';
 
 import fs from 'fs';
 import util from './util/db';
@@ -62,16 +38,16 @@ if (process.env['NODE_ENV'] === 'development') {
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
     app.use(bodyParser.json({ limit: '10mb' }));
 
-    app.listen(1447, function() {
+    app.listen(1447, function () {
         // eslint-disable-next-line no-console
         console.log('Server running on: 1447');
     });
 
-    app.get('/:dbFunction', async function(req: Request, res: Response) {
+    app.get('/:dbFunction', async function (req: Request, res: Response) {
         return await interactWithDB(req, res);
     });
 
-    app.post('/:dbFunction', async function(req: Request, res: Response) {
+    app.post('/:dbFunction', async function (req: Request, res: Response) {
         return await interactWithDB(req, res);
     });
 }

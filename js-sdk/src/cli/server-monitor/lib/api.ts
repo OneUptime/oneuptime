@@ -6,8 +6,6 @@
  * @see module:logger
  */
 
-import dotenv from 'dotenv';
-dotenv.config();
 
 import Promise from 'promise';
 
@@ -111,9 +109,9 @@ const ping = (
                             const storage =
                                 data[2] && data[2].length > 0
                                     ? data[2].filter(
-                                          partition =>
-                                              partition.size === data[2][0].size
-                                      )
+                                        partition =>
+                                            partition.size === data[2][0].size
+                                    )
                                     : data[2];
                             return {
                                 cpuLoad: data[0].currentLoad,
@@ -125,11 +123,11 @@ const ping = (
                                 storageUsed:
                                     storage && storage.length > 0
                                         ? storage
-                                              .map(partition => partition.used)
-                                              .reduce(
-                                                  (used, partitionUsed) =>
-                                                      used + partitionUsed
-                                              )
+                                            .map(partition => partition.used)
+                                            .reduce(
+                                                (used, partitionUsed) =>
+                                                    used + partitionUsed
+                                            )
                                         : storage.used,
                                 totalStorage:
                                     storage && storage.length > 0
@@ -138,11 +136,11 @@ const ping = (
                                 storageUsage:
                                     storage && storage.length > 0
                                         ? storage
-                                              .map(partition => partition.use)
-                                              .reduce(
-                                                  (use, partitionUse) =>
-                                                      use + partitionUse
-                                              )
+                                            .map(partition => partition.use)
+                                            .reduce(
+                                                (use, partitionUse) =>
+                                                    use + partitionUse
+                                            )
                                         : storage.use,
                                 mainTemp: data[3].main,
                                 maxTemp: data[3].max,
@@ -182,7 +180,7 @@ const ping = (
  * @return {Object} The server monitor handlers.
  */
 
-export default function(
+export default function (
     config: $TSFixMe,
     apiUrl: $TSFixMe,
     apiKey: $TSFixMe,
@@ -213,9 +211,8 @@ export default function(
          * @return {(Object | number)} The ping server cron job or the error code.
          */
         start: (id = monitorId) => {
-            const url = `monitor/${projectId}/monitor/${
-                id && typeof id === 'string' ? `${id}/` : ''
-            }?type=server-monitor`;
+            const url = `monitor/${projectId}/monitor/${id && typeof id === 'string' ? `${id}/` : ''
+                }?type=server-monitor`;
 
             return get(apiUrl, url, apiKey, (response: $TSFixMe) => {
                 return new Promise((resolve, reject) => {

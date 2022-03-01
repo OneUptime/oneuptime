@@ -1,28 +1,6 @@
 const { NODE_ENV } = process.env;
-import dotenv from 'dotenv';
-if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /backend/.env
-    dotenv.config();
-}
-
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Script runner Shutting Shutdown');
-});
-
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in Script runner process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in Script runner process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
+import 'common-server/utils/env';
+import 'common-server/utils/process';
 
 import express from 'express';
 const app = express();
@@ -39,7 +17,7 @@ import main from './workers/main';
 
 app.use(cors());
 
-app.use(function(req: Request, res: Response, next: Function) {
+app.use(function (req: Request, res: Response, next: Function) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -59,7 +37,7 @@ app.set('port', process.env.PORT || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-app.get(['/script/status', '/status'], function(req: Request, res: Response) {
+app.get(['/script/status', '/status'], function (req: Request, res: Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -72,7 +50,7 @@ app.get(['/script/status', '/status'], function(req: Request, res: Response) {
 
 app.use('/script', require('./api/script'));
 
-http.listen(app.get('port'), function() {
+http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     console.log('Script runner started on port ' + app.get('port'));
 });

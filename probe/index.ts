@@ -2,29 +2,8 @@ const { NODE_ENV } = process.env;
 
 import asyncSleep from 'await-sleep';
 
-if (!NODE_ENV || NODE_ENV === 'development') {
-    import dotenv from 'dotenv';
-    dotenv.config();
-}
-
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Probe Shutting Shutdown');
-});
-
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in probe process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in probe process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
+import 'common-server/utils/env';
+import 'common-server/utils/process';
 
 import Main from './workers/main';
 import config from './utils/config';

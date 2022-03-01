@@ -1,11 +1,6 @@
-/* eslint-disable no-console */
-const { NODE_ENV } = process.env;
-if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /data-ingestor/.env
-    import dotenv from 'dotenv';
-    dotenv.config();
-}
 
+import 'common-server/utils/env';
+import 'common-server/utils/process';
 import express from 'express';
 const app = express();
 
@@ -17,19 +12,6 @@ import cors from 'cors';
 import { mongoUrl, databaseName } from './utils/config';
 const MongoClient = require('mongodb').MongoClient;
 
-process.on('exit', () => {
-    console.log('Server Shutting Shutdown');
-});
-
-process.on('unhandledRejection', err => {
-    console.error('Unhandled rejection in server process occurred');
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    console.error('Uncaught exception in server process occurred');
-    console.error(err);
-});
 
 // mongodb
 function getMongoClient() {
@@ -40,7 +22,7 @@ function getMongoClient() {
 }
 // setup mongodb connection
 const client = getMongoClient();
-(async function() {
+(async function () {
     try {
         console.log('connecting to db');
         await client.connect();
@@ -56,7 +38,7 @@ global.db = client.db(databaseName);
 
 app.use(cors());
 
-app.use(function(req: Request, res: Response, next: Function) {
+app.use(function (req: Request, res: Response, next: Function) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -85,7 +67,7 @@ const getActualRequestDurationInMilliseconds = start => {
     return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
 };
 
-app.use(function(req: Request, res: Response, next: Function) {
+app.use(function (req: Request, res: Response, next: Function) {
     const current_datetime = new Date();
     const formatted_date =
         current_datetime.getFullYear() +
@@ -111,7 +93,7 @@ app.use(function(req: Request, res: Response, next: Function) {
     return next();
 });
 
-app.get(['/data-ingestor/status', '/status'], function(
+app.get(['/data-ingestor/status', '/status'], function (
     req: Request,
     res: Response
 ) {
@@ -129,7 +111,7 @@ app.use(['/probe', '/api/probe'], require('./api/probe'));
 
 app.set('port', process.env.PORT || 3200);
 
-http.listen(app.get('port'), function() {
+http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     console.log('data-ingestor server started on port ' + app.get('port'));
 });

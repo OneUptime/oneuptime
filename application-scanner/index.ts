@@ -1,31 +1,5 @@
-const { NODE_ENV } = process.env;
-
-import dotenv from 'dotenv';
-if (!NODE_ENV || NODE_ENV === 'development') {
-    // Load env vars from /backend/.env
-    dotenv.config();
-}
-
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Application Scanner Shutting Shutdown');
-});
-
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error(
-        'Unhandled rejection in application scanner process occurred'
-    );
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in application scanner process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
+import 'common-server/utils/env';
+import 'common-server/utils/process';
 
 import express from 'express';
 const app = express();
@@ -44,7 +18,7 @@ const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3005);
 
-app.get(['/application/status', '/status'], function(
+app.get(['/application/status', '/status'], function (
     req: Request,
     res: Response
 ) {
@@ -60,7 +34,7 @@ app.get(['/application/status', '/status'], function(
 
 //App Version
 
-app.get(['/application/version', '/version'], function(
+app.get(['/application/version', '/version'], function (
     req: Request,
     res: Response
 ) {
@@ -75,7 +49,7 @@ cron.schedule('*/5 * * * *', () => {
     }, cronApplicationSecurityStartTime * 1000);
 });
 
-http.listen(app.get('port'), function() {
+http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     console.log(
         `Application Scanner Started on port ${app.get(
