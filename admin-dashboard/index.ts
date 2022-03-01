@@ -21,7 +21,10 @@ import express from 'express';
 import path from 'path';
 const app = express();
 
-app.get(['/env.js', '/admin/env.js'], function (req: express.Request, res: express.Response) {
+app.get(['/env.js', '/admin/env.js'], function(
+    req: express.Request,
+    res: express.Response
+) {
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
         REACT_APP_LICENSE_URL: process.env.LICENSE_URL,
@@ -34,7 +37,10 @@ app.get(['/env.js', '/admin/env.js'], function (req: express.Request, res: expre
     res.send('window._env = ' + JSON.stringify(env));
 });
 
-app.get(['/admin/status', '/status'], function (req: express.Request, res: express.Response) {
+app.get(['/admin/status', '/status'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -52,7 +58,7 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function (req: express.Request, res: express.Response) {
+app.get('/*', function(req: express.Request, res: express.Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
