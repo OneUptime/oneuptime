@@ -10,9 +10,9 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 
 import { sendItemResponse } from '../middlewares/response';
 
-router.get('/', getUser, isUserMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/', getUser, isUserMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const query = {};
@@ -42,9 +42,9 @@ router.get('/', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.post('/search', getUser, isUserMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/search', getUser, isUserMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const filter = req.body.filter;
@@ -62,9 +62,9 @@ router.post('/search', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.delete('/', getUser, isUserMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.delete('/', getUser, isUserMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const query = {};

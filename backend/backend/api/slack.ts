@@ -16,9 +16,9 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 const router = express.Router();
 
-router.get('/auth/redirect', function(
-    req: express.Request,
-    res: express.Response
+router.get('/auth/redirect', function (
+    req: Request,
+    res: Response
 ) {
     // get oneuptime project id from slack auth state query params
     let state = req.query.state;
@@ -64,9 +64,9 @@ router.get('/auth/redirect', function(
     });
 });
 
-router.post('/:projectId/link', getUser, isUserAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId/link', getUser, isUserAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     const projectId = req.params.projectId;
     const code = req.query.code;
@@ -141,7 +141,7 @@ router.delete(
     '/:projectId/unLink/:teamId',
     getUser,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         const projectId = req.params.projectId;
         const teamId = req.params.teamId;
 
@@ -166,9 +166,9 @@ router.delete(
 );
 
 // req => params => {projectId}
-router.get('/:projectId/teams', getUser, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId/teams', getUser, async function (
+    req: Request,
+    res: Response
 ) {
     const projectId = req.params.projectId;
     const integrationType = 'slack';

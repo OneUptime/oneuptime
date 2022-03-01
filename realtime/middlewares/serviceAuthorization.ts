@@ -6,10 +6,10 @@ const express = Express.getLibrary();
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 export default {
-    isAuthorizedService: async function(
-        req: express.Request,
-        res: express.Response,
-        next: express.RequestHandler
+    isAuthorizedService: async function (
+        req: Request,
+        res: Response,
+        next: RequestHandler
     ) {
         try {
             let clusterKey;

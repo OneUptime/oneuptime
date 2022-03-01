@@ -44,9 +44,9 @@ const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3005);
 
-app.get(['/application/status', '/status'], function(
-    req: express.Request,
-    res: express.Response
+app.get(['/application/status', '/status'], function (
+    req: Request,
+    res: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -60,9 +60,9 @@ app.get(['/application/status', '/status'], function(
 
 //App Version
 
-app.get(['/application/version', '/version'], function(
-    req: express.Request,
-    res: express.Response
+app.get(['/application/version', '/version'], function (
+    req: Request,
+    res: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ applicationScannerVersion: process.env.npm_package_version });
@@ -75,7 +75,7 @@ cron.schedule('*/5 * * * *', () => {
     }, cronApplicationSecurityStartTime * 1000);
 });
 
-http.listen(app.get('port'), function() {
+http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     console.log(
         `Application Scanner Started on port ${app.get(

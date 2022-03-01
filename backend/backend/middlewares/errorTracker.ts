@@ -3,10 +3,10 @@ import ErrorService from 'common-server/utils/error';
 import ErrorTrackerService from '../services/errorTrackerService';
 
 const _this = {
-    isErrorTrackerValid: async function(
-        req: express.Request,
-        res: express.Response,
-        next: express.RequestHandler
+    isErrorTrackerValid: async function (
+        req: Request,
+        res: Response,
+        next: RequestHandler
     ) {
         try {
             const data = req.body;

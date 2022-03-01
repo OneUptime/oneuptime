@@ -9,9 +9,9 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import SsoService from '../services/ssoService';
 
-router.get('/', getUser, isUserMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/', getUser, isUserMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 10;
@@ -31,9 +31,9 @@ router.get('/', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.delete('/:id', getUser, async function(
-    req: express.Request,
-    res: express.Response
+router.delete('/:id', getUser, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const sso = await SsoService.deleteBy({ _id: req.params.id });
@@ -43,9 +43,9 @@ router.delete('/:id', getUser, async function(
     }
 });
 
-router.post('/', getUser, isScaleOrMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/', getUser, isScaleOrMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     const data = req.body;
     try {
@@ -56,9 +56,9 @@ router.post('/', getUser, isScaleOrMasterAdmin, async function(
     }
 });
 
-router.get('/:id', getUser, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:id', getUser, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const selectSso =
@@ -74,9 +74,9 @@ router.get('/:id', getUser, async function(
     }
 });
 
-router.put('/:id', getUser, async function(
-    req: express.Request,
-    res: express.Response
+router.put('/:id', getUser, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const data = req.body;
@@ -88,7 +88,7 @@ router.put('/:id', getUser, async function(
 });
 
 // USER API ENDPOINT TO GET SSO INTEGRATION
-router.get('/:projectId/ssos', getUser, isScaleOrMasterAdmin, async function(
+router.get('/:projectId/ssos', getUser, isScaleOrMasterAdmin, async function (
     req,
     res
 ) {

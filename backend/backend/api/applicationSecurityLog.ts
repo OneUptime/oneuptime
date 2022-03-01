@@ -16,7 +16,7 @@ router.get(
     '/:projectId/:componentId/application/logs/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { applicationSecurityId, componentId } = req.params;
 
@@ -52,7 +52,7 @@ router.get(
     '/:projectId/:componentId/applicationSecuritySlug/logs/:applicationSecuritySlug',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { applicationSecuritySlug, componentId } = req.params;
 
@@ -88,7 +88,7 @@ router.get(
     '/:projectId/:componentId/application/logs',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { componentId } = req.params;
             const populateApplicationSecurityLog = [

@@ -9,9 +9,9 @@ import MonitorSlaService from '../services/monitorSlaService';
 
 const router = express.Router();
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;
@@ -42,9 +42,9 @@ router.get('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;
@@ -114,7 +114,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function(
+router.put('/:projectId/:monitorSlaId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -192,7 +192,7 @@ router.delete(
     '/:projectId/:monitorSlaId',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, monitorSlaId } = req.params;
 
@@ -211,7 +211,7 @@ router.get(
     '/:projectId/defaultMonitorSla',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const selectMonSla =

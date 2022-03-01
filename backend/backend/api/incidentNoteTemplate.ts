@@ -8,9 +8,9 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 import IncidentNoteTemplateService from '../services/incidentNoteTemplateService';
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;
@@ -57,9 +57,9 @@ router.post('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;
@@ -88,7 +88,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
+router.put('/:projectId/:templateId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -141,7 +141,7 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
     }
 });
 
-router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
+router.delete('/:projectId/:templateId', getUser, isAuthorized, async function (
     req,
     res
 ) {

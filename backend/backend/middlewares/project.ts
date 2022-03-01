@@ -10,10 +10,10 @@ export default {
     // Params:
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: Project does not exist or User is not present in this project; 500: Server Error
-    doesUserBelongToProject: async function(
-        req: express.Request,
-        res: express.Response,
-        next: express.RequestHandler
+    doesUserBelongToProject: async function (
+        req: Request,
+        res: Response,
+        next: RequestHandler
     ) {
         try {
             // authorize if user is master-admin
@@ -103,9 +103,9 @@ export default {
     // Params:
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: You are not authorized to add member to project. Only admin can add.; 500: Server Error
-    isUserAdmin: async function(
-        req: express.Request,
-        res: express.Response,
+    isUserAdmin: async function (
+        req: Request,
+        res: Response,
         next: $TSFixMe
     ) {
         try {
@@ -175,9 +175,9 @@ export default {
         }
     },
 
-    isUserOwner: async function(
-        req: express.Request,
-        res: express.Response,
+    isUserOwner: async function (
+        req: Request,
+        res: Response,
         next: $TSFixMe
     ) {
         try {
@@ -227,9 +227,9 @@ export default {
         }
     },
 
-    getUserRole: async function(
-        req: express.Request,
-        res: express.Response,
+    getUserRole: async function (
+        req: Request,
+        res: Response,
         next: $TSFixMe
     ) {
         try {

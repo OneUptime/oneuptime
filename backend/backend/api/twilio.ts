@@ -24,7 +24,7 @@ import SmsCountService from '../services/smsCountService';
 
 router.get(
     '/voice/status',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const {
                 accessToken,
@@ -109,7 +109,7 @@ router.get(
  * @returns Twiml with with action status.
  */
 
-router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
+router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -137,9 +137,9 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/sms/verify', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/sms/verify', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { to, code } = req.body;
@@ -190,9 +190,9 @@ router.post('/sms/verify', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/sms/test', getUser, isUserMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/sms/test', getUser, isUserMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const data = req.body;

@@ -5,7 +5,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 import LicenseService from '../services/licenseService';
 
-router.post('/', async (req: express.Request, res: express.Response) => {
+router.post('/', async (req: Request, res: Response) => {
     try {
         const data = req.body;
 

@@ -2,16 +2,16 @@ import Express from 'common-server/utils/express';
 const express = Express.getLibrary();
 
 export default {
-    sendSuccessResponse: function(
+    sendSuccessResponse: function (
         req: $TSFixMe,
         res: $TSFixMe,
         data: $TSFixMe
     ) {
         return res.status(200).send(data);
     },
-    sendErrorResponse: function(
-        req: express.Request,
-        res: express.Response,
+    sendErrorResponse: function (
+        req: Request,
+        res: Response,
         error: $TSFixMe
     ) {
         if (

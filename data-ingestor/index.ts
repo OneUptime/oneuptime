@@ -40,7 +40,7 @@ function getMongoClient() {
 }
 // setup mongodb connection
 const client = getMongoClient();
-(async function() {
+(async function () {
     try {
         console.log('connecting to db');
         await client.connect();
@@ -56,10 +56,10 @@ global.db = client.db(databaseName);
 
 app.use(cors());
 
-app.use(function(
-    req: express.Request,
-    res: express.Response,
-    next: express.RequestHandler
+app.use(function (
+    req: Request,
+    res: Response,
+    next: RequestHandler
 ) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
@@ -89,10 +89,10 @@ const getActualRequestDurationInMilliseconds = start => {
     return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
 };
 
-app.use(function(
-    req: express.Request,
-    res: express.Response,
-    next: express.RequestHandler
+app.use(function (
+    req: Request,
+    res: Response,
+    next: RequestHandler
 ) {
     const current_datetime = new Date();
     const formatted_date =
@@ -119,9 +119,9 @@ app.use(function(
     return next();
 });
 
-app.get(['/data-ingestor/status', '/status'], function(
-    req: express.Request,
-    res: express.Response
+app.get(['/data-ingestor/status', '/status'], function (
+    req: Request,
+    res: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -137,7 +137,7 @@ app.use(['/probe', '/api/probe'], require('./api/probe'));
 
 app.set('port', process.env.PORT || 3200);
 
-http.listen(app.get('port'), function() {
+http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     console.log('data-ingestor server started on port ' + app.get('port'));
 });

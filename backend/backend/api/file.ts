@@ -10,9 +10,9 @@ const sendFileResponse = require('../middlewares/response').sendFileResponse;
 // Param1: req.params-> {filename};
 // Returns: response uploaded files, error message
 
-router.get('/:filename', async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:filename', async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const file = await FileService.findOneBy({

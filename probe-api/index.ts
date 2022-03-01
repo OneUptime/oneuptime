@@ -4,9 +4,9 @@ import Express from 'common-server/utils/express';
 const express = Express.getLibrary();
 const app = Express.launchApplication();
 
-app.get(['/probe-api/status', '/status'], function(
-    req: express.Request,
-    res: express.Response
+app.get(['/probe-api/status', '/status'], function (
+    req: Request,
+    res: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.send(

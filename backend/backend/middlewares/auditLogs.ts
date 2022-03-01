@@ -15,9 +15,9 @@ import GlobalConfigService from '../services/globalConfigService';
 let shouldStoreLogs: $TSFixMe = null;
 
 export default {
-    log: async function(
-        req: express.Request,
-        res: express.Response,
+    log: async function (
+        req: Request,
+        res: Response,
         next: $TSFixMe
     ) {
         try {

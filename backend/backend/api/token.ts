@@ -13,9 +13,9 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 //                                                   jwtAccessToken: token.accessToken,
 //                                                   jwtRefreshToken: token.refreshToken,
 //                                               }
-router.post('/new', async function(
-    req: express.Request,
-    res: express.Response
+router.post('/new', async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const jwtRefreshToken = req.body.refreshToken;

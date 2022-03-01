@@ -37,9 +37,9 @@ global.httpServerResponse = {
     body: { status: 'ok' },
 };
 
-app.use('*', function(
-    req: express.Request,
-    res: express.Response,
+app.use('*', function (
+    req: Request,
+    res: Response,
     next: $TSFixMe
 ) {
     if (process.env && process.env.PRODUCTION) {
@@ -57,7 +57,7 @@ app.use(bodyParser.json());
 
 app.use(require('./backend/api/settings'));
 
-app.get('/status', function(req: express.Request, res: express.Response) {
+app.get('/status', function (req: Request, res: Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -68,13 +68,13 @@ app.get('/status', function(req: express.Request, res: express.Response) {
     );
 });
 
-app.get('/', function(req: express.Request, res: express.Response) {
+app.get('/', function (req: Request, res: Response) {
     if (http.STATUS_CODES[global.httpServerResponse.statusCode]) {
         res.status(global.httpServerResponse.statusCode);
     } else {
         res.status(422);
     }
-    setTimeout(function() {
+    setTimeout(function () {
         if (global.httpServerResponse.responseType.currentType === 'html') {
             res.setHeader('Content-Type', 'text/html');
             try {
@@ -99,9 +99,9 @@ app.get('/', function(req: express.Request, res: express.Response) {
 
 const hook = {};
 
-app.post('/api/webhooks/:id', function(
-    req: express.Request,
-    res: express.Response
+app.post('/api/webhooks/:id', function (
+    req: Request,
+    res: Response
 ) {
     const { id } = req.params;
 
@@ -109,9 +109,9 @@ app.post('/api/webhooks/:id', function(
     return res.status(200).json(req.body);
 });
 
-app.get('/api/webhooks/:id', function(
-    req: express.Request,
-    res: express.Response
+app.get('/api/webhooks/:id', function (
+    req: Request,
+    res: Response
 ) {
     const { id } = req.params;
 
@@ -120,13 +120,13 @@ app.get('/api/webhooks/:id', function(
     return res.status(200).json(hook[id]);
 });
 
-app.use('/*', function(req: express.Request, res: express.Response) {
+app.use('/*', function (req: Request, res: Response) {
     res.status(404).render('notFound.ejs', {});
 });
 
 app.set('port', process.env.PORT || 3010);
 
-app.listen(app.get('port'), function() {
+app.listen(app.get('port'), function () {
     //eslint-disable-next-line
     console.log('Server running on port : ' + app.get('port'));
 });

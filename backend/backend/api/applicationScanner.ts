@@ -21,7 +21,7 @@ import ErrorService from 'common-server/utils/error';
 router.get(
     '/applicationSecurities',
     isAuthorizedApplicationScanner,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const response = await ApplicationSecurityService.getSecuritiesToScan();
             return sendItemResponse(req, res, response);
@@ -31,7 +31,7 @@ router.get(
     }
 );
 
-router.post('/scanning', isAuthorizedApplicationScanner, async function(
+router.post('/scanning', isAuthorizedApplicationScanner, async function (
     req,
     res
 ) {
@@ -54,7 +54,7 @@ router.post('/scanning', isAuthorizedApplicationScanner, async function(
         return sendErrorResponse(req, res, error);
     }
 });
-router.post('/failed', isAuthorizedApplicationScanner, async function(
+router.post('/failed', isAuthorizedApplicationScanner, async function (
     req,
     res
 ) {
@@ -71,9 +71,9 @@ router.post('/failed', isAuthorizedApplicationScanner, async function(
         return sendErrorResponse(req, res, error);
     }
 });
-router.post('/log', isAuthorizedApplicationScanner, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/log', isAuthorizedApplicationScanner, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const security = req.body;
@@ -262,9 +262,9 @@ router.post('/log', isAuthorizedApplicationScanner, async function(
     }
 });
 
-router.post('/time', isAuthorizedApplicationScanner, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/time', isAuthorizedApplicationScanner, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const security = req.body;

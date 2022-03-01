@@ -12,7 +12,7 @@ import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 import ErrorService from 'common-server/utils/error';
 
-router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
+router.get('/containerSecurities', isAuthorizedContainerScanner, async function (
     req,
     res
 ) {
@@ -23,7 +23,7 @@ router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
         return sendErrorResponse(req, res, error);
     }
 });
-router.post('/scanning', isAuthorizedContainerScanner, async function(
+router.post('/scanning', isAuthorizedContainerScanner, async function (
     req,
     res
 ) {
@@ -47,9 +47,9 @@ router.post('/scanning', isAuthorizedContainerScanner, async function(
     }
 });
 
-router.post('/failed', isAuthorizedContainerScanner, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/failed', isAuthorizedContainerScanner, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const security = req.body;
@@ -64,9 +64,9 @@ router.post('/failed', isAuthorizedContainerScanner, async function(
         return sendErrorResponse(req, res, error);
     }
 });
-router.post('/log', isAuthorizedContainerScanner, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/log', isAuthorizedContainerScanner, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const security = req.body;
@@ -154,9 +154,9 @@ router.post('/log', isAuthorizedContainerScanner, async function(
     }
 });
 
-router.post('/time', isAuthorizedContainerScanner, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/time', isAuthorizedContainerScanner, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const security = req.body;

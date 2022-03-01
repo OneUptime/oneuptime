@@ -15,9 +15,9 @@ const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const data = req.body;
@@ -56,7 +56,7 @@ router.get(
     '/:projectId/:templateId/reset',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const templateId = req.params.templateId;
@@ -71,9 +71,9 @@ router.get(
     }
 );
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.params.projectId;
@@ -88,7 +88,7 @@ router.get(
     '/:projectId/emailTemplate/:emailTemplateId',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const emailTemplateId = req.params.emailTemplateId;
             const select = 'projectId subject body emailType allowedVariables';
@@ -108,7 +108,7 @@ router.put(
     '/:projectId/emailTemplate/:emailTemplateId',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const Id = req.params.emailTemplateId;
@@ -124,9 +124,9 @@ router.put(
     }
 );
 
-router.put('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.put('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const data = [];
@@ -189,7 +189,7 @@ router.delete(
     '/:projectId/emailTemplate/:emailTemplateId',
     getUser,
     isUserOwner,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const emailTemplateId = req.params.emailTemplateId;
 

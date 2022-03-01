@@ -22,9 +22,9 @@ export default ({
     friendlyResourceName,
     service,
 }: $TSFixMe) => {
-    const getItemMiddleware = async function(
-        req: express.Request,
-        res: express.Response
+    const getItemMiddleware = async function (
+        req: Request,
+        res: Response
     ) {
         try {
             let item = null;
@@ -61,9 +61,9 @@ export default ({
         }
     };
 
-    const listItemMiddleware = async function(
-        req: express.Request,
-        res: express.Response
+    const listItemMiddleware = async function (
+        req: Request,
+        res: Response
     ) {
         try {
             let query = req.data.query;
@@ -143,9 +143,9 @@ export default ({
         }
     };
 
-    const createItemMiddleware = async function(
-        req: express.Request,
-        res: express.Response
+    const createItemMiddleware = async function (
+        req: Request,
+        res: Response
     ) {
         try {
             const data = req.body;
@@ -162,9 +162,9 @@ export default ({
         }
     };
 
-    const deleteItemMiddleware = async function(
-        req: express.Request,
-        res: express.Response
+    const deleteItemMiddleware = async function (
+        req: Request,
+        res: Response
     ) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
@@ -191,10 +191,10 @@ export default ({
         }
     };
 
-    const updateItemMiddleware = async function(
-        req: express.Request,
-        res: express.Response,
-        next: express.RequestHandler
+    const updateItemMiddleware = async function (
+        req: Request,
+        res: Response,
+        next: RequestHandler
     ) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
@@ -227,9 +227,9 @@ export default ({
         const functionChain = [];
 
         const apiPropsMiddleware = (
-            req: express.Request,
-            res: express.Response,
-            next: express.RequestHandler
+            req: Request,
+            res: Response,
+            next: RequestHandler
         ) => {
             req.apiProps = props;
             return next();

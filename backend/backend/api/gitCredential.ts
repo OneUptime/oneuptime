@@ -12,7 +12,7 @@ router.post(
     '/:projectId/gitCredential',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const {
                 gitUsername,
@@ -52,7 +52,7 @@ router.get(
     '/:projectId/gitCredential',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { projectId } = req.params;
 
@@ -78,7 +78,7 @@ router.put(
     '/:projectId/gitCredential/:credentialId',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { credentialId } = req.params;
             const {
@@ -120,7 +120,7 @@ router.delete(
     '/:projectId/gitCredential/:credentialId',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { credentialId } = req.params;
 

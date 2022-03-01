@@ -6,7 +6,7 @@ import DefaultManagerService from '../services/defaultManagerService';
 const router = express.Router();
 
 // store default details to the db
-router.put('/default', async (req: express.Request, res: express.Response) => {
+router.put('/default', async (req: Request, res: Response) => {
     try {
         const {
             store,
@@ -54,7 +54,7 @@ router.put('/default', async (req: express.Request, res: express.Response) => {
     }
 });
 
-router.get('/default', async (req: express.Request, res: express.Response) => {
+router.get('/default', async (req: Request, res: Response) => {
     try {
         const defaultManager = await DefaultManagerService.findOneBy({
             query: { deleted: false },

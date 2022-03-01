@@ -8,9 +8,9 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {userId}
 // Returns: 200: "Invoice received"; 400: "Error"
-router.post('/:userId', async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:userId', async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const userId = req.params.userId;

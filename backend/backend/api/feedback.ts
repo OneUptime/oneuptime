@@ -9,9 +9,9 @@ const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         if (!req.body.feedback && !req.body.page) {

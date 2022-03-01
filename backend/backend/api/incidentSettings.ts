@@ -11,9 +11,9 @@ import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
 import { variables } from '../config/incidentDefaultSettings';
 
-router.get('/variables', async function(
-    req: express.Request,
-    res: express.Response
+router.get('/variables', async function (
+    req: Request,
+    res: Response
 ) {
     try {
         return sendItemResponse(req, res, variables);
@@ -23,7 +23,7 @@ router.get('/variables', async function(
 });
 
 // fetch default incident template in a project
-router.get('/:projectId/default', getUser, isAuthorized, async function(
+router.get('/:projectId/default', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -51,9 +51,9 @@ router.get('/:projectId/default', getUser, isAuthorized, async function(
 });
 
 // fetch all incident template in a project
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;
@@ -91,7 +91,7 @@ router.put(
     '/:projectId/:templateId/setDefault',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         const { projectId, templateId } = req.params;
         if (!projectId)
             return sendErrorResponse(req, res, {
@@ -116,7 +116,7 @@ router.put(
     }
 );
 
-router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
+router.put('/:projectId/:templateId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -184,7 +184,7 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
     }
 });
 
-router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
+router.delete('/:projectId/:templateId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -214,9 +214,9 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;

@@ -11,9 +11,9 @@ import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;
@@ -39,7 +39,7 @@ router.get(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { automatedSlug } = req.params;
             const { skip, limit } = req.query;
@@ -92,7 +92,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -157,7 +157,7 @@ router.put(
     '/:projectId/:automatedScriptId',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const automatedScriptId = req.params.automatedScriptId;
             const data = req.body;
@@ -224,7 +224,7 @@ router.put(
     '/:projectId/:automatedScriptId/run',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { automatedScriptId } = req.params;
 
@@ -245,7 +245,7 @@ router.delete(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, automatedSlug } = req.params;
             const query = {

@@ -8,7 +8,7 @@ const router = express.Router();
 // store acme challenge to the db
 router.post(
     '/challenge',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const data = req.body;
 
@@ -23,7 +23,7 @@ router.post(
 // fetch an acme challenge
 router.get(
     '/challenge/:token',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { token } = req.params;
             const acmeChallenge = await SslService.findOneBy({
@@ -42,7 +42,7 @@ router.get(
 // api to be consumed from the statuspage
 router.get(
     '/challenge/authorization/:token',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { token } = req.params;
             const acmeChallenge = await SslService.findOneBy({
@@ -62,7 +62,7 @@ router.get(
 // delete an acme challenge
 router.delete(
     '/challenge/:token',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { token } = req.params;
 

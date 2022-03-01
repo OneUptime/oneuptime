@@ -13,7 +13,7 @@ const router = express.Router();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 
-const callForward = async (req: express.Request, res: express.Response) => {
+const callForward = async (req: Request, res: Response) => {
     try {
         const body = req.body;
         const to = body['To'];
@@ -37,8 +37,8 @@ const callForward = async (req: express.Request, res: express.Response) => {
 };
 
 const backupCallForward = async (
-    req: express.Request,
-    res: express.Response
+    req: Request,
+    res: Response
 ) => {
     try {
         const body = req.body;
@@ -62,7 +62,7 @@ const backupCallForward = async (
     }
 };
 
-const callStatus = async (req: express.Request, res: express.Response) => {
+const callStatus = async (req: Request, res: Response) => {
     try {
         const body = req.body;
         const to = body['To'];
@@ -98,7 +98,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             let { skip, limit } = req.query;
             const { projectId } = req.params;
@@ -132,7 +132,7 @@ router.get(
     '/:projectId/logs',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { projectId } = req.params;
             const logs = await CallRoutingService.getCallRoutingLogs(projectId);
@@ -147,7 +147,7 @@ router.get(
     '/:projectId/routingNumbers',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { countryCode, numberType } = req.query;
             const { projectId } = req.params;
@@ -175,7 +175,7 @@ router.get(
     }
 );
 
-router.post('/:projectId/routingNumber', getUser, isUserAdmin, async function(
+router.post('/:projectId/routingNumber', getUser, isUserAdmin, async function (
     req,
     res
 ) {
@@ -192,7 +192,7 @@ router.post('/:projectId/routingNumber', getUser, isUserAdmin, async function(
     }
 });
 
-router.put('/:projectId/:callRoutingId', getUser, isUserAdmin, async function(
+router.put('/:projectId/:callRoutingId', getUser, isUserAdmin, async function (
     req,
     res
 ) {
@@ -211,7 +211,7 @@ router.put(
     '/:projectId/:callRoutingId/:audioFieldName',
     getUser,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { audioFieldName, callRoutingId } = req.params;
             const upload = multer({
@@ -222,7 +222,7 @@ router.put(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function(error: $TSFixMe) {
+            upload(req, res, async function (error: $TSFixMe) {
                 if (error) {
                     return sendErrorResponse(req, res, error);
                 }
@@ -255,7 +255,7 @@ router.delete(
     '/:projectId/:callRoutingId',
     getUser,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, callRoutingId } = req.params;
 
@@ -284,7 +284,7 @@ router.delete(
     '/:projectId/:callRoutingId/removeAudio',
     getUser,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { callRoutingId, backup } = req.body;
             if (!callRoutingId) {

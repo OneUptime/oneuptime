@@ -12,7 +12,7 @@ import IncidentService from '../services/incidentService';
 
 router.post(
     '/:projectId/:subscriberId',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -40,9 +40,9 @@ router.post(
 );
 
 // Mark alert as viewed
-router.get('/:projectId/:alertId/viewed', async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId/:alertId/viewed', async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const alertId = req.params.alertId;
@@ -75,7 +75,7 @@ router.get('/:projectId/:alertId/viewed', async function(
 // Returns: response subscriber alerts, error message
 router.get(
     '/:projectId',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const projectId = req.params.projectId;
             const skip = req.query.skip || 0;
@@ -115,7 +115,7 @@ router.get(
 // Returns: response subscriber alerts, error message
 router.get(
     '/:projectId/incident/:incidentSlug',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const projectId = req.params.projectId;
             const incidentSlug = req.params.incidentSlug;

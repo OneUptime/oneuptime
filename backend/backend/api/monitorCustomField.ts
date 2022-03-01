@@ -12,9 +12,9 @@ import MonitorCustomFieldService from '../services/monitorCustomField';
 
 const router = express.Router();
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;
@@ -64,9 +64,9 @@ router.post('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { projectId } = req.params;
@@ -96,7 +96,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
+router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -149,7 +149,7 @@ router.delete(
     '/:projectId/:customFieldId',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, customFieldId } = req.params;
 

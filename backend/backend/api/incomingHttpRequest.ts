@@ -6,9 +6,9 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 import { isValidMonitor } from '../middlewares/api';
 
-const incomingHttpRequest = async function(
-    req: express.Request,
-    res: express.Response
+const incomingHttpRequest = async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const monitor = req.monitor;

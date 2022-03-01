@@ -10,9 +10,9 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 
 import { sendItemResponse } from '../middlewares/response';
 
-router.get('/', getUser, isUserMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/', getUser, isUserMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const selectSmsCount =
@@ -39,7 +39,7 @@ router.post(
     '/',
     getUser,
     isUserMasterAdmin,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const data = req.body;
 
@@ -91,9 +91,9 @@ router.post(
     }
 );
 
-router.post('/search', getUser, isUserMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/search', getUser, isUserMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const filter = req.body.filter;
@@ -111,9 +111,9 @@ router.post('/search', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.delete('/', getUser, isUserMasterAdmin, async function(
-    req: express.Request,
-    res: express.Response
+router.delete('/', getUser, isUserMasterAdmin, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const query = {};

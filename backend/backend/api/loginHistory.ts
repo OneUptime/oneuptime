@@ -8,9 +8,9 @@ const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.get('/:userId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:userId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const userId = req.params.userId;

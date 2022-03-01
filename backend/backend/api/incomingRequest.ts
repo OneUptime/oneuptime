@@ -13,7 +13,7 @@ router.get(
     '/:projectId/all-incoming-request',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
@@ -54,7 +54,7 @@ router.post(
     '/:projectId/create-request-url',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const data = req.body;
@@ -111,7 +111,7 @@ router.put(
     '/:projectId/update/:requestId',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
             const data = req.body;
@@ -168,7 +168,7 @@ router.delete(
     '/:projectId/remove/:requestId',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
 
@@ -184,9 +184,9 @@ router.delete(
 );
 
 // process incoming http request from post request
-router.post('/:projectId/request/:requestId', async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId/request/:requestId', async function (
+    req: Request,
+    res: Response
 ) {
     try {
         // request object for use in variables
@@ -209,9 +209,9 @@ router.post('/:projectId/request/:requestId', async function(
 });
 
 // process incoming http request from get request
-router.get('/:projectId/request/:requestId', async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId/request/:requestId', async function (
+    req: Request,
+    res: Response
 ) {
     try {
         // request object for use in variables
@@ -237,7 +237,7 @@ router.post(
     '/:projectId/toggle/:requestId',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
             const data = req.body;

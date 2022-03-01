@@ -16,9 +16,9 @@ const _this = {
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
 
-    getUser: async function(
-        req: express.Request,
-        res: express.Response,
+    getUser: async function (
+        req: Request,
+        res: Response,
         next: $TSFixMe
     ) {
         try {
@@ -122,9 +122,9 @@ const _this = {
         }
     },
 
-    checkUser: function(
-        req: express.Request,
-        res: express.Response,
+    checkUser: function (
+        req: Request,
+        res: Response,
         next: $TSFixMe
     ) {
         try {
@@ -173,10 +173,10 @@ const _this = {
             throw error;
         }
     },
-    checkUserBelongToProject: function(
-        req: express.Request,
-        res: express.Response,
-        next: express.RequestHandler
+    checkUserBelongToProject: function (
+        req: Request,
+        res: Response,
+        next: RequestHandler
     ) {
         try {
             const accessToken =
@@ -262,10 +262,10 @@ const _this = {
         }
     },
 
-    isUserMasterAdmin: async function(
-        req: express.Request,
-        res: express.Response,
-        next: express.RequestHandler
+    isUserMasterAdmin: async function (
+        req: Request,
+        res: Response,
+        next: RequestHandler
     ) {
         if (!req.user) {
             req = await _this.getUser(req);
@@ -289,10 +289,10 @@ const _this = {
         }
     },
 
-    isScaleOrMasterAdmin: async function(
-        req: express.Request,
-        res: express.Response,
-        next: express.RequestHandler
+    isScaleOrMasterAdmin: async function (
+        req: Request,
+        res: Response,
+        next: RequestHandler
     ) {
         try {
             const projectId = apiMiddleware.getProjectId(req);

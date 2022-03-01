@@ -19,24 +19,24 @@ new OneUptime.PerformanceTracker(
     options
 );
 
-app.get('/', function (req: express.Request, res: express.Response) {
+app.get('/', function (req: Request, res: Response) {
     res.send({ status: "ok" })
 })
 
-app.get('/error', function (req: express.Request, res: express.Response) {
+app.get('/error', function (req: Request, res: Response) {
     res.status(500).send({ error: "Error" })
 })
 
-app.get('/outgoing-requests', async function (req: express.Request, res: express.Response) {
+app.get('/outgoing-requests', async function (req: Request, res: Response) {
     await axios('https://google.com');
     res.send({ status: "ok" })
 })
 
-app.get('/user/:id', async function (req: express.Request, res: express.Response) {
+app.get('/user/:id', async function (req: Request, res: Response) {
     res.send({ user: req.params.id })
 })
 
-app.post('/post', async function (req: express.Request, res: express.Response) {
+app.post('/post', async function (req: Request, res: Response) {
     res.send({ "status": "this is a post request" })
 })
 

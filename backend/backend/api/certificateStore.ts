@@ -8,7 +8,7 @@ import SiteManagerService from '../services/siteManagerService';
 const router = express.Router();
 
 // store certificate details to the db
-router.post('/store', async (req: express.Request, res: express.Response) => {
+router.post('/store', async (req: Request, res: Response) => {
     try {
         const data = req.body;
 
@@ -22,7 +22,7 @@ router.post('/store', async (req: express.Request, res: express.Response) => {
 // update certificate details in the db
 router.put(
     '/store/:id',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
             const certificate = await CertificateStoreService.updateOneBy(
@@ -40,7 +40,7 @@ router.put(
 // fetch a certificate detail
 router.get(
     '/store/:id',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
             const certificate = await CertificateStoreService.findOneBy({
@@ -60,7 +60,7 @@ router.get(
 // called from the status page project
 router.get(
     '/store/cert/:subject',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { subject } = req.params;
             const certificate = await CertificateStoreService.findOneBy({
@@ -79,7 +79,7 @@ router.get(
 // delete an certificate detail
 router.delete(
     '/store/:id',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
 
@@ -93,7 +93,7 @@ router.delete(
 
 router.post(
     '/certOrder',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const domains = [];
 
@@ -182,7 +182,7 @@ router.post(
 // id => domain/subdomain
 router.delete(
     '/certDelete/:id',
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const greenlock = global.greenlock;
             const { id } = req.body;

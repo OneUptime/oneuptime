@@ -16,7 +16,7 @@ router.get(
     '/:projectId/:componentId/container/logs/:containerSecurityId',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { containerSecurityId, componentId } = req.params;
 
@@ -47,7 +47,7 @@ router.get(
     '/:projectId/:componentId/containerSecuritySlug/logs/:containerSecuritySlug',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { containerSecuritySlug, componentId } = req.params;
 
@@ -78,7 +78,7 @@ router.get(
     '/:projectId/:componentId/container/logs',
     getUser,
     isAuthorized,
-    async (req: express.Request, res: express.Response) => {
+    async (req: Request, res: Response) => {
         try {
             const { componentId } = req.params;
             const selectContainerLog =

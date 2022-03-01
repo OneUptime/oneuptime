@@ -3,10 +3,10 @@ import ErrorService from 'common-server/utils/error';
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 
 export default {
-    isAuthorizedService: async function(
-        req: express.Request,
-        res: express.Response,
-        next: express.RequestHandler
+    isAuthorizedService: async function (
+        req: Request,
+        res: Response,
+        next: RequestHandler
     ) {
         try {
             let clusterKey;

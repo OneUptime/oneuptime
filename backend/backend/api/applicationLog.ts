@@ -31,7 +31,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const componentId = req.params.componentId;
@@ -101,7 +101,7 @@ router.post(
 );
 
 // Description: Get all Application Logs by componentId.
-router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
+router.get('/:projectId/:componentId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -132,7 +132,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         const { applicationLogId, componentId } = req.params;
         try {
             const applicationLog = await ApplicationLogService.deleteBy(
@@ -157,7 +157,7 @@ router.delete(
     }
 );
 
-router.post('/:applicationLogId/log', isApplicationLogValid, async function(
+router.post('/:applicationLogId/log', isApplicationLogValid, async function (
     req,
     res
 ) {
@@ -193,7 +193,7 @@ router.post(
     '/:projectId/:componentId/:applicationLogId/logs',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const { skip, limit, startDate, endDate, type, filter } = req.body;
             const applicationLogId = req.params.applicationLogId;
@@ -253,7 +253,7 @@ router.post(
     '/:projectId/:componentId/:applicationLogId/stats',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const applicationLogId = req.params.applicationLogId;
 
@@ -308,7 +308,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         const applicationLogId = req.params.applicationLogId;
 
         const currentApplicationCount = await ApplicationLogService.countBy({
@@ -345,7 +345,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         const { applicationLogId, componentId } = req.params;
 
         const data = req.body;
@@ -443,7 +443,7 @@ router.post(
     '/:projectId/:componentId/:applicationLogId/search',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         const { applicationLogId } = req.params;
         const startTime = new Date();
         const { duration, filter, range } = req.body;

@@ -16,7 +16,7 @@ describe('ScriptMonitor V2', function () {
 
       import express from "express"
       const app = express();
-      app.get("/test", (req: express.Request, res: express.Response) => res.send("yipee!"));
+      app.get("/test", (req: Request, res: Response) => res.send("yipee!"));
       server = app.listen(5050);
     });
 

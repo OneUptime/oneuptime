@@ -16,9 +16,9 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/:projectId', getUser, isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.params.projectId;
@@ -41,7 +41,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(
 });
 
 // Fetch alerts by projectId
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
+router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (
     req,
     res
 ) {
@@ -56,7 +56,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     }
 });
 
-router.get('/:projectId/alert', getUser, isAuthorized, async function(
+router.get('/:projectId/alert', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -91,7 +91,7 @@ router.get(
     '/:projectId/incident/:incidentSlug',
     getUser,
     isAuthorized,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const incidentSlug = req.params.incidentSlug;
             // const projectId = req.params.projectId;
@@ -140,9 +140,9 @@ router.get(
 );
 
 // Mark alert as viewed. This is for Email.
-router.get('/:projectId/:alertId/viewed', async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId/:alertId/viewed', async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const alertId = req.params.alertId;
@@ -169,9 +169,9 @@ router.get('/:projectId/:alertId/viewed', async function(
     }
 });
 
-router.delete('/:projectId', getUser, isUserOwner, async function(
-    req: express.Request,
-    res: express.Response
+router.delete('/:projectId', getUser, isUserOwner, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.params.projectId;
@@ -193,7 +193,7 @@ router.delete('/:projectId', getUser, isUserOwner, async function(
     }
 });
 
-router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
+router.get('/:projectId/alert/charges', getUser, isAuthorized, async function (
     req,
     res
 ) {

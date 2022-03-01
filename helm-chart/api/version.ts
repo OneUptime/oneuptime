@@ -1,4 +1,4 @@
-const version = (req: express.Request, res: express.Response) => {
+const version = (req: Request, res: Response) => {
     res.send({ helmChartVersion: process.env.npm_package_version });
 };
 

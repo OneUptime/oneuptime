@@ -6,7 +6,7 @@ import ApiStatusService from '../services/apiStatusService';
 const router = express.Router();
 
 // store account details to the db
-router.get('/', async (req: express.Request, res: express.Response) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
         const data = {
             status: 'online',

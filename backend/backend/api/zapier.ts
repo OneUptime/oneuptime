@@ -10,9 +10,9 @@ const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 
 const router = express.Router();
 
-router.get('/test', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/test', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const apiKey = req.query.apiKey;
@@ -24,9 +24,9 @@ router.get('/test', isAuthorized, async function(
     }
 });
 
-router.get('/monitors', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/monitors', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.query.projectId;
@@ -57,9 +57,9 @@ router.get('/monitors', isAuthorized, async function(
     }
 });
 
-router.post('/incident/createIncident', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/incident/createIncident', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const monitors = req.body.monitors || [];
@@ -70,9 +70,9 @@ router.post('/incident/createIncident', isAuthorized, async function(
     }
 });
 
-router.get('/incidents', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/incidents', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.query.projectId;
@@ -85,9 +85,9 @@ router.get('/incidents', isAuthorized, async function(
     }
 });
 
-router.get('/incident-note', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/incident-note', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.query.projectId;
@@ -100,9 +100,9 @@ router.get('/incident-note', isAuthorized, async function(
     }
 });
 
-router.post('/incident/incident-note', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/incident/incident-note', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const { data } = req.body;
@@ -113,9 +113,9 @@ router.post('/incident/incident-note', isAuthorized, async function(
     }
 });
 
-router.get('/incident/resolved', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/incident/resolved', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.query.projectId;
@@ -129,7 +129,7 @@ router.get('/incident/resolved', isAuthorized, async function(
     }
 });
 
-router.post('/incident/resolveLastIncident', isAuthorized, async function(
+router.post('/incident/resolveLastIncident', isAuthorized, async function (
     req,
     res
 ) {
@@ -143,7 +143,7 @@ router.post('/incident/resolveLastIncident', isAuthorized, async function(
     }
 });
 
-router.post('/incident/resolveAllIncidents', isAuthorized, async function(
+router.post('/incident/resolveAllIncidents', isAuthorized, async function (
     req,
     res
 ) {
@@ -158,7 +158,7 @@ router.post('/incident/resolveAllIncidents', isAuthorized, async function(
     }
 });
 
-router.post('/incident/resolveIncident', isAuthorized, async function(
+router.post('/incident/resolveIncident', isAuthorized, async function (
     req,
     res
 ) {
@@ -176,9 +176,9 @@ router.post('/incident/resolveIncident', isAuthorized, async function(
     }
 });
 
-router.get('/incident/acknowledged', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/incident/acknowledged', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.query.projectId;
@@ -197,7 +197,7 @@ router.get('/incident/acknowledged', isAuthorized, async function(
     }
 });
 
-router.post('/incident/acknowledgeLastIncident', isAuthorized, async function(
+router.post('/incident/acknowledgeLastIncident', isAuthorized, async function (
     req,
     res
 ) {
@@ -211,7 +211,7 @@ router.post('/incident/acknowledgeLastIncident', isAuthorized, async function(
     }
 });
 
-router.post('/incident/acknowledgeAllIncidents', isAuthorized, async function(
+router.post('/incident/acknowledgeAllIncidents', isAuthorized, async function (
     req,
     res
 ) {
@@ -226,7 +226,7 @@ router.post('/incident/acknowledgeAllIncidents', isAuthorized, async function(
     }
 });
 
-router.post('/incident/acknowledgeIncident', isAuthorized, async function(
+router.post('/incident/acknowledgeIncident', isAuthorized, async function (
     req,
     res
 ) {
@@ -244,9 +244,9 @@ router.post('/incident/acknowledgeIncident', isAuthorized, async function(
     }
 });
 
-router.post('/subscribe', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.post('/subscribe', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const url = req.body.url;
@@ -283,9 +283,9 @@ router.post('/subscribe', isAuthorized, async function(
     }
 });
 
-router.delete('/unsubscribe/:id', isAuthorized, async function(
-    req: express.Request,
-    res: express.Response
+router.delete('/unsubscribe/:id', isAuthorized, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const id = req.params.id;

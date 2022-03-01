@@ -8,7 +8,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 const router = express.Router();
 
-router.post('/:projectId/create', getUser, isUserAdmin, async function(
+router.post('/:projectId/create', getUser, isUserAdmin, async function (
     req,
     res
 ) {
@@ -132,7 +132,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
 });
 
 // update webhook
-router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
+router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (
     req,
     res
 ) {
@@ -249,7 +249,7 @@ router.delete(
     '/:projectId/delete/:integrationId',
     getUser,
     isUserAdmin,
-    async function(req: express.Request, res: express.Response) {
+    async function (req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const integrationId = req.params.integrationId;
@@ -267,9 +267,9 @@ router.delete(
 );
 
 // req => params => {projectId}
-router.get('/:projectId/hooks', getUser, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId/hooks', getUser, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         const projectId = req.params.projectId;
@@ -303,9 +303,9 @@ router.get('/:projectId/hooks', getUser, async function(
 });
 
 // req => params => {projectId, monitorId}
-router.get('/:projectId/hooks/:monitorId', getUser, async function(
-    req: express.Request,
-    res: express.Response
+router.get('/:projectId/hooks/:monitorId', getUser, async function (
+    req: Request,
+    res: Response
 ) {
     try {
         // const projectId = req.params.projectId;
