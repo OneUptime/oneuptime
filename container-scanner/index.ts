@@ -2,8 +2,8 @@ const { NODE_ENV } = process.env;
 import dotenv from 'dotenv';
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
-   
-   dotenv.config();
+
+    dotenv.config();
 }
 
 process.on('exit', () => {
@@ -42,7 +42,10 @@ const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3055);
 
-app.get(['/container/status', '/status'], function(req:express.Request, res: express.Response) {
+app.get(['/container/status', '/status'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -55,7 +58,10 @@ app.get(['/container/status', '/status'], function(req:express.Request, res: exp
 
 //App Version
 
-app.get(['/container/version', '/version'], function(req:express.Request, res: express.Response) {
+app.get(['/container/version', '/version'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ containerScannerVersion: process.env.npm_package_version });
 });

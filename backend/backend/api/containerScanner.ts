@@ -47,7 +47,10 @@ router.post('/scanning', isAuthorizedContainerScanner, async function(
     }
 });
 
-router.post('/failed', isAuthorizedContainerScanner, async function(req:express.Request, res: express.Response) {
+router.post('/failed', isAuthorizedContainerScanner, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const security = req.body;
         const containerSecurity = await ContainerSecurityService.updateOneBy(
@@ -61,7 +64,10 @@ router.post('/failed', isAuthorizedContainerScanner, async function(req:express.
         return sendErrorResponse(req, res, error);
     }
 });
-router.post('/log', isAuthorizedContainerScanner, async function(req:express.Request, res: express.Response) {
+router.post('/log', isAuthorizedContainerScanner, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const security = req.body;
         const securityLog = await ContainerSecurityLogService.create({
@@ -148,7 +154,10 @@ router.post('/log', isAuthorizedContainerScanner, async function(req:express.Req
     }
 });
 
-router.post('/time', isAuthorizedContainerScanner, async function(req:express.Request, res: express.Response) {
+router.post('/time', isAuthorizedContainerScanner, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const security = req.body;
         const updatedTime = await ContainerSecurityService.updateScanTime({

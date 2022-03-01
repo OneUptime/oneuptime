@@ -10,7 +10,10 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 
 import { sendItemResponse } from '../middlewares/response';
 
-router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.get('/', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const query = {};
         const skip = req.query.skip;
@@ -34,64 +37,69 @@ router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, 
     }
 });
 
-router.post('/', getUser, isUserMasterAdmin, async (req:express.Request, res: express.Response) => {
-    try {
-        const data = req.body;
+router.post(
+    '/',
+    getUser,
+    isUserMasterAdmin,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const data = req.body;
 
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Values should not be null',
-            });
-        }
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Values should not be null',
+                });
+            }
 
-        if (!data.status || !data.status.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email Log Status is required',
-            });
-        }
+            if (!data.status || !data.status.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email Log Status is required',
+                });
+            }
 
-        if (!data.from || !data.from.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email Log Sender name is required',
-            });
-        }
+            if (!data.from || !data.from.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email Log Sender name is required',
+                });
+            }
 
-        if (!data.to || !data.to.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email Log Recipient is required',
-            });
-        }
+            if (!data.to || !data.to.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email Log Recipient is required',
+                });
+            }
 
-        if (!data.subject || !data.subject.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email Log Subject is required',
-            });
-        }
+            if (!data.subject || !data.subject.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email Log Subject is required',
+                });
+            }
 
-        if (!data.body || !data.body.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email Log Body is required',
-            });
-        }
+            if (!data.body || !data.body.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email Log Body is required',
+                });
+            }
 
-        if (!data.template || !data.template.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email Log Template is required',
-            });
+            if (!data.template || !data.template.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email Log Template is required',
+                });
+            }
+            const emailLog = await EmailLogsService.create(data);
+            return sendItemResponse(req, res, emailLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        const emailLog = await EmailLogsService.create(data);
-        return sendItemResponse(req, res, emailLog);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.put('/:emailLogsId', getUser, isUserMasterAdmin, async function(
     req,
@@ -160,7 +168,10 @@ router.put('/:emailLogsId', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.post('/search', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.post('/search', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const filter = req.body.filter;
         const skip = req.query.skip;
@@ -177,7 +188,10 @@ router.post('/search', getUser, isUserMasterAdmin, async function(req:express.Re
     }
 });
 
-router.delete('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.delete('/', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const query = {};
 

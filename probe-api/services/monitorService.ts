@@ -1,4 +1,3 @@
-
 import ErrorService from './errorService';
 import moment from 'moment';
 import Database from 'common-server/utils/database';
@@ -77,4 +76,3 @@ export default {
         }
     },
 };
-

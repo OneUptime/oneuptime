@@ -1,10 +1,13 @@
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import ErrorService from '../services/errorService';
-
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
+const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 export default {
-    isAuthorizedService: async function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+    isAuthorizedService: async function(
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
+    ) {
         try {
             let clusterKey;
 

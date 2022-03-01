@@ -10,7 +10,10 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 
 import { sendItemResponse } from '../middlewares/response';
 
-router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.get('/', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const query = {};
         const skip = req.query.skip;
@@ -27,58 +30,66 @@ router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, 
     }
 });
 
-router.post('/', getUser, isUserMasterAdmin, async (req:express.Request, res: express.Response) => {
-    try {
-        const data = req.body;
+router.post(
+    '/',
+    getUser,
+    isUserMasterAdmin,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const data = req.body;
 
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Values should not be null',
-            });
-        }
-        if (!data.status || !data.status.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Call Log Status is required',
-            });
-        }
-        if (!data.from || !data.from.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Call Log Sender name is required',
-            });
-        }
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Values should not be null',
+                });
+            }
+            if (!data.status || !data.status.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Call Log Status is required',
+                });
+            }
+            if (!data.from || !data.from.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Call Log Sender name is required',
+                });
+            }
 
-        if (!data.to || !data.to.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Call Log Recipient name is required',
-            });
-        }
+            if (!data.to || !data.to.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Call Log Recipient name is required',
+                });
+            }
 
-        if (!data.projectId || !data.projectId.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Call Log ProjectId is required',
-            });
-        }
+            if (!data.projectId || !data.projectId.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Call Log ProjectId is required',
+                });
+            }
 
-        if (!data.content || !data.content.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Call Log Content is required',
-            });
-        }
+            if (!data.content || !data.content.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Call Log Content is required',
+                });
+            }
 
-        const callLog = await CallLogsService.create(data);
-        return sendItemResponse(req, res, callLog);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const callLog = await CallLogsService.create(data);
+            return sendItemResponse(req, res, callLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/search', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.post('/search', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const filter = req.body.filter;
         const skip = req.query.skip;
@@ -95,7 +106,10 @@ router.post('/search', getUser, isUserMasterAdmin, async function(req:express.Re
     }
 });
 
-router.delete('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.delete('/', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const query = {};
 

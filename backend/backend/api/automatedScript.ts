@@ -11,7 +11,10 @@ import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';
 
-router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
+router.get('/:projectId', getUser, isAuthorized, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
@@ -36,7 +39,7 @@ router.get(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { automatedSlug } = req.params;
             const { skip, limit } = req.query;
@@ -85,62 +88,67 @@ router.get(
 // Route Description: Creates a new script
 // req.body -> {name, scriptType, script, successEvent, failureEvent}
 // Returns: response new script created
-router.post('/:projectId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
-    try {
-        const data = req.body;
-        data.projectId = req.params.projectId;
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Values should not be null',
-            });
-        }
-        if (!data.name || !data.name.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Script name is required',
-            });
-        }
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const data = req.body;
+            data.projectId = req.params.projectId;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Values should not be null',
+                });
+            }
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Script name is required',
+                });
+            }
 
-        if (!data.scriptType || data.scriptType.trim().length === 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Script Type is required',
+            if (!data.scriptType || data.scriptType.trim().length === 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Script Type is required',
+                });
+            }
+
+            if (!data.script || data.script.trim().length === 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Script is required',
+                });
+            }
+
+            // check if name already exists
+            const uniqueName = await AutomatedScriptService.countBy({
+                projectId: data.projectId,
+                name: data.name,
             });
-        }
 
-        if (!data.script || data.script.trim().length === 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Script is required',
-            });
-        }
+            if (uniqueName && uniqueName > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Script name already exists',
+                });
+            }
 
-        // check if name already exists
-        const uniqueName = await AutomatedScriptService.countBy({
-            projectId: data.projectId,
-            name: data.name,
-        });
-
-        if (uniqueName && uniqueName > 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Script name already exists',
-            });
+            if (data.successEvent.length > 0) {
+                data.successEvent = formatEvent(data.successEvent, true);
+            }
+            if (data.failureEvent.length > 0) {
+                data.failureEvent = formatEvent(data.failureEvent, true);
+            }
+            const response = await AutomatedScriptService.createScript(data);
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (data.successEvent.length > 0) {
-            data.successEvent = formatEvent(data.successEvent, true);
-        }
-        if (data.failureEvent.length > 0) {
-            data.failureEvent = formatEvent(data.failureEvent, true);
-        }
-        const response = await AutomatedScriptService.createScript(data);
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Route Description: Update a script
 // req.body -> {name, scriptType, script, successEvent, failureEvent}
@@ -149,7 +157,7 @@ router.put(
     '/:projectId/:automatedScriptId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const automatedScriptId = req.params.automatedScriptId;
             const data = req.body;
@@ -216,7 +224,7 @@ router.put(
     '/:projectId/:automatedScriptId/run',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { automatedScriptId } = req.params;
 
@@ -237,7 +245,7 @@ router.delete(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const { projectId, automatedSlug } = req.params;
             const query = {

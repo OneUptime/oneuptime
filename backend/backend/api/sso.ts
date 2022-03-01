@@ -9,7 +9,10 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import SsoService from '../services/ssoService';
 
-router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.get('/', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 10;
 
@@ -28,7 +31,10 @@ router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, 
     }
 });
 
-router.delete('/:id', getUser, async function(req:express.Request, res: express.Response) {
+router.delete('/:id', getUser, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const sso = await SsoService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, sso);
@@ -37,7 +43,10 @@ router.delete('/:id', getUser, async function(req:express.Request, res: express.
     }
 });
 
-router.post('/', getUser, isScaleOrMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.post('/', getUser, isScaleOrMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     const data = req.body;
     try {
         const sso = await SsoService.create(data);
@@ -47,7 +56,10 @@ router.post('/', getUser, isScaleOrMasterAdmin, async function(req:express.Reque
     }
 });
 
-router.get('/:id', getUser, async function(req:express.Request, res: express.Response) {
+router.get('/:id', getUser, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const selectSso =
             '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
@@ -62,7 +74,10 @@ router.get('/:id', getUser, async function(req:express.Request, res: express.Res
     }
 });
 
-router.put('/:id', getUser, async function(req:express.Request, res: express.Response) {
+router.put('/:id', getUser, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const data = req.body;
         const sso = await SsoService.updateBy({ _id: req.params.id }, data);

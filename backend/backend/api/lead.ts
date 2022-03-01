@@ -5,7 +5,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 //Public API to capture leads. Type is Demo or Whitepaper.
-router.post('/', async function(req:express.Request, res: express.Response) {
+router.post('/', async function(req: express.Request, res: express.Response) {
     try {
         const body = req.body;
         const data = {};

@@ -18,7 +18,10 @@ import { getSubProjects } from '../middlewares/subProject';
 
 const router = express.Router();
 
-router.post('/:projectId', getUser, getSubProjects, async function(req:express.Request, res: express.Response) {
+router.post('/:projectId', getUser, getSubProjects, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const val = req.body.search;
         const parentProjectId = req.params.projectId;

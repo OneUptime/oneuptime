@@ -3,7 +3,7 @@ const { NODE_ENV } = process.env;
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /data-ingestor/.env
     import dotenv from 'dotenv';
-   dotenv.config();
+    dotenv.config();
 }
 
 process.on('exit', () => {
@@ -90,7 +90,11 @@ io.sockets.on('connection', socket => {
 
 app.use(cors());
 
-app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+app.use(function(
+    req: express.Request,
+    res: express.Response,
+    next: express.RequestHandler
+) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -110,7 +114,10 @@ app.use(function(req:express.Request, res: express.Response, next: express.Reque
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
-app.get(['/realtime/status', '/status'], function(req:express.Request, res: express.Response) {
+app.get(['/realtime/status', '/status'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

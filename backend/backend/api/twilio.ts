@@ -22,52 +22,35 @@ import SmsCountService from '../services/smsCountService';
  * @returns Twiml with 'Content-Type', 'text/xml' in headers for twilio to understand.
  */
 
-router.get('/voice/status', async (req:express.Request, res: express.Response) => {
-    try {
-        const {
-            accessToken,
-            monitorName,
-            projectId,
-            incidentId,
-            CallStatus,
-            To,
-            redialCount,
-        } = req.query;
-        const incident = await IncidentService.findOneBy({
-            query: { _id: incidentId },
-            select: 'acknowledged',
-        });
+router.get(
+    '/voice/status',
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const {
+                accessToken,
+                monitorName,
+                projectId,
+                incidentId,
+                CallStatus,
+                To,
+                redialCount,
+            } = req.query;
+            const incident = await IncidentService.findOneBy({
+                query: { _id: incidentId },
+                select: 'acknowledged',
+            });
 
-        const newRedialCount = parseInt(redialCount) + 1;
+            const newRedialCount = parseInt(redialCount) + 1;
 
-        switch (CallStatus) {
-            case 'failed':
-            case 'busy':
-            case 'no-answer':
-                // redial call in 45 seconds. upon 5 times.
-                if (newRedialCount > 5)
-                    return sendItemResponse(req, res, {
-                        status: 'call redial reached maximum',
-                    });
-                setTimeout(
-                    () =>
-                        sendIncidentCreatedCall(
-                            null,
-                            monitorName,
-                            To,
-                            accessToken,
-                            incidentId,
-                            projectId,
-                            newRedialCount
-                        ),
-                    1000 * 60
-                );
-                return sendItemResponse(req, res, {
-                    status: 'call redial success',
-                });
-            default:
-                // call is okay. check if incident was not ack, if not redial upto 5 times else  Exit with no redial
-                if (incident && !incident.acknowledged && newRedialCount < 6) {
+            switch (CallStatus) {
+                case 'failed':
+                case 'busy':
+                case 'no-answer':
+                    // redial call in 45 seconds. upon 5 times.
+                    if (newRedialCount > 5)
+                        return sendItemResponse(req, res, {
+                            status: 'call redial reached maximum',
+                        });
                     setTimeout(
                         () =>
                             sendIncidentCreatedCall(
@@ -84,15 +67,39 @@ router.get('/voice/status', async (req:express.Request, res: express.Response) =
                     return sendItemResponse(req, res, {
                         status: 'call redial success',
                     });
-                }
-                return sendItemResponse(req, res, {
-                    staus: 'initial call was okay',
-                });
+                default:
+                    // call is okay. check if incident was not ack, if not redial upto 5 times else  Exit with no redial
+                    if (
+                        incident &&
+                        !incident.acknowledged &&
+                        newRedialCount < 6
+                    ) {
+                        setTimeout(
+                            () =>
+                                sendIncidentCreatedCall(
+                                    null,
+                                    monitorName,
+                                    To,
+                                    accessToken,
+                                    incidentId,
+                                    projectId,
+                                    newRedialCount
+                                ),
+                            1000 * 60
+                        );
+                        return sendItemResponse(req, res, {
+                            status: 'call redial success',
+                        });
+                    }
+                    return sendItemResponse(req, res, {
+                        staus: 'initial call was okay',
+                    });
+            }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 /**
  * @param {string} accessToken : Access token for accessing this endpoint.
@@ -130,7 +137,10 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/sms/verify', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
+router.post('/sms/verify', getUser, isAuthorized, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const { to, code } = req.body;
 
@@ -180,7 +190,10 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req:express.Req
     }
 });
 
-router.post('/sms/test', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.post('/sms/test', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const data = req.body;
 

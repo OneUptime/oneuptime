@@ -12,7 +12,7 @@ router.post(
     '/:projectId/dockerCredential',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const {
                 dockerRegistryUrl,
@@ -64,7 +64,7 @@ router.get(
     '/:projectId/dockerCredential',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { projectId } = req.params;
 
@@ -87,7 +87,7 @@ router.put(
     '/:projectId/dockerCredential/:credentialId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { credentialId } = req.params;
             const {
@@ -122,7 +122,7 @@ router.delete(
     '/:projectId/dockerCredential/:credentialId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { credentialId } = req.params;
 

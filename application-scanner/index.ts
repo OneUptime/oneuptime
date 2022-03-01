@@ -3,7 +3,7 @@ const { NODE_ENV } = process.env;
 import dotenv from 'dotenv';
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
-   dotenv.config();
+    dotenv.config();
 }
 
 process.on('exit', () => {
@@ -44,7 +44,10 @@ const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3005);
 
-app.get(['/application/status', '/status'], function(req:express.Request, res: express.Response) {
+app.get(['/application/status', '/status'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -57,7 +60,10 @@ app.get(['/application/status', '/status'], function(req:express.Request, res: e
 
 //App Version
 
-app.get(['/application/version', '/version'], function(req:express.Request, res: express.Response) {
+app.get(['/application/version', '/version'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ applicationScannerVersion: process.env.npm_package_version });
 });

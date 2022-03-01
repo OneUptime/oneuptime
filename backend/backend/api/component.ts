@@ -99,7 +99,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const data = req.body;
             const { componentId } = req.params;
@@ -199,7 +199,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const type = req.query.type;
 
@@ -242,7 +242,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
@@ -279,7 +279,7 @@ router.post(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const { startDate, endDate } = req.body;
             const componentId = req.params.componentId;
@@ -379,7 +379,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
@@ -693,7 +693,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -757,7 +757,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         const { componentId, projectId } = req.params;
         try {
             await ComponentService.deleteBy(

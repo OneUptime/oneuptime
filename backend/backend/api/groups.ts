@@ -11,38 +11,43 @@ import EscalationService from '../services/escalationService';
 
 const router = express.Router();
 
-router.post('/:projectId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
-    try {
-        const { name, teams } = req.body;
-        const { projectId } = req.params;
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const { name, teams } = req.body;
+            const { projectId } = req.params;
 
-        const userId = req.user.id;
+            const userId = req.user.id;
 
-        if (!name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Group name must be present',
+            if (!name) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Group name must be present',
+                });
+            }
+
+            const response = await GroupService.create({
+                projectId,
+                name,
+                teams,
+                createdById: userId,
             });
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const response = await GroupService.create({
-            projectId,
-            name,
-            teams,
-            createdById: userId,
-        });
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.get(
     '/:projectId/groups',
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => {
                   return { id: project._id, name: project.name };
@@ -67,52 +72,62 @@ router.get(
     }
 );
 
-router.get('/:projectId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
-    try {
-        const { projectId } = req.params;
-        const { skip, limit } = req.query;
-        const groups = await GroupService.findBy(
-            {
-                projectId: projectId,
-            },
-            limit,
-            skip
-        );
-        return sendItemResponse(req, res, groups);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.put('/:projectId/:groupId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
-    try {
-        const { groupId, projectId } = req.params;
-        const { name, teams } = req.body;
-
-        const data = {};
-        if (name) {
-            data.name = name;
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const { projectId } = req.params;
+            const { skip, limit } = req.query;
+            const groups = await GroupService.findBy(
+                {
+                    projectId: projectId,
+                },
+                limit,
+                skip
+            );
+            return sendItemResponse(req, res, groups);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        if (teams) {
-            data.teams = teams;
-        }
-
-        const groups = await GroupService.updateOneBy(
-            { _id: groupId },
-            data,
-            projectId
-        );
-        return sendItemResponse(req, res, groups);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
+
+router.put(
+    '/:projectId/:groupId',
+    getUser,
+    isAuthorized,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const { groupId, projectId } = req.params;
+            const { name, teams } = req.body;
+
+            const data = {};
+            if (name) {
+                data.name = name;
+            }
+            if (teams) {
+                data.teams = teams;
+            }
+
+            const groups = await GroupService.updateOneBy(
+                { _id: groupId },
+                data,
+                projectId
+            );
+            return sendItemResponse(req, res, groups);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.delete(
     '/:projectId/:groupId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { groupId, projectId } = req.params;
 

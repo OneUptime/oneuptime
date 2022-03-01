@@ -10,7 +10,10 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 
 import { sendItemResponse } from '../middlewares/response';
 
-router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.get('/', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const selectSmsCount =
             'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
@@ -32,58 +35,66 @@ router.get('/', getUser, isUserMasterAdmin, async function(req:express.Request, 
     }
 });
 
-router.post('/', getUser, isUserMasterAdmin, async (req:express.Request, res: express.Response) => {
-    try {
-        const data = req.body;
+router.post(
+    '/',
+    getUser,
+    isUserMasterAdmin,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const data = req.body;
 
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Values should not be null',
-            });
-        }
-        if (!data.status || !data.status.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SMS Log Status is required',
-            });
-        }
-        if (!data.userId || !data.userId.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SMS Log UserId is required',
-            });
-        }
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Values should not be null',
+                });
+            }
+            if (!data.status || !data.status.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'SMS Log Status is required',
+                });
+            }
+            if (!data.userId || !data.userId.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'SMS Log UserId is required',
+                });
+            }
 
-        if (!data.sentTo || !data.sendTo.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email Log Recipient name is required',
-            });
-        }
+            if (!data.sentTo || !data.sendTo.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email Log Recipient name is required',
+                });
+            }
 
-        if (!data.projectId || !data.projectId.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SMS Log ProjectId is required',
-            });
-        }
+            if (!data.projectId || !data.projectId.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'SMS Log ProjectId is required',
+                });
+            }
 
-        if (!data.content || !data.content.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SMS Log Content is required',
-            });
-        }
+            if (!data.content || !data.content.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'SMS Log Content is required',
+                });
+            }
 
-        const smsLog = await SmsLogsService.create(data);
-        return sendItemResponse(req, res, smsLog);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const smsLog = await SmsLogsService.create(data);
+            return sendItemResponse(req, res, smsLog);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/search', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.post('/search', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const filter = req.body.filter;
         const skip = req.query.skip;
@@ -100,7 +111,10 @@ router.post('/search', getUser, isUserMasterAdmin, async function(req:express.Re
     }
 });
 
-router.delete('/', getUser, isUserMasterAdmin, async function(req:express.Request, res: express.Response) {
+router.delete('/', getUser, isUserMasterAdmin, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const query = {};
 

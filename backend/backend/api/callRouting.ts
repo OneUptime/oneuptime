@@ -91,50 +91,60 @@ router.post('/routeBackupCall', backupCallForward);
 router.get('/statusCallback', callStatus);
 router.post('/statusCallback', callStatus);
 
-router.get('/:projectId', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
-    try {
-        let { skip, limit } = req.query;
-        const { projectId } = req.params;
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            let { skip, limit } = req.query;
+            const { projectId } = req.params;
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+            if (typeof skip === 'string') skip = parseInt(skip);
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof limit === 'string') limit = parseInt(limit);
 
-        const populate = [{ path: 'projectId', select: 'name slug _id' }];
-        const select =
-            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
-        const [numbers, count] = await Promise.all([
-            CallRoutingService.findBy({
-                query: { projectId },
-                skip,
-                limit,
-                select,
-                populate,
-            }),
-            CallRoutingService.countBy({ projectId }),
-        ]);
+            const populate = [{ path: 'projectId', select: 'name slug _id' }];
+            const select =
+                'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
+            const [numbers, count] = await Promise.all([
+                CallRoutingService.findBy({
+                    query: { projectId },
+                    skip,
+                    limit,
+                    select,
+                    populate,
+                }),
+                CallRoutingService.countBy({ projectId }),
+            ]);
 
-        return sendItemResponse(req, res, { numbers, count, skip, limit });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, { numbers, count, skip, limit });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/logs', getUser, isAuthorized, async (req:express.Request, res: express.Response) => {
-    try {
-        const { projectId } = req.params;
-        const logs = await CallRoutingService.getCallRoutingLogs(projectId);
-        return sendItemResponse(req, res, logs);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId/logs',
+    getUser,
+    isAuthorized,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            const { projectId } = req.params;
+            const logs = await CallRoutingService.getCallRoutingLogs(projectId);
+            return sendItemResponse(req, res, logs);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/:projectId/routingNumbers',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { countryCode, numberType } = req.query;
             const { projectId } = req.params;
@@ -198,7 +208,7 @@ router.put(
     '/:projectId/:callRoutingId/:audioFieldName',
     getUser,
     isUserAdmin,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const { audioFieldName, callRoutingId } = req.params;
             const upload = multer({
@@ -242,7 +252,7 @@ router.delete(
     '/:projectId/:callRoutingId',
     getUser,
     isUserAdmin,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const { projectId, callRoutingId } = req.params;
 
@@ -271,7 +281,7 @@ router.delete(
     '/:projectId/:callRoutingId/removeAudio',
     getUser,
     isUserAdmin,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const { callRoutingId, backup } = req.body;
             if (!callRoutingId) {

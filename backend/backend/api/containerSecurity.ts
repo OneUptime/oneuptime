@@ -21,7 +21,7 @@ router.post(
     '/:projectId/:componentId/container',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const data = req.body;
             data.componentId = req.params.componentId;
@@ -91,7 +91,7 @@ router.put(
     '/:projectId/:componentId/container/:containerSecurityId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { componentId, containerSecurityId } = req.params;
             const {
@@ -155,7 +155,7 @@ router.get(
     '/:projectId/:componentId/container',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { componentId } = req.params;
             const { skip, limit } = req.query;
@@ -197,7 +197,7 @@ router.get(
     '/:projectId/:componentId/container/:containerSecurityId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { containerSecurityId } = req.params;
             const populate = [
@@ -239,7 +239,7 @@ router.get(
     '/:projectId/:componentId/containerSecuritySlug/:containerSecuritySlug',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { containerSecuritySlug } = req.params;
             const populate = [
@@ -281,7 +281,7 @@ router.delete(
     '/:projectId/:componentId/container/:containerSecurityId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { containerSecurityId } = req.params;
 
@@ -303,7 +303,7 @@ router.delete(
     '/:projectId/:componentId/container',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { componentId } = req.params;
 
@@ -325,7 +325,7 @@ router.get(
     '/:projectId/container/:credentialId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { credentialId } = req.params;
             const populate = [
@@ -360,7 +360,7 @@ router.post(
     '/:projectId/container/scan/:containerSecurityId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { containerSecurityId } = req.params;
             const containerSecurity = await ContainerSecurityService.findOneBy({

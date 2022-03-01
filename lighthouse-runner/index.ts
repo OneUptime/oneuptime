@@ -2,8 +2,8 @@ const { NODE_ENV } = process.env;
 import dotenv from 'dotenv';
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
-    
-   dotenv.config();
+
+    dotenv.config();
 }
 
 process.on('exit', () => {
@@ -42,7 +42,10 @@ const cronMinuteStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3015);
 
-app.get(['/lighthouse/status', '/status'], function(req:express.Request, res: express.Response) {
+app.get(['/lighthouse/status', '/status'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -55,7 +58,10 @@ app.get(['/lighthouse/status', '/status'], function(req:express.Request, res: ex
 
 //App Version
 
-app.get(['/lighthouse/version', '/version'], function(req:express.Request, res: express.Response) {
+app.get(['/lighthouse/version', '/version'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ lighthouseVersion: process.env.npm_package_version });
 });

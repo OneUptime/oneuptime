@@ -21,7 +21,7 @@ router.post(
     '/:projectId/:componentId/application',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const data = req.body;
             data.componentId = req.params.componentId;
@@ -92,7 +92,7 @@ router.put(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { componentId, applicationSecurityId } = req.params;
             const {
@@ -151,7 +151,7 @@ router.get(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { applicationSecurityId } = req.params;
 
@@ -200,7 +200,7 @@ router.get(
     '/:projectId/:componentId/applicationSecuritySlug/:applicationSecuritySlug',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { applicationSecuritySlug } = req.params;
 
@@ -249,7 +249,7 @@ router.get(
     '/:projectId/:componentId/application',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { componentId } = req.params;
             const { skip, limit } = req.query;
@@ -294,7 +294,7 @@ router.delete(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { applicationSecurityId } = req.params;
 
@@ -316,7 +316,7 @@ router.delete(
     '/:projectId/:componentId/application',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { componentId } = req.params;
 
@@ -338,7 +338,7 @@ router.get(
     '/:projectId/application/:credentialId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { credentialId } = req.params;
             const populateApplicationSecurity = [
@@ -378,7 +378,7 @@ router.post(
     '/:projectId/application/scan/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { applicationSecurityId } = req.params;
             const applicationSecurity = await ApplicationSecurityService.findOneBy(

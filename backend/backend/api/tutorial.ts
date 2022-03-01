@@ -7,7 +7,10 @@ const getUser = require('../middlewares/user').getUser;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.get('/', getUser, async function(req:express.Request, res: express.Response) {
+router.get('/', getUser, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const userId = req.user ? req.user.id : null;
         const user = await UserService.findOneBy({
@@ -25,7 +28,10 @@ router.get('/', getUser, async function(req:express.Request, res: express.Respon
     }
 });
 
-router.put('/', getUser, async function(req:express.Request, res: express.Response) {
+router.put('/', getUser, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const userId = req.user ? req.user.id : null;
         let user = await UserService.findOneBy({

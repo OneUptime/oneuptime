@@ -660,7 +660,7 @@ router.post('/set-scan-status', isAuthorizedProbe, async function(
         const { monitorIds, scanning } = req.body;
         await MonitorService.updateScanStatus(monitorIds, scanning);
 
-        return sendEmptyResponse(req:express.Request, res: express.Response);
+        return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -674,7 +674,7 @@ router.post('/add-probe-scan', isAuthorizedProbe, async function(
         const { monitorIds } = req.body;
         await MonitorService.addProbeScanning(monitorIds, req.probe.id);
 
-        return sendEmptyResponse(req:express.Request, res: express.Response);
+        return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -688,7 +688,7 @@ router.post('/remove-probe-scan', isAuthorizedProbe, async function(
         const { monitorIds } = req.body;
         await MonitorService.removeProbeScanning(monitorIds, req.probe.id);
 
-        return sendEmptyResponse(req:express.Request, res: express.Response);
+        return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

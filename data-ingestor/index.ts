@@ -3,7 +3,7 @@ const { NODE_ENV } = process.env;
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /data-ingestor/.env
     import dotenv from 'dotenv';
-   dotenv.config();
+    dotenv.config();
 }
 
 import express from 'express';
@@ -56,7 +56,11 @@ global.db = client.db(databaseName);
 
 app.use(cors());
 
-app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+app.use(function(
+    req: express.Request,
+    res: express.Response,
+    next: express.RequestHandler
+) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -85,7 +89,11 @@ const getActualRequestDurationInMilliseconds = start => {
     return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
 };
 
-app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+app.use(function(
+    req: express.Request,
+    res: express.Response,
+    next: express.RequestHandler
+) {
     const current_datetime = new Date();
     const formatted_date =
         current_datetime.getFullYear() +
@@ -111,7 +119,10 @@ app.use(function(req:express.Request, res: express.Response, next: express.Reque
     return next();
 });
 
-app.get(['/data-ingestor/status', '/status'], function(req:express.Request, res: express.Response) {
+app.get(['/data-ingestor/status', '/status'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

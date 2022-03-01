@@ -6,7 +6,7 @@ const { NODE_ENV } = process.env;
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /licensing/.env
     import dotenv from 'dotenv';
-   dotenv.config();
+    dotenv.config();
 }
 
 process.on('exit', () => {
@@ -33,7 +33,11 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+app.use(function(
+    req: express.Request,
+    res: express.Response,
+    next: express.RequestHandler
+) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -68,7 +72,10 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-app.get(['/', '/license'], function(req:express.Request, res: express.Response) {
+app.get(['/', '/license'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -79,7 +86,7 @@ app.get(['/', '/license'], function(req:express.Request, res: express.Response) 
     );
 });
 
-app.use('/*', function(req:express.Request, res: express.Response) {
+app.use('/*', function(req: express.Request, res: express.Response) {
     res.status(404).render('notFound.ejs', {});
 });
 

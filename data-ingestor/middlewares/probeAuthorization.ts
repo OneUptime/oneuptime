@@ -7,7 +7,11 @@ import { clusterKey as CLUSTER_KEY } from '../utils/config';
 global.probes = {};
 
 export default {
-    isAuthorizedProbe: async function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+    isAuthorizedProbe: async function(
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
+    ) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;
 

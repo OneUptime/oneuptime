@@ -16,7 +16,10 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
+router.post('/:projectId', getUser, isAuthorized, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const projectId = req.params.projectId;
 
@@ -88,7 +91,7 @@ router.get(
     '/:projectId/incident/:incidentSlug',
     getUser,
     isAuthorized,
-    async function(req:express.Request, res: express.Response) {
+    async function(req: express.Request, res: express.Response) {
         try {
             const incidentSlug = req.params.incidentSlug;
             // const projectId = req.params.projectId;
@@ -137,7 +140,10 @@ router.get(
 );
 
 // Mark alert as viewed. This is for Email.
-router.get('/:projectId/:alertId/viewed', async function(req:express.Request, res: express.Response) {
+router.get('/:projectId/:alertId/viewed', async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const alertId = req.params.alertId;
         const projectId = req.params.projectId;
@@ -163,7 +169,10 @@ router.get('/:projectId/:alertId/viewed', async function(req:express.Request, re
     }
 });
 
-router.delete('/:projectId', getUser, isUserOwner, async function(req:express.Request, res: express.Response) {
+router.delete('/:projectId', getUser, isUserOwner, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const projectId = req.params.projectId;
 

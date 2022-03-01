@@ -862,7 +862,7 @@ router.post(
     getUser,
     isAuthorized,
     async function(req:express.Request, res: express.Response) {
-        return await _updateDeviceMonitorPingTime(req:express.Request, res: express.Response);
+        return await _updateDeviceMonitorPingTime(req, res);
     }
 );
 
@@ -871,7 +871,7 @@ router.get(
     getUser,
     isAuthorized,
     async function(req:express.Request, res: express.Response) {
-        return await _updateDeviceMonitorPingTime(req:express.Request, res: express.Response);
+        return await _updateDeviceMonitorPingTime(req, res);
     }
 );
 

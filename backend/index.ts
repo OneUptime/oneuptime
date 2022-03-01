@@ -1,7 +1,7 @@
 const { NODE_ENV } = process.env;
 import dotenv from 'dotenv';
 if (!NODE_ENV || NODE_ENV === 'development') {
-   dotenv.config();
+    dotenv.config();
 }
 
 import express from 'express';
@@ -80,7 +80,11 @@ global.io = io;
 
 app.use(cors());
 
-app.use(async function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+app.use(async function(
+    req: express.Request,
+    res: express.Response,
+    next: express.RequestHandler
+) {
     const method = req.method;
     const url = req.url;
     const requestStartedAt = Date.now();
@@ -115,7 +119,11 @@ app.use(async function(req:express.Request, res: express.Response, next: express
     next();
 });
 
-app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+app.use(function(
+    req: express.Request,
+    res: express.Response,
+    next: express.RequestHandler
+) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -482,7 +490,7 @@ app.use(
 
 app.use(['/api'], require('./backend/api/apiStatus'));
 
-app.use('/*', function(req:express.Request, res: express.Response) {
+app.use('/*', function(req: express.Request, res: express.Response) {
     res.status(404).send('Endpoint not found.');
 });
 

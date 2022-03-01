@@ -14,7 +14,10 @@ import { isValidAPIKey } from '../middlewares/performanceTracker';
 // Route
 // Description: Receiving Performance metric data from sdk.
 // Returns: response status, error message
-router.post('/:appId/key/:key', isValidAPIKey, async function(req:express.Request, res: express.Response) {
+router.post('/:appId/key/:key', isValidAPIKey, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const { appId } = req.params;
         const { incoming, outgoing, sentAt } = req.body;
@@ -41,7 +44,10 @@ router.post('/:appId/key/:key', isValidAPIKey, async function(req:express.Reques
 });
 
 // fetch transaction time for performance metrics
-router.get('/:appId/key/:key/time', isValidAPIKey, async function(req:express.Request, res: express.Response) {
+router.get('/:appId/key/:key/time', isValidAPIKey, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
@@ -169,7 +175,10 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
     }
 });
 
-router.get('/:appId/key/:key/error', isValidAPIKey, async function(req:express.Request, res: express.Response) {
+router.get('/:appId/key/:key/error', isValidAPIKey, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const { appId } = req.params;
         let { startDate, endDate } = req.query;
@@ -233,7 +242,10 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function(req:express.R
 
 // Route
 // Description: Fetch all the Performance metrics for a particular identifier
-router.get('/:appId/key/:key', isValidAPIKey, async function(req:express.Request, res: express.Response) {
+router.get('/:appId/key/:key', isValidAPIKey, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const { appId } = req.params;
         const { type, skip, limit } = req.query;

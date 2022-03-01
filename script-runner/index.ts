@@ -2,7 +2,7 @@ const { NODE_ENV } = process.env;
 import dotenv from 'dotenv';
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
-   dotenv.config();
+    dotenv.config();
 }
 
 process.on('exit', () => {
@@ -39,7 +39,11 @@ import main from './workers/main';
 
 app.use(cors());
 
-app.use(function(req:express.Request, res: express.Response, next: express.RequestHandler) {
+app.use(function(
+    req: express.Request,
+    res: express.Response,
+    next: express.RequestHandler
+) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -59,7 +63,10 @@ app.set('port', process.env.PORT || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-app.get(['/script/status', '/status'], function(req:express.Request, res: express.Response) {
+app.get(['/script/status', '/status'], function(
+    req: express.Request,
+    res: express.Response
+) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

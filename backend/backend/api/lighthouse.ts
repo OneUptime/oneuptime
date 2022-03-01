@@ -20,7 +20,10 @@ import ErrorService from 'common-server/utils/error';
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
 
-router.get('/monitors', isAuthorizedLighthouse, async function(req:express.Request, res: express.Response) {
+router.get('/monitors', isAuthorizedLighthouse, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const monitors = await MonitorService.getUrlMonitorsNotScannedByLightHouseInPastOneDay();
 

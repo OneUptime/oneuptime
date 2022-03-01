@@ -9,7 +9,10 @@ const isUserOwner = require('../middlewares/project').isUserOwner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.post('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
+router.post('/:projectId', getUser, isAuthorized, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const data = req.body;
         data.projectId = req.params.projectId;
@@ -43,7 +46,10 @@ router.post('/:projectId', getUser, isAuthorized, async function(req:express.Req
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(req:express.Request, res: express.Response) {
+router.get('/:projectId', getUser, isAuthorized, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const projectId = req.params.projectId;
         const populate = [{ path: 'projectId', select: 'name' }];

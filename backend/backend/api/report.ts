@@ -19,7 +19,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { startDate, endDate, skip, limit } = req.query;
 
@@ -55,7 +55,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { startDate, endDate, skip, limit } = req.query;
 
@@ -91,7 +91,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { startDate, endDate, filter } = req.query;
 
@@ -123,7 +123,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req:express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
         try {
             const { startDate, endDate, filter } = req.query;
 

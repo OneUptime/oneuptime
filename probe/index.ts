@@ -4,7 +4,7 @@ import asyncSleep from 'await-sleep';
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     import dotenv from 'dotenv';
-   dotenv.config();
+    dotenv.config();
 }
 
 process.on('exit', () => {

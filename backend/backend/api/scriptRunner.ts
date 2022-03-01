@@ -10,27 +10,34 @@ import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 const router = express.Router();
 
 // get all script monitors for script-runner
-router.get('/monitors', isAuthorizedService, async (req:express.Request, res: express.Response) => {
-    try {
-        //get top 10 monitors.
-        const allScriptMonitors = await MonitorService.getScriptMonitors({
-            limit: 10,
-            skip: 0,
-        });
+router.get(
+    '/monitors',
+    isAuthorizedService,
+    async (req: express.Request, res: express.Response) => {
+        try {
+            //get top 10 monitors.
+            const allScriptMonitors = await MonitorService.getScriptMonitors({
+                limit: 10,
+                skip: 0,
+            });
 
-        return sendListResponse(
-            req,
-            res,
-            JSON.stringify(allScriptMonitors),
-            allScriptMonitors.length
-        );
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendListResponse(
+                req,
+                res,
+                JSON.stringify(allScriptMonitors),
+                allScriptMonitors.length
+            );
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // ping script monitor
-router.post('/ping/:monitorId', isAuthorizedService, async function(req:express.Request, res: express.Response) {
+router.post('/ping/:monitorId', isAuthorizedService, async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const { monitor, resp } = req.body;
 
