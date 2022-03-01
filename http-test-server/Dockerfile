@@ -11,6 +11,7 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
+
 # Install common-server
 RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server

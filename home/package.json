@@ -16,6 +16,7 @@
     },
     "type": "module",
     "dependencies": {
+        "common-server": "file:../common-server",
         "axios": "^0.24.0",
         "body-parser": "^1.19.1",
         "cli-table": "^0.3.11",

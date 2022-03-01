@@ -5,6 +5,7 @@
     "homepage": "/",
     "type": "module",
     "dependencies": {
+        "common-server": "file:../common-server",
         "amplitude-js": "^8.3.1",
         "axios": "^0.21.1",
         "card-validator": "^8.1.1",

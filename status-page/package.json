@@ -4,12 +4,12 @@
     "private": true,
     "type": "module",
     "dependencies": {
+        "common-server": "file:../common-server",
         "axios": "^0.21.1",
         "chai": "^4.3.4",
         "chai-http": "^4.3.0",
         "cors": "^2.8.5",
         "dotenv": "^16.0.0",
-        "dotenv": "^10.0.0",
         "express": "^4.17.1",
         "google-translate": "^3.0.0",
         "history": "^4.7.2",
