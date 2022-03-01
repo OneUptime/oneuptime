@@ -1,9 +1,6 @@
-import Express from 'common-server/utils/express';
-const express = Express.getLibrary();
+import { Request, Response } from 'common-server/utils/express';
 
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
 
 import { getUser } from '../middlewares/user';
 
@@ -194,7 +191,7 @@ export default ({
     const updateItemMiddleware = async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
@@ -229,7 +226,7 @@ export default ({
         const apiPropsMiddleware = (
             req: Request,
             res: Response,
-            next: RequestHandler
+            next: Function
         ) => {
             req.apiProps = props;
             return next();
