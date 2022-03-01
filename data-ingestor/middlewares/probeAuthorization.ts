@@ -3,12 +3,13 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import ErrorService from '../services/errorService';
 import Express from 'common-server/utils/express';
 const express = Express.getLibrary();
+
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
 global.probes = {};
 
 export default {
-    isAuthorizedProbe: async function(
+    isAuthorizedProbe: async function (
         req: express.Request,
         res: express.Response,
         next: express.RequestHandler

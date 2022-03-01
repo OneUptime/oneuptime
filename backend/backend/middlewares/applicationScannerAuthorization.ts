@@ -3,7 +3,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import ErrorService from 'common-server/utils/error';
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 export default {
-    isAuthorizedApplicationScanner: async function (
+    isAuthorizedApplicationScanner: async function(
         req: express.Request,
         res: express.Response,
         next: express.RequestHandler

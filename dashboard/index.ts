@@ -25,8 +25,7 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function (req: express.Request,
-    res: express.Response, next: $TSFixMe) {
+app.use(function(req: express.Request, res: express.Response, next: $TSFixMe) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -43,7 +42,7 @@ app.use(function (req: express.Request,
     return next();
 });
 
-app.get(['/env.js', '/dashboard/env.js'], function (
+app.get(['/env.js', '/dashboard/env.js'], function(
     req: $TSFixMe,
     res: $TSFixMe
 ) {
@@ -107,7 +106,7 @@ app.get(['/env.js', '/dashboard/env.js'], function (
 });
 
 //APP VERSION
-app.use(['/dashboard/api/version', '/dashboard/version'], function (
+app.use(['/dashboard/api/version', '/dashboard/version'], function(
     req: $TSFixMe,
     res: $TSFixMe
 ) {
@@ -115,7 +114,7 @@ app.use(['/dashboard/api/version', '/dashboard/version'], function (
     res.json({ dashboardVersion: process.env.npm_package_version });
 });
 
-app.get(['/dashboard/status', '/status'], function (
+app.get(['/dashboard/status', '/status'], function(
     req: $TSFixMe,
     res: $TSFixMe
 ) {
@@ -169,7 +168,7 @@ app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 //     }
 // });
 
-app.get('/*', function (req: express.Request, res: express.Response) {
+app.get('/*', function(req: express.Request, res: express.Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

@@ -62,16 +62,22 @@ if (process.env['NODE_ENV'] === 'development') {
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
     app.use(bodyParser.json({ limit: '10mb' }));
 
-    app.listen(1447, function () {
+    app.listen(1447, function() {
         // eslint-disable-next-line no-console
         console.log('Server running on: 1447');
     });
 
-    app.get('/:dbFunction', async function (req: express.Request, res: express.Response) {
+    app.get('/:dbFunction', async function(
+        req: express.Request,
+        res: express.Response
+    ) {
         return await interactWithDB(req, res);
     });
 
-    app.post('/:dbFunction', async function (req: express.Request, res: express.Response) {
+    app.post('/:dbFunction', async function(
+        req: express.Request,
+        res: express.Response
+    ) {
         return await interactWithDB(req, res);
     });
 }

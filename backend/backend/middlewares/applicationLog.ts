@@ -1,3 +1,6 @@
+import Express from 'common-server/utils/express';
+const express = Express.getLibrary();
+
 import ErrorService from 'common-server/utils/error';
 import ApplicationLogService from '../services/applicationLogService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;

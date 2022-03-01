@@ -1,3 +1,6 @@
+import Express from 'common-server/utils/express';
+const express = Express.getLibrary();
+
 export default {
     sendSuccessResponse: function (
         req: $TSFixMe,
@@ -6,8 +9,11 @@ export default {
     ) {
         return res.status(200).send(data);
     },
-    sendErrorResponse: function (req: express.Request,
-        res: express.Response, error: $TSFixMe) {
+    sendErrorResponse: function (
+        req: express.Request,
+        res: express.Response,
+        error: $TSFixMe
+    ) {
         if (
             error.message &&
             error.code !== 'ENOTFOUND' &&

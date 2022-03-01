@@ -3,7 +3,7 @@ import PerformanceTrackerService from '../services/performanceTrackerService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const _this = {
-    isValidAPIKey: async function (
+    isValidAPIKey: async function(
         req: express.Request,
         res: express.Response,
         next: express.RequestHandler

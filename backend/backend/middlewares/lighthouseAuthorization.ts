@@ -1,7 +1,7 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import ErrorService from 'common-server/utils/error';
 export default {
-    isAuthorizedLighthouse: async function (
+    isAuthorizedLighthouse: async function(
         req: express.Request,
         res: express.Response,
         next: express.RequestHandler

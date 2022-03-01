@@ -1,7 +1,7 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 export default {
-    isAuthorizedAdmin: async function (
+    isAuthorizedAdmin: async function(
         req: express.Request,
         res: express.Response,
         next: express.RequestHandler

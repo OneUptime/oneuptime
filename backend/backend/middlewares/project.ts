@@ -10,7 +10,7 @@ export default {
     // Params:
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: Project does not exist or User is not present in this project; 500: Server Error
-    doesUserBelongToProject: async function (
+    doesUserBelongToProject: async function(
         req: express.Request,
         res: express.Response,
         next: express.RequestHandler
@@ -103,8 +103,11 @@ export default {
     // Params:
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: You are not authorized to add member to project. Only admin can add.; 500: Server Error
-    isUserAdmin: async function (req: express.Request,
-        res: express.Response, next: $TSFixMe) {
+    isUserAdmin: async function(
+        req: express.Request,
+        res: express.Response,
+        next: $TSFixMe
+    ) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
@@ -172,8 +175,11 @@ export default {
         }
     },
 
-    isUserOwner: async function (req: express.Request,
-        res: express.Response, next: $TSFixMe) {
+    isUserOwner: async function(
+        req: express.Request,
+        res: express.Response,
+        next: $TSFixMe
+    ) {
         try {
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
@@ -221,8 +227,11 @@ export default {
         }
     },
 
-    getUserRole: async function (req: express.Request,
-        res: express.Response, next: $TSFixMe) {
+    getUserRole: async function(
+        req: express.Request,
+        res: express.Response,
+        next: $TSFixMe
+    ) {
         try {
             const UserId = req.user ? req.user.id : null;
 

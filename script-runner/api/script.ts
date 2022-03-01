@@ -6,7 +6,7 @@ import jsScript from '../utils/scriptSandbox';
 
 import bashScript from '../utils/bash';
 
-router.post('/js', async function (req: express.Request, res: express.Response) {
+router.post('/js', async function(req: express.Request, res: express.Response) {
     try {
         const script = req.body.script;
 
@@ -17,7 +17,10 @@ router.post('/js', async function (req: express.Request, res: express.Response) 
     }
 });
 
-router.post('/bash', async function (req: express.Request, res: express.Response) {
+router.post('/bash', async function(
+    req: express.Request,
+    res: express.Response
+) {
     try {
         const script = req.body.script;
         const response = await bashScript.run(script);

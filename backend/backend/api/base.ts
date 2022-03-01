@@ -1,3 +1,6 @@
+import Express from 'common-server/utils/express';
+const express = Express.getLibrary();
+
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
@@ -19,7 +22,10 @@ export default ({
     friendlyResourceName,
     service,
 }: $TSFixMe) => {
-    const getItemMiddleware = async function (req: express.Request, res: express.Response) {
+    const getItemMiddleware = async function (
+        req: express.Request,
+        res: express.Response
+    ) {
         try {
             let item = null;
 
@@ -55,7 +61,10 @@ export default ({
         }
     };
 
-    const listItemMiddleware = async function (req: express.Request, res: express.Response) {
+    const listItemMiddleware = async function (
+        req: express.Request,
+        res: express.Response
+    ) {
         try {
             let query = req.data.query;
             let skip = req.data.skip;
@@ -134,7 +143,10 @@ export default ({
         }
     };
 
-    const createItemMiddleware = async function (req: express.Request, res: express.Response) {
+    const createItemMiddleware = async function (
+        req: express.Request,
+        res: express.Response
+    ) {
         try {
             const data = req.body;
 
@@ -150,7 +162,10 @@ export default ({
         }
     };
 
-    const deleteItemMiddleware = async function (req: express.Request, res: express.Response) {
+    const deleteItemMiddleware = async function (
+        req: express.Request,
+        res: express.Response
+    ) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {
