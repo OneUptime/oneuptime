@@ -289,7 +289,7 @@ const _this = {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
-            if (_this.isUserMasterAdmin(req:express.Request, res: express.Response)) {
+            if (_this.isUserMasterAdmin(req, res)) {
                 if (next) {
                     return next();
                 } else {

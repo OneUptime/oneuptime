@@ -5,7 +5,7 @@ import logger from './logger';
 class Express {
     static app: express.Application;
 
-    static getExpress(): express.Express {
+    static getLibrary(): express.Express {
         return express;
     }
 
@@ -62,7 +62,6 @@ class Express {
             const method = req.method;
             const url = req.url;
             const status = res.statusCode;
-            const start = process.hrtime();
 
             const log = `[${formatted_date}] ${method}:${url} ${status}`;
             logger.info(log);

@@ -33,7 +33,7 @@ export default {
                 let userId = req.user && req.user.id ? req.user.id : null;
                 userId = isValidMongoObjectId(userId) ? userId : null;
 
-                let projectId = getProjectId(req:express.Request, res: express.Response);
+                let projectId = getProjectId(req, res);
                 projectId = isValidMongoObjectId(projectId) ? projectId : null;
 
                 if (shouldStoreLogs === null) {

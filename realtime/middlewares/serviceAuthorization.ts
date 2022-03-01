@@ -1,5 +1,8 @@
 import ErrorService from '../services/errorService';
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
+import Express from 'common-server/utils/express';
+const express = Express.getLibrary();
+
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 export default {
