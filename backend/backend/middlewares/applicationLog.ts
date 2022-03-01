@@ -6,7 +6,7 @@ import ApplicationLogService from '../services/applicationLogService';
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 const _this = {
-    isApplicationLogValid: async function (
+    isApplicationLogValid: async function(
         req: express.Request,
         res: express.Response,
         next: express.RequestHandler

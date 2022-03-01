@@ -22,7 +22,7 @@ export default ({
     friendlyResourceName,
     service,
 }: $TSFixMe) => {
-    const getItemMiddleware = async function (
+    const getItemMiddleware = async function(
         req: express.Request,
         res: express.Response
     ) {
@@ -61,7 +61,7 @@ export default ({
         }
     };
 
-    const listItemMiddleware = async function (
+    const listItemMiddleware = async function(
         req: express.Request,
         res: express.Response
     ) {
@@ -143,7 +143,7 @@ export default ({
         }
     };
 
-    const createItemMiddleware = async function (
+    const createItemMiddleware = async function(
         req: express.Request,
         res: express.Response
     ) {
@@ -162,7 +162,7 @@ export default ({
         }
     };
 
-    const deleteItemMiddleware = async function (
+    const deleteItemMiddleware = async function(
         req: express.Request,
         res: express.Response
     ) {
@@ -191,7 +191,7 @@ export default ({
         }
     };
 
-    const updateItemMiddleware = async function (
+    const updateItemMiddleware = async function(
         req: express.Request,
         res: express.Response,
         next: express.RequestHandler

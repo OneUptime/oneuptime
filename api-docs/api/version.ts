@@ -1,7 +1,7 @@
 import Express from 'common-server/utils/express';
-const { Request, Response } = Express.getLibrary();
+const express = Express.getLibrary();
 
-const version = (req: Request, res: Response) => {
+const version = (req: express.Request, res: express.Response) => {
     res.send({ docsVersion: process.env.npm_package_version });
 };
 

@@ -5,7 +5,7 @@ import logger from './logger';
 class Express {
     static app: express.Application;
 
-    static getLibrary(): express.Express {
+    static getLibrary(): typeof express {
         return express;
     }
 
@@ -14,7 +14,7 @@ class Express {
         this.app.set('port', process.env.PORT);
 
         this.app.use(cors());
-        this.app.use(function(
+        this.app.use(function (
             req: express.Request,
             res: express.Response,
             next: express.RequestHandler
@@ -41,7 +41,7 @@ class Express {
         this.app.use(express.urlencoded({ limit: '10mb', extended: true }));
         this.app.use(express.json({ limit: '10mb' }));
 
-        this.app.use(function(
+        this.app.use(function (
             req: express.Request,
             res: express.Response,
             next: express.RequestHandler

@@ -4,7 +4,7 @@ import Express from 'common-server/utils/express';
 const express = Express.getLibrary();
 const app = Express.launchApplication();
 
-app.get(['/probe-api/status', '/status'], function (
+app.get(['/probe-api/status', '/status'], function(
     req: express.Request,
     res: express.Response
 ) {
