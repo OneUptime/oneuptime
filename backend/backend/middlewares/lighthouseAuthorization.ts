@@ -1,10 +1,10 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 import ErrorService from 'common-server/utils/error';
 export default {
-    isAuthorizedLighthouse: async function(
-        req: $TSFixMe,
-        res: $TSFixMe,
-        next: $TSFixMe
+    isAuthorizedLighthouse: async function (
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
     ) {
         try {
             let clusterKey;

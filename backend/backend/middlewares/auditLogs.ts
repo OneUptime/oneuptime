@@ -14,7 +14,8 @@ import GlobalConfigService from '../services/globalConfigService';
 let shouldStoreLogs: $TSFixMe = null;
 
 export default {
-    log: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    log: async function (req: express.Request,
+        res: express.Response, next: $TSFixMe) {
         try {
             const blackListedRoutes = ['/audit-logs/'];
             const blackListedReqObjectPaths = ['body.password'];

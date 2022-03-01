@@ -3,13 +3,13 @@ import http from 'http';
 
 const router = express.Router();
 
-router.get('/settings', function(req: $TSFixMe, res: $TSFixMe) {
+router.get('/settings', function (req: express.Request, res: express.Response) {
     res.status(200).render('settings.ejs', {
         data: global.httpServerResponse,
     });
 });
 
-router.post('/api/settings', function(req: $TSFixMe, res: $TSFixMe) {
+router.post('/api/settings', function (req: express.Request, res: express.Response) {
     const { responseTime, statusCode, responseType, header, body } = req.body;
 
     let { httpServerResponse } = global;

@@ -17,10 +17,10 @@ const CLUSTER_KEY = process.env.CLUSTER_KEY;
 global.probes = {};
 
 export default {
-    isAuthorizedProbe: async function(
-        req: $TSFixMe,
-        res: $TSFixMe,
-        next: $TSFixMe
+    isAuthorizedProbe: async function (
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
     ) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;

@@ -16,7 +16,8 @@ const _this = {
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
 
-    getUser: async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    getUser: async function (req: express.Request,
+        res: express.Response, next: $TSFixMe) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
@@ -118,7 +119,8 @@ const _this = {
         }
     },
 
-    checkUser: function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+    checkUser: function (req: express.Request,
+        res: express.Response, next: $TSFixMe) {
         try {
             const accessToken =
                 req.headers['authorization'] ||
@@ -165,10 +167,10 @@ const _this = {
             throw error;
         }
     },
-    checkUserBelongToProject: function(
-        req: $TSFixMe,
-        res: $TSFixMe,
-        next: $TSFixMe
+    checkUserBelongToProject: function (
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
     ) {
         try {
             const accessToken =
@@ -254,10 +256,10 @@ const _this = {
         }
     },
 
-    isUserMasterAdmin: async function(
-        req: $TSFixMe,
-        res: $TSFixMe,
-        next: $TSFixMe
+    isUserMasterAdmin: async function (
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
     ) {
         if (!req.user) {
             req = await _this.getUser(req);
@@ -281,10 +283,10 @@ const _this = {
         }
     },
 
-    isScaleOrMasterAdmin: async function(
-        req: $TSFixMe,
-        res: $TSFixMe,
-        next: $TSFixMe
+    isScaleOrMasterAdmin: async function (
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
     ) {
         try {
             const projectId = apiMiddleware.getProjectId(req);

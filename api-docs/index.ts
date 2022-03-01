@@ -45,7 +45,8 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-app.use(function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+app.use(function (req: express.Request,
+    res: express.Response, next: $TSFixMe) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -81,11 +82,11 @@ app.use(
 );
 
 // index page
-app.get(['/', '/docs'], function(req: $TSFixMe, res: $TSFixMe) {
+app.get(['/', '/docs'], function (req: express.Request, res: express.Response) {
     res.render('pages/index');
 });
 
-app.listen(app.get('port'), function() {
+app.listen(app.get('port'), function () {
     // eslint-disable-next-line no-console
     console.log('API Reference started on PORT:' + app.get('port'));
 });

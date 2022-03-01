@@ -19,7 +19,7 @@ export default ({
     friendlyResourceName,
     service,
 }: $TSFixMe) => {
-    const getItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
+    const getItemMiddleware = async function (req: express.Request, res: express.Response) {
         try {
             let item = null;
 
@@ -55,7 +55,7 @@ export default ({
         }
     };
 
-    const listItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
+    const listItemMiddleware = async function (req: express.Request, res: express.Response) {
         try {
             let query = req.data.query;
             let skip = req.data.skip;
@@ -134,7 +134,7 @@ export default ({
         }
     };
 
-    const createItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
+    const createItemMiddleware = async function (req: express.Request, res: express.Response) {
         try {
             const data = req.body;
 
@@ -150,7 +150,7 @@ export default ({
         }
     };
 
-    const deleteItemMiddleware = async function(req: $TSFixMe, res: $TSFixMe) {
+    const deleteItemMiddleware = async function (req: express.Request, res: express.Response) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {
@@ -176,10 +176,10 @@ export default ({
         }
     };
 
-    const updateItemMiddleware = async function(
-        req: $TSFixMe,
-        res: $TSFixMe,
-        next: $TSFixMe
+    const updateItemMiddleware = async function (
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
     ) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
@@ -212,9 +212,9 @@ export default ({
         const functionChain = [];
 
         const apiPropsMiddleware = (
-            req: $TSFixMe,
-            res: $TSFixMe,
-            next: $TSFixMe
+            req: express.Request,
+            res: express.Response,
+            next: express.RequestHandler
         ) => {
             req.apiProps = props;
             return next();

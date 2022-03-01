@@ -29,7 +29,7 @@ function getMongoClient() {
 
 // setup mongodb connection
 const client = getMongoClient();
-(async function() {
+(async function () {
     try {
         // eslint-disable-next-line no-console
         console.log('connecting to db');
@@ -59,7 +59,7 @@ if (process.env.ONEUPTIME_HOST) {
         : `http://${process.env.ONEUPTIME_HOST}/api`;
 }
 
-app.get(['/env.js', '/status-page/env.js'], function(
+app.get(['/env.js', '/status-page/env.js'], function (
     req: $TSFixMe,
     res: $TSFixMe
 ) {
@@ -112,7 +112,7 @@ app.get(['/env.js', '/status-page/env.js'], function(
     res.send('window._env = ' + JSON.stringify(env));
 });
 
-app.use('/.well-known/acme-challenge/:token', async function(
+app.use('/.well-known/acme-challenge/:token', async function (
     req: $TSFixMe,
     res: $TSFixMe
 ) {
@@ -173,7 +173,8 @@ async function handleCertificate(
     return certificate;
 }
 
-app.use('/', async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
+app.use('/', async function (req: express.Request,
+    res: express.Response, next: $TSFixMe) {
     const host = req.hostname;
     if (
         host &&
@@ -214,7 +215,7 @@ app.use('/', async function(req: $TSFixMe, res: $TSFixMe, next: $TSFixMe) {
     }
 });
 
-app.get(['/status-page/status', '/status'], function(
+app.get(['/status-page/status', '/status'], function (
     req: $TSFixMe,
     res: $TSFixMe
 ) {
@@ -235,7 +236,7 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function(req: $TSFixMe, res: $TSFixMe) {
+app.get('/*', function (req: express.Request, res: express.Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
@@ -274,7 +275,7 @@ function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe) {
             output += strData;
         });
         commandOutput.on('close', () => {
-            fs.writeFile(filePath, output, 'utf8', function() {
+            fs.writeFile(filePath, output, 'utf8', function () {
                 resolve('Done writing to disc');
             });
         });
@@ -321,7 +322,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe) {
 
 // using an IIFE here because we have an asynchronous code we want to run as we start the server
 // and since we can't await outside an async function, we had to use an IIFE to handle that
-(async function() {
+(async function () {
     // create http server
     http.createServer(app).listen(3006, () =>
         // eslint-disable-next-line no-console
@@ -364,7 +365,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe) {
             key: fs.readFileSync(
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
-            SNICallback: async function(domain: $TSFixMe, cb: $TSFixMe) {
+            SNICallback: async function (domain: $TSFixMe, cb: $TSFixMe) {
                 const res = await handleCustomDomain(
                     client,
                     'statuspages',

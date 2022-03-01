@@ -1,10 +1,10 @@
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 
 export default {
-    isAuthorizedAdmin: async function(
-        req: $TSFixMe,
-        res: $TSFixMe,
-        next: $TSFixMe
+    isAuthorizedAdmin: async function (
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
     ) {
         let masterAdmin = false;
 

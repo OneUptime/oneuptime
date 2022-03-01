@@ -6,7 +6,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
 import { isValidMonitor } from '../middlewares/api';
 
-const incomingHttpRequest = async function(req: $TSFixMe, res: $TSFixMe) {
+const incomingHttpRequest = async function (req: express.Request, res: express.Response) {
     try {
         const monitor = req.monitor;
         const body = req.body;

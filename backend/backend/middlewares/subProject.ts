@@ -5,10 +5,10 @@ import url from 'url';
 
 export default {
     // Description: Get subprojects which user belongs to.
-    getSubProjects: async function(
-        req: $TSFixMe,
-        res: $TSFixMe,
-        next: $TSFixMe
+    getSubProjects: async function (
+        req: express.Request,
+        res: express.Response,
+        next: express.RequestHandler
     ) {
         try {
             const userId = req.user
@@ -33,20 +33,20 @@ export default {
             const query =
                 userId === 'API'
                     ? {
-                          $or: [
-                              { parentProjectId: projectId },
-                              { _id: projectId },
-                          ],
-                      }
+                        $or: [
+                            { parentProjectId: projectId },
+                            { _id: projectId },
+                        ],
+                    }
                     : {
-                          $or: [
-                              {
-                                  parentProjectId: projectId,
-                                  'users.userId': userId,
-                              },
-                              { _id: projectId, 'users.userId': userId },
-                          ],
-                      };
+                        $or: [
+                            {
+                                parentProjectId: projectId,
+                                'users.userId': userId,
+                            },
+                            { _id: projectId, 'users.userId': userId },
+                        ],
+                    };
             // Fetch user subprojects
             const populate = [{ path: 'parentProjectId', select: 'name' }];
             const select =
