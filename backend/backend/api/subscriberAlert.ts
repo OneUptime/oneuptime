@@ -5,7 +5,11 @@ import fs from 'fs';
 
 const router = express.Router();
 
-import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 import IncidentService from '../services/incidentService';
 
 router.post(
@@ -38,7 +42,7 @@ router.post(
 );
 
 // Mark alert as viewed
-router.get('/:projectId/:alertId/viewed', async function (
+router.get('/:projectId/:alertId/viewed', async function(
     req: Request,
     res: Response
 ) {
@@ -71,42 +75,39 @@ router.get('/:projectId/:alertId/viewed', async function (
 // get subscribers alerts by projectId
 // req.params-> {projectId};
 // Returns: response subscriber alerts, error message
-router.get(
-    '/:projectId',
-    async (req: Request, res: Response) => {
-        try {
-            const projectId = req.params.projectId;
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
-            const populate = [
-                { path: 'incidentId', select: 'name' },
-                { path: 'projectId', select: 'name' },
-                {
-                    path: 'subscriberId',
-                    select:
-                        'name contactEmail contactPhone contactWebhook countryCode',
-                },
-            ];
-            const select =
-                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
-            const [subscriberAlerts, count] = await Promise.all([
-                SubscriberAlertService.findBy({
-                    query: { projectId: projectId },
-                    skip,
-                    limit,
-                    select,
-                    populate,
-                }),
-                SubscriberAlertService.countBy({
-                    projectId: projectId,
-                }),
-            ]);
-            return sendListResponse(req, res, subscriberAlerts, count);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
+router.get('/:projectId', async (req: Request, res: Response) => {
+    try {
+        const projectId = req.params.projectId;
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 10;
+        const populate = [
+            { path: 'incidentId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'subscriberId',
+                select:
+                    'name contactEmail contactPhone contactWebhook countryCode',
+            },
+        ];
+        const select =
+            'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+        const [subscriberAlerts, count] = await Promise.all([
+            SubscriberAlertService.findBy({
+                query: { projectId: projectId },
+                skip,
+                limit,
+                select,
+                populate,
+            }),
+            SubscriberAlertService.countBy({
+                projectId: projectId,
+            }),
+        ]);
+        return sendListResponse(req, res, subscriberAlerts, count);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-);
+});
 
 //get subscribers by incidentSlug
 // req.params-> {projectId, incidentSlug};

@@ -9,7 +9,10 @@ const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import ErrorService from 'common-server/utils/error';
 
@@ -18,7 +21,7 @@ import ErrorService from 'common-server/utils/error';
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId}; req.user-> {id}
 // Returns: 200: An array of users belonging to the project.
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -38,7 +41,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
@@ -63,7 +66,7 @@ router.get(
 // Description: Get individual team member details
 // Params
 // Returns: 200: Individual team member object; 400: Error.
-router.get('/:projectId/:teamMemberId', getUser, isAuthorized, async function (
+router.get('/:projectId/:teamMemberId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -106,7 +109,7 @@ router.get('/:projectId/:teamMemberId', getUser, isAuthorized, async function (
 // Params:
 // Param 1: req.body-> {emails, role}; req.headers-> {token}; req.params-> {projectId}
 // Returns: 200: An array of users belonging to the project; 400: Error.
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
+router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     req,
     res
 ) {
@@ -213,7 +216,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const userId = req.user ? req.user.id : null;
         const teamMemberUserId = req.params.teamMemberId;
         const projectId = req.params.projectId;
@@ -258,7 +261,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const data = req.body;
         const projectId = req.params.projectId;
         data.teamMemberId = req.params.teamMemberId;

@@ -6,7 +6,11 @@ import { isAuthorized } from '../middlewares/authorization';
 import { getUser, checkUserBelongToProject } from '../middlewares/user';
 import ScheduledEventService from '../services/scheduledEventService';
 import AlertService from '../services/alertService';
-import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import { getSubProjects } from '../middlewares/subProject';
 import ScheduledEventNoteService from '../services/scheduledEventNoteService';
@@ -14,7 +18,7 @@ import moment from 'moment';
 import MonitorService from '../services/monitorService';
 import ErrorService from 'common-server/utils/error';
 
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -99,7 +103,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.put('/:projectId/:eventId', getUser, isAuthorized, async function (
+router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -215,7 +219,7 @@ router.put(
     '/:projectId/resolve/:eventId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const data = {};
 
@@ -257,7 +261,7 @@ router.put(
     }
 );
 
-router.delete('/:projectId/:eventId', getUser, isAuthorized, async function (
+router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -277,7 +281,7 @@ router.delete('/:projectId/:eventId', getUser, isAuthorized, async function (
 });
 
 // cancel a scheduled event
-router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function (
+router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -352,7 +356,7 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function 
 });
 
 // get ongoing scheduled events
-router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function (
+router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -413,7 +417,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const currentDate = moment();
             // this contains both projectIds and subProjectIds
@@ -438,7 +442,7 @@ router.get(
     }
 );
 
-router.get('/:projectId/:eventId', getUser, isAuthorized, async function (
+router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -500,7 +504,7 @@ router.get('/:projectId/:eventId', getUser, isAuthorized, async function (
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -559,7 +563,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             // this contains both projectIds and subProjectIds
 
@@ -580,7 +584,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/statusPage',
     checkUserBelongToProject,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const monitorId = req.params.monitorId;
@@ -656,7 +660,7 @@ router.get(
 // Scheduled Event Note
 
 // Create a Scheduled Event note of type investigation or internal
-router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function (
+router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -752,7 +756,7 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function 
 });
 
 // Get all notes in a Scheduled Event (Used to fetch for investigation and internal types)
-router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function (
+router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -799,7 +803,7 @@ router.put(
     '/:projectId/:eventId/notes/:noteId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { eventId, noteId, projectId } = req.params;
             const data = req.body;
@@ -883,7 +887,7 @@ router.delete(
     '/:projectId/:eventId/notes/:noteId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { eventId, noteId, projectId } = req.params;
 
@@ -904,7 +908,7 @@ router.delete(
     }
 );
 
-router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function (
+router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
     req,
     res
 ) {

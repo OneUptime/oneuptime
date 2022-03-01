@@ -12,10 +12,12 @@ import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserOwner = require('../middlewares/project').isUserOwner;
 
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
-
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -42,7 +44,7 @@ router.get(
     '/:projectId/:templateId/reset',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const templateId = req.params.templateId;
@@ -55,7 +57,7 @@ router.get(
     }
 );
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -72,7 +74,7 @@ router.get(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const smsTemplateId = req.params.smsTemplateId;
             const populate = [{ path: 'projectId', select: 'name' }];
@@ -93,7 +95,7 @@ router.put(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const data = req.body;
             const smsTemplateId = req.params.smsTemplateId;
@@ -110,7 +112,7 @@ router.put(
     }
 );
 
-router.put('/:projectId', getUser, isAuthorized, async function (
+router.put('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -155,7 +157,7 @@ router.delete(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const smsTemplateId = req.params.smsTemplateId;
 

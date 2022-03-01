@@ -3,7 +3,7 @@ import 'common-server/utils/process';
 import { Request, Response } from 'common-server/utils/express';
 const app = Express.launchApplication();
 
-app.get(['/probe-api/status', '/status'], function (
+app.get(['/probe-api/status', '/status'], function(
     req: Request,
     res: Response
 ) {

@@ -1,15 +1,14 @@
 import express from 'express';
 const router = express.Router();
 import ProbeService from '../services/probeService';
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
-
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import { isValidMonitor } from '../middlewares/api';
 
-const incomingHttpRequest = async function (
-    req: Request,
-    res: Response
-) {
+const incomingHttpRequest = async function(req: Request, res: Response) {
     try {
         const monitor = req.monitor;
         const body = req.body;

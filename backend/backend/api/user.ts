@@ -12,7 +12,10 @@ import { decode } from 'js-base64';
 import MailService from '../services/mailService';
 import SsoService from '../services/ssoService';
 const getUser = require('../middlewares/user').getUser;
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 const router = express.Router();
@@ -33,10 +36,7 @@ import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import Ip from '../middlewares/ipHandler';
 
-router.post('/signup', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/signup', async function(req: Request, res: Response) {
     try {
         if (
             typeof process.env.DISABLE_SIGNUP === 'string' &&
@@ -296,10 +296,7 @@ router.post('/signup', async function (
     }
 });
 
-router.get('/masterAdminExists', async function (
-    req: Request,
-    res: Response
-) {
+router.get('/masterAdminExists', async function(req: Request, res: Response) {
     try {
         const masterAdmin = await UserService.findBy({
             query: { role: 'master-admin' },
@@ -321,10 +318,7 @@ router.get('/masterAdminExists', async function (
 // Params:
 // Param 1: req.query-> {email }
 // Returns: 400: Error; 500: Server Error; 200: redirect to login page
-router.get('/sso/login', async function (
-    req: Request,
-    res: Response
-) {
+router.get('/sso/login', async function(req: Request, res: Response) {
     const { email } = req.query;
     if (!email) {
         return sendErrorResponse(req, res, {
@@ -375,7 +369,7 @@ router.get('/sso/login', async function (
             sso_login_url: remoteLoginUrl,
         });
 
-        sp.create_login_request_url(idp, {}, function (
+        sp.create_login_request_url(idp, {}, function(
             error: $TSFixMe,
             login_url: $TSFixMe
         ) {
@@ -390,10 +384,7 @@ router.get('/sso/login', async function (
 // Route
 // Description: Callback function after SSO authentication page
 // param: query->{domain}
-router.post('/sso/callback', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/sso/callback', async function(req: Request, res: Response) {
     const options = {
         request_body: req.body,
         allow_unencrypted_assertion: true,
@@ -433,7 +424,7 @@ router.post('/sso/callback', async function (
         sso_login_url: sso.samlSsoUrl,
     });
 
-    sp.post_assert(idp, options, async function (
+    sp.post_assert(idp, options, async function(
         err: $TSFixMe,
         saml_response: $TSFixMe
     ) {
@@ -529,14 +520,14 @@ router.post('/sso/callback', async function (
 
         return res.redirect(
             `${global.accountsHost}` +
-            `/ssologin?id=${authUserObj.id}` +
-            `&name=${authUserObj.name}` +
-            `&email=${authUserObj.email}` +
-            `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
-            `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
-            `&role=${authUserObj.role}` +
-            `&redirect=${authUserObj.redirect}` +
-            `&cardRegistered=${authUserObj.cardRegistered}`
+                `/ssologin?id=${authUserObj.id}` +
+                `&name=${authUserObj.name}` +
+                `&email=${authUserObj.email}` +
+                `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
+                `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
+                `&role=${authUserObj.role}` +
+                `&redirect=${authUserObj.redirect}` +
+                `&cardRegistered=${authUserObj.cardRegistered}`
         );
     });
 });
@@ -546,10 +537,7 @@ router.post('/sso/callback', async function (
 // Params:
 // Param 1: req.body-> {email, password }
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/login', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/login', async function(req: Request, res: Response) {
     try {
         const data = req.body;
         const clientIP = Ip.getClientIp(req)[0];
@@ -626,10 +614,7 @@ router.post('/login', async function (
 // Params:
 // Param 1: req.body-> {token}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/totp/verifyToken', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/totp/verifyToken', async function(req: Request, res: Response) {
     try {
         const data = req.body;
         const token = data.token;
@@ -695,10 +680,7 @@ router.post('/totp/verifyToken', async function (
 // Params:
 // Param 1: req.body-> {code}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/verify/backupCode', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/verify/backupCode', async function(req: Request, res: Response) {
     try {
         const data = req.body;
         // Call the UserService
@@ -782,7 +764,7 @@ router.post('/verify/backupCode', async function (
 // Params:
 // None
 // Return: return the new list of backup codes.
-router.post('/generate/backupCode', getUser, async function (
+router.post('/generate/backupCode', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -836,10 +818,7 @@ router.post('/generate/backupCode', getUser, async function (
 // Params:
 // Param 1: req.params-> {userId}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/totp/token/:userId', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/totp/token/:userId', async function(req: Request, res: Response) {
     try {
         const userId = req.params.userId;
         const user = await UserService.findOneBy({
@@ -871,10 +850,7 @@ router.post('/totp/token/:userId', async function (
 // Param 1: req.body-> {email}; req.headers-> {host}
 // Returns: 400: Error; 500: Server Error: 200: User password has been reset successfully.
 
-router.post('/forgot-password', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/forgot-password', async function(req: Request, res: Response) {
     try {
         const data = req.body;
 
@@ -915,10 +891,7 @@ router.post('/forgot-password', async function (
 // Params:
 // Param 1: req.body-> {password}; req.params-> {token}
 // Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
-router.post('/reset-password', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/reset-password', async function(req: Request, res: Response) {
     try {
         const data = req.body;
 
@@ -978,10 +951,7 @@ router.post('/reset-password', async function (
 // Params:
 // Param 1: req.body-> {email, password }
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/isInvited', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/isInvited', async function(req: Request, res: Response) {
     try {
         const data = req.body;
 
@@ -1025,10 +995,7 @@ router.post(
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/profile', getUser, async function (
-    req: Request,
-    res: Response
-) {
+router.put('/profile', getUser, async function(req: Request, res: Response) {
     try {
         const upload = multer({
             storage,
@@ -1038,7 +1005,7 @@ router.put('/profile', getUser, async function (
                 maxCount: 1,
             },
         ]);
-        upload(req, res, async function (error: $TSFixMe) {
+        upload(req, res, async function(error: $TSFixMe) {
             const userId = req.user ? req.user.id : null;
             const data = req.body;
 
@@ -1079,7 +1046,7 @@ router.put('/profile', getUser, async function (
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/push-notification', getUser, async function (
+router.put('/push-notification', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -1098,7 +1065,7 @@ router.put('/push-notification', getUser, async function (
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/:userId/2fa', isUserMasterAdmin, async function (
+router.put('/:userId/2fa', isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -1123,7 +1090,7 @@ router.put('/:userId/2fa', isUserMasterAdmin, async function (
     }
 });
 
-router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (
+router.put('/profile/:userId', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1137,7 +1104,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (
             },
         ]);
 
-        upload(req, res, async function (error: $TSFixMe) {
+        upload(req, res, async function(error: $TSFixMe) {
             const userId = req.params.userId;
             const data = req.body;
 
@@ -1167,7 +1134,7 @@ router.put('/profile/:userId', getUser, isUserMasterAdmin, async function (
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic}; req.data- {currentPassword, newPassword, confirmPassword}
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/changePassword', getUser, async function (
+router.put('/changePassword', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -1262,10 +1229,7 @@ router.put('/changePassword', getUser, async function (
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.get('/profile', getUser, async function (
-    req: Request,
-    res: Response
-) {
+router.get('/profile', getUser, async function(req: Request, res: Response) {
     try {
         const userId = req.user ? req.user.id : null;
 
@@ -1322,10 +1286,7 @@ router.get('/profile', getUser, async function (
     }
 });
 
-router.get('/confirmation/:token', async function (
-    req: Request,
-    res: Response
-) {
+router.get('/confirmation/:token', async function(req: Request, res: Response) {
     try {
         if (req.params && req.params.token) {
             const token = await VerificationTokenModel.findOne({
@@ -1334,7 +1295,7 @@ router.get('/confirmation/:token', async function (
             if (!token) {
                 return res.redirect(
                     global.accountsHost +
-                    '/user-verify/resend?status=link-expired'
+                        '/user-verify/resend?status=link-expired'
                 );
             }
             const user = await UserModel.findOne({
@@ -1371,7 +1332,7 @@ router.get('/confirmation/:token', async function (
         } else {
             return res.redirect(
                 global.accountsHost +
-                '/user-verify/resend?status=invalid-verification-link'
+                    '/user-verify/resend?status=invalid-verification-link'
             );
         }
     } catch (error) {
@@ -1380,10 +1341,7 @@ router.get('/confirmation/:token', async function (
     }
 });
 
-router.post('/resend', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/resend', async function(req: Request, res: Response) {
     if (req.body && req.body.email) {
         const { email, userId } = req.body;
         let user;
@@ -1431,7 +1389,7 @@ router.post('/resend', async function (
     }
 });
 
-router.get('/users', getUser, isUserMasterAdmin, async function (
+router.get('/users', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -1451,7 +1409,7 @@ router.get('/users', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.get('/users/:userId', getUser, isUserMasterAdmin, async function (
+router.get('/users/:userId', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1470,7 +1428,7 @@ router.get('/users/:userId', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.delete('/:userId', getUser, isUserMasterAdmin, async function (
+router.delete('/:userId', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -1495,7 +1453,7 @@ router.delete('/:userId', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function (
+router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1521,7 +1479,7 @@ router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (
+router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1547,7 +1505,7 @@ router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function (
+router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1582,7 +1540,7 @@ router.post(
     '/:userId/switchToAdminMode',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const userId = req.params.userId;
 
@@ -1616,7 +1574,7 @@ router.post(
     '/:userId/exitAdminMode',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const userId = req.params.userId;
 
@@ -1637,7 +1595,7 @@ router.post(
     }
 );
 
-router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (
+router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1683,7 +1641,7 @@ router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.post('/users/search', getUser, isUserMasterAdmin, async function (
+router.post('/users/search', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1728,7 +1686,7 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function (
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
-router.delete('/:userId/delete', getUser, async function (
+router.delete('/:userId/delete', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -1808,10 +1766,7 @@ router.delete('/:userId/delete', getUser, async function (
     }
 });
 
-router.get('/:token/email', async function (
-    req: Request,
-    res: Response
-) {
+router.get('/:token/email', async function(req: Request, res: Response) {
     try {
         const token = await VerificationTokenModel.findOne({
             token: req.params.token,

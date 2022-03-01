@@ -3,7 +3,10 @@ import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
 const router = express.Router();
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 const {
@@ -20,7 +23,7 @@ import ErrorService from 'common-server/utils/error';
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
 
-router.get('/monitors', isAuthorizedLighthouse, async function (
+router.get('/monitors', isAuthorizedLighthouse, async function(
     req: Request,
     res: Response
 ) {
@@ -38,7 +41,7 @@ router.get('/monitors', isAuthorizedLighthouse, async function (
     }
 });
 
-router.post('/ping/:monitorId', isAuthorizedLighthouse, async function (
+router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
     req,
     response
 ) {

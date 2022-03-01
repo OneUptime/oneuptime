@@ -1,6 +1,10 @@
 import { Request, Response } from 'common-server/utils/express';
 
-import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import { getUser } from '../middlewares/user';
 
@@ -19,10 +23,7 @@ export default ({
     friendlyResourceName,
     service,
 }: $TSFixMe) => {
-    const getItemMiddleware = async function (
-        req: Request,
-        res: Response
-    ) {
+    const getItemMiddleware = async function(req: Request, res: Response) {
         try {
             let item = null;
 
@@ -58,10 +59,7 @@ export default ({
         }
     };
 
-    const listItemMiddleware = async function (
-        req: Request,
-        res: Response
-    ) {
+    const listItemMiddleware = async function(req: Request, res: Response) {
         try {
             let query = req.data.query;
             let skip = req.data.skip;
@@ -140,10 +138,7 @@ export default ({
         }
     };
 
-    const createItemMiddleware = async function (
-        req: Request,
-        res: Response
-    ) {
+    const createItemMiddleware = async function(req: Request, res: Response) {
         try {
             const data = req.body;
 
@@ -159,10 +154,7 @@ export default ({
         }
     };
 
-    const deleteItemMiddleware = async function (
-        req: Request,
-        res: Response
-    ) {
+    const deleteItemMiddleware = async function(req: Request, res: Response) {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {
@@ -188,7 +180,7 @@ export default ({
         }
     };
 
-    const updateItemMiddleware = async function (
+    const updateItemMiddleware = async function(
         req: Request,
         res: Response,
         next: Function

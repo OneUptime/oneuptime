@@ -5,13 +5,14 @@ import psl from 'psl';
 import { getUser, isUserMasterAdmin } from '../middlewares/user';
 
 import { isAuthorized } from '../middlewares/authorization';
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import DomainVerificationService from '../services/domainVerificationService';
 
-import {
-    sendListResponse
-} from 'common-server/utils/response';
+import { sendListResponse } from 'common-server/utils/response';
 
 import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';
@@ -45,8 +46,9 @@ router.put(
                         ? txtRecords.join(', ')
                         : txtRecords[0];
                 return sendErrorResponse(req, res, {
-                    message: `Please specify ${verificationToken} in your DNS. Looks like your current ${txtRecords.length > 1 ? 'records are' : 'record is'
-                        } ${records}`,
+                    message: `Please specify ${verificationToken} in your DNS. Looks like your current ${
+                        txtRecords.length > 1 ? 'records are' : 'record is'
+                    } ${records}`,
                     code: 400,
                 });
             }

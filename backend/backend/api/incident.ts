@@ -19,7 +19,11 @@ const getUser = require('../middlewares/user').getUser;
 
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 
-import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 import subscriberAlertService from '../services/subscriberAlertService';
 import onCallScheduleStatusService from '../services/onCallScheduleStatusService';
 import Services from '../utils/services';
@@ -33,7 +37,7 @@ import ErrorService from 'common-server/utils/error';
 router.post(
     '/data-ingestor/create-incident',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const data = req.body;
 
@@ -51,7 +55,7 @@ router.post(
 router.post(
     '/data-ingestor/acknowledge-incident',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { incidentId, name, probeId } = req.body;
 
@@ -73,7 +77,7 @@ router.post(
 router.post(
     '/data-ingestor/resolve-incident',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { incidentId, name, probeId } = req.body;
 
@@ -95,7 +99,7 @@ router.post(
 router.post(
     '/data-ingestor/update-incident',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { data, query } = req.body;
             const incident = await IncidentService.updateOneBy(query, data);
@@ -117,7 +121,7 @@ router.post(
     '/:projectId/create-incident',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const incidentType = req.body.incidentType;
@@ -237,7 +241,7 @@ router.post(
     '/:projectId/monitor/:monitorId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const { monitorId } = req.params;
         // include date range
         try {
@@ -299,7 +303,7 @@ router.post(
 );
 
 // Fetch incidents by projectId
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (
+router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     req,
     res
 ) {
@@ -323,7 +327,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { componentId, projectId } = req.params;
             const incidents = await IncidentService.getComponentIncidents(
@@ -346,7 +350,7 @@ router.get(
     '/:projectId/incidents/:componentId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId, componentId } = req.params;
 
@@ -363,7 +367,7 @@ router.get(
     }
 );
 
-router.get('/:projectId/incident', getUser, isAuthorized, async function (
+router.get('/:projectId/incident', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -429,7 +433,7 @@ router.get(
     '/:projectId/incident/:incidentSlug',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         // Call the IncidentService.
 
         try {
@@ -475,7 +479,7 @@ router.get(
     '/:projectId/timeline/:incidentId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { incidentId } = req.params;
 
@@ -510,7 +514,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -536,7 +540,7 @@ router.post(
     '/:projectId/acknowledge/:incidentId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const userId = req.user
                 ? req.user.id === 'API'
@@ -703,7 +707,7 @@ router.post(
     '/:projectId/resolve/:incidentId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const userId = req.user
                 ? req.user.id === 'API'
@@ -866,7 +870,7 @@ router.post(
     '/:projectId/close/:incidentId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const userId = req.user ? req.user.id : null;
             const { incidentId } = req.params;
@@ -885,7 +889,7 @@ router.put(
     '/:projectId/incident/:incidentId/details',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const projectId = req.params.projectId;
         const incidentId = req.params.incidentId;
         const { title, description, incidentPriority } = req.body;
@@ -920,7 +924,7 @@ router.post(
     '/:projectId/incident/:incidentId/message',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const data = req.body;
             const incidentId = req.params.incidentId;
@@ -1129,8 +1133,9 @@ router.post(
                         error
                     );
                 });
-                const status = `${incidentMessage.type} notes ${data.id ? 'updated' : 'added'
-                    }`;
+                const status = `${incidentMessage.type} notes ${
+                    data.id ? 'updated' : 'added'
+                }`;
 
                 const user = await UserService.findOneBy({
                     query: { _id: userId },
@@ -1300,7 +1305,7 @@ router.get(
     '/:projectId/:incidentSlug/statuspages',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { incidentSlug } = req.params;
 
@@ -1333,7 +1338,7 @@ router.delete(
     '/:projectId/incident/:incidentId/message/:incidentMessageId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
             const populateIncidentMessage = [
@@ -1523,7 +1528,7 @@ router.get(
     '/:projectId/incident/:incidentSlug/message',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         let type = 'investigation';
         if (req.query.type && req.query.type === 'internal') {
             type = 'internal';
@@ -1691,7 +1696,7 @@ router.get(
     }
 );
 
-router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function (
+router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
     req,
     res
 ) {
@@ -1720,7 +1725,7 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function (
     }
 });
 
-router.put('/:projectId/:incidentId', getUser, async function (
+router.put('/:projectId/:incidentId', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -1753,7 +1758,7 @@ router.get(
     '/:projectId/resolve/:incidentId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const userId = req.user ? req.user.id : null;
 
@@ -1798,7 +1803,7 @@ router.get(
     '/:projectId/acknowledge/:incidentId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const userId = req.user ? req.user.id : null;
 

@@ -90,11 +90,7 @@ io.sockets.on('connection', socket => {
 
 app.use(cors());
 
-app.use(function (
-    req: Request,
-    res: Response,
-    next: Function
-) {
+app.use(function(req: Request, res: Response, next: Function) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -114,10 +110,7 @@ app.use(function (
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
-app.get(['/realtime/status', '/status'], function (
-    req: Request,
-    res: Response
-) {
+app.get(['/realtime/status', '/status'], function(req: Request, res: Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -132,7 +125,7 @@ app.use('/realtime', require('./api/realtime'));
 
 app.set('port', process.env.PORT || 3300);
 
-http.listen(app.get('port'), function () {
+http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('realtime server started on port ' + app.get('port'));
 });

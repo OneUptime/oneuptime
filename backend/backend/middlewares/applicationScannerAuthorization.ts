@@ -4,7 +4,7 @@ import { sendErrorResponse } from 'common-server/utils/response';
 import ErrorService from 'common-server/utils/error';
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 export default {
-    isAuthorizedApplicationScanner: async function (
+    isAuthorizedApplicationScanner: async function(
         req: Request,
         res: Response,
         next: Function

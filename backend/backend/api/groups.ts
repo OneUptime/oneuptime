@@ -2,7 +2,10 @@ import express from 'express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 import GroupService from '../services/groupService';
@@ -50,8 +53,8 @@ router.get(
     async (req: Request, res: Response) => {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => {
-                return { id: project._id, name: project.name };
-            })
+                  return { id: project._id, name: project.name };
+              })
             : null;
         try {
             const groups = await Promise.all(

@@ -10,14 +10,15 @@ const {
     APP_ROUTE,
     API_ROUTE,
 } = require('../config/slack');
-import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 const router = express.Router();
 
-router.get('/auth/redirect', function (
-    req: Request,
-    res: Response
-) {
+router.get('/auth/redirect', function(req: Request, res: Response) {
     // get oneuptime project id from slack auth state query params
     let state = req.query.state;
     const slackCode = req.query.code;
@@ -62,7 +63,7 @@ router.get('/auth/redirect', function (
     });
 });
 
-router.post('/:projectId/link', getUser, isUserAdmin, async function (
+router.post('/:projectId/link', getUser, isUserAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -139,7 +140,7 @@ router.delete(
     '/:projectId/unLink/:teamId',
     getUser,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const projectId = req.params.projectId;
         const teamId = req.params.teamId;
 
@@ -164,7 +165,7 @@ router.delete(
 );
 
 // req => params => {projectId}
-router.get('/:projectId/teams', getUser, async function (
+router.get('/:projectId/teams', getUser, async function(
     req: Request,
     res: Response
 ) {

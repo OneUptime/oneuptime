@@ -6,7 +6,7 @@ import url from 'url';
 
 export default {
     // Description: Get subprojects which user belongs to.
-    getSubProjects: async function (
+    getSubProjects: async function(
         req: Request,
         res: Response,
         next: Function
@@ -34,20 +34,20 @@ export default {
             const query =
                 userId === 'API'
                     ? {
-                        $or: [
-                            { parentProjectId: projectId },
-                            { _id: projectId },
-                        ],
-                    }
+                          $or: [
+                              { parentProjectId: projectId },
+                              { _id: projectId },
+                          ],
+                      }
                     : {
-                        $or: [
-                            {
-                                parentProjectId: projectId,
-                                'users.userId': userId,
-                            },
-                            { _id: projectId, 'users.userId': userId },
-                        ],
-                    };
+                          $or: [
+                              {
+                                  parentProjectId: projectId,
+                                  'users.userId': userId,
+                              },
+                              { _id: projectId, 'users.userId': userId },
+                          ],
+                      };
             // Fetch user subprojects
             const populate = [{ path: 'parentProjectId', select: 'name' }];
             const select =

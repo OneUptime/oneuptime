@@ -1,10 +1,11 @@
 import express from 'express';
 import StripeService from '../services/stripeService';
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
-
 import {
-    sendEmptyResponse
+    sendErrorResponse,
+    sendItemResponse,
 } from 'common-server/utils/response';
+
+import { sendEmptyResponse } from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 
@@ -22,10 +23,7 @@ const router = express.Router();
 // Params:
 // Param 1: webhookURL
 // Returns: 200: Event object with various status.
-router.post('/events', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/events', async function(req: Request, res: Response) {
     try {
         const event = req.body;
         const customerId = event.data.object.customer;
@@ -67,7 +65,7 @@ router.post('/events', async function (
     }
 });
 
-router.get('/:userId/charges', getUser, async function (
+router.get('/:userId/charges', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -86,7 +84,7 @@ router.get('/:userId/charges', getUser, async function (
     }
 });
 
-router.post('/:userId/creditCard/:token/pi', getUser, async function (
+router.post('/:userId/creditCard/:token/pi', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -107,7 +105,7 @@ router.post('/:userId/creditCard/:token/pi', getUser, async function (
     }
 });
 
-router.put('/:userId/creditCard/:cardId', getUser, async function (
+router.put('/:userId/creditCard/:cardId', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -128,7 +126,7 @@ router.put('/:userId/creditCard/:cardId', getUser, async function (
     }
 });
 
-router.delete('/:userId/creditCard/:cardId', getUser, async function (
+router.delete('/:userId/creditCard/:cardId', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -149,7 +147,7 @@ router.delete('/:userId/creditCard/:cardId', getUser, async function (
     }
 });
 
-router.get('/:userId/creditCard', getUser, async function (
+router.get('/:userId/creditCard', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -168,7 +166,7 @@ router.get('/:userId/creditCard', getUser, async function (
     }
 });
 
-router.get('/:userId/creditCard/:cardId', getUser, async function (
+router.get('/:userId/creditCard/:cardId', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -194,7 +192,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const userId = req.user ? req.user.id : null;
             const { projectId } = req.params;
@@ -219,10 +217,7 @@ router.post(
     }
 );
 
-router.post('/checkCard', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/checkCard', async function(req: Request, res: Response) {
     try {
         const { tokenId, email, companyName } = req.body;
         const paymentIntent = await StripeService.makeTestCharge(
@@ -241,7 +236,7 @@ router.get(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { intentId } = req.params;
 
@@ -271,7 +266,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId } = req.params;
 

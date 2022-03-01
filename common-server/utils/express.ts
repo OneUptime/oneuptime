@@ -2,11 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import logger from './logger';
 
-
 export type Request = express.Request;
 export type Response = express.Response;
 export type RequestHandler = express.RequestHandler;
-
 
 class Express {
     static app: express.Application;
@@ -16,11 +14,7 @@ class Express {
         this.app.set('port', process.env.PORT);
 
         this.app.use(cors());
-        this.app.use(function (
-            req: Request,
-            res: Response,
-            next: Function
-        ) {
+        this.app.use(function(req: Request, res: Response, next: Function) {
             if (typeof req.body === 'string') {
                 req.body = JSON.parse(req.body);
             }
@@ -43,11 +37,7 @@ class Express {
         this.app.use(express.urlencoded({ limit: '10mb', extended: true }));
         this.app.use(express.json({ limit: '10mb' }));
 
-        this.app.use(function (
-            req: Request,
-            res: Response,
-            next: Function
-        ) {
+        this.app.use(function(req: Request, res: Response, next: Function) {
             const current_datetime = new Date();
             const formatted_date =
                 current_datetime.getFullYear() +
@@ -94,4 +84,3 @@ class Express {
 }
 
 export default Express;
-

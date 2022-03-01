@@ -9,12 +9,9 @@ import { sendErrorResponse } from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 
-import {
-    sendItemResponse
-} from 'common-server/utils/response';
+import { sendItemResponse } from 'common-server/utils/response';
 
-
-router.get('/', getUser, isUserMasterAdmin, async function (
+router.get('/', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -90,7 +87,7 @@ router.post(
     }
 );
 
-router.post('/search', getUser, isUserMasterAdmin, async function (
+router.post('/search', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -110,7 +107,7 @@ router.post('/search', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.delete('/', getUser, isUserMasterAdmin, async function (
+router.delete('/', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {

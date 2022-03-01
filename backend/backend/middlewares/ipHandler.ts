@@ -5,11 +5,7 @@ import apiMiddleware from './api';
 import ipaddr from 'ipaddr.js';
 
 const _this = {
-    ipWhitelist: async function (
-        req: Request,
-        res: Response,
-        next: $TSFixMe
-    ) {
+    ipWhitelist: async function(req: Request, res: Response, next: $TSFixMe) {
         const statusPageSlug = apiMiddleware.getStatusPageSlug(req);
         const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
         let statusPage;
@@ -94,7 +90,7 @@ const _this = {
      * @description Gets the ip of the client
      * @param {Object} req Object made available by express
      */
-    getClientIp: function (req: $TSFixMe) {
+    getClientIp: function(req: $TSFixMe) {
         // Cloudflare Connecting Ip.
         // https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses
         let ip =
@@ -115,7 +111,7 @@ const _this = {
     },
 
     // https://www.npmjs.com/package/ip-range-check
-    check_single_cidr: function (addr: $TSFixMe, cidr: $TSFixMe) {
+    check_single_cidr: function(addr: $TSFixMe, cidr: $TSFixMe) {
         try {
             const parsed_addr = ipaddr.process(addr);
             if (cidr.indexOf('/') === -1) {
@@ -144,7 +140,7 @@ const _this = {
      * @description converts an ip to a normal number, for comparison purposes
      * @param {String} ip a string container an ip address
      */
-    IPtoNum: function (ip: $TSFixMe) {
+    IPtoNum: function(ip: $TSFixMe) {
         return Number(
             ip
                 .split('.')
@@ -153,7 +149,7 @@ const _this = {
         );
     },
 
-    inRange: function (ip: $TSFixMe, range: $TSFixMe) {
+    inRange: function(ip: $TSFixMe, range: $TSFixMe) {
         const min = _this.IPtoNum(range[0]);
         const max = _this.IPtoNum(range[1]);
         ip = _this.IPtoNum(ip);

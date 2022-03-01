@@ -5,10 +5,12 @@ const router = express.Router();
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
-
-router.get('/:userId', getUser, isAuthorized, async function (
+router.get('/:userId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {

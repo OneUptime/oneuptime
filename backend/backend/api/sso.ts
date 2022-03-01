@@ -5,15 +5,13 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isScaleOrMasterAdmin = require('../middlewares/user')
     .isScaleOrMasterAdmin;
 import { sendListResponse } from 'common-server/utils/response';
-import {
-    sendItemResponse
-} from 'common-server/utils/response';
+import { sendItemResponse } from 'common-server/utils/response';
 
 import { sendErrorResponse } from 'common-server/utils/response';
 
 import SsoService from '../services/ssoService';
 
-router.get('/', getUser, isUserMasterAdmin, async function (
+router.get('/', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -35,10 +33,7 @@ router.get('/', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.delete('/:id', getUser, async function (
-    req: Request,
-    res: Response
-) {
+router.delete('/:id', getUser, async function(req: Request, res: Response) {
     try {
         const sso = await SsoService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, sso);
@@ -47,7 +42,7 @@ router.delete('/:id', getUser, async function (
     }
 });
 
-router.post('/', getUser, isScaleOrMasterAdmin, async function (
+router.post('/', getUser, isScaleOrMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -60,10 +55,7 @@ router.post('/', getUser, isScaleOrMasterAdmin, async function (
     }
 });
 
-router.get('/:id', getUser, async function (
-    req: Request,
-    res: Response
-) {
+router.get('/:id', getUser, async function(req: Request, res: Response) {
     try {
         const selectSso =
             '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
@@ -78,10 +70,7 @@ router.get('/:id', getUser, async function (
     }
 });
 
-router.put('/:id', getUser, async function (
-    req: Request,
-    res: Response
-) {
+router.put('/:id', getUser, async function(req: Request, res: Response) {
     try {
         const data = req.body;
         const sso = await SsoService.updateBy({ _id: req.params.id }, data);
@@ -92,7 +81,7 @@ router.put('/:id', getUser, async function (
 });
 
 // USER API ENDPOINT TO GET SSO INTEGRATION
-router.get('/:projectId/ssos', getUser, isScaleOrMasterAdmin, async function (
+router.get('/:projectId/ssos', getUser, isScaleOrMasterAdmin, async function(
     req,
     res
 ) {

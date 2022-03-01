@@ -2,7 +2,11 @@ import express from 'express';
 
 const router = express.Router();
 import GlobalConfigService from '../services/globalConfigService';
-import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import twilioService from '../services/twilioService';
@@ -11,7 +15,7 @@ import twilioService from '../services/twilioService';
 // Body: [{name, value}] | {name, value}
 // Return: [{name, value, createdAt}] | {name, value, createdAt}
 
-router.post('/', getUser, isUserMasterAdmin, async function (
+router.post('/', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -101,7 +105,7 @@ router.post('/', getUser, isUserMasterAdmin, async function (
 // Params: [name];
 // Return: [{name, value, createdAt}]
 
-router.post('/configs', getUser, isUserMasterAdmin, async function (
+router.post('/configs', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -131,7 +135,7 @@ router.post('/configs', getUser, isUserMasterAdmin, async function (
 // Params: {name};
 // Return: {name, value, createdAt}
 
-router.get('/:name', getUser, isUserMasterAdmin, async function (
+router.get('/:name', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {

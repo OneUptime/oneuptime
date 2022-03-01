@@ -1,5 +1,8 @@
 import express from 'express';
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import SiteManagerService from '../services/siteManagerService';
 
@@ -63,65 +66,59 @@ router.get('/sites', async (req: Request, res: Response) => {
 });
 
 // fetch all sites by servernames
-router.post(
-    '/site/servernames',
-    async (req: Request, res: Response) => {
-        try {
-            const { servernames = [] } = req.body;
-            const sites = await SiteManagerService.findBy({
-                query: { subject: { $in: servernames } },
-                select:
-                    'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
-            });
-            return sendItemResponse(req, res, sites);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
+router.post('/site/servernames', async (req: Request, res: Response) => {
+    try {
+        const { servernames = [] } = req.body;
+        const sites = await SiteManagerService.findBy({
+            query: { subject: { $in: servernames } },
+            select:
+                'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
+        });
+        return sendItemResponse(req, res, sites);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-);
+});
 
 // fetch sites base on the options
-router.post(
-    '/site/opts',
-    async (req: Request, res: Response) => {
-        try {
-            const { issuedBefore, expiresBefore, renewBefore } = req.body;
-            const query = { $or: [] };
+router.post('/site/opts', async (req: Request, res: Response) => {
+    try {
+        const { issuedBefore, expiresBefore, renewBefore } = req.body;
+        const query = { $or: [] };
 
-            if (issuedBefore) {
-                query.$or.push({
-                    issuedAt: {
-                        $lt: issuedBefore,
-                    },
-                });
-            }
-            if (expiresBefore) {
-                query.$or.push({
-                    expiresAt: {
-                        $lt: expiresBefore,
-                    },
-                });
-            }
-            if (renewBefore) {
-                query.$or.push({
-                    renewAt: {
-                        $lt: renewBefore,
-                    },
-                });
-            }
-
-            query.deleted = false;
-            const sites = await SiteManagerService.findBy({
-                query,
-                select:
-                    'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
+        if (issuedBefore) {
+            query.$or.push({
+                issuedAt: {
+                    $lt: issuedBefore,
+                },
             });
-            return sendItemResponse(req, res, sites);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
         }
+        if (expiresBefore) {
+            query.$or.push({
+                expiresAt: {
+                    $lt: expiresBefore,
+                },
+            });
+        }
+        if (renewBefore) {
+            query.$or.push({
+                renewAt: {
+                    $lt: renewBefore,
+                },
+            });
+        }
+
+        query.deleted = false;
+        const sites = await SiteManagerService.findBy({
+            query,
+            select:
+                'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
+        });
+        return sendItemResponse(req, res, sites);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-);
+});
 
 // delete an site detail
 router.delete('/site', async (req: Request, res: Response) => {

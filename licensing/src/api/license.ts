@@ -1,7 +1,9 @@
 import express from 'express';
 const router = express.Router();
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
-
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import LicenseService from '../services/licenseService';
 

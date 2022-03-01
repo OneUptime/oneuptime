@@ -1,8 +1,7 @@
 import { sendErrorResponse } from 'common-server/utils/response';
 
-
 export default {
-    isAuthorizedAdmin: async function (
+    isAuthorizedAdmin: async function(
         req: Request,
         res: Response,
         next: Function

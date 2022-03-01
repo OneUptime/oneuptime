@@ -6,16 +6,13 @@ import { sendErrorResponse } from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 
-import {
-    sendItemResponse
-} from 'common-server/utils/response';
-
+import { sendItemResponse } from 'common-server/utils/response';
 
 import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -249,7 +246,7 @@ router.delete(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId, automatedSlug } = req.params;
             const query = {

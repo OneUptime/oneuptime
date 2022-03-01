@@ -2,8 +2,10 @@ import express from 'express';
 
 const router = express.Router();
 import UserService from '../services/userService';
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
-
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 // Route
 // Description: reset refresh token and access token.
@@ -13,10 +15,7 @@ import { sendErrorResponse, sendItemResponse } from 'common-server/utils/respons
 //                                                   jwtAccessToken: token.accessToken,
 //                                                   jwtRefreshToken: token.refreshToken,
 //                                               }
-router.post('/new', async function (
-    req: Request,
-    res: Response
-) {
+router.post('/new', async function(req: Request, res: Response) {
     try {
         const jwtRefreshToken = req.body.refreshToken;
 

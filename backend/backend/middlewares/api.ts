@@ -10,7 +10,7 @@ export default {
     // Params:
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
-    isValidProjectIdAndApiKey: async function (
+    isValidProjectIdAndApiKey: async function(
         req: Request,
         res: Response,
         next: Function
@@ -86,13 +86,13 @@ export default {
         }
     },
 
-    isValidProjectId: function (projectId: $TSFixMe) {
+    isValidProjectId: function(projectId: $TSFixMe) {
         if (!ObjectID.isValid(projectId)) {
             return false;
         }
         return true;
     },
-    hasAPIKey: function (req: $TSFixMe) {
+    hasAPIKey: function(req: $TSFixMe) {
         if (req.query && req.query.apiKey) {
             return true;
         } else if (req.headers && (req.headers.apiKey || req.headers.apikey)) {
@@ -104,7 +104,7 @@ export default {
         return false;
     },
 
-    getProjectId: function (req: $TSFixMe) {
+    getProjectId: function(req: $TSFixMe) {
         // Get Project Id, If Available
         let projectId;
 
@@ -127,7 +127,7 @@ export default {
         return projectId;
     },
 
-    getStatusPageId: function (req: $TSFixMe) {
+    getStatusPageId: function(req: $TSFixMe) {
         const statusPageId =
             req.params?.statusPageId ||
             req.query?.statusPageId ||
@@ -138,7 +138,7 @@ export default {
         return statusPageId;
     },
 
-    getStatusPageSlug: function (req: $TSFixMe) {
+    getStatusPageSlug: function(req: $TSFixMe) {
         const statusPageSlug =
             req.params?.statusPageSlug ||
             req.query?.statusPageSlug ||
@@ -149,7 +149,7 @@ export default {
         return statusPageSlug;
     },
 
-    getStatusPageUrl: function (req: $TSFixMe) {
+    getStatusPageUrl: function(req: $TSFixMe) {
         const statusPageUrl =
             req.params?.url ||
             req.query?.url ||
@@ -159,7 +159,7 @@ export default {
         return statusPageUrl;
     },
 
-    isValidMonitor: async function (
+    isValidMonitor: async function(
         req: Request,
         res: Response,
         next: Function

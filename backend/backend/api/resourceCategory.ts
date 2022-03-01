@@ -9,14 +9,18 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
 import ResourceCategoryService from '../services/resourceCategoryService';
 
-import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 // Route
 // Description: Creating Resource Category.
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {name} req.params -> {projectId}
 // Returns: 200: ResourceCategory, 400: Error; 500: Server Error.
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
+router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     req,
     res
 ) {
@@ -71,7 +75,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const resourceCategoryId = req.params.resourceCategoryId;
             const projectId = req.params.projectId;
@@ -126,7 +130,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const resourceCategoryId = req.params.resourceCategoryId;
             const projectId = req.params.projectId;
@@ -172,7 +176,7 @@ router.put(
     }
 );
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {

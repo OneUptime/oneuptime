@@ -3,12 +3,15 @@ const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 import IncidentNoteTemplateService from '../services/incidentNoteTemplateService';
 
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -57,7 +60,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -88,7 +91,7 @@ router.get('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.put('/:projectId/:templateId', getUser, isAuthorized, async function (
+router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -141,7 +144,7 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function (
     }
 });
 
-router.delete('/:projectId/:templateId', getUser, isAuthorized, async function (
+router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
     req,
     res
 ) {

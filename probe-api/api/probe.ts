@@ -7,7 +7,7 @@ import { sendErrorResponse } from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 
-router.get('/monitors', isAuthorizedProbe, async function (
+router.get('/monitors', isAuthorizedProbe, async function(
     req: $TSFixMe,
     res: $TSFixMe
 ) {

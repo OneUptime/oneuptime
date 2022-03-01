@@ -5,14 +5,18 @@ import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import StatusPageCategoryService from '../services/statusPageCategoryService';
-import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendListResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 router.post(
     '/:projectId/:statusPageId',
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { statusPageCategoryName } = req.body;
             const { statusPageId } = req.params;
@@ -64,7 +68,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { statusPageCategoryId } = req.params;
 
@@ -103,7 +107,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { statusPageCategoryId } = req.params;
             const { statusPageCategoryName } = req.body;
@@ -150,7 +154,7 @@ router.put(
     }
 );
 
-router.get('/:projectId/:statusPageId', getUser, isAuthorized, async function (
+router.get('/:projectId/:statusPageId', getUser, isAuthorized, async function(
     req,
     res
 ) {

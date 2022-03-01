@@ -6,10 +6,12 @@ const router = express.Router();
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserOwner = require('../middlewares/project').isUserOwner;
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
-
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -46,7 +48,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -66,7 +68,7 @@ router.get('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (
+router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -86,7 +88,7 @@ router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (
     }
 });
 
-router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function (
+router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function(
     req,
     res
 ) {

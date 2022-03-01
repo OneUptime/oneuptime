@@ -4,7 +4,10 @@ import ContainerSecurityService from '../services/containerSecurityService';
 import ContainerSecurityLogService from '../services//containerSecurityLogService';
 const isAuthorizedContainerScanner = require('../middlewares/containerScannerAuthorization')
     .isAuthorizedContainerScanner;
-import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+import {
+    sendErrorResponse,
+    sendItemResponse,
+} from 'common-server/utils/response';
 
 import RealTimeService from '../services/realTimeService';
 import MailService from '../services/mailService';
@@ -12,7 +15,7 @@ import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 import ErrorService from 'common-server/utils/error';
 
-router.get('/containerSecurities', isAuthorizedContainerScanner, async function (
+router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
     req,
     res
 ) {
@@ -23,7 +26,7 @@ router.get('/containerSecurities', isAuthorizedContainerScanner, async function 
         return sendErrorResponse(req, res, error);
     }
 });
-router.post('/scanning', isAuthorizedContainerScanner, async function (
+router.post('/scanning', isAuthorizedContainerScanner, async function(
     req,
     res
 ) {
@@ -47,7 +50,7 @@ router.post('/scanning', isAuthorizedContainerScanner, async function (
     }
 });
 
-router.post('/failed', isAuthorizedContainerScanner, async function (
+router.post('/failed', isAuthorizedContainerScanner, async function(
     req: Request,
     res: Response
 ) {
@@ -64,7 +67,7 @@ router.post('/failed', isAuthorizedContainerScanner, async function (
         return sendErrorResponse(req, res, error);
     }
 });
-router.post('/log', isAuthorizedContainerScanner, async function (
+router.post('/log', isAuthorizedContainerScanner, async function(
     req: Request,
     res: Response
 ) {
@@ -154,7 +157,7 @@ router.post('/log', isAuthorizedContainerScanner, async function (
     }
 });
 
-router.post('/time', isAuthorizedContainerScanner, async function (
+router.post('/time', isAuthorizedContainerScanner, async function(
     req: Request,
     res: Response
 ) {
