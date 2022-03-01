@@ -15,8 +15,15 @@ RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
-# Install common-ui
+# Install common-server
 RUN mkdir /usr/src
+RUN mkdir /usr/src/common-server
+WORKDIR /usr/src/common-server
+COPY ./common-server/package*.json /usr/src/common-server/
+RUN npm ci
+COPY ./common-server /usr/src/common-server
+
+# Install common-ui
 RUN mkdir /usr/src/common-ui
 WORKDIR /usr/src/common-ui
 COPY ./common-ui/package*.json /usr/src/common-ui/
