@@ -13,7 +13,7 @@ export default {
 
         if (projectId) {
             if (!apiMiddleware.isValidProjectId(projectId)) {
-                return SendErrorResponse(req, res, {
+                return sendErrorResponse(req, res, {
                     message: 'Project Id is not valid',
                     code: 400,
                 });
