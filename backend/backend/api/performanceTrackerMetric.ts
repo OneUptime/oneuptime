@@ -4,10 +4,11 @@ import PerformanceTrackerMetricService from '../services/performanceTrackerMetri
 import moment from 'moment';
 import { decode } from 'js-base64';
 
-const {
+import {
     sendErrorResponse,
     sendItemResponse,
-} = require('../middlewares/response');
+} from 'common-server/utils/response';
+
 
 import { isValidAPIKey } from '../middlewares/performanceTracker';
 

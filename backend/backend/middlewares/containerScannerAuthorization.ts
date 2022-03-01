@@ -1,12 +1,13 @@
 import ContainerScannerService from '../services/containerScannerService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 import ErrorService from 'common-server/utils/error';
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 export default {
     isAuthorizedContainerScanner: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             let containerScannerKey,

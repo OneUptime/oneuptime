@@ -1,8 +1,9 @@
 import express from 'express';
 const router = express.Router();
 import InvoiceService from '../services/invoiceService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
+import { sendListResponse } from 'common-server/utils/response';
 
 // Description: Getting invoices paid.
 // Params:

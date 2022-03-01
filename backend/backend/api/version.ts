@@ -1,8 +1,8 @@
 import express from 'express';
 const router = express.Router();
 
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 
 router.get('/', function (req: Request, res: Response) {
     try {

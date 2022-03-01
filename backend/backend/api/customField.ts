@@ -3,11 +3,12 @@ import express from 'express';
 import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';
-const {
+import {
     sendErrorResponse,
     sendItemResponse,
     sendListResponse,
-} = require('../middlewares/response');
+} from 'common-server/utils/response';
+
 import CustomFieldService from '../services/customFieldService';
 
 const router = express.Router();

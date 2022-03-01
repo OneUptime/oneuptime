@@ -1,7 +1,8 @@
 import ProjectService from '../services/projectService';
 import ErrorService from 'common-server/utils/error';
 import url from 'url';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 import apiMiddleware from '../middlewares/api';
 
 export default {
@@ -13,7 +14,7 @@ export default {
     doesUserBelongToProject: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             // authorize if user is master-admin

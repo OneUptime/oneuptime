@@ -3,9 +3,9 @@ import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
 const router = express.Router();
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
+import { sendListResponse } from 'common-server/utils/response';
 const {
     isAuthorizedLighthouse,
 } = require('../middlewares/lighthouseAuthorization');

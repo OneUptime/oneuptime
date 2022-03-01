@@ -5,7 +5,8 @@ import url from 'url';
 import UserService from '../services/userService';
 import ErrorService from 'common-server/utils/error';
 import ProjectService from '../services/projectService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 import apiMiddleware from '../middlewares/api';
 
 import { getPlanById } from '../config/plans';
@@ -176,7 +177,7 @@ const _this = {
     checkUserBelongToProject: function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             const accessToken =
@@ -265,7 +266,7 @@ const _this = {
     isUserMasterAdmin: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         if (!req.user) {
             req = await _this.getUser(req);
@@ -292,7 +293,7 @@ const _this = {
     isScaleOrMasterAdmin: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             const projectId = apiMiddleware.getProjectId(req);

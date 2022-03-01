@@ -14,9 +14,7 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import { IS_SAAS_SERVICE } from '../config/server';
 
 import { isAuthorized } from '../middlewares/authorization';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
 const isAuthorizedService = require('../middlewares/serviceAuthorization')
     .isAuthorizedService;
 import ErrorService from 'common-server/utils/error';

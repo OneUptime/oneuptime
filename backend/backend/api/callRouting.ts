@@ -7,8 +7,8 @@ import FileService from '../services/fileService';
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 const router = express.Router();
 import multer from 'multer';
 import storage from '../middlewares/upload';

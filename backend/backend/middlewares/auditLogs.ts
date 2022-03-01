@@ -1,6 +1,5 @@
 import url from 'url';
-import Express from 'common-server/utils/express';
-const express = Express.getLibrary();
+import { Request, Response } from 'common-server/utils/express';
 import _ from 'lodash';
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 

@@ -2,9 +2,7 @@ import express from 'express';
 import IntegrationService from '../services/integrationService';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
 
 const router = express.Router();
 

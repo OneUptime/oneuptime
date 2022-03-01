@@ -3,9 +3,7 @@ const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
 import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
 router.get('/:projectId', getUser, isAuthorized, async function (

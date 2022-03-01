@@ -1,7 +1,7 @@
 import express from 'express';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
+import { sendListResponse } from 'common-server/utils/response';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
 

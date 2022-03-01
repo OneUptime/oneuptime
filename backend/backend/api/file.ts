@@ -2,8 +2,12 @@ import express from 'express';
 
 const router = express.Router();
 import FileService from '../services/fileService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendFileResponse = require('../middlewares/response').sendFileResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
+import {
+    sendFileResponse
+} from 'common-server/utils/response';
+
 
 // Route Description: Getting uploaded files stored in mongodb.
 // Params:

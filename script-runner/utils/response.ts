@@ -1,5 +1,4 @@
-import Express from 'common-server/utils/express';
-const express = Express.getLibrary();
+import { Request, Response } from 'common-server/utils/express';
 
 export default {
     sendSuccessResponse: function (

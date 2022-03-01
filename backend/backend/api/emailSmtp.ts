@@ -7,8 +7,8 @@ import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 import UserService from '../services/userService';
 
 router.post('/test', getUser, isUserMasterAdmin, async function (

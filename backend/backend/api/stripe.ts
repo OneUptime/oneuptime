@@ -1,9 +1,12 @@
 import express from 'express';
 import StripeService from '../services/stripeService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
+import {
+    sendEmptyResponse
+} from 'common-server/utils/response';
+
+import { sendListResponse } from 'common-server/utils/response';
 
 const getUser = require('../middlewares/user').getUser;
 

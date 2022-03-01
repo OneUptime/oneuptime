@@ -4,8 +4,8 @@ const router = express.Router();
 import UserService from '../services/userService';
 
 const getUser = require('../middlewares/user').getUser;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 
 router.get('/', getUser, async function (
     req: Request,

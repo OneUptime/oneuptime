@@ -4,8 +4,8 @@ import ApplicationSecurityLogService from '../services//applicationSecurityLogSe
 const router = express.Router();
 const isAuthorizedApplicationScanner = require('../middlewares/applicationScannerAuthorization')
     .isAuthorizedApplicationScanner;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 import RealtimeService from '../services/realTimeService';
 import MailService from '../services/mailService';
 import UserService from '../services/userService';

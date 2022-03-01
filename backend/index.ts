@@ -83,7 +83,7 @@ app.use(cors());
 app.use(async function (
     req: Request,
     res: Response,
-    next: RequestHandler
+    next: Function
 ) {
     const method = req.method;
     const url = req.url;
@@ -120,7 +120,7 @@ app.use(async function (
 app.use(function (
     req: Request,
     res: Response,
-    next: RequestHandler
+    next: Function
 ) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);

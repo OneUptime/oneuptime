@@ -6,8 +6,8 @@ const getUser = require('../middlewares/user').getUser;
 import { isAuthorized } from '../middlewares/authorization';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
@@ -20,7 +20,7 @@ import uuid from 'uuid';
 const isErrorTrackerValid = require('../middlewares/errorTracker')
     .isErrorTrackerValid;
 import ErrorEventService from '../services/errorEventService';
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendListResponse } from 'common-server/utils/response';
 import IssueService from '../services/issueService';
 import TeamService from '../services/teamService';
 import IssueMemberService from '../services/issueMemberService';

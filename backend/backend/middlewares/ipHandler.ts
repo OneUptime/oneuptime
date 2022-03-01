@@ -1,5 +1,6 @@
 import StatusPageService from '../services/statusPageService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 import apiMiddleware from './api';
 import ipaddr from 'ipaddr.js';
 

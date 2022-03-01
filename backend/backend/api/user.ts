@@ -12,9 +12,9 @@ import { decode } from 'js-base64';
 import MailService from '../services/mailService';
 import SsoService from '../services/ssoService';
 const getUser = require('../middlewares/user').getUser;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
+import { sendListResponse } from 'common-server/utils/response';
 const router = express.Router();
 import multer from 'multer';
 import storage from '../middlewares/upload';

@@ -3,9 +3,9 @@ const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
+import { sendListResponse } from 'common-server/utils/response';
 import IncidentSettingsService from '../services/incidentSettingsService';
 import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 

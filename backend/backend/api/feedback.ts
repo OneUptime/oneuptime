@@ -2,8 +2,8 @@ import express from 'express';
 
 const router = express.Router();
 import FeedbackService from '../services/feedbackService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 
 const getUser = require('../middlewares/user').getUser;
 

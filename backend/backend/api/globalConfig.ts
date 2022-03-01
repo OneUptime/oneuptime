@@ -2,9 +2,7 @@ import express from 'express';
 
 const router = express.Router();
 import GlobalConfigService from '../services/globalConfigService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import twilioService from '../services/twilioService';

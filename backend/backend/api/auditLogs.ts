@@ -5,10 +5,14 @@ import AuditLogsService from '../services/auditLogsService';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
 
-import { sendItemResponse } from '../middlewares/response';
+import { sendListResponse } from 'common-server/utils/response';
+
+import {
+    sendItemResponse
+} from 'common-server/utils/response';
+
 
 router.get('/', getUser, isUserMasterAdmin, async function (
     req: Request,

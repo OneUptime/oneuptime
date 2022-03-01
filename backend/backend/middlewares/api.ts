@@ -1,6 +1,7 @@
 import mongoose from '../config/db';
 import ProjectService from '../services/projectService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 const ObjectID = mongoose.Types.ObjectId;
 import MonitorService from '../services/monitorService';
 
@@ -12,7 +13,7 @@ export default {
     isValidProjectIdAndApiKey: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         //get project id
         let projectId, apiKey;
@@ -161,7 +162,7 @@ export default {
     isValidMonitor: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         const id = req.params.id;
         let monitor = await MonitorService.findBy({

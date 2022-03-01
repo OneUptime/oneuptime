@@ -5,11 +5,14 @@ import psl from 'psl';
 import { getUser, isUserMasterAdmin } from '../middlewares/user';
 
 import { isAuthorized } from '../middlewares/authorization';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 import DomainVerificationService from '../services/domainVerificationService';
 
-import { sendListResponse } from '../middlewares/response';
+import {
+    sendListResponse
+} from 'common-server/utils/response';
+
 import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';
 import errorService from 'common-server/utils/error';

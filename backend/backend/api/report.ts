@@ -4,8 +4,9 @@ import ReportService from '../services/reportService';
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
+import { sendListResponse } from 'common-server/utils/response';
 const router = express.Router();
 
 /**

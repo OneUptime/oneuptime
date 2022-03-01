@@ -1,6 +1,7 @@
 import ProjectService from '../services/projectService';
 import ErrorService from 'common-server/utils/error';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 import url from 'url';
 
 export default {
@@ -8,7 +9,7 @@ export default {
     getSubProjects: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             const userId = req.user

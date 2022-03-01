@@ -9,9 +9,7 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
 import ResourceCategoryService from '../services/resourceCategoryService';
 
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
 
 // Route
 // Description: Creating Resource Category.

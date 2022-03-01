@@ -2,8 +2,9 @@ import express from 'express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 const getUser = require('../middlewares/user').getUser;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendListResponse } from 'common-server/utils/response';
+import { sendErrorResponse } from 'common-server/utils/response';
+
 import MonitorService from '../services/monitorService';
 import statusPageService from '../services/statusPageService';
 import ScheduleService from '../services/scheduleService';

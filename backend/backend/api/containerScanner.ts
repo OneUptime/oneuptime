@@ -4,8 +4,8 @@ import ContainerSecurityService from '../services/containerSecurityService';
 import ContainerSecurityLogService from '../services//containerSecurityLogService';
 const isAuthorizedContainerScanner = require('../middlewares/containerScannerAuthorization')
     .isAuthorizedContainerScanner;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 import RealTimeService from '../services/realTimeService';
 import MailService from '../services/mailService';
 import UserService from '../services/userService';

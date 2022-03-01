@@ -1,4 +1,5 @@
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 import ErrorService from 'common-server/utils/error';
 import ErrorTrackerService from '../services/errorTrackerService';
 
@@ -6,7 +7,7 @@ const _this = {
     isErrorTrackerValid: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             const data = req.body;

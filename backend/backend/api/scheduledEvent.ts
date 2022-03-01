@@ -6,9 +6,7 @@ import { isAuthorized } from '../middlewares/authorization';
 import { getUser, checkUserBelongToProject } from '../middlewares/user';
 import ScheduledEventService from '../services/scheduledEventService';
 import AlertService from '../services/alertService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
 
 import { getSubProjects } from '../middlewares/subProject';
 import ScheduledEventNoteService from '../services/scheduledEventNoteService';

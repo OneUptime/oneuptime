@@ -1,8 +1,8 @@
 import express from 'express';
 const router = express.Router();
 import LeadService from '../services/leadService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 
 //Public API to capture leads. Type is Demo or Whitepaper.
 router.post('/', async function (req: Request, res: Response) {

@@ -2,7 +2,10 @@ import express from 'express';
 const router = express.Router();
 
 import { IS_SAAS_SERVICE } from '../config/server';
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import {
+    sendItemResponse
+} from 'common-server/utils/response';
+
 
 //This API is used to get the backend response if it's a consumer service deployed on OneUptime Cloud or an Enterprise Service deployed on Enterprise customer's cloud.
 router.get('/is-saas-service', function (

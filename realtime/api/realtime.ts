@@ -1,9 +1,9 @@
 import express from 'express';
 const router = express.Router();
-const {
-    sendErrorResponse,
-    sendEmptyResponse,
-} = require('../middlewares/response');
+import {
+    sendErrorResponse, sendEmptyResponse
+} from 'common-server/utils/response';
+
 
 import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 import RealtimeService from '../services/realtimeService';

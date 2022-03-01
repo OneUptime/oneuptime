@@ -3,10 +3,11 @@ import MonitorService from '../services/monitorService';
 const router = express.Router();
 const isAuthorizedProbe = require('../middlewares/probeAuthorization')
     .isAuthorizedProbe;
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
 
-router.get('/monitors', isAuthorizedProbe, async function(
+import { sendListResponse } from 'common-server/utils/response';
+
+router.get('/monitors', isAuthorizedProbe, async function (
     req: $TSFixMe,
     res: $TSFixMe
 ) {

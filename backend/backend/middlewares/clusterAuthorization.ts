@@ -1,10 +1,11 @@
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 
 export default {
     isAuthorizedAdmin: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         let masterAdmin = false;
 

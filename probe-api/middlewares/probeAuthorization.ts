@@ -1,8 +1,7 @@
 import ProbeService from '../services/probeService';
 const sendErrorResponse = require('./response').sendErrorResponse;
 import ErrorService from '../services/errorService';
-import Express from 'common-server/utils/express';
-const express = Express.getLibrary();
+import { Request, Response } from 'common-server/utils/express';
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
 global.probes = {};
@@ -11,7 +10,7 @@ export default {
     isAuthorizedProbe: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;

@@ -4,9 +4,12 @@ import MonitorService from '../services/monitorService';
 import ProjectService from '../services/projectService';
 
 import { isAuthorized } from '../middlewares/authorization';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
+import {
+    sendEmptyResponse
+} from 'common-server/utils/response';
+
 
 const router = express.Router();
 

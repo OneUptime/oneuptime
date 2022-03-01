@@ -1,6 +1,6 @@
 import express from 'express';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 import SiteManagerService from '../services/siteManagerService';
 
 const router = express.Router();

@@ -59,7 +59,7 @@ app.use(cors());
 app.use(function (
     req: Request,
     res: Response,
-    next: RequestHandler
+    next: Function
 ) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
@@ -92,7 +92,7 @@ const getActualRequestDurationInMilliseconds = start => {
 app.use(function (
     req: Request,
     res: Response,
-    next: RequestHandler
+    next: Function
 ) {
     const current_datetime = new Date();
     const formatted_date =

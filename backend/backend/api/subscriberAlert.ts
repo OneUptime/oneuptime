@@ -5,9 +5,7 @@ import fs from 'fs';
 
 const router = express.Router();
 
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendListResponse, sendItemResponse } from 'common-server/utils/response';
 import IncidentService from '../services/incidentService';
 
 router.post(

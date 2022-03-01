@@ -1,15 +1,15 @@
-import Express from 'common-server/utils/express';
-const express = Express.getLibrary();
+import { Request, Response } from 'common-server/utils/express';
 
 import ErrorService from 'common-server/utils/error';
 import ApplicationLogService from '../services/applicationLogService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
+
 
 const _this = {
     isApplicationLogValid: async function (
         req: Request,
         res: Response,
-        next: RequestHandler
+        next: Function
     ) {
         try {
             const data = req.body;

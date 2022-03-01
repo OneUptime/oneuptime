@@ -2,8 +2,8 @@ import express from 'express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendItemResponse = require('../middlewares/response').sendItemResponse;
+import { sendErrorResponse, sendItemResponse } from 'common-server/utils/response';
+
 import ApplicationSecurityLogService from '../services/applicationSecurityLogService';
 
 const router = express.Router();

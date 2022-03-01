@@ -2,10 +2,14 @@ import express from 'express';
 const router = express.Router();
 
 import AutomatedScriptService from '../services/automatedScriptService';
-const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
+import { sendErrorResponse } from 'common-server/utils/response';
 
-import { sendItemResponse } from '../middlewares/response';
+import { sendListResponse } from 'common-server/utils/response';
+
+import {
+    sendItemResponse
+} from 'common-server/utils/response';
+
 
 import { isAuthorized } from '../middlewares/authorization';
 
