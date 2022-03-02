@@ -16,7 +16,7 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: Function) {
+app.use(function(req: Request, res: Response, next: Function) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -46,12 +46,12 @@ app.use('/', express.static(path.join(__dirname, 'views', 'img')));
 app.use('/license/validate', require('./src/api/license'));
 app.set('port', process.env.PORT || 3004);
 
-const server = http.listen(app.get('port'), function () {
+const server = http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('Server Started on port ' + app.get('port'));
 });
 
-app.get(['/', '/license'], function (req: Request, res: Response) {
+app.get(['/', '/license'], function(req: Request, res: Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -62,11 +62,11 @@ app.get(['/', '/license'], function (req: Request, res: Response) {
     );
 });
 
-app.use('/*', function (req: Request, res: Response) {
+app.use('/*', function(req: Request, res: Response) {
     res.status(404).render('notFound.ejs', {});
 });
 
 export default app;
-module.exports.close = function () {
+module.exports.close = function() {
     server.close();
 };

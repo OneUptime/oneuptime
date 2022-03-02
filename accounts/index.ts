@@ -9,7 +9,7 @@ import compression from 'compression';
 
 app.use(compression());
 
-app.get(['/env.js', '/accounts/env.js'], function (
+app.get(['/env.js', '/accounts/env.js'], function(
     req: $TSFixMe,
     res: $TSFixMe
 ) {
@@ -69,7 +69,7 @@ app.use(
 
 app.use('/accounts', express.static(path.join(__dirname, 'build')));
 
-app.get('/*', function (req: Request, res: Response) {
+app.get('/*', function(req: Request, res: Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
