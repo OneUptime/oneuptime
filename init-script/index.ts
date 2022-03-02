@@ -1,6 +1,6 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
-
+import logger from 'common-server/utils/logger';
 import fs from 'fs';
 import util from './util/db';
 import scripts from './scripts';
@@ -38,49 +38,49 @@ if (process.env['NODE_ENV'] === 'development') {
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
     app.use(bodyParser.json({ limit: '10mb' }));
 
-    app.listen(1447, function() {
-        // eslint-disable-next-line no-console
-        console.log('Server running on: 1447');
+    app.listen(1447, function () {
+
+        logger.info('Server running on: 1447');
     });
 
-    app.get('/:dbFunction', async function(req: Request, res: Response) {
+    app.get('/:dbFunction', async function (req: Request, res: Response) {
         return await interactWithDB(req, res);
     });
 
-    app.post('/:dbFunction', async function(req: Request, res: Response) {
+    app.post('/:dbFunction', async function (req: Request, res: Response) {
         return await interactWithDB(req, res);
     });
 }
 
 async function run() {
-    const excludedScripts = ['index.js', 'start.js', 'end.js'];
+    const excludedScripts = ['index.ts', 'start.ts', 'end.ts'];
 
-    // eslint-disable-next-line no-console
-    console.log('Connecting to MongoDB.');
+
+    logger.info('Connecting to MongoDB.');
 
     const connection = await util.connectToDb();
 
     global.db = connection.db();
 
-    // eslint-disable-next-line no-console
-    console.log('Connected to MongoDB.');
+
+    logger.info('Connected to MongoDB.');
 
     let currentVersion = await util.getVersion();
 
-    // eslint-disable-next-line no-console
-    console.log('Current Version: ' + currentVersion);
+
+    logger.info('Current Version: ' + currentVersion);
 
     if (currentVersion) {
         currentVersion = currentVersion.split('.')[2];
     }
 
-    // eslint-disable-next-line no-console
-    console.log('START SCRIPT: Running script.');
+
+    logger.info('START SCRIPT: Running script.');
 
     await scripts.start();
 
-    // eslint-disable-next-line no-console
-    console.log('START SCRIPT: Completed');
+
+    logger.info('START SCRIPT: Completed');
 
     const files = fs
         .readdirSync('./scripts')
@@ -93,30 +93,30 @@ async function run() {
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
 
-        // eslint-disable-next-line no-console
-        console.log(file + ': Running script.');
+
+        logger.info(file + ': Running script.');
 
         await require(`./scripts/${file}`)();
 
-        // eslint-disable-next-line no-console
-        console.log(file + ': Completed. ');
+
+        logger.info(file + ': Completed. ');
     }
 
-    // eslint-disable-next-line no-console
-    console.log('END SCRIPT: Running script.');
+
+    logger.info('END SCRIPT: Running script.');
 
     await scripts.end();
 
-    // eslint-disable-next-line no-console
-    console.log('END SCRIPT: Completed');
+
+    logger.info('END SCRIPT: Completed');
     // keep connection open in dev
     if (process.env['NODE_ENV'] !== 'development') {
         connection.close();
-        // eslint-disable-next-line no-console
-        console.log('Mongo connection closed.');
+
+        logger.info('Mongo connection closed.');
     } else {
-        // eslint-disable-next-line no-console
-        console.log('Mongo connection open in development mode.');
+
+        logger.info('Mongo connection open in development mode.');
     }
 }
 

@@ -2,7 +2,7 @@
     "name": "oneuptime-le-store",
     "version": "3.0.0",
     "description": "Greenlock store module ported for OneUptime",
-    "main": "index.js",
+    "main": "index.ts",
     "keywords": [
         "le-store",
         "greenlock",

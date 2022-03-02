@@ -2,9 +2,9 @@
     "name": "realtime",
     "version": "3.0.0",
     "description": "A project to handle all realtime processing for OneUptime",
-    "main": "index.js",
+    "main": "index.ts",
     "scripts": {
-        "start": "node --max-old-space-size=14336 index.js",
+        "start": "ts-node index.ts",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"

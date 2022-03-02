@@ -1,1 +1,1 @@
-export default require('./lib/index.js');
+export default require('./lib/index.ts');

@@ -2,7 +2,7 @@
     "name": "oneuptime-acme-http-01",
     "version": "3.0.0",
     "description": "HTTP Authentication (In-Memory) for Let's Encrypt for Node.js - ACME http-01 challenges for OneUptime",
-    "main": "index.js",
+    "main": "index.ts",
     "files": [
         "*.js",
         "lib",

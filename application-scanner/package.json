@@ -2,11 +2,11 @@
     "name": "applicationscanner",
     "version": "3.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "index.ts",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "node --max-old-space-size=14336 --max-http-header-size=80000 index.js",
-        "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000 index.js",
+        "start": "ts-node --max-http-header-size=80000 index.ts",
+        "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000 index.ts",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
     },

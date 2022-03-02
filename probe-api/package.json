@@ -2,10 +2,10 @@
     "name": "probe-api",
     "version": "3.0.0",
     "description": "A project to handle all resource fetching or update for probes",
-    "main": "index.js",
+    "main": "index.ts",
     "scripts": {
-        "start": "node --max-old-space-size=14336 index.js",
-        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+        "start": "ts-node index.ts",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --project './../tsconfig.json' --inspect=0.0.0.0 index.ts",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
     },

@@ -40,7 +40,7 @@
         "build": "react-scripts --openssl-legacy-provider build",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
-        "start": "node index.js",
+        "start": "node index.ts",
         "audit": "npm audit --audit-level=low",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*'"

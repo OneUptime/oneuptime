@@ -46,7 +46,7 @@
         "build-sw": "node ./src/sw-build.js",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
-        "start": "node index.js",
+        "start": "node index.ts",
         "audit": "npm audit --audit-level=low",
         "light-house": "node lighthouse.js --web",
         "light-house-mobile": "node lighthouse.js --mobile",

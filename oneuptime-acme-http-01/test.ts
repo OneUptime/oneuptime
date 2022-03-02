@@ -8,7 +8,7 @@ require('dotenv').config();
 // Usage: node ./test.js example.com username xxxxxxxxx
 const record = process.argv[2] || process.env.RECORD;
 
-import Challenger from './index.js';
+import Challenger from './index.ts';
 const challenger = Challenger.create({});
 
 // The dry-run tests can pass on, literally, 'example.com'
@@ -16,12 +16,12 @@ const challenger = Challenger.create({});
 
 tester
     .testRecord('http-01', record, challenger)
-    .then(function() {
+    .then(function () {
         // eslint-disable-next-line no-console
         console.info('PASS', record);
     })
 
-    .catch(function(e) {
+    .catch(function (e) {
         // eslint-disable-next-line no-console
         console.error(e.message);
         // eslint-disable-next-line no-console

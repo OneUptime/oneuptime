@@ -51,7 +51,7 @@
     },
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "start": "node index.js",
+        "start": "node index.ts",
         "build": "react-scripts --openssl-legacy-provider build",
         "postbuild": "shx cp robots.txt build",
         "dev": "export PORT=3006 && react-scripts --openssl-legacy-provider start",

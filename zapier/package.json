@@ -5,7 +5,7 @@
     "homepage": "https://oneuptime.com",
     "author": "HackerBay <hello@hackerbay.io>",
     "license": "MIT",
-    "main": "index.js",
+    "main": "index.ts",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "test": "mocha --recursive",

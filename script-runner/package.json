@@ -2,9 +2,9 @@
     "name": "script-runner",
     "version": "1.0.0",
     "description": "automation script runner",
-    "main": "index.js",
+    "main": "index.ts",
     "scripts": {
-        "start": "node --max-old-space-size=14336 index.js",
+        "start": "ts-node index.ts",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "test": "echo \"Error: no test specified\" && exit 1",
         "audit": "npm audit --audit-level=low"

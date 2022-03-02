@@ -29,7 +29,7 @@
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "ts-node index.ts",
         "dev": "cross-env NODE_ENV=development ts-node-dev server.js",
-        "test": "cross-env NODE_ENV=development mocha --exit test/index.js",
+        "test": "cross-env NODE_ENV=development mocha --exit test/index.ts",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path'"
     },

@@ -2,7 +2,7 @@ import path from 'path';
 
 const serverBuild = {
     mode: 'production',
-    entry: './src/index.js',
+    entry: './src/index.ts',
     target: 'node',
     output: {
         path: path.resolve('dist'),
