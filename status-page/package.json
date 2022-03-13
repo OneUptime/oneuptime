@@ -19,7 +19,7 @@
         "mongodb": "^4.0.0",
         "node-fetch": "^2.6.1",
         "prop-types": "^15.6.2",
-        "puppeteer": "^5.5.0",
+        "puppeteer": "^13.5.1",
         "query-string": "^7.0.1",
         "react": "^17.0.2",
         "react-auto-translate": "^0.0.6",
