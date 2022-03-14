@@ -49,7 +49,7 @@ COPY ./dashboard/package-lock.json /usr/src/app/package-lock.json
 
 
 # Install app dependencies
-RUN npm ci --legacy-peer-deps
+RUN npm ci 
 
 # Create .cache folder with necessary permissions for React-based apps
 # https://stackoverflow.com/questions/67087735/eacces-permission-denied-mkdir-usr-app-node-modules-cache-how-can-i-creat

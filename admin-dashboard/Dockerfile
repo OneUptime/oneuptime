@@ -43,7 +43,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./admin-dashboard/package*.json /usr/src/app/
-RUN npm ci  --legacy-peer-deps
+RUN npm ci  
 RUN npm install -g ts-node
 
 # Copy app source

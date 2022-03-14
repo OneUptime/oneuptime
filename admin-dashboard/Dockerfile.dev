@@ -8,6 +8,8 @@ FROM node:17-alpine
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
 
+#SET ENV Variables
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Install python
 RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
@@ -30,9 +32,7 @@ COPY ./common-ui/package*.json /usr/src/common-ui/
 RUN npm ci
 COPY ./common-ui /usr/src/common-ui
 
-#SET ENV Variables
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Because of this error during build
 # Error message "error:0308010C:digital envelope routines::unsupported"
@@ -48,7 +48,7 @@ COPY ./admin-dashboard/package.json /usr/src/app/package.json
 COPY ./admin-dashboard/package-lock.json /usr/src/app/package-lock.json
 
 # Install app dependencies
-RUN npm ci --legacy-peer-deps
+RUN npm ci 
 
 # Create .cache folder with necessary permissions for React-based apps
 # https://stackoverflow.com/questions/67087735/eacces-permission-denied-mkdir-usr-app-node-modules-cache-how-can-i-creat
