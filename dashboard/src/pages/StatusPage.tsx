@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import ShouldRender from '../components/basic/ShouldRender';
 import Setting from '../components/status-page/Setting';
 import Basic from '../components/status-page/Basic';
@@ -411,10 +411,10 @@ class StatusPage extends Component {
                                                                 >
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         {status &&
-                                                                        status.isGroupedByMonitorCategory ? (
+                                                                            status.isGroupedByMonitorCategory ? (
                                                                             !loadingCategories &&
-                                                                            allStatusPageCategories &&
-                                                                            allStatusPageCategories.length >
+                                                                                allStatusPageCategories &&
+                                                                                allStatusPageCategories.length >
                                                                                 0 ? (
                                                                                 allStatusPageCategories.map(
                                                                                     (category: $TSFixMe) => <MonitorsWithCategory
@@ -467,7 +467,7 @@ class StatusPage extends Component {
                                                                             !loadingCategories &&
                                                                             allStatusPageCategories &&
                                                                             allStatusPageCategories.length >
-                                                                                0 && (
+                                                                            0 && (
                                                                                 <div className="bs-ContentSection Card-root Card-shadow--medium bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                                                                     <span className="db-SettingsForm-footerMessage"></span>
                                                                                     <div
@@ -554,19 +554,19 @@ class StatusPage extends Component {
                                                                                                     .statusPage
                                                                                                     .monitors
                                                                                                     .requesting && (
-                                                                                                    <span>
-                                                                                                        Save
-                                                                                                        Changes{' '}
-                                                                                                    </span>
-                                                                                                )}
+                                                                                                        <span>
+                                                                                                            Save
+                                                                                                            Changes{' '}
+                                                                                                        </span>
+                                                                                                    )}
                                                                                                 {this
                                                                                                     .props
                                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
                                                                                                     .statusPage
                                                                                                     .monitors
                                                                                                     .requesting && (
-                                                                                                    <FormLoader />
-                                                                                                )}
+                                                                                                        <FormLoader />
+                                                                                                    )}
                                                                                             </button>
                                                                                         </div>
                                                                                     </div>

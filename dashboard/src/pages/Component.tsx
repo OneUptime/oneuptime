@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { destroy } from 'redux-form';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import NewComponent from '../components/component/NewComponent';
 import ComponentList from '../components/component/ComponentList';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -191,9 +191,9 @@ class ComponentDashboardView extends Component {
         allComponents = IsUserInSubProject(currentProject)
             ? allComponents
             : allComponents.filter(
-                  (component: $TSFixMe) => component.projectId !== currentProject._id ||
-                  component.projectId._id !== currentProject._id
-              );
+                (component: $TSFixMe) => component.projectId !== currentProject._id ||
+                    component.projectId._id !== currentProject._id
+            );
         projectComponent =
             projectComponent && projectComponent.components.length > 0 ? (
                 <div
@@ -221,7 +221,7 @@ class ComponentDashboardView extends Component {
                             requestErrorObject={
                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
                                 this.props.component.componentList[
-                                    currentProjectId
+                                currentProjectId
                                 ]
                             }
                         />
@@ -249,9 +249,9 @@ class ComponentDashboardView extends Component {
                     route={pathname}
                     name={
                         this.state.showNewComponentForm ||
-                        !components ||
-                        components.length === 0 ||
-                        components[0] === false
+                            !components ||
+                            components.length === 0 ||
+                            components[0] === false
                             ? 'New Component Form'
                             : 'Components'
                     }
@@ -265,7 +265,7 @@ class ComponentDashboardView extends Component {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
                     if={this.props.monitors && this.props.monitors.length > 0}
                 >
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ page: string; }' is not assignable to type... Remove this comment to see the full error message
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{page: string; }' is not assignable to type... Remove this comment to see the full error message
                     <AlertDisabledWarning page="Component" />
                 </ShouldRender>
                 <div className="Box-root">
@@ -317,7 +317,7 @@ class ComponentDashboardView extends Component {
                                                                 .componentCustom
                                                                 .show ||
                                                                 allComponents.length >
-                                                                    0) &&
+                                                                0) &&
                                                             this.props
                                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'tutorialStat' does not exist on type 'Re... Remove this comment to see the full error message
                                                                 .tutorialStat
@@ -345,9 +345,9 @@ class ComponentDashboardView extends Component {
                                                                     .showNewComponentForm ||
                                                                 !components ||
                                                                 components.length ===
-                                                                    0 ||
+                                                                0 ||
                                                                 components[0] ===
-                                                                    false
+                                                                false
                                                             }
                                                         >
                                                             <NewComponent
@@ -359,9 +359,9 @@ class ComponentDashboardView extends Component {
                                                                 }
                                                                 showCancelBtn={
                                                                     components.length >
-                                                                        0 &&
+                                                                    0 &&
                                                                     components[0] !==
-                                                                        false
+                                                                    false
                                                                 }
                                                             />
                                                         </ShouldRender>
@@ -376,7 +376,7 @@ class ComponentDashboardView extends Component {
                                                                     .componentList
                                                                     .requesting &&
                                                                 allComponents.length ===
-                                                                    0
+                                                                0
                                                             }
                                                         >
                                                             <div className="Box-root ">

@@ -8,7 +8,7 @@ import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 
 class IncidentCreated extends Component {
     markAsRead = (notification: $TSFixMe) => {
@@ -74,106 +74,106 @@ class IncidentCreated extends Component {
                             >
                                 {notifications && notifications.length > 0
                                     ? notifications.map(
-                                          (notification: $TSFixMe, index: $TSFixMe) => {
-                                              return (
-                                                  <div
-                                                      className="Box-root Box-background--red4"
-                                                      style={{
-                                                          padding: '10px 10px',
-                                                          fontWeight: '400',
-                                                          fontSize: '1em',
-                                                          marginBottom: '4px',
-                                                          borderRadius: '4px',
-                                                      }}
-                                                      key={notification._id}
-                                                  >
-                                                      <div className="Notify-oneuptime">
-                                                          <span></span>
-                                                          <span>
-                                                              <span
-                                                                  id={`closeIncident_${index}`}
-                                                                  className="incident-close-button"
-                                                                  style={{
-                                                                      opacity: 1,
-                                                                      filter:
-                                                                          'brightness(0) invert(1)',
-                                                                      float:
-                                                                          'right',
-                                                                      marginBottom:
-                                                                          '10px',
-                                                                  }}
-                                                                  onClick={() =>
-                                                                      this.handleCloseNotification(
-                                                                          notification
-                                                                      )
-                                                                  }
-                                                              />
-                                                          </span>
-                                                      </div>
-                                                      <div className="Notify-oneuptime">
-                                                          <div className="Notify-oneuptime-container-row-primary db-SideNav-icon--danger" />
-                                                          <span className="Notify-oneuptime-container-row-secondary Text-color--white">
-                                                              <span>
-                                                                  #
-                                                                  {notification &&
-                                                                      notification.meta &&
-                                                                      notification
-                                                                          .meta
-                                                                          .incidentId &&
-                                                                      notification
-                                                                          .meta
-                                                                          .incidentId
-                                                                          .idNumber}
-                                                              </span>{' '}
-                                                              {
-                                                                  notification.message
-                                                              }{' '}
-                                                              on{' '}
-                                                              {moment(
-                                                                  notification.createdAt
-                                                              ).format(
-                                                                  'MMMM Do YYYY, h:mm a'
-                                                              )}
-                                                          </span>
-                                                      </div>
-                                                      <div className="Notify-oneuptime">
-                                                          <span></span>
-                                                          <span>
-                                                              <button
-                                                                  id={`viewIncident-${index}`}
-                                                                  className="bs-Button bs-Button--red Box-background--red border-white"
-                                                                  style={{
-                                                                      height:
-                                                                          '30px',
-                                                                      width:
-                                                                          '105px',
-                                                                      boxShadow:
-                                                                          '0 0 0 1px #ffffff, 0 1.5px 1px 0 rgba(158, 33, 70, 0.15), 0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent',
-                                                                      float:
-                                                                          'right',
-                                                                      marginRight:
-                                                                          '5px',
-                                                                      marginTop:
-                                                                          '10px',
-                                                                  }}
-                                                                  onClick={() =>
-                                                                      this.markAsRead(
-                                                                          notification
-                                                                      )
-                                                                  }
-                                                                  type="button"
-                                                              >
-                                                                  <span>
-                                                                      View
-                                                                      Incident
-                                                                  </span>
-                                                              </button>
-                                                          </span>
-                                                      </div>
-                                                  </div>
-                                              );
-                                          }
-                                      )
+                                        (notification: $TSFixMe, index: $TSFixMe) => {
+                                            return (
+                                                <div
+                                                    className="Box-root Box-background--red4"
+                                                    style={{
+                                                        padding: '10px 10px',
+                                                        fontWeight: '400',
+                                                        fontSize: '1em',
+                                                        marginBottom: '4px',
+                                                        borderRadius: '4px',
+                                                    }}
+                                                    key={notification._id}
+                                                >
+                                                    <div className="Notify-oneuptime">
+                                                        <span></span>
+                                                        <span>
+                                                            <span
+                                                                id={`closeIncident_${index}`}
+                                                                className="incident-close-button"
+                                                                style={{
+                                                                    opacity: 1,
+                                                                    filter:
+                                                                        'brightness(0) invert(1)',
+                                                                    float:
+                                                                        'right',
+                                                                    marginBottom:
+                                                                        '10px',
+                                                                }}
+                                                                onClick={() =>
+                                                                    this.handleCloseNotification(
+                                                                        notification
+                                                                    )
+                                                                }
+                                                            />
+                                                        </span>
+                                                    </div>
+                                                    <div className="Notify-oneuptime">
+                                                        <div className="Notify-oneuptime-container-row-primary db-SideNav-icon--danger" />
+                                                        <span className="Notify-oneuptime-container-row-secondary Text-color--white">
+                                                            <span>
+                                                                #
+                                                                {notification &&
+                                                                    notification.meta &&
+                                                                    notification
+                                                                        .meta
+                                                                        .incidentId &&
+                                                                    notification
+                                                                        .meta
+                                                                        .incidentId
+                                                                        .idNumber}
+                                                            </span>{' '}
+                                                            {
+                                                                notification.message
+                                                            }{' '}
+                                                            on{' '}
+                                                            {moment(
+                                                                notification.createdAt
+                                                            ).format(
+                                                                'MMMM Do YYYY, h:mm a'
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <div className="Notify-oneuptime">
+                                                        <span></span>
+                                                        <span>
+                                                            <button
+                                                                id={`viewIncident-${index}`}
+                                                                className="bs-Button bs-Button--red Box-background--red border-white"
+                                                                style={{
+                                                                    height:
+                                                                        '30px',
+                                                                    width:
+                                                                        '105px',
+                                                                    boxShadow:
+                                                                        '0 0 0 1px #ffffff, 0 1.5px 1px 0 rgba(158, 33, 70, 0.15), 0 2px 5px 0 rgba(50, 50, 93, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent',
+                                                                    float:
+                                                                        'right',
+                                                                    marginRight:
+                                                                        '5px',
+                                                                    marginTop:
+                                                                        '10px',
+                                                                }}
+                                                                onClick={() =>
+                                                                    this.markAsRead(
+                                                                        notification
+                                                                    )
+                                                                }
+                                                                type="button"
+                                                            >
+                                                                <span>
+                                                                    View
+                                                                    Incident
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                    )
                                     : null}
                             </div>
                         </div>

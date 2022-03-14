@@ -5,7 +5,7 @@ import UserForm from './UserForm';
 import CardForm from './CardForm';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'quer... Remove this comment to see the full error message
 import queryString from 'query-string';
 import {
@@ -36,7 +36,7 @@ export class RegisterForm extends Component {
         this.props.saveUserState(values);
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'isUserInvited' does not exist on type 'R... Remove this comment to see the full error message
         this.props.isUserInvited(values).then(
-            function(value: $TSFixMe) {
+            function (value: $TSFixMe) {
                 if (value.data) {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'signupUser' does not exist on type 'Read... Remove this comment to see the full error message
                     thisObj.props.signupUser({
@@ -55,7 +55,7 @@ export class RegisterForm extends Component {
                     }
                 }
             },
-            function(error: $TSFixMe) {
+            function (error: $TSFixMe) {
                 return error;
             }
         );

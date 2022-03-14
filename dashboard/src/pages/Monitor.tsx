@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { destroy } from 'redux-form';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import ComponentSummary from '../components/component/ComponentSummary';
 import NewMonitor from '../components/monitor/NewMonitor';
 import MonitorList from '../components/monitor/MonitorList';
@@ -158,11 +158,11 @@ class MonitorDashboardView extends Component {
         }
         if (
             String(prevProps.componentSlug) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                String(this.props.componentSlug) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+            String(this.props.componentSlug) ||
             JSON.stringify(prevProps.currentProject) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
-                JSON.stringify(this.props.currentProject)
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+            JSON.stringify(this.props.currentProject)
         ) {
             if (
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
@@ -326,9 +326,9 @@ class MonitorDashboardView extends Component {
                 allMonitors = IsUserInSubProject(subProject)
                     ? allMonitors
                     : allMonitors.filter(
-                          (monitor: $TSFixMe) => monitor.projectId !== subProjectMonitor._id ||
-                          monitor.projectId._id !== subProjectMonitor._id
-                      );
+                        (monitor: $TSFixMe) => monitor.projectId !== subProjectMonitor._id ||
+                            monitor.projectId._id !== subProjectMonitor._id
+                    );
                 return subProjectMonitor &&
                     subProjectMonitor.monitors.length > 0 ? (
                     <div
@@ -386,9 +386,9 @@ class MonitorDashboardView extends Component {
         allMonitors = IsUserInSubProject(currentProject)
             ? allMonitors
             : allMonitors.filter(
-                  (monitor: $TSFixMe) => monitor.projectId !== currentProject._id ||
-                  monitor.projectId._id !== currentProject._id
-              );
+                (monitor: $TSFixMe) => monitor.projectId !== currentProject._id ||
+                    monitor.projectId._id !== currentProject._id
+            );
         projectMonitor =
             projectMonitor && projectMonitor.monitors.length > 0 ? (
                 <div
@@ -458,9 +458,9 @@ class MonitorDashboardView extends Component {
                     route={pathname + '#'}
                     name={
                         this.state.showNewMonitorForm ||
-                        !monitors ||
-                        monitors.length === 0 ||
-                        monitors[0] === false
+                            !monitors ||
+                            monitors.length === 0 ||
+                            monitors[0] === false
                             ? 'New Monitor Form'
                             : 'Monitors'
                     }
@@ -510,7 +510,7 @@ class MonitorDashboardView extends Component {
                                                                 .monitorCustom
                                                                 .show ||
                                                                 allMonitors.length >
-                                                                    0) &&
+                                                                0) &&
                                                             this.props
                                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'tutorialStat' does not exist on type 'Re... Remove this comment to see the full error message
                                                                 .tutorialStat
@@ -531,9 +531,9 @@ class MonitorDashboardView extends Component {
                                                                 .showNewMonitorForm &&
                                                             monitors &&
                                                             monitors.length >
-                                                                0 &&
+                                                            0 &&
                                                             monitors[0] !==
-                                                                false
+                                                            false
                                                         }
                                                     >
                                                         <ComponentSummary
@@ -568,9 +568,9 @@ class MonitorDashboardView extends Component {
                                                                     .showNewMonitorForm ||
                                                                 !monitors ||
                                                                 monitors.length ===
-                                                                    0 ||
+                                                                0 ||
                                                                 monitors[0] ===
-                                                                    false
+                                                                false
                                                             }
                                                         >
                                                             <NewMonitor
@@ -592,9 +592,9 @@ class MonitorDashboardView extends Component {
                                                                 }
                                                                 showCancelBtn={
                                                                     monitors.length >
-                                                                        0 &&
+                                                                    0 &&
                                                                     monitors[0] !==
-                                                                        false
+                                                                    false
                                                                 }
                                                                 toggleForm={
                                                                     this
@@ -612,7 +612,7 @@ class MonitorDashboardView extends Component {
                                                                     .paginatedMonitorsList
                                                                     .requesting &&
                                                                 allMonitors.length ===
-                                                                    0
+                                                                0
                                                             }
                                                         >
                                                             <div

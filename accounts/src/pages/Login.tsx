@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginUserSso, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
@@ -67,10 +67,10 @@ class LoginPage extends React.Component {
                     {/* LOGIN BOX */}
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
                     {!this.props.login.success &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                    this.props.login.error &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                    this.props.login.error === 'Verify your email first.' ? (
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                        this.props.login.error &&
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                        this.props.login.error === 'Verify your email first.' ? (
                         <div>
                             <MessageBox
                                 title="Your email is not verified."
@@ -79,7 +79,7 @@ class LoginPage extends React.Component {
                                     this.props.resendTokenRequest.requesting
                                         ? 'Resending verification link...'
                                         : "An email is on its way to you with new verification link. Please don't forget to check spam."
-                                }`}
+                                    }`}
                             >
                                 <div className="below-box">
                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'resendTokenRequest' does not exist on ty... Remove this comment to see the full error message

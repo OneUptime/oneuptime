@@ -11027,9 +11027,9 @@ table {
     flex: 20% 0 0;
 }
 
-.react-reveal {
+.react-awesome-reveal {
     /*
-    ** this style is needed to overide animation-fill-mode used in react-reveal package for animation
+    ** this style is needed to overide animation-fill-mode used in react-awesome-reveal package for animation
     ** to fix the issue we had with our select element
     */
     animation-fill-mode: unset !important;

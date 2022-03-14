@@ -4,7 +4,7 @@ import { PropTypes } from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import RoutingNumberBox from '../components/callrouting/RoutingNumberBox';
 import CallRoutingLog from '../components/callrouting/CallRoutingLog';
 
@@ -52,8 +52,8 @@ class CallRouting extends Component {
             match.params.projectId && match.params.projectId.length
                 ? match.params.projectId
                 : currentProject && currentProject._id
-                ? currentProject._id
-                : null;
+                    ? currentProject._id
+                    : null;
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'getCallRoutingNumbers' does not exist on... Remove this comment to see the full error message
         this.props.getCallRoutingNumbers(projectId);
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'getTeamAndSchedules' does not exist on t... Remove this comment to see the full error message

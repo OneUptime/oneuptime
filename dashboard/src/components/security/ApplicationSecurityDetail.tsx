@@ -22,7 +22,7 @@ import getParentRoute from '../../utils/getParentRoute';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { socket } from '../basic/Socket';
 
 class ApplicationSecurityDetail extends Component {

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import AlertCharges from '../components/alert/AlertCharges';
 import ChangePlan from '../components/settings/ChangePlan';
@@ -61,7 +61,7 @@ class Billing extends Component {
                 <BreadCrumbItem route={pathname} name="Billing" />
                 <div id="billingSetting" className="Margin-vertical--12">
                     <ShouldRender if={!alertEnable}>
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ page: string; }' is not assignable to type... Remove this comment to see the full error message
+                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{page: string; }' is not assignable to type... Remove this comment to see the full error message
                         <AlertDisabledWarning page="Billing" />
                     </ShouldRender>
                     <ShouldRender if={currentProject}>

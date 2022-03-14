@@ -6,7 +6,7 @@ import RenderCountrySelector from '../basic/CountrySelector';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { RenderField } from '../basic/RenderField';
 import { PricingPlan, Validate, env } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
@@ -22,7 +22,7 @@ import {
     injectStripe,
     StripeProvider,
     Elements,
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+    // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 } from 'react-stripe-elements';
 import {
     addCard,
@@ -122,8 +122,8 @@ class CardForm extends Component {
             stripe
                 .createToken()
                 .then(({
-                token
-            }: $TSFixMe) => {
+                    token
+                }: $TSFixMe) => {
                     if (token) {
                         return addCard({
                             tokenId: token.id,
@@ -135,8 +135,8 @@ class CardForm extends Component {
                     }
                 })
                 .then(({
-                data
-            }: $TSFixMe) =>
+                    data
+                }: $TSFixMe) =>
                     stripe.handleCardPayment(data.client_secret)
                 )
                 .then((data: $TSFixMe) => {
@@ -150,8 +150,8 @@ class CardForm extends Component {
                     else throw new Error(data.error.message);
                 })
                 .then(({
-                data
-            }: $TSFixMe) => {
+                    data
+                }: $TSFixMe) => {
                     signupSuccess(data);
                 })
                 .catch((error: $TSFixMe) => {
@@ -548,7 +548,7 @@ class CardForm extends Component {
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 CardForm.displayName = 'CardForm';
 
-const validate = function(values: $TSFixMe) {
+const validate = function (values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.cardName)) {

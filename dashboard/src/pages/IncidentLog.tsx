@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import {
     incidentsRequest,
     incidentsError,
@@ -99,11 +99,11 @@ class IncidentLog extends React.Component {
         }
         if (
             String(prevProps.componentSlug) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                String(this.props.componentSlug) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+            String(this.props.componentSlug) ||
             JSON.stringify(prevProps.currentProject) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
-                JSON.stringify(this.props.currentProject)
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+            JSON.stringify(this.props.currentProject)
         ) {
             if (
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
@@ -313,8 +313,8 @@ class IncidentLog extends React.Component {
                                             ? 1
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                             : this.state.page[
-                                                  projectIncident._id
-                                              ]
+                                            projectIncident._id
+                                            ]
                                     }
                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
                                     componentSlug={this.props.componentSlug}

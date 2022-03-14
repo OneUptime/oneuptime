@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
 import { fetchComponent } from '../actions/component';
@@ -65,8 +65,8 @@ class WebsiteMonitorIssues extends React.Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             String(prevProps.componentSlug) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                String(this.props.componentSlug) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+            String(this.props.componentSlug) ||
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             prevProps.projectId !== this.props.projectId
         ) {
@@ -286,7 +286,7 @@ class WebsiteMonitorIssues extends React.Component {
                             monitorState.monitorIssue.data &&
                             monitorState.monitorIssue.data.performance &&
                             monitorState.monitorIssue.data.performance.length >
-                                0
+                            0
                         }
                     >
                         <WebsiteIssuesBox
@@ -416,8 +416,8 @@ class WebsiteMonitorIssues extends React.Component {
         const monitorName = monitor ? monitor.name : null;
         const url =
             monitorState &&
-            monitorState.monitorIssue &&
-            monitorState.monitorIssue.url
+                monitorState.monitorIssue &&
+                monitorState.monitorIssue.url
                 ? monitorState.monitorIssue.url
                 : 'URL';
 

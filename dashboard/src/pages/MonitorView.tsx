@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import {
     fetchMonitorsIncidents,
     fetchMonitorsSubscribers,
@@ -80,8 +80,8 @@ class MonitorView extends React.Component {
         const { monitor } = this.props;
         if (
             String(prevProps.componentSlug) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                String(this.props.componentSlug) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+            String(this.props.componentSlug) ||
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             prevProps.currentProject !== this.props.currentProject
         ) {
@@ -357,8 +357,8 @@ class MonitorView extends React.Component {
             this.props.monitor && this.props.monitor.projectId
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                 ? this.props.monitor.projectId._id ||
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                  this.props.monitor.projectId
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                this.props.monitor.projectId
                 : null;
         const componentName = component ? component.name : '';
         const monitorName = monitor ? monitor.name : '';
@@ -612,32 +612,32 @@ class MonitorView extends React.Component {
                                                 <div>
                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                     {this.props.monitor &&
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                    this.props.monitor._id &&
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                    this.props.monitor.type &&
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                    (((this.props.monitor
-                                                        .type === 'url' ||
                                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                        this.props.monitor
-                                                            .type === 'api' ||
+                                                        this.props.monitor._id &&
                                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                        this.props.monitor
-                                                            .type === 'ip') &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeList' does not exist on type 'Reado... Remove this comment to see the full error message
-                                                        !this.props.probeList
-                                                            .requesting) ||
+                                                        this.props.monitor.type &&
                                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                        (this.props.monitor
-                                                            .type !== 'url' &&
+                                                        (((this.props.monitor
+                                                            .type === 'url' ||
                                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                             this.props.monitor
-                                                                .type !==
+                                                                .type === 'api' ||
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                            this.props.monitor
+                                                                .type === 'ip') &&
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeList' does not exist on type 'Reado... Remove this comment to see the full error message
+                                                            !this.props.probeList
+                                                                .requesting) ||
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                            (this.props.monitor
+                                                                .type !== 'url' &&
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                this.props.monitor
+                                                                    .type !==
                                                                 'api' &&
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                            this.props.monitor
-                                                                .type !==
+                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                this.props.monitor
+                                                                    .type !==
                                                                 'ip')) ? (
                                                         <Fragment>
                                                             <TabPanel>
@@ -741,22 +741,22 @@ class MonitorView extends React.Component {
                                                                             .props
                                                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingComponent' does not exist on t... Remove this comment to see the full error message
                                                                             .requestingComponent && (
-                                                                            <MonitorViewIncidentBox
-                                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; monitor: any; }' is not ... Remove this comment to see the full error message
-                                                                                componentId={
-                                                                                    this
-                                                                                        .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                        .componentId
-                                                                                }
-                                                                                monitor={
-                                                                                    this
-                                                                                        .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                        .monitor
-                                                                                }
-                                                                            />
-                                                                        )}
+                                                                                <MonitorViewIncidentBox
+                                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; monitor: any; }' is not ... Remove this comment to see the full error message
+                                                                                    componentId={
+                                                                                        this
+                                                                                            .props
+                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+                                                                                            .componentId
+                                                                                    }
+                                                                                    monitor={
+                                                                                        this
+                                                                                            .props
+                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                                            .monitor
+                                                                                    }
+                                                                                />
+                                                                            )}
                                                                     </div>
                                                                     <ShouldRender
                                                                         if={
@@ -774,7 +774,7 @@ class MonitorView extends React.Component {
                                                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                 .monitor
                                                                                 .type ===
-                                                                                'url' &&
+                                                                            'url' &&
                                                                             !this
                                                                                 .props
                                                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingComponent' does not exist on t... Remove this comment to see the full error message
@@ -832,37 +832,37 @@ class MonitorView extends React.Component {
                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                     .monitor
                                                                                     .type ===
-                                                                                    'api' ||
+                                                                                'api' ||
                                                                                 this
                                                                                     .props
                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                     .monitor
                                                                                     .type ===
-                                                                                    'server-monitor' ||
+                                                                                'server-monitor' ||
                                                                                 this
                                                                                     .props
                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                     .monitor
                                                                                     .type ===
-                                                                                    'incomingHttpRequest' ||
+                                                                                'incomingHttpRequest' ||
                                                                                 this
                                                                                     .props
                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                     .monitor
                                                                                     .type ===
-                                                                                    'kubernetes' ||
+                                                                                'kubernetes' ||
                                                                                 this
                                                                                     .props
                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                     .monitor
                                                                                     .type ===
-                                                                                    'ip' ||
+                                                                                'ip' ||
                                                                                 this
                                                                                     .props
                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                     .monitor
                                                                                     .type ===
-                                                                                    'script')
+                                                                                'script')
                                                                         }
                                                                     >
                                                                         <div className="Box-root Margin-bottom--12">
@@ -949,50 +949,72 @@ class MonitorView extends React.Component {
                                                                     {!this.props
                                                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingComponent' does not exist on t... Remove this comment to see the full error message
                                                                         .requestingComponent && (
-                                                                        <>
-                                                                            <div>
-                                                                                <ThirdPartyVariables
-                                                                                    monitor={
-                                                                                        this
-                                                                                            .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                            .monitor
-                                                                                    }
-                                                                                    componentId={
-                                                                                        this
-                                                                                            .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                            .componentId
-                                                                                    }
-                                                                                />
-                                                                            </div>
-                                                                            <RenderIfSubProjectAdmin
-                                                                                subProjectId={
-                                                                                    subProjectId
-                                                                                }
-                                                                            >
-                                                                                <ShouldRender
-                                                                                    if={
-                                                                                        this
-                                                                                            .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                            .monitor &&
-                                                                                        this
-                                                                                            .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                            .monitor
-                                                                                            .type &&
-                                                                                        this
-                                                                                            .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                            .monitor
-                                                                                            .type !==
-                                                                                            'manual'
+                                                                            <>
+                                                                                <div>
+                                                                                    <ThirdPartyVariables
+                                                                                        monitor={
+                                                                                            this
+                                                                                                .props
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                                                .monitor
+                                                                                        }
+                                                                                        componentId={
+                                                                                            this
+                                                                                                .props
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+                                                                                                .componentId
+                                                                                        }
+                                                                                    />
+                                                                                </div>
+                                                                                <RenderIfSubProjectAdmin
+                                                                                    subProjectId={
+                                                                                        subProjectId
                                                                                     }
                                                                                 >
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            this
+                                                                                                .props
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                                                .monitor &&
+                                                                                            this
+                                                                                                .props
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                                                .monitor
+                                                                                                .type &&
+                                                                                            this
+                                                                                                .props
+                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                                                .monitor
+                                                                                                .type !==
+                                                                                            'manual'
+                                                                                        }
+                                                                                    >
+                                                                                        <div className="Box-root Margin-bottom--12">
+                                                                                            <MonitorViewDisableBox
+                                                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; monitor: any; tabSelecte... Remove this comment to see the full error message
+                                                                                                componentId={
+                                                                                                    this
+                                                                                                        .props
+                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+                                                                                                        .componentId
+                                                                                                }
+                                                                                                monitor={
+                                                                                                    this
+                                                                                                        .props
+                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                                                        .monitor
+                                                                                                }
+                                                                                                tabSelected={
+                                                                                                    this
+                                                                                                        .tabSelected
+                                                                                                }
+                                                                                            />
+                                                                                        </div>
+                                                                                    </ShouldRender>
                                                                                     <div className="Box-root Margin-bottom--12">
-                                                                                        <MonitorViewDisableBox
-                                                                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; monitor: any; tabSelecte... Remove this comment to see the full error message
+                                                                                    // @ts-expect-error ts-migrate(2604) FIXME: JSX element type 'MonitorViewChangeComponentBox' d... Remove this comment to see the full error message
+                                                                                        <MonitorViewChangeComponentBox
                                                                                             componentId={
                                                                                                 this
                                                                                                     .props
@@ -1005,61 +1027,39 @@ class MonitorView extends React.Component {
                                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                                     .monitor
                                                                                             }
-                                                                                            tabSelected={
+                                                                                        />
+                                                                                    </div>
+                                                                                    <div className="Box-root Margin-bottom--12">
+                                                                                        <MonitorViewDeleteBox
+                                                                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; monitor: any; componentS... Remove this comment to see the full error message
+                                                                                            componentId={
                                                                                                 this
-                                                                                                    .tabSelected
+                                                                                                    .props
+                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+                                                                                                    .componentId
+                                                                                            }
+                                                                                            monitor={
+                                                                                                this
+                                                                                                    .props
+                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                                                    .monitor
+                                                                                            }
+                                                                                            componentSlug={
+                                                                                                this
+                                                                                                    .props
+                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+                                                                                                    .component &&
+                                                                                                this
+                                                                                                    .props
+                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+                                                                                                    .component
+                                                                                                    .slug
                                                                                             }
                                                                                         />
                                                                                     </div>
-                                                                                </ShouldRender>
-                                                                                <div className="Box-root Margin-bottom--12">
-                                                                                    // @ts-expect-error ts-migrate(2604) FIXME: JSX element type 'MonitorViewChangeComponentBox' d... Remove this comment to see the full error message
-                                                                                    <MonitorViewChangeComponentBox
-                                                                                        componentId={
-                                                                                            this
-                                                                                                .props
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                                .componentId
-                                                                                        }
-                                                                                        monitor={
-                                                                                            this
-                                                                                                .props
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                                .monitor
-                                                                                        }
-                                                                                    />
-                                                                                </div>
-                                                                                <div className="Box-root Margin-bottom--12">
-                                                                                    <MonitorViewDeleteBox
-                                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ componentId: any; monitor: any; componentS... Remove this comment to see the full error message
-                                                                                        componentId={
-                                                                                            this
-                                                                                                .props
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                                .componentId
-                                                                                        }
-                                                                                        monitor={
-                                                                                            this
-                                                                                                .props
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                                .monitor
-                                                                                        }
-                                                                                        componentSlug={
-                                                                                            this
-                                                                                                .props
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
-                                                                                                .component &&
-                                                                                            this
-                                                                                                .props
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
-                                                                                                .component
-                                                                                                .slug
-                                                                                        }
-                                                                                    />
-                                                                                </div>
-                                                                            </RenderIfSubProjectAdmin>
-                                                                        </>
-                                                                    )}
+                                                                                </RenderIfSubProjectAdmin>
+                                                                            </>
+                                                                        )}
                                                                 </Fade>
                                                             </TabPanel>
                                                         </Fragment>
@@ -1238,10 +1238,10 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
                             index < monitorUpCriteriaCount
                                 ? 'up'
                                 : index <
-                                  monitorUpCriteriaCount +
-                                      monitorDegradedCriteriaCount
-                                ? 'degraded'
-                                : 'down';
+                                    monitorUpCriteriaCount +
+                                    monitorDegradedCriteriaCount
+                                    ? 'degraded'
+                                    : 'down';
 
                         const id = criterion._id;
                         const criterionBodyField = mapCriteria(criterion);

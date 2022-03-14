@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -176,8 +176,8 @@ class IncidentSettings extends React.Component {
         const canPaginateForward =
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPrioritiesList' does not exist o... Remove this comment to see the full error message
             !this.props.incidentPrioritiesList.requesting &&
-            count &&
-            count > skip + limit
+                count &&
+                count > skip + limit
                 ? true
                 : false;
         const canPaginateBackward =
@@ -345,23 +345,20 @@ class IncidentSettings extends React.Component {
                                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                                                 >
                                                                     {numberOfPages >
-                                                                    0
-                                                                        ? `Page ${
-                                                                              this
-                                                                                  .state
-                                                                                  .page
-                                                                          } of ${numberOfPages} (${count} Priorit${
-                                                                              count ===
-                                                                              1
-                                                                                  ? 'y'
-                                                                                  : 'ies'
-                                                                          })`
-                                                                        : `${count} Priorit${
-                                                                              count ===
-                                                                              1
-                                                                                  ? 'y'
-                                                                                  : 'ies'
-                                                                          }`}
+                                                                        0
+                                                                        ? `Page ${this
+                                                                            .state
+                                                                            .page
+                                                                        } of ${numberOfPages} (${count} Priorit${count ===
+                                                                            1
+                                                                            ? 'y'
+                                                                            : 'ies'
+                                                                        })`
+                                                                        : `${count} Priorit${count ===
+                                                                            1
+                                                                            ? 'y'
+                                                                            : 'ies'
+                                                                        }`}
                                                                 </span>
                                                             </span>
                                                         </span>
@@ -371,11 +368,10 @@ class IncidentSettings extends React.Component {
                                                             <div className="Box-root Margin-right--8">
                                                                 <button
                                                                     id="btnPrev"
-                                                                    className={`Button bs-ButtonLegacy ${
-                                                                        !canPaginateBackward
+                                                                    className={`Button bs-ButtonLegacy ${!canPaginateBackward
                                                                             ? 'Is--disabled'
                                                                             : ''
-                                                                    }`}
+                                                                        }`}
                                                                     data-db-analytics-name="list_view.pagination.previous"
                                                                     disabled={
                                                                         !canPaginateBackward
@@ -397,11 +393,10 @@ class IncidentSettings extends React.Component {
                                                             <div className="Box-root">
                                                                 <button
                                                                     id="btnNext"
-                                                                    className={`Button bs-ButtonLegacy ${
-                                                                        !canPaginateForward
+                                                                    className={`Button bs-ButtonLegacy ${!canPaginateForward
                                                                             ? 'Is--disabled'
                                                                             : ''
-                                                                    }`}
+                                                                        }`}
                                                                     data-db-analytics-name="list_view.pagination.next"
                                                                     disabled={
                                                                         !canPaginateForward

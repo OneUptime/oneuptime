@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import GroupList from '../components/settings/GroupList';
@@ -22,54 +22,54 @@ class Groups extends Component {
     renderSubProjectGroups = () => {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
         return this.props.projectGroups &&
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
-        this.props.projectGroups.map((project: $TSFixMe) => {
-            if (project.project.id === User.getCurrentProjectId()) {
-                return null;
-            } else {
-                return (
-                    <GroupList
-                        key={project.project.id}
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: any; groups: any; count: any; project... Remove this comment to see the full error message
-                        groups={project.groups && project.groups.groups}
-                        count={project.groups.count}
-                        project={project.project}
-                        skip={project.groups.skip}
-                        limit={project.groups.limit}
-                    />
-                );
-            }
-        });
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+            this.props.projectGroups.map((project: $TSFixMe) => {
+                if (project.project.id === User.getCurrentProjectId()) {
+                    return null;
+                } else {
+                    return (
+                        <GroupList
+                            key={project.project.id}
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: any; groups: any; count: any; project... Remove this comment to see the full error message
+                            groups={project.groups && project.groups.groups}
+                            count={project.groups.count}
+                            project={project.project}
+                            skip={project.groups.skip}
+                            limit={project.groups.limit}
+                        />
+                    );
+                }
+            });
     };
 
     renderProjectGroups = () => {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
         return this.props.projectGroups &&
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
-        this.props.projectGroups.map((project: $TSFixMe) => {
-            if (project.project.id === User.getCurrentProjectId()) {
-                return (
-                    <GroupList
-                        key={project.project.id}
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: any; groups: any; count: any; skip: a... Remove this comment to see the full error message
-                        groups={project.groups && project.groups.groups}
-                        count={project.groups.count}
-                        skip={project.groups.skip}
-                        limit={project.groups.limit}
-                        project={project.project}
-                        parentProject={true}
-                        subProjects={
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
-                            this.props.projectGroups &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
-                            this.props.projectGroups.length > 1
-                        }
-                    />
-                );
-            } else {
-                return null;
-            }
-        });
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+            this.props.projectGroups.map((project: $TSFixMe) => {
+                if (project.project.id === User.getCurrentProjectId()) {
+                    return (
+                        <GroupList
+                            key={project.project.id}
+                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: any; groups: any; count: any; skip: a... Remove this comment to see the full error message
+                            groups={project.groups && project.groups.groups}
+                            count={project.groups.count}
+                            skip={project.groups.skip}
+                            limit={project.groups.limit}
+                            project={project.project}
+                            parentProject={true}
+                            subProjects={
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+                                this.props.projectGroups &&
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+                                this.props.projectGroups.length > 1
+                            }
+                        />
+                    );
+                } else {
+                    return null;
+                }
+            });
     };
 
     render() {

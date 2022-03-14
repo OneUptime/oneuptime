@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import DeleteBox from '../components/schedule/DeleteBox';
 import MonitorBox from '../components/schedule/MonitorBox';
 import RenameScheduleBox from '../components/schedule/RenameScheduleBox';
@@ -185,15 +185,15 @@ class Schedule extends Component {
 
                                                 {(editSchedule ||
                                                     escalations.length ===
-                                                        0) && (
-                                                    <OnCallAlertBox
-                                                        afterSave={() => {
-                                                            this.setState({
-                                                                editSchedule: false,
-                                                            });
-                                                        }}
-                                                    />
-                                                )}
+                                                    0) && (
+                                                        <OnCallAlertBox
+                                                            afterSave={() => {
+                                                                this.setState({
+                                                                    editSchedule: false,
+                                                                });
+                                                            }}
+                                                        />
+                                                    )}
 
                                                 <RenderIfSubProjectAdmin
                                                     subProjectId={subProjectId}

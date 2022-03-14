@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { connect } from 'react-redux';
 import ScheduledEventBox from '../components/scheduledEvent/ScheduledEvent';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -34,10 +34,10 @@ class ScheduledEvent extends Component {
                     route={pathname}
                     name="Scheduled Maintenance Event"
                     pageTitle="Scheduled Event Detail"
-                    // containerType="Scheduled Maintenance Event"
+                // containerType="Scheduled Maintenance Event"
                 />
                 <div id="scheduleEventsPage">
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; }' is not assignable to ty... Remove this comment to see the full error message
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{projectId: any; }' is not assignable to ty... Remove this comment to see the full error message
                     <ScheduledEventBox projectId={this.props.projectId} />
                 </div>
                 <ShouldRender

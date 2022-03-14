@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { connect } from 'react-redux';
 import PropsType from 'prop-types';
 
@@ -22,8 +22,8 @@ class ErrorTrackingView extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             String(prevProps.componentSlug) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                String(this.props.componentSlug) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+            String(this.props.componentSlug) ||
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             prevProps.currentProject !== this.props.currentProject
         ) {
@@ -155,8 +155,8 @@ class ErrorTrackingView extends Component {
                 </ShouldRender>
                 <ShouldRender if={errorTracker && errorTracker[0]}>
                     {errorTracker &&
-                    errorTracker[0] &&
-                    errorTracker[0].showQuickStart ? (
+                        errorTracker[0] &&
+                        errorTracker[0].showQuickStart ? (
                         <LibraryList
                             // @ts-expect-error ts-migrate(2322) FIXME: Type '{ title: string; type: string; errorTracker:... Remove this comment to see the full error message
                             title="Error Tracking"

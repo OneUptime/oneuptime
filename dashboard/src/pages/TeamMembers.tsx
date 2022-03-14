@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import {
     subProjectTeamLoading,
     subProjectTeamLoadingRequest,
@@ -97,15 +97,15 @@ const LoadedTeam = (props: $TSFixMe) => {
                                 paginate={props.paginate}
                                 canPaginateBackward={
                                     pages[currentProjectId] &&
-                                    pages[currentProjectId] > 1
+                                        pages[currentProjectId] > 1
                                         ? true
                                         : false
                                 }
                                 canPaginateForward={
                                     projectMembers.count &&
-                                    projectMembers.count >
+                                        projectMembers.count >
                                         (pages[currentProjectId] || 1) *
-                                            membersPerPage
+                                        membersPerPage
                                         ? true
                                         : false
                                 }

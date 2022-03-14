@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import {
     fetchProjectSchedule,
     fetchSubProjectSchedules,
@@ -108,7 +108,7 @@ export class OnCall extends Component {
         const { subProjectSchedules, pages } = this.props;
         const canPaginateForward = subProjectSchedules.data
             ? subProjectSchedules.data.length >=
-              (pages.counter + 1) * schedulesPerPage
+            (pages.counter + 1) * schedulesPerPage
             : null;
         const canPaginateBackward = pages.counter > 1;
         switch (e.key) {
@@ -301,12 +301,12 @@ const mapStateToProps = (state: $TSFixMe) => {
     projectSchedule = projectSchedule
         ? projectSchedule
         : {
-              _id: currentProjectId,
-              schedules: [],
-              count: 0,
-              skip: 0,
-              limit: 10,
-          };
+            _id: currentProjectId,
+            schedules: [],
+            count: 0,
+            skip: 0,
+            limit: 10,
+        };
 
     // find subproject schedules or assign default value
     const subProjectSchedules =
@@ -318,12 +318,12 @@ const mapStateToProps = (state: $TSFixMe) => {
             return schedule
                 ? schedule
                 : {
-                      _id: subProject._id,
-                      schedules: [],
-                      count: 0,
-                      skip: 0,
-                      limit: 10,
-                  };
+                    _id: subProject._id,
+                    schedules: [],
+                    count: 0,
+                    skip: 0,
+                    limit: 10,
+                };
         });
 
     subProjectSchedules && subProjectSchedules.unshift(projectSchedule);

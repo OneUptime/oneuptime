@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { API_URL } from '../config';
 import { LargeSpinner as Loader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -116,8 +116,8 @@ function TeamMemberProfile({
                                                     <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                                         <div>
                                                             {!requesting &&
-                                                            teamMember &&
-                                                            !error ? (
+                                                                teamMember &&
+                                                                !error ? (
                                                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                                     <fieldset className="bs-Fieldset">
                                                                         <div className="bs-Fieldset-rows">
@@ -151,7 +151,7 @@ function TeamMemberProfile({
                                                                                 if={
                                                                                     teamMember.email &&
                                                                                     teamMember.email !==
-                                                                                        'undefined'
+                                                                                    'undefined'
                                                                                 }
                                                                             >
                                                                                 <div className="bs-Fieldset-row">
@@ -183,7 +183,7 @@ function TeamMemberProfile({
                                                                                 if={
                                                                                     teamMember.companyPhoneNumber &&
                                                                                     teamMember.companyPhoneNumber !==
-                                                                                        'undefined'
+                                                                                    'undefined'
                                                                                 }
                                                                             >
                                                                                 <div className="bs-Fieldset-row">
@@ -228,7 +228,7 @@ function TeamMemberProfile({
                                                                                 if={
                                                                                     teamMember.timezone &&
                                                                                     teamMember.timezone !==
-                                                                                        'undefined'
+                                                                                    'undefined'
                                                                                 }
                                                                             >
                                                                                 <div className="bs-Fieldset-row">

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
@@ -227,7 +227,7 @@ class ApplicationLog extends Component {
                     pageTitle="Logs"
                     name={
                         this.state.showNewLogContainerForm ||
-                        !applicationLogsList
+                            !applicationLogsList
                             ? 'New Log Container'
                             : 'Logs'
                     }

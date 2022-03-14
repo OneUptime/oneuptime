@@ -59,6 +59,7 @@ export class ProjectSwitcher extends Component {
 
     render() {
         let projectOptions = null;
+        let isHovering = false;
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
         const { projects } = this.props.project.projects;
         if (projects && projects.length > 0) {
@@ -68,61 +69,61 @@ export class ProjectSwitcher extends Component {
                     id={project.name}
                     title={project.name}
                 >
-                    <ReactHoverObserver>
+                    {/* <ReactHoverObserver>
                         {({
                             isHovering
-                        }: $TSFixMe) => (
+                        }: $TSFixMe) => ( */}
+                    <div
+                        aria-selected="false"
+                        role="option"
+                        onClick={() => this.selectProject(project)}
+                    >
+                        <div>
                             <div
-                                aria-selected="false"
-                                role="option"
-                                onClick={() => this.selectProject(project)}
+                                className={
+                                    isHovering
+                                        ? 'Box-root Box-background--blue Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4'
+                                        : 'Box-root Box-background--white Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4'
+                                }
+                                style={{
+                                    cursor: 'pointer',
+                                    userSelect: 'none',
+                                }}
                             >
-                                <div>
-                                    <div
-                                        className={
-                                            isHovering
-                                                ? 'Box-root Box-background--blue Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4'
-                                                : 'Box-root Box-background--white Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4'
-                                        }
-                                        style={{
-                                            cursor: 'pointer',
-                                            userSelect: 'none',
-                                        }}
-                                    >
-                                        <div className="Box-root Margin-right--8">
-                                            <div className="db-AccountSwitcherX-activeImage">
-                                                <div
-                                                    className={
-                                                        'db-AccountSwitcherX-accountImage Box-root Box-background--white'
-                                                    }
-                                                >
-                                                    <div className="db-AccountSwitcherX-accountImage--content db-AccountSwitcherX-accountImage--fallback" />
-                                                </div>
-                                            </div>
-                                        </div>
+                                <div className="Box-root Margin-right--8">
+                                    <div className="db-AccountSwitcherX-activeImage">
                                         <div
-                                            style={{
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                            }}
+                                            className={
+                                                'db-AccountSwitcherX-accountImage Box-root Box-background--white'
+                                            }
                                         >
-                                            <span
-                                                id={`span_${project.name}`}
-                                                className={
-                                                    isHovering
-                                                        ? 'Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap'
-                                                        : 'Text-color--default Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap'
-                                                }
-                                            >
-                                                {project.name}
-                                            </span>
+                                            <div className="db-AccountSwitcherX-accountImage--content db-AccountSwitcherX-accountImage--fallback" />
                                         </div>
                                     </div>
                                 </div>
+                                <div
+                                    style={{
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    <span
+                                        id={`span_${project.name}`}
+                                        className={
+                                            isHovering
+                                                ? 'Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap'
+                                                : 'Text-color--default Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap'
+                                        }
+                                    >
+                                        {project.name}
+                                    </span>
+                                </div>
                             </div>
-                        )}
-                    </ReactHoverObserver>
+                        </div>
+                    </div>
+                    {/* )}
+                    </ReactHoverObserver> */}
                 </div>,
                 this
             );

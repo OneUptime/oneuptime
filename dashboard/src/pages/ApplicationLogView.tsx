@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -60,8 +60,8 @@ class ApplicationLogView extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             String(prevProps.componentSlug) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                String(this.props.componentSlug) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+            String(this.props.componentSlug) ||
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
             prevProps.currentProject !== this.props.currentProject
         ) {
@@ -229,8 +229,8 @@ class ApplicationLogView extends Component {
                                                             <Fade>
                                                                 <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                                                                     {applicationLog[0] &&
-                                                                    applicationLog[0]
-                                                                        .showQuickStart ? (
+                                                                        applicationLog[0]
+                                                                            .showQuickStart ? (
                                                                         <ShouldRender
                                                                             if={
                                                                                 this

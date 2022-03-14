@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { loadPage } from '../actions/page';
 
 import { userScheduleRequest, fetchUserSchedule } from '../actions/schedule';
@@ -209,17 +209,17 @@ class Home extends Component {
                     ).getTime();
                     const end = isDifferentDay
                         ? new Date(
-                              new Date(new Date().getTime() + addDay).setHours(
-                                  endHour,
-                                  endMin
-                              )
-                          ).getTime()
+                            new Date(new Date().getTime() + addDay).setHours(
+                                endHour,
+                                endMin
+                            )
+                        ).getTime()
                         : new Date(
-                              new Date(new Date().getTime()).setHours(
-                                  endHour,
-                                  endMin
-                              )
-                          ).getTime();
+                            new Date(new Date().getTime()).setHours(
+                                endHour,
+                                endMin
+                            )
+                        ).getTime();
                     let current = new Date(
                         new Date().setHours(nowHour, nowMin)
                     ).getTime();
@@ -227,10 +227,10 @@ class Home extends Component {
                     current =
                         current < start && isDifferentDay
                             ? new Date(
-                                  new Date(
-                                      new Date().getTime() + addDay
-                                  ).setHours(nowHour, nowMin)
-                              ).getTime()
+                                new Date(
+                                    new Date().getTime() + addDay
+                                ).setHours(nowHour, nowMin)
+                            ).getTime()
                             : current;
 
                     if (current >= start && current <= end) return true;
@@ -298,55 +298,55 @@ class Home extends Component {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackers' does not exist on type 'R... Remove this comment to see the full error message
             this.props.errorTrackers && this.props.errorTrackers.length > 0
                 ? (errorEventList = (
-                      <div className="Box-root Margin-vertical--12">
-                          <div
-                              className="db-Trends Card-root"
-                              style={{ overflow: 'visible' }}
-                          >
-                              <ErrorTrackerList
-                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackers' does not exist on type 'R... Remove this comment to see the full error message
-                                  errorTrackers={this.props.errorTrackers}
-                                  showComponentWithIssue={true}
-                              />
-                          </div>
-                      </div>
-                  ))
+                    <div className="Box-root Margin-vertical--12">
+                        <div
+                            className="db-Trends Card-root"
+                            style={{ overflow: 'visible' }}
+                        >
+                            <ErrorTrackerList
+                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackers' does not exist on type 'R... Remove this comment to see the full error message
+                                errorTrackers={this.props.errorTrackers}
+                                showComponentWithIssue={true}
+                            />
+                        </div>
+                    </div>
+                ))
                 : (errorEventList = (
-                      <div>
-                          <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
-                              <div className="db-Trends-header Padding-vertical--48">
-                                  <div className="db-Trends-controls">
-                                      <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                          <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                              <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                  <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
-                                                      <span
-                                                          className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
-                                                          style={{
-                                                              filter:
-                                                                  'brightness(0) invert(1)',
-                                                              marginTop: '1px',
-                                                              marginRight:
-                                                                  '5px',
-                                                          }}
-                                                      />
-                                                      <span
-                                                          id="component-content-header"
-                                                          className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
-                                                      >
-                                                          You currently
-                                                          don&apos;t have any
-                                                          error events.
-                                                      </span>
-                                                  </span>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  ));
+                    <div>
+                        <div className="Box-root Margin-bottom--12 Card-shadow--medium Box-background--green Border-radius--4">
+                            <div className="db-Trends-header Padding-vertical--48">
+                                <div className="db-Trends-controls">
+                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                <span className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--center">
+                                                    <span
+                                                        className="db-SideNav-icon db-SideNav-icon--tick db-SideNav-icon--selected"
+                                                        style={{
+                                                            filter:
+                                                                'brightness(0) invert(1)',
+                                                            marginTop: '1px',
+                                                            marginRight:
+                                                                '5px',
+                                                        }}
+                                                    />
+                                                    <span
+                                                        id="component-content-header"
+                                                        className="ContentHeader-title Text-color--white Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-typeface--base Text-wrap--wrap"
+                                                    >
+                                                        You currently
+                                                        don&apos;t have any
+                                                        error events.
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ));
         }
 
         let ongoingEventList;
@@ -381,11 +381,11 @@ class Home extends Component {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlaBreaches' does not exist on ty... Remove this comment to see the full error message
             breachedMonitorSlaList = this.props.monitorSlaBreaches.map(
                 (monitor: $TSFixMe) => !monitor.monitorSla &&
-                !this.props
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultMonitorSla' does not exist on typ... Remove this comment to see the full error message
-                    .defaultMonitorSla ? null : !monitor.monitorSla &&
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultMonitorSla' does not exist on typ... Remove this comment to see the full error message
-                  this.props.defaultMonitorSla ? (
+                    !this.props
+                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultMonitorSla' does not exist on typ... Remove this comment to see the full error message
+                        .defaultMonitorSla ? null : !monitor.monitorSla &&
+                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultMonitorSla' does not exist on typ... Remove this comment to see the full error message
+                            this.props.defaultMonitorSla ? (
                     <RenderIfUserInSubProject
                         key={monitor._id}
                         subProjectId={
@@ -441,7 +441,7 @@ class Home extends Component {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
                     if={this.props.monitors && this.props.monitors.length > 0}
                 >
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ page: string; }' is not assignable to type... Remove this comment to see the full error message
+                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{page: string; }' is not assignable to type... Remove this comment to see the full error message
                     <AlertDisabledWarning page="Home" />
                 </ShouldRender>
                 <div className="Box-root">
@@ -507,7 +507,7 @@ class Home extends Component {
                                                                             if={
                                                                                 upcomingSchedules &&
                                                                                 upcomingSchedules.length >
-                                                                                    0
+                                                                                0
                                                                             }
                                                                         >
                                                                             <OnCallSchedule
@@ -528,7 +528,7 @@ class Home extends Component {
                                                                             if={
                                                                                 inactiveSchedules &&
                                                                                 inactiveSchedules.length >
-                                                                                    0
+                                                                                0
                                                                             }
                                                                         >
                                                                             <OnCallSchedule
@@ -547,12 +547,12 @@ class Home extends Component {
 
                                                                         {ongoingEventList &&
                                                                             ongoingEventList.length >
-                                                                                0 &&
+                                                                            0 &&
                                                                             ongoingEventList}
 
                                                                         {breachedMonitorSlaList &&
                                                                             breachedMonitorSlaList.length >
-                                                                                0 &&
+                                                                            0 &&
                                                                             breachedMonitorSlaList}
 
                                                                         <div className="Box-root Margin-bottom--12">
@@ -601,24 +601,24 @@ class Home extends Component {
                                                                                 .props
                                                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
                                                                                 .components &&
-                                                                            this
-                                                                                .props
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
-                                                                                .components
-                                                                                .length >
+                                                                                this
+                                                                                    .props
+                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
+                                                                                    .components
+                                                                                    .length >
                                                                                 0 &&
-                                                                            this
-                                                                                .props
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                                                                                .monitors &&
-                                                                            this
-                                                                                .props
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                                                                                .monitors
-                                                                                .length >
+                                                                                this
+                                                                                    .props
+                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+                                                                                    .monitors &&
+                                                                                this
+                                                                                    .props
+                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+                                                                                    .monitors
+                                                                                    .length >
                                                                                 0 ? (
                                                                                 incidentslist &&
-                                                                                incidentslist.length >
+                                                                                    incidentslist.length >
                                                                                     0 ? (
                                                                                     incidentslist
                                                                                 ) : (

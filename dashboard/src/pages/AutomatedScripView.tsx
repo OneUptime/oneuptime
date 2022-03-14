@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import PropTypes from 'prop-types';
 import getParentRoute from '../utils/getParentRoute';
@@ -354,7 +354,7 @@ const AutomatedScripView = (props: $TSFixMe) => {
                                                                                         scriptLogs
                                                                                             .log
                                                                                             .length >
-                                                                                            0 &&
+                                                                                        0 &&
                                                                                         scriptLogs.log.map(
                                                                                             (
                                                                                                 log: $TSFixMe,
@@ -426,23 +426,23 @@ const AutomatedScripView = (props: $TSFixMe) => {
                                                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
                                                                                                             <div className="Box-root">
                                                                                                                 {log.status ===
-                                                                                                                'success' ? (
+                                                                                                                    'success' ? (
                                                                                                                     <Badge color="green">
                                                                                                                         {
                                                                                                                             log.status
                                                                                                                         }
                                                                                                                     </Badge>
                                                                                                                 ) : log.status ===
-                                                                                                                  'running' ? (
+                                                                                                                    'running' ? (
                                                                                                                     <Badge color="yellow">
                                                                                                                         {
                                                                                                                             log.status
                                                                                                                         }
                                                                                                                     </Badge>
                                                                                                                 ) : log.status ===
-                                                                                                                  'failed' ? (
+                                                                                                                    'failed' ? (
                                                                                                                     log.error ===
-                                                                                                                    'stackoverflow' ? (
+                                                                                                                        'stackoverflow' ? (
                                                                                                                         <Badge color="red">
                                                                                                                             {
                                                                                                                                 log.error
@@ -527,7 +527,7 @@ const AutomatedScripView = (props: $TSFixMe) => {
                                                                                             scriptLogs
                                                                                                 .log
                                                                                                 .length ===
-                                                                                                0) ||
+                                                                                            0) ||
                                                                                         !scriptLogs
                                                                                     }
                                                                                 >
@@ -567,7 +567,7 @@ const AutomatedScripView = (props: $TSFixMe) => {
                                                                                                             }
                                                                                                         </span>{' '}
                                                                                                         {count &&
-                                                                                                        count >
+                                                                                                            count >
                                                                                                             1
                                                                                                             ? 'Logs'
                                                                                                             : 'Log'}

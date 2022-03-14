@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 // @ts-expect-error ts-migrate(2307) FIXME: Cannot find module '../components/status-page/Stat... Remove this comment to see the full error message
 import StatusPagesTable from '../components/status-page/StatusPagesTable';
 import PropTypes from 'prop-types';

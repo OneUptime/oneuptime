@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
@@ -51,9 +51,8 @@ class EventBox extends Component {
             return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
         }
 
-        return `${monitors[0].monitorId.name}, ${
-            monitors[1].monitorId.name
-        } and ${monitors.length - 2} others`;
+        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
+            } and ${monitors.length - 2} others`;
     };
 
     handleScheduledEventDetail = (scheduledEventSlug: $TSFixMe) => {
@@ -134,10 +133,10 @@ class EventBox extends Component {
         projectName = projectName
             ? projectName
             : currentProject
-            ? currentProject.name
-            : currentSubProject
-            ? currentSubProject.name
-            : '';
+                ? currentProject.name
+                : currentSubProject
+                    ? currentSubProject.name
+                    : '';
 
         const noMonitorMessage = (
             <span>
@@ -208,7 +207,7 @@ class EventBox extends Component {
                                                     <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                                 </div>
                                                 {allScheduleEventLength ===
-                                                1 ? (
+                                                    1 ? (
                                                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                         <span>
                                                             Create New Event
@@ -257,7 +256,7 @@ class EventBox extends Component {
                                                     <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                                 </div>
                                                 {allScheduleEventLength ===
-                                                1 ? (
+                                                    1 ? (
                                                     <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
                                                         <span>
                                                             Create New Event
@@ -338,29 +337,29 @@ class EventBox extends Component {
                                                         Cancelled
                                                     </Badge>
                                                 ) : !scheduledEvent.cancelled &&
-                                                  !scheduledEvent.resolved ? (
+                                                    !scheduledEvent.resolved ? (
                                                     moment() <
-                                                    moment(
-                                                        scheduledEvent.startDate
-                                                    ) ? (
+                                                        moment(
+                                                            scheduledEvent.startDate
+                                                        ) ? (
                                                         <Badge color={'blue'}>
                                                             Scheduled
                                                         </Badge>
                                                     ) : moment() >=
-                                                          moment(
-                                                              scheduledEvent.startDate
-                                                          ) &&
-                                                      moment() <
-                                                          moment(
-                                                              scheduledEvent.endDate
-                                                          ) ? (
+                                                        moment(
+                                                            scheduledEvent.startDate
+                                                        ) &&
+                                                        moment() <
+                                                        moment(
+                                                            scheduledEvent.endDate
+                                                        ) ? (
                                                         <Badge color={'yellow'}>
                                                             Ongoing
                                                         </Badge>
                                                     ) : moment() >
-                                                      moment(
-                                                          scheduledEvent.endDate
-                                                      ) ? (
+                                                        moment(
+                                                            scheduledEvent.endDate
+                                                        ) ? (
                                                         <Badge color={'blue'}>
                                                             Ended
                                                         </Badge>
@@ -490,7 +489,7 @@ class EventBox extends Component {
                                             !(
                                                 (!scheduledEvents ||
                                                     scheduledEvents.length ===
-                                                        0) &&
+                                                    0) &&
                                                 !requesting &&
                                                 !error
                                             )
@@ -565,8 +564,8 @@ class EventBox extends Component {
                                     <span>
                                         {(!scheduledEvents ||
                                             scheduledEvents.length === 0) &&
-                                        !requesting &&
-                                        !error
+                                            !requesting &&
+                                            !error
                                             ? 'You have no scheduled maintenance event at this time'
                                             : null}
                                         {error ? error : null}
@@ -586,34 +585,34 @@ class EventBox extends Component {
                                             >
                                                 {numberOfPages > 0
                                                     ? `Page ${
-                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                          !this.props.pages[
-                                                              projectId
-                                                          ]
-                                                              ? 1
-                                                              : this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                                    .pages[
-                                                                    projectId
-                                                                ]
-                                                      } of ${numberOfPages} (${
-                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                          this.props.count
-                                                      } Event${
-                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                          this.props.count === 1
-                                                              ? ''
-                                                              : 's'
-                                                      })`
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                                                    !this.props.pages[
+                                                        projectId
+                                                    ]
+                                                        ? 1
+                                                        : this.props
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                                                            .pages[
+                                                        projectId
+                                                        ]
+                                                    } of ${numberOfPages} (${
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                                                    this.props.count
+                                                    } Event${
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                                                    this.props.count === 1
+                                                        ? ''
+                                                        : 's'
+                                                    })`
                                                     : `${
-                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                          this.props.count
-                                                      } Event${
-                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                          this.props.count === 1
-                                                              ? ''
-                                                              : 's'
-                                                      }`}
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                                                    this.props.count
+                                                    } Event${
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+                                                    this.props.count === 1
+                                                        ? ''
+                                                        : 's'
+                                                    }`}
                                             </span>
                                         </span>
                                     </span>

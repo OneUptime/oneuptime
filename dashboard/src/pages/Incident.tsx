@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import {
     incidentRequest,
     incidentError,
@@ -71,8 +71,8 @@ class Incident extends React.Component {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
             prevProps.projectId !== this.props.projectId ||
             (prevProps.incident && prevProps.incident._id) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
-                (this.props.incident && this.props.incident._id) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+            (this.props.incident && this.props.incident._id) ||
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
             prevProps.componentSlug !== this.props.componentSlug
         ) {
@@ -159,8 +159,8 @@ class Incident extends React.Component {
             this.props.incidentSlug,
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
             parseInt(this.props.subscribersAlerts.skip, 10) +
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
-                parseInt(this.props.subscribersAlerts.limit, 10),
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
+            parseInt(this.props.subscribersAlerts.limit, 10),
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
@@ -179,8 +179,8 @@ class Incident extends React.Component {
             this.props.incidentSlug,
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
             parseInt(this.props.subscribersAlerts.skip, 10) -
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
-                parseInt(this.props.subscribersAlerts.limit, 10),
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
+            parseInt(this.props.subscribersAlerts.limit, 10),
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
@@ -639,48 +639,48 @@ class Incident extends React.Component {
                             <Fade>
                                 {monitorList && monitorList.length > 1
                                     ? monitorList.map((monitor: $TSFixMe) => <div
-                                    key={monitor._id}
-                                    className="Box-root Margin-bottom--12"
-                                >
-                                    <MonitorViewLogsBox
-                                        incidentId={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
-                                            this.props.incident._id
-                                        }
-                                        monitorId={monitor._id}
-                                        monitorName={monitor.name}
-                                        monitorType={monitor.type}
-                                        agentless={
-                                            monitor &&
-                                            monitor.agentlessConfig
-                                        }
-                                    />
-                                </div>)
+                                        key={monitor._id}
+                                        className="Box-root Margin-bottom--12"
+                                    >
+                                        <MonitorViewLogsBox
+                                            incidentId={
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+                                                this.props.incident._id
+                                            }
+                                            monitorId={monitor._id}
+                                            monitorName={monitor.name}
+                                            monitorType={monitor.type}
+                                            agentless={
+                                                monitor &&
+                                                monitor.agentlessConfig
+                                            }
+                                        />
+                                    </div>)
                                     : monitorList[0] && (
-                                          <div
-                                              key={monitorList[0]._id}
-                                              className="Box-root Margin-bottom--12"
-                                          >
-                                              <MonitorViewLogsBox
-                                                  incidentId={
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
-                                                      this.props.incident._id
-                                                  }
-                                                  monitorId={monitorList[0]._id}
-                                                  monitorName={
-                                                      monitorList[0].name
-                                                  }
-                                                  monitorType={
-                                                      monitorList[0].type
-                                                  }
-                                                  agentless={
-                                                      monitorList[0] &&
-                                                      monitorList[0]
-                                                          .agentlessConfig
-                                                  }
-                                              />
-                                          </div>
-                                      )}
+                                        <div
+                                            key={monitorList[0]._id}
+                                            className="Box-root Margin-bottom--12"
+                                        >
+                                            <MonitorViewLogsBox
+                                                incidentId={
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+                                                    this.props.incident._id
+                                                }
+                                                monitorId={monitorList[0]._id}
+                                                monitorName={
+                                                    monitorList[0].name
+                                                }
+                                                monitorType={
+                                                    monitorList[0].type
+                                                }
+                                                agentless={
+                                                    monitorList[0] &&
+                                                    monitorList[0]
+                                                        .agentlessConfig
+                                                }
+                                            />
+                                        </div>
+                                    )}
                             </Fade>
                         </TabPanel>
                         <TabPanel>
@@ -849,9 +849,9 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
 
     const projectId = componentSlug
         ? state.component.currentComponent.component &&
-          state.component.currentComponent.component.projectId._id
+        state.component.currentComponent.component.projectId._id
         : state.project.projectSlug.project &&
-          state.project.projectSlug.project._id;
+        state.project.projectSlug.project._id;
 
     const scheduleWarning: $TSFixMe = [];
     state.schedule.subProjectSchedules.forEach((item: $TSFixMe) => {

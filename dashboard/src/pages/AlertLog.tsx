@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import Fade from 'react-reveal/Fade';
+import Fade from 'react-awesome-reveal/Fade';
 import { fetchAlert, fetchProjectAlert } from '../actions/alert';
 import PropTypes from 'prop-types';
 import AlertProjectBox from '../components/alert/AlertProjectBox';
@@ -110,8 +110,8 @@ class AlertLog extends Component {
         }
         let canNext =
             projectAlert &&
-            projectAlert.count &&
-            projectAlert.count > projectAlert.skip + projectAlert.limit
+                projectAlert.count &&
+                projectAlert.count > projectAlert.skip + projectAlert.limit
                 ? true
                 : false;
         let canPrev = projectAlert && projectAlert.skip <= 0 ? false : true;
