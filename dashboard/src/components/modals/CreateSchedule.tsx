@@ -5,7 +5,6 @@ import { bindActionCreators } from 'redux';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { change } from 'redux-form';
 import moment from 'moment';
-import 'imrc-datetime-picker/dist/imrc-datetime-picker.css';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 import { reduxForm, Field, formValueSelector } from 'redux-form';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
@@ -664,7 +663,7 @@ class CreateSchedule extends React.Component {
                                                         </fieldset>
                                                         {formValues &&
                                                             formValues.selectMonitor ===
-                                                                'selectSpecificMonitors' && (
+                                                            'selectSpecificMonitors' && (
                                                                 <div className="bs-Fieldset-fields">
                                                                     <div
                                                                         className="bs-Fieldset-field"
@@ -677,14 +676,12 @@ class CreateSchedule extends React.Component {
                                                                             ready={
                                                                                 true
                                                                             }
-                                                                            value={`${
-                                                                                selectedMonitors.length
-                                                                            } Monitor${
-                                                                                selectedMonitors.length >
-                                                                                0
+                                                                            value={`${selectedMonitors.length
+                                                                                } Monitor${selectedMonitors.length >
+                                                                                    0
                                                                                     ? 's'
                                                                                     : ''
-                                                                            } Selected`}
+                                                                                } Selected`}
                                                                             updateState={
                                                                                 this
                                                                                     .updateState
@@ -1063,7 +1060,7 @@ class CreateSchedule extends React.Component {
                                             </div>
                                         </div>
                                         {formValues &&
-                                        formValues.showAdvance ? (
+                                            formValues.showAdvance ? (
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
                                                     <span></span>

@@ -5,6 +5,7 @@
     "type": "module",
     "dependencies": {
         "common-server": "file:../common-server",
+        "common-ui": "file:../common-ui",
         "axios": "^0.21.1",
         "card-validator": "^8.1.1",
         "clipboard": "^2.0.8",
