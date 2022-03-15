@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -12,7 +12,7 @@ import IncidentCommunicationSlaService from '../services/incidentCommunicationSl
 
 const router = express.Router();
 
-router.get('/:projectId', getUser, isAuthorized, async function(
+router.get('/:projectId', getUser, isAuthorized, async function (
     req: Request,
     res: Response
 ) {
@@ -47,7 +47,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function(
+router.post('/:projectId', getUser, isAuthorized, async function (
     req: Request,
     res: Response
 ) {
@@ -101,7 +101,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.put('/:projectId/:incidentSlaId', getUser, isAuthorized, async function(
+router.put('/:projectId/:incidentSlaId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -161,7 +161,7 @@ router.delete(
     '/:projectId/:incidentSlaId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, incidentSlaId } = req.params;
 
@@ -182,7 +182,7 @@ router.get(
     '/:projectId/defaultCommunicationSla',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId } = req.params;
 

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 const router = express.Router();
 import {
     sendErrorResponse,

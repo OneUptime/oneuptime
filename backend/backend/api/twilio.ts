@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import IncidentService from '../services/incidentService';
 import UserService from '../services/userService';
 const {
@@ -105,7 +105,7 @@ router.get('/voice/status', async (req: Request, res: Response) => {
  * @returns Twiml with with action status.
  */
 
-router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
+router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -133,7 +133,7 @@ router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/sms/verify', getUser, isAuthorized, async function(
+router.post('/sms/verify', getUser, isAuthorized, async function (
     req: Request,
     res: Response
 ) {
@@ -186,7 +186,7 @@ router.post('/sms/verify', getUser, isAuthorized, async function(
     }
 });
 
-router.post('/sms/test', getUser, isUserMasterAdmin, async function(
+router.post('/sms/test', getUser, isUserMasterAdmin, async function (
     req: Request,
     res: Response
 ) {

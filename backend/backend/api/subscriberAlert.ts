@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import SubscriberAlertService from '../services/subscriberAlertService';
 import path from 'path';
 import fs from 'fs';
@@ -42,7 +42,7 @@ router.post(
 );
 
 // Mark alert as viewed
-router.get('/:projectId/:alertId/viewed', async function(
+router.get('/:projectId/:alertId/viewed', async function (
     req: Request,
     res: Response
 ) {

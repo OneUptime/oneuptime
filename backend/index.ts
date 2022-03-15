@@ -1,7 +1,7 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import logger from 'common-server/utils/logger';
 
 import expressRequestId from 'express-request-id';
@@ -63,7 +63,7 @@ global.io = io;
 
 app.use(cors());
 
-app.use(async function(req: Request, res: Response, next: Function) {
+app.use(async function (req: Request, res: Response, next: Function) {
     const method = req.method;
     const url = req.url;
     const requestStartedAt = Date.now();
@@ -85,20 +85,18 @@ app.use(async function(req: Request, res: Response, next: Function) {
     req.logdata = logdata;
 
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${
-            process.env.POD_NAME
+        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${process.env.POD_NAME
         } -- RECEIVED AT: ${new Date()} -- METHOD: ${method} -- URL: ${url}`
     );
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${
-            req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
         }`
     );
 
     next();
 });
 
-app.use(function(req: Request, res: Response, next: Function) {
+app.use(function (req: Request, res: Response, next: Function) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -465,7 +463,7 @@ app.use(
 
 app.use(['/api'], require('./backend/api/apiStatus'));
 
-app.use('/*', function(req: Request, res: Response) {
+app.use('/*', function (req: Request, res: Response) {
     res.status(404).send('Endpoint not found.');
 });
 
@@ -474,7 +472,7 @@ require('./backend/workers/main');
 
 app.set('port', process.env.PORT || 3002);
 
-const server = http.listen(app.get('port'), function() {
+const server = http.listen(app.get('port'), function () {
     logger.info('Server Started on port ' + app.get('port'));
 });
 
@@ -487,7 +485,7 @@ mongoose.connection.on('connected', async () => {
                 maintainerEmail: 'certs@oneuptime.com',
                 staging: false,
 
-                notify: function(event, details) {
+                notify: function (event, details) {
                     if ('error' === event) {
                         // `details` is an error object in this case
                         // eslint-disable-next-line no-console
@@ -517,6 +515,6 @@ mongoose.connection.on('connected', async () => {
 });
 
 export default app;
-module.exports.close = function() {
+module.exports.close = function () {
     server.close();
 };

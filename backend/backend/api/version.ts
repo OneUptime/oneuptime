@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 const router = express.Router();
 
 import {
@@ -6,7 +6,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.get('/', function(req: Request, res: Response) {
+router.get('/', function (req: Request, res: Response) {
     try {
         return sendItemResponse(req, res, {
             server: process.env.npm_package_version,

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import ReportService from '../services/reportService';
 
 import { isAuthorized } from '../middlewares/authorization';

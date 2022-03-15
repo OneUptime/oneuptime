@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import MonitorService from '../services/monitorService';
 const router = express.Router();
 const isAuthorizedProbe = require('../middlewares/probeAuthorization')

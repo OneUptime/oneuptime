@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 
 import { isAuthorized } from '../middlewares/authorization';
 
@@ -13,7 +13,7 @@ import CustomFieldService from '../services/customFieldService';
 
 const router = express.Router();
 
-router.post('/:projectId', getUser, isAuthorized, async function(
+router.post('/:projectId', getUser, isAuthorized, async function (
     req: Request,
     res: Response
 ) {
@@ -63,7 +63,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(
+router.get('/:projectId', getUser, isAuthorized, async function (
     req: Request,
     res: Response
 ) {
@@ -93,7 +93,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
+router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -149,7 +149,7 @@ router.delete(
     '/:projectId/:customFieldId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, customFieldId } = req.params;
 

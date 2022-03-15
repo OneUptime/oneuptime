@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 const router = express.Router();
 import LeadService from '../services/leadService';
 import {
@@ -7,7 +7,7 @@ import {
 } from 'common-server/utils/response';
 
 //Public API to capture leads. Type is Demo or Whitepaper.
-router.post('/', async function(req: Request, res: Response) {
+router.post('/', async function (req: Request, res: Response) {
     try {
         const body = req.body;
         const data = {};

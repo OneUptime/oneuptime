@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import axios from 'axios';
 import UserService from '../services/userService';
 import MonitorService from '../services/monitorService';

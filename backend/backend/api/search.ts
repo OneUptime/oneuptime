@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 const getUser = require('../middlewares/user').getUser;
@@ -19,7 +19,7 @@ import { getSubProjects } from '../middlewares/subProject';
 
 const router = express.Router();
 
-router.post('/:projectId', getUser, getSubProjects, async function(
+router.post('/:projectId', getUser, getSubProjects, async function (
     req: Request,
     res: Response
 ) {

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
@@ -38,7 +38,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const componentId = req.params.componentId;
@@ -107,7 +107,7 @@ router.post(
 );
 
 // Description: Get all Error Trackers by componentId.
-router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
+router.get('/:projectId/:componentId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -138,7 +138,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { errorTrackerId, componentId } = req.params;
         try {
             const errorTracker = await ErrorTrackerService.deleteBy(
@@ -169,7 +169,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const errorTrackerId = req.params.errorTrackerId;
         const select =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
@@ -213,7 +213,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { errorTrackerId, componentId } = req.params;
 
         const data = req.body;
@@ -322,7 +322,7 @@ router.put(
 );
 
 // Description: send an error event to the server.
-router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
+router.post('/:errorTrackerId/track', isErrorTrackerValid, async function (
     req,
     res
 ) {
@@ -388,7 +388,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/issues',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { skip, limit, startDate, endDate, filters } = req.body;
             const errorTrackerId = req.params.errorTrackerId;
@@ -444,7 +444,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/error-events/:errorEventId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const errorEventId = req.params.errorEventId;
             if (!errorEventId) {
@@ -495,7 +495,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/issues/:issueId/details',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const issueId = req.params.issueId;
             if (!issueId) {
@@ -538,7 +538,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/issues/action',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { issueId, action } = req.body;
             if (!issueId) {
@@ -724,7 +724,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/error-events',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const {
                 skip,
@@ -787,7 +787,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/members/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const componentId = req.params.componentId;
             if (!componentId) {
@@ -865,7 +865,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/assign/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { teamMemberId } = req.body;
             if (!teamMemberId) {
@@ -1013,7 +1013,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/unassign/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { teamMemberId } = req.body;
             if (!teamMemberId) {
@@ -1146,7 +1146,7 @@ router.delete(
     '/:projectId/:componentId/:errorTrackerId/issue/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const componentId = req.params.componentId;
             if (!componentId) {

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import SmsSmtpService from '../services/smsSmtpService';
 import TwilioService from '../services/twilioService';
 const router = express.Router();
@@ -11,7 +11,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.post('/:projectId', getUser, isAuthorized, async function(
+router.post('/:projectId', getUser, isAuthorized, async function (
     req: Request,
     res: Response
 ) {
@@ -48,7 +48,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(
+router.get('/:projectId', getUser, isAuthorized, async function (
     req: Request,
     res: Response
 ) {
@@ -68,7 +68,7 @@ router.get('/:projectId', getUser, isAuthorized, async function(
     }
 });
 
-router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function(
+router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -88,7 +88,7 @@ router.put('/:projectId/:smsSmtpId', getUser, isAuthorized, async function(
     }
 });
 
-router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function(
+router.delete('/:projectId/:smsSmtpId', getUser, isUserOwner, async function (
     req,
     res
 ) {

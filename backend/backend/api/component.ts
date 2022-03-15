@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 import NotificationService from '../services/notificationService';
@@ -35,7 +35,7 @@ import moment from 'moment';
 // Params:
 // Param 1: req.params-> {projectId}; req.body -> {[_id], name, type, data, visibleOnStatusPage} <- Check ComponentMoal for description.
 // Returns: response status, error message
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
+router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
     req,
     res
 ) {
@@ -102,7 +102,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const { componentId } = req.params;
@@ -131,7 +131,7 @@ router.put(
 
 // Route
 // Description: Get all Components by projectId.
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
+router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (
     req,
     res
 ) {
@@ -152,7 +152,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
 
 // Route
 // Description: Get all Components by pagination.
-router.get('/:projectId/paginated', getUser, isAuthorized, async function(
+router.get('/:projectId/paginated', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -172,7 +172,7 @@ router.get('/:projectId/paginated', getUser, isAuthorized, async function(
     }
 });
 
-router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
+router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function (
     req,
     res
 ) {
@@ -202,7 +202,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const type = req.query.type;
 
@@ -245,7 +245,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
@@ -282,7 +282,7 @@ router.post(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { startDate, endDate } = req.body;
             const componentId = req.params.componentId;
@@ -382,7 +382,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
@@ -489,15 +489,14 @@ router.get(
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: `${
-                        elem.type === 'server-monitor'
+                    type: `${elem.type === 'server-monitor'
                             ? 'server monitor'
                             : elem.type === 'url'
-                            ? 'website monitor'
-                            : elem.type === 'ip'
-                            ? 'IP monitor'
-                            : elem.type + ` monitor`
-                    }`,
+                                ? 'website monitor'
+                                : elem.type === 'ip'
+                                    ? 'IP monitor'
+                                    : elem.type + ` monitor`
+                        }`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                     slug: elem.slug,
@@ -696,7 +695,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -760,7 +759,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { componentId, projectId } = req.params;
         try {
             await ComponentService.deleteBy(

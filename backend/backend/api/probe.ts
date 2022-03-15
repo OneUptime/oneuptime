@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
@@ -19,7 +19,7 @@ import { isAuthorized } from '../middlewares/authorization';
 import multer from 'multer';
 import storage from '../middlewares/upload';
 
-router.post('/', getUser, isAuthorizedAdmin, async function(
+router.post('/', getUser, isAuthorizedAdmin, async function (
     req: Request,
     res: Response
 ) {
@@ -32,7 +32,7 @@ router.post('/', getUser, isAuthorizedAdmin, async function(
     }
 });
 
-router.get('/', getUser, isAuthorizedAdmin, async function(
+router.get('/', getUser, isAuthorizedAdmin, async function (
     req: Request,
     res: Response
 ) {
@@ -56,7 +56,7 @@ router.get('/', getUser, isAuthorizedAdmin, async function(
     }
 });
 
-router.put('/:id', getUser, isAuthorizedAdmin, async function(
+router.put('/:id', getUser, isAuthorizedAdmin, async function (
     req: Request,
     res: Response
 ) {
@@ -72,7 +72,7 @@ router.put('/:id', getUser, isAuthorizedAdmin, async function(
     }
 });
 
-router.delete('/:id', getUser, isAuthorizedAdmin, async function(
+router.delete('/:id', getUser, isAuthorizedAdmin, async function (
     req: Request,
     res: Response
 ) {
@@ -90,7 +90,7 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
 
-router.put('/update/image', getUser, async function(
+router.put('/update/image', getUser, async function (
     req: Request,
     res: Response
 ) {
@@ -103,7 +103,7 @@ router.put('/update/image', getUser, async function(
                 maxCount: 1,
             },
         ]);
-        upload(req, res, async function(error: $TSFixMe) {
+        upload(req, res, async function (error: $TSFixMe) {
             const probeId = req.body.id;
             const data = req.body;
 
@@ -127,7 +127,7 @@ router.put('/update/image', getUser, async function(
     }
 });
 
-router.get('/monitors', isAuthorizedProbe, async function(
+router.get('/monitors', isAuthorizedProbe, async function (
     req: Request,
     res: Response
 ) {
@@ -148,7 +148,7 @@ router.get('/monitors', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/ping/:monitorId', isAuthorizedProbe, async function(
+router.post('/ping/:monitorId', isAuthorizedProbe, async function (
     req,
     response
 ) {
@@ -189,17 +189,17 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
                         ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.up,
-                              res,
-                              resp,
-                              rawResp
-                          )
+                            monitor.type,
+                            monitor.criteria.up,
+                            res,
+                            resp,
+                            rawResp
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
@@ -208,17 +208,17 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
                         ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.degraded,
-                              res,
-                              resp,
-                              rawResp
-                          )
+                            monitor.type,
+                            monitor.criteria.degraded,
+                            res,
+                            resp,
+                            rawResp
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
@@ -227,22 +227,22 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
                         ? ProbeService.conditions(
-                              monitor.type,
-                              [
-                                  ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
-                                  ),
-                              ],
-                              res,
-                              resp,
-                              rawResp
-                          )
+                            monitor.type,
+                            [
+                                ...monitor.criteria.down.filter(
+                                    (criterion: $TSFixMe) =>
+                                        criterion.default !== true
+                                ),
+                            ],
+                            res,
+                            resp,
+                            rawResp
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
 
                 if (validUp) {
                     status = 'online';
@@ -287,17 +287,17 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
                         ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.up,
-                              res,
-                              resp,
-                              rawResp
-                          )
+                            monitor.type,
+                            monitor.criteria.up,
+                            res,
+                            resp,
+                            rawResp
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
@@ -306,22 +306,22 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
                         ? ProbeService.conditions(
-                              monitor.type,
-                              [
-                                  ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
-                                  ),
-                              ],
-                              res,
-                              resp,
-                              rawResp
-                          )
+                            monitor.type,
+                            [
+                                ...monitor.criteria.down.filter(
+                                    (criterion: $TSFixMe) =>
+                                        criterion.default !== true
+                                ),
+                            ],
+                            res,
+                            resp,
+                            rawResp
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
                 if (validUp) {
                     status = 'online';
                     reason = upSuccessReasons;
@@ -353,14 +353,14 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
                         ? ProbeService.scriptConditions(
-                              resp,
-                              monitor.criteria.up
-                          )
+                            resp,
+                            monitor.criteria.up
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
 
                 const {
                     stat: validDown,
@@ -370,16 +370,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
                         ? ProbeService.scriptConditions(resp, [
-                              ...monitor.criteria.down.filter(
-                                  (criterion: $TSFixMe) =>
-                                      criterion.default !== true
-                              ),
-                          ])
+                            ...monitor.criteria.down.filter(
+                                (criterion: $TSFixMe) =>
+                                    criterion.default !== true
+                            ),
+                        ])
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
 
                 const {
                     stat: validDegraded,
@@ -389,14 +389,14 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
                         ? ProbeService.scriptConditions(
-                              resp,
-                              monitor.criteria.degraded
-                          )
+                            resp,
+                            monitor.criteria.degraded
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
 
                 if (validUp) {
                     status = 'online';
@@ -442,15 +442,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
                         ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.up,
-                              data
-                          )
+                            monitor.type,
+                            monitor.criteria.up,
+                            data
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
@@ -459,15 +459,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
                         ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.degraded,
-                              data
-                          )
+                            monitor.type,
+                            monitor.criteria.degraded,
+                            data
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
@@ -476,20 +476,20 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
                         ? ProbeService.conditions(
-                              monitor.type,
-                              [
-                                  ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
-                                  ),
-                              ],
-                              data
-                          )
+                            monitor.type,
+                            [
+                                ...monitor.criteria.down.filter(
+                                    (criterion: $TSFixMe) =>
+                                        criterion.default !== true
+                                ),
+                            ],
+                            data
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
 
                 if (validUp) {
                     data.status = 'online';
@@ -577,16 +577,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.up
                         ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.up,
+                            monitor.type,
+                            monitor.criteria.up,
 
-                              data.kubernetesData
-                          )
+                            data.kubernetesData
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
 
                 const {
                     stat: validDegraded,
@@ -596,16 +596,16 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.degraded
                         ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.degraded,
+                            monitor.type,
+                            monitor.criteria.degraded,
 
-                              data.kubernetesData
-                          )
+                            data.kubernetesData
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
 
                 const {
                     stat: validDown,
@@ -615,21 +615,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 }: $TSFixMe =
                     monitor && monitor.criteria && monitor.criteria.down
                         ? ProbeService.conditions(
-                              monitor.type,
-                              [
-                                  ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
-                                  ),
-                              ],
+                            monitor.type,
+                            [
+                                ...monitor.criteria.down.filter(
+                                    (criterion: $TSFixMe) =>
+                                        criterion.default !== true
+                                ),
+                            ],
 
-                              data.kubernetesData
-                          )
+                            data.kubernetesData
+                        )
                         : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                            stat: false,
+                            successReasons: [],
+                            failedReasons: [],
+                        };
 
                 if (validUp) {
                     data.status = 'online';
@@ -690,9 +690,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             data.reason =
                 data && data.reason && data.reason.length
                     ? data.reason.filter(
-                          (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
-                              self.indexOf(item) === pos
-                      )
+                        (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
+                            self.indexOf(item) === pos
+                    )
                     : data.reason;
             const index =
                 data.reason && data.reason.indexOf('Request Timed out');
@@ -700,9 +700,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 data.reason =
                     data && data.reason && data.reason.length
                         ? data.reason.filter(
-                              (item: $TSFixMe) =>
-                                  !item.includes('Response Time is')
-                          )
+                            (item: $TSFixMe) =>
+                                !item.includes('Response Time is')
+                        )
                         : data.reason;
             }
 
@@ -764,7 +764,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/setTime/:monitorId', isAuthorizedProbe, async function(
+router.post('/setTime/:monitorId', isAuthorizedProbe, async function (
     req: Request,
     res: Response
 ) {
@@ -780,7 +780,7 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function(
     }
 });
 
-router.post('/getTime/:monitorId', isAuthorizedProbe, async function(
+router.post('/getTime/:monitorId', isAuthorizedProbe, async function (
     req: Request,
     res: Response
 ) {
@@ -796,7 +796,7 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function(
     }
 });
 
-router.get('/:projectId/probes', getUser, isAuthorized, async function(
+router.get('/:projectId/probes', getUser, isAuthorized, async function (
     req,
     res
 ) {

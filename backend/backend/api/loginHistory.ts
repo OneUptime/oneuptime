@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 import loginHistoryService from '../services/loginHistoryService';
 
 const router = express.Router();
@@ -10,7 +10,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.get('/:userId', getUser, isAuthorized, async function(
+router.get('/:userId', getUser, isAuthorized, async function (
     req: Request,
     res: Response
 ) {

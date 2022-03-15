@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 const router = express.Router();
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
@@ -9,7 +9,7 @@ import { sendErrorResponse } from 'common-server/utils/response';
 
 import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 
-router.get('/', getUser, isUserMasterAdmin, async function(
+router.get('/', getUser, isUserMasterAdmin, async function (
     req: Request,
     res: Response
 ) {
@@ -41,7 +41,7 @@ router.get('/', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.delete('/:id', getUser, isUserMasterAdmin, async function(
+router.delete('/:id', getUser, isUserMasterAdmin, async function (
     req: Request,
     res: Response
 ) {
@@ -56,7 +56,7 @@ router.delete('/:id', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.post('/', getUser, isUserMasterAdmin, async function(
+router.post('/', getUser, isUserMasterAdmin, async function (
     req: Request,
     res: Response
 ) {
@@ -69,7 +69,7 @@ router.post('/', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.get('/:id', getUser, isUserMasterAdmin, async function(
+router.get('/:id', getUser, isUserMasterAdmin, async function (
     req: Request,
     res: Response
 ) {
@@ -98,7 +98,7 @@ router.get('/:id', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.put('/:id', getUser, isUserMasterAdmin, async function(
+router.put('/:id', getUser, isUserMasterAdmin, async function (
     req: Request,
     res: Response
 ) {

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -53,8 +53,8 @@ router.get(
     async (req: Request, res: Response) => {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => {
-                  return { id: project._id, name: project.name };
-              })
+                return { id: project._id, name: project.name };
+            })
             : null;
         try {
             const groups = await Promise.all(

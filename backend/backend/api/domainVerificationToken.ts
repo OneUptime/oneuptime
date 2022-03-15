@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'common-server/utils/express';
 
 import psl from 'psl';
 
@@ -46,9 +46,8 @@ router.put(
                         ? txtRecords.join(', ')
                         : txtRecords[0];
                 return sendErrorResponse(req, res, {
-                    message: `Please specify ${verificationToken} in your DNS. Looks like your current ${
-                        txtRecords.length > 1 ? 'records are' : 'record is'
-                    } ${records}`,
+                    message: `Please specify ${verificationToken} in your DNS. Looks like your current ${txtRecords.length > 1 ? 'records are' : 'record is'
+                        } ${records}`,
                     code: 400,
                 });
             }
