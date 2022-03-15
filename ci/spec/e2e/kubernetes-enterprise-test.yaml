@@ -12,7 +12,7 @@ e2e_microk8s_enterprise_test:
         - export BACKEND_URL=http://localhost/api
         - export LICENSING_URL=http://localhost/license
         - cd tests
-        - npm ci
+        - npm install
         - npm run enterprise-test
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh

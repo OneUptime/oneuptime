@@ -3,7 +3,7 @@ smoke_test_staging:
     allow_failure: true
     script:
         - cd tests
-        - npm ci
+        - npm install
         - npm run-script staging-test
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh

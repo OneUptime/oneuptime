@@ -19,7 +19,7 @@ RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/
-RUN npm ci
+RUN npm install
 COPY ./common-server /usr/src/common-server
 
 
@@ -44,7 +44,7 @@ RUN mv ./kubectl /usr/local/bin/kubectl && \
 
 # Install app dependencies
 COPY ./probe/package*.json /usr/src/app/
-RUN npm ci
+RUN npm install
 RUN npm install -g ts-node
 
 # Bundle app source

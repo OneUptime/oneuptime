@@ -23,7 +23,7 @@ e2e_docker_compose_test:
         - export STATUSPAGE_URL=http://localhost:3006
         - export APIDOCS_URL=http://localhost:1445
         - cd tests
-        - npm ci
+        - npm install
         - npm run test
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh

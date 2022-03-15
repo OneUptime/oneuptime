@@ -28,6 +28,7 @@ services:
             - '3002:3002'
         build:
             context: .
+            network: host
             dockerfile: ./backend/Dockerfile
         env_file:
             - ./backend/.env
@@ -48,6 +49,7 @@ services:
             - '3003:3003'
         build:
             context: .
+            network: host
             dockerfile: ./accounts/Dockerfile
         env_file:
             - ./accounts/.env
@@ -60,6 +62,7 @@ services:
             - '3000:3000'
         build:
             context: .
+            network: host
             dockerfile: ./dashboard/Dockerfile
         env_file:
             - ./dashboard/.env
@@ -77,12 +80,14 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
             context: .
+            network: host
             dockerfile: ./home/Dockerfile
     status-page:
         ports:
             - '3006:3006'
         build:
             context: .
+            network: host
             dockerfile: ./status-page/Dockerfile
         env_file:
             - ./status-page/.env
@@ -97,6 +102,7 @@ services:
             - '3100:3100'
         build:
             context: .
+            network: host
             dockerfile: ./admin-dashboard/Dockerfile
         env_file:
             - ./admin-dashboard/.env
@@ -114,6 +120,7 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
             context: .
+            network: host
             dockerfile: ./http-test-server/Dockerfile
     licensing:
         ports:
@@ -124,12 +131,14 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
             context: .
+            network: host
             dockerfile: ./licensing/Dockerfile
     data-ingestor:
         ports:
             - '3200:3200'
         build:
             context: .
+            network: host
             dockerfile: ./data-ingestor/Dockerfile
         env_file:
             - ./data-ingestor/.env
@@ -149,6 +158,7 @@ services:
             - '3300:3300'
         build:
             context: .
+            network: host
             dockerfile: ./realtime/Dockerfile
         env_file:
             - ./realtime/.env
@@ -160,6 +170,7 @@ services:
             - '3400:3400'
         build:
             context: .
+            network: host
             dockerfile: ./probe-api/Dockerfile
         env_file:
             - ./probe-api/.env
@@ -171,6 +182,7 @@ services:
     probe1:
         build:
             context: .
+            network: host
             dockerfile: ./probe/Dockerfile
         env_file:
             - ./probe/.env
@@ -189,6 +201,7 @@ services:
     probe2:
         build:
             context: .
+            network: host
             dockerfile: ./probe/Dockerfile
         env_file:
             - ./probe/.env
@@ -208,6 +221,7 @@ services:
             - '1445:1445'
         build:
             context: .
+            network: host
             dockerfile: ./api-docs/Dockerfile
         env_file:
             - ./api-docs/.env
@@ -216,6 +230,7 @@ services:
     init-script:
         build:
             context: .
+            network: host
             dockerfile: ./init-script/Dockerfile
         ports:
             - '1447:1447'
@@ -236,7 +251,8 @@ services:
         ports:
             - '2525:2525'
         build:
-            context: ./haraka
+            context: .
+            network: host/haraka
             args:
                 PORT: '2525'
         environment:
@@ -251,6 +267,7 @@ services:
             - '3009:3009'
         build:
             context: .
+            network: host
             dockerfile: ./script-runner/Dockerfile
         env_file:
             - ./script-runner/.env
@@ -263,6 +280,7 @@ services:
             - '3005:3005'
         build:
             context: .
+            network: host
             dockerfile: ./application-scanner/Dockerfile
         env_file:
             - ./application-scanner/.env
@@ -278,6 +296,7 @@ services:
             - '3055:3055'
         build:
             context: .
+            network: host
             dockerfile: ./container-scanner/Dockerfile
         env_file:
             - ./container-scanner/.env
@@ -293,6 +312,7 @@ services:
             - '3015:3015'
         build:
             context: .
+            network: host
             dockerfile: ./lighthouse-runner/Dockerfile
         env_file:
             - ./lighthouse-runner/.env
@@ -314,7 +334,8 @@ services:
         restart: always
         build:
             dockerfile: Dockerfile
-            context: ./nginx
+            context: .
+            network: host/nginx
         ports:
             - '80:80'
             - '443:443'

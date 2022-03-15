@@ -10,7 +10,7 @@ smoke_test_production:
         - export APIDOCS_URL=https://oneuptime.com/docs
         - export LICENSING_URL=https://oneuptime.com/license
         - cd tests
-        - npm ci
+        - npm install
         - npm run test
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh

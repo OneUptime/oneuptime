@@ -16,6 +16,6 @@ jobs:
       - name: Run audit
         run: |-
           cd http-test-server
-          npm ci
+          npm install
           npm run audit
 

@@ -7,6 +7,7 @@ services:
         ports:
             - '2525:2525'
         build:
+            network: host
             context: ./haraka
             args:
                 PORT: '2525'
@@ -47,6 +48,7 @@ services:
         ports:
             - '3003:3003'
         build:
+            network: host
             context: .
             dockerfile: ./accounts/Dockerfile.dev
         env_file:
@@ -64,6 +66,7 @@ services:
             - '3200:3200'
             - '9239:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./data-ingestor/Dockerfile.dev
         env_file:
@@ -90,6 +93,7 @@ services:
             - '3300:3300'
             - '9250:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./realtime/Dockerfile.dev
         env_file:
@@ -108,6 +112,7 @@ services:
             - '3400:3400'
             - '9251:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./probe-api/Dockerfile.dev
         env_file:
@@ -129,6 +134,7 @@ services:
         ports:
             - '9238:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./probe/Dockerfile.dev
         env_file:
@@ -153,6 +159,7 @@ services:
         ports:
             - '1445:1445'
         build:
+            network: host
             context: .
             dockerfile: ./api-docs/Dockerfile.dev
         env_file:
@@ -167,6 +174,7 @@ services:
 
     init-script:
         build:
+            network: host
             context: .
             dockerfile: ./init-script/Dockerfile.dev
         ports:
@@ -194,6 +202,7 @@ services:
             - '3009:3009'
             - '9236:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./script-runner/Dockerfile.dev
         env_file:
@@ -213,6 +222,7 @@ services:
             - '3002:3002' # Service Port.
             - '9232:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./backend/Dockerfile.dev
         env_file:
@@ -241,6 +251,7 @@ services:
         ports:
             - '3000:3000'
         build:
+            network: host
             context: .
             dockerfile: ./dashboard/Dockerfile.dev
         env_file:
@@ -262,6 +273,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
+            network: host
             context: .
             dockerfile: ./home/Dockerfile.dev
         volumes:
@@ -274,6 +286,7 @@ services:
         ports:
             - '3006:3006'
         build:
+            network: host
             context: .
             dockerfile: ./status-page/Dockerfile.dev
         env_file:
@@ -290,6 +303,7 @@ services:
         ports:
             - '3100:3100'
         build:
+            network: host
             context: .
             dockerfile: ./admin-dashboard/Dockerfile.dev
         env_file:
@@ -311,6 +325,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
+            network: host
             context: .
             dockerfile: ./http-test-server/Dockerfile.dev
         volumes:
@@ -328,6 +343,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
+            network: host
             context: .
             dockerfile: ./licensing/Dockerfile.dev
         volumes:
@@ -340,6 +356,7 @@ services:
             - '3005:3005'
             - '9240:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./application-scanner/Dockerfile.dev
         env_file:
@@ -361,6 +378,7 @@ services:
             - '3055:3055'
             - '9242:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./container-scanner/Dockerfile.dev
         env_file:
@@ -382,6 +400,7 @@ services:
             - '3015:3015'
             - '9241:9229' # Debugging port.
         build:
+            network: host
             context: .
             dockerfile: ./lighthouse-runner/Dockerfile.dev
         env_file:
@@ -407,6 +426,7 @@ services:
         restart: always
         build:
             dockerfile: Dockerfile
+            network: host
             context: ./nginx
         ports:
             - '80:80'

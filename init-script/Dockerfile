@@ -19,7 +19,7 @@ RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/
-RUN npm ci
+RUN npm install
 COPY ./common-server /usr/src/common-server
 
 # Set env variables

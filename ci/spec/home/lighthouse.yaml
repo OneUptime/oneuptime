@@ -15,7 +15,7 @@ mobile_lighthouse_home:
         - sudo docker run -p 1444:1444 -d oneuptime/home:4.0.$CI_PIPELINE_ID
         - sudo docker ps
         - cd home
-        - npm ci
+        - npm install
         - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-818858/chrome-linux/chrome"
         - npm run light-house-mobile
         - cd ..
@@ -44,7 +44,7 @@ desktop_lighthouse_home:
         - sudo docker run -p 1444:1444 -d oneuptime/home:4.0.$CI_PIPELINE_ID
         - sudo docker ps
         - cd home
-        - npm ci
+        - npm install
         - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-818858/chrome-linux/chrome"
         - npm run light-house
         - cd ..

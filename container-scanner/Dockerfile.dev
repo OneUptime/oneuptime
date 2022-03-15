@@ -16,7 +16,7 @@ RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/
-RUN npm ci
+RUN npm install
 COPY ./common-server /usr/src/common-server
 
 WORKDIR /usr/src/app
@@ -28,7 +28,7 @@ RUN cd /usr/src/app
 COPY ./container-scanner/package.json /usr/src/app/package.json
 COPY ./container-scanner/package-lock.json /usr/src/app/package-lock.json
 
-RUN npm ci
+RUN npm install
 
 # Expose ports.
 #   - 3055: Container Scanner

@@ -16,6 +16,6 @@ jobs:
       - name: Run audit
         run: |-
           cd accounts
-          npm ci
+          npm install
           npm run audit
 

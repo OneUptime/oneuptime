@@ -16,6 +16,6 @@ jobs:
       - name: Run audit
         run: |-
           cd oneuptime-acme-http-01
-          npm ci
+          npm install
           npm run audit
 

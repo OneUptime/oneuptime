@@ -22,14 +22,14 @@ RUN mkdir /usr/src
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/
-RUN npm ci
+RUN npm install
 COPY ./common-server /usr/src/common-server
 
 # Install common-ui
 RUN mkdir /usr/src/common-ui
 WORKDIR /usr/src/common-ui
 COPY ./common-ui/package*.json /usr/src/common-ui/
-RUN npm ci
+RUN npm install
 COPY ./common-ui /usr/src/common-ui
 
 
@@ -48,7 +48,7 @@ COPY ./admin-dashboard/package.json /usr/src/app/package.json
 COPY ./admin-dashboard/package-lock.json /usr/src/app/package-lock.json
 
 # Install app dependencies
-RUN npm ci 
+RUN npm install 
 
 # Create .cache folder with necessary permissions for React-based apps
 # https://stackoverflow.com/questions/67087735/eacces-permission-denied-mkdir-usr-app-node-modules-cache-how-can-i-creat

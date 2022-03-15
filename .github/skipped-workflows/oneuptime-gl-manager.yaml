@@ -16,6 +16,6 @@ jobs:
       - name: Run audit
         run: |-
           cd oneuptime-gl-manager
-          npm ci
+          npm install
           npm run audit
 

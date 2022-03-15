@@ -16,6 +16,6 @@ jobs:
       - name: Run audit
         run: |-
           cd script-runner
-          npm ci
+          npm install
           npm run audit
 
