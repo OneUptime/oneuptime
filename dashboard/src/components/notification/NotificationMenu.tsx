@@ -10,7 +10,7 @@ import {
 import { User, IS_SAAS_SERVICE } from '../../config';
 import moment from 'moment';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
+import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
@@ -83,16 +83,16 @@ class NotificationMenu extends Component {
         const allRead =
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
             this.props.notifications &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
-            this.props.notifications.notifications &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
-            this.props.notifications.notifications.length
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+                this.props.notifications.notifications &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+                this.props.notifications.notifications.length
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
                 ? this.props.notifications.notifications.filter(
-                      (notification: $TSFixMe) => notification &&
-                      notification.read &&
-                      notification.read.indexOf(userId) <= -1
-                  ).length
+                    (notification: $TSFixMe) => notification &&
+                        notification.read &&
+                        notification.read.indexOf(userId) <= -1
+                ).length
                 : null;
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationsVisible' does not exist on ... Remove this comment to see the full error message
         return this.props.notificationsVisible ? (
@@ -174,11 +174,11 @@ class NotificationMenu extends Component {
                                 <div className="Box-root Padding-vertical--8">
                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
                                     {this.props.notifications &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
-                                    this.props.notifications.notifications &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
-                                    this.props.notifications.notifications
-                                        .length ? (
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+                                        this.props.notifications.notifications &&
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+                                        this.props.notifications.notifications
+                                            .length ? (
                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
                                         this.props.notifications.notifications.map(
                                             (notification: $TSFixMe, key: $TSFixMe) => {
@@ -211,11 +211,10 @@ class NotificationMenu extends Component {
                                                         >
                                                             <div className="Notify-oneuptime">
                                                                 <img
-                                                                    src={`/dashboard/assets/img/${
-                                                                        notification.icon
+                                                                    src={`/dashboard/assets/img/${notification.icon
                                                                             ? notification.icon
                                                                             : 'information'
-                                                                    }.svg`}
+                                                                        }.svg`}
                                                                     className="Notify-oneuptime-row-primary"
                                                                     style={{
                                                                         height:
@@ -271,17 +270,16 @@ class NotificationMenu extends Component {
                                                             ) > -1
                                                                 ? null
                                                                 : this.markAsRead(
-                                                                      notification
-                                                                  )
+                                                                    notification
+                                                                )
                                                         }
                                                     >
                                                         <div className="Notify-oneuptime">
                                                             <img
-                                                                src={`/dashboard/assets/img/${
-                                                                    notification.icon
+                                                                src={`/dashboard/assets/img/${notification.icon
                                                                         ? notification.icon
                                                                         : 'information'
-                                                                }.svg`}
+                                                                    }.svg`}
                                                                 className="Notify-oneuptime-row-primary"
                                                                 style={{
                                                                     height:

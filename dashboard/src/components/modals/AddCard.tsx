@@ -4,8 +4,8 @@ import {
     StripeProvider,
     Elements,
     injectStripe,
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-} from 'react-stripe-elements';
+    // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+} from '@stripe/react-stripe-js';
 import PropTypes from 'prop-types';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import ClickOutside from 'react-click-outside';
@@ -106,8 +106,8 @@ class _CardForm extends React.Component {
             stripe
                 .createToken()
                 .then(({
-                token
-            }: $TSFixMe) => {
+                    token
+                }: $TSFixMe) => {
                     if (token) {
                         tok = token;
                         // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
@@ -119,8 +119,8 @@ class _CardForm extends React.Component {
                     }
                 })
                 .then(({
-                data
-            }: $TSFixMe) =>
+                    data
+                }: $TSFixMe) =>
                     stripe.handleCardPayment(data.client_secret)
                 )
                 .then((result: $TSFixMe) => {
@@ -144,8 +144,8 @@ class _CardForm extends React.Component {
                     }
                 })
                 .then(({
-                data
-            }: $TSFixMe) => {
+                    data
+                }: $TSFixMe) => {
                     addCardSuccess(data);
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                     this.props.closeModal({

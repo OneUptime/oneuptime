@@ -20,8 +20,8 @@ import {
     StripeProvider,
     Elements,
     injectStripe,
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-} from 'react-stripe-elements';
+    // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+} from '@stripe/react-stripe-js';
 
 function validate(values: $TSFixMe) {
     const errors = {};
@@ -107,8 +107,8 @@ class _ProjectForm extends React.Component {
             stripe
                 .createToken()
                 .then(({
-                token
-            }: $TSFixMe) => {
+                    token
+                }: $TSFixMe) => {
                     if (token) {
                         return checkCard({
                             tokenId: token.id,
@@ -120,8 +120,8 @@ class _ProjectForm extends React.Component {
                     }
                 })
                 .then(({
-                data
-            }: $TSFixMe) =>
+                    data
+                }: $TSFixMe) =>
                     stripe.handleCardPayment(data.client_secret)
                 )
                 .then((result: $TSFixMe) => {

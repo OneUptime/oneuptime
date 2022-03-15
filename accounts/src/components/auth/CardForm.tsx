@@ -23,7 +23,7 @@ import {
     StripeProvider,
     Elements,
     // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-} from 'react-stripe-elements';
+} from '@stripe/react-stripe-js';
 import {
     addCard,
     addCardSuccess,

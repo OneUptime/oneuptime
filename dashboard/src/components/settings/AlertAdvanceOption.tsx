@@ -9,7 +9,7 @@ import { alertOptionsUpdate } from '../../actions/project';
 import PropTypes from 'prop-types';
 import { RenderSelect } from '../basic/RenderSelect';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
+import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
@@ -456,7 +456,7 @@ export class AlertAdvanceOption extends Component {
                                                                         },
                                                                     ]}
                                                                 />
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element[]; title: string; }' is ... Remove this comment to see the full error message
                                                                 <Tooltip title="SMS and Call Alert Charges">
                                                                     <div
                                                                         style={{

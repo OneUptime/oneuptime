@@ -14,7 +14,7 @@ import {
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
-import { StripeProvider, injectStripe, Elements } from 'react-stripe-elements';
+import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
 // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
@@ -156,7 +156,7 @@ export class CustomerBalance extends Component {
                     await updateProjectBalance({
                         projectId,
                         intentId: result.paymentIntent.id,
-                    }).then(function() {
+                    }).then(function () {
                         openModal({
                             id: MessageBoxId,
                             content: MessageBox,
