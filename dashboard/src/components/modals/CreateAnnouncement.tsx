@@ -119,7 +119,7 @@ class CreateAnnouncement extends Component {
         }
 
         createAnnouncement(projectId, statusPage._id, { data: postObj })
-            .then((res: $TSFixMe) => {
+            .then((req: Response) => {
                 if (res) {
                     this.handleCloseModal();
                     fetchAnnouncements(projectId, statusPage._id, 0, 10);
@@ -283,13 +283,13 @@ class CreateAnnouncement extends Component {
                                                     : 'No Monitor available',
                                         },
                                         ...(mergeMonitors &&
-                                        mergeMonitors.length > 0
+                                            mergeMonitors.length > 0
                                             ? mergeMonitors.map(
-                                                  (monitor: $TSFixMe) => ({
-                                                      value: monitor._id,
-                                                      label: `${monitor.componentId.name} / ${monitor.name}`
-                                                  })
-                                              )
+                                                (monitor: $TSFixMe) => ({
+                                                    value: monitor._id,
+                                                    label: `${monitor.componentId.name} / ${monitor.name}`
+                                                })
+                                            )
                                             : []),
                                     ]}
                                 />

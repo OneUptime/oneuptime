@@ -32,7 +32,7 @@ class EditExternalStatusPagesModal extends Component {
                 data.link._id,
                 values
             )
-            .then((res: $TSFixMe) => {
+            .then((req: Response) => {
                 if (res) {
                     this.handleCloseModal();
                 }

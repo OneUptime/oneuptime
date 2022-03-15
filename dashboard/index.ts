@@ -25,7 +25,7 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function(req: Request, res: Response, next: $TSFixMe) {
+app.use(function (req: Request, res: Response, next: $TSFixMe) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -42,9 +42,9 @@ app.use(function(req: Request, res: Response, next: $TSFixMe) {
     return next();
 });
 
-app.get(['/env.js', '/dashboard/env.js'], function(
-    req: $TSFixMe,
-    res: $TSFixMe
+app.get(['/env.js', '/dashboard/env.js'], function (
+    req: Request,
+    req: Response
 ) {
     const isClustLocal = req.get('host').includes('cluster.local');
     if (!isClustLocal) {
@@ -106,17 +106,17 @@ app.get(['/env.js', '/dashboard/env.js'], function(
 });
 
 //APP VERSION
-app.use(['/dashboard/api/version', '/dashboard/version'], function(
-    req: $TSFixMe,
-    res: $TSFixMe
+app.use(['/dashboard/api/version', '/dashboard/version'], function (
+    req: Request,
+    req: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.json({ dashboardVersion: process.env.npm_package_version });
 });
 
-app.get(['/dashboard/status', '/status'], function(
-    req: $TSFixMe,
-    res: $TSFixMe
+app.get(['/dashboard/status', '/status'], function (
+    req: Request,
+    req: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -168,7 +168,7 @@ app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 //     }
 // });
 
-app.get('/*', function(req: Request, res: Response) {
+app.get('/*', function (req: Request, res: Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

@@ -17,7 +17,7 @@ const tableName = 'License';
 const email = 'license@hackerbay.io';
 let validLicenseId: $TSFixMe, expiredLicenseId: $TSFixMe;
 
-describe('License API', function() {
+describe('License API', function () {
     this.timeout(20000);
 
     before(async () => {
@@ -43,7 +43,7 @@ describe('License API', function() {
                 license: validLicense['License Key'],
                 email,
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).have.property('token');
                 done();
@@ -57,7 +57,7 @@ describe('License API', function() {
                 license: invalidLicense['License Key'],
                 email,
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.equal('Invalid License');
                 done();
@@ -71,7 +71,7 @@ describe('License API', function() {
                 license: expiredLicense['License Key'],
                 email,
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.equal('License Expired');
                 done();
@@ -84,7 +84,7 @@ describe('License API', function() {
             .send({
                 license: validLicense['License Key'],
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.equal('Email must be present.');
                 done();

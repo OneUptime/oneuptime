@@ -3,13 +3,13 @@ const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST
 
 // make api call to designated endpoints
 // to make the necessary updates to the db
-module.exports.create = function(config: $TSFixMe) {
+module.exports.create = function (config: $TSFixMe) {
     const store = {};
 
     store.options = config;
 
     store.accounts = {
-        setKeypair: function(opts: $TSFixMe) {
+        setKeypair: function (opts: $TSFixMe) {
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
@@ -27,10 +27,10 @@ module.exports.create = function(config: $TSFixMe) {
                 method: 'put',
                 data,
             })
-                .then((res: $TSFixMe) => res.data)
+                .then((req: Response) => res.data)
                 .finally(() => null);
         },
-        checkKeypair: function(opts: $TSFixMe) {
+        checkKeypair: function (opts: $TSFixMe) {
             const id =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
@@ -39,14 +39,14 @@ module.exports.create = function(config: $TSFixMe) {
                 url,
                 method: 'get',
             })
-                .then((res: $TSFixMe) => res.data)
+                .then((req: Response) => res.data)
                 .finally(() => null);
         },
         options: config,
     };
 
     store.certificates = {
-        setKeypair: function(opts: $TSFixMe) {
+        setKeypair: function (opts: $TSFixMe) {
             const id =
                 (opts.certificate &&
                     (opts.certificate.kid || opts.certificate.id)) ||
@@ -63,10 +63,10 @@ module.exports.create = function(config: $TSFixMe) {
                 method: 'put',
                 data,
             })
-                .then((res: $TSFixMe) => res.data)
+                .then((req: Response) => res.data)
                 .finally(() => null);
         },
-        checkKeypair: function(opts: $TSFixMe) {
+        checkKeypair: function (opts: $TSFixMe) {
             const id =
                 (opts.certificate &&
                     (opts.certificate.kid || opts.certificate.id)) ||
@@ -77,10 +77,10 @@ module.exports.create = function(config: $TSFixMe) {
                 url,
                 method: 'get',
             })
-                .then((res: $TSFixMe) => res.data)
+                .then((req: Response) => res.data)
                 .finally(() => null);
         },
-        set: function(opts: $TSFixMe) {
+        set: function (opts: $TSFixMe) {
             const id =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
@@ -95,10 +95,10 @@ module.exports.create = function(config: $TSFixMe) {
                 method: 'put',
                 data,
             })
-                .then((res: $TSFixMe) => res.data)
+                .then((req: Response) => res.data)
                 .finally(() => null);
         },
-        check: function(opts: $TSFixMe) {
+        check: function (opts: $TSFixMe) {
             const id =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
@@ -107,7 +107,7 @@ module.exports.create = function(config: $TSFixMe) {
                 url,
                 method: 'get',
             })
-                .then((res: $TSFixMe) => res.data)
+                .then((req: Response) => res.data)
                 .finally(() => null);
         },
         options: config,

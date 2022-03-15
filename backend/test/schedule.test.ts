@@ -20,34 +20,34 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe, projectId: $TSFixMe, scheduleId: $TSFixMe, userId;
 
-describe('Schedule API', function() {
+describe('Schedule API', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (
                 err: $TSFixMe,
-                res: $TSFixMe
+                req: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
+                VerificationTokenModel.findOne({ userId }, function (
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function() {
+                        .end(function () {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                .end(function (err: $TSFixMe, req: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
@@ -57,7 +57,7 @@ describe('Schedule API', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ScheduleService.hardDeleteBy({ _id: scheduleId });
         await AirtableService.deleteAll({ tableName: 'User' });
@@ -65,19 +65,19 @@ describe('Schedule API', function() {
 
     // 'post /schedule/:projectId/create'
 
-    it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
+    it('should reject the request of an unauthenticated user', function (done: $TSFixMe) {
         request
             .post(`/schedule/${projectId}`)
             .send({
                 name: 'New Schedule',
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not create a schedule when the `name` field is null', function(done: $TSFixMe) {
+    it('should not create a schedule when the `name` field is null', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -85,13 +85,13 @@ describe('Schedule API', function() {
             .send({
                 name: null,
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new schedule when `name` is given by an authenticated user', function(done: $TSFixMe) {
+    it('should create a new schedule when `name` is given by an authenticated user', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -99,7 +99,7 @@ describe('Schedule API', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 scheduleId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -107,12 +107,12 @@ describe('Schedule API', function() {
             });
     });
 
-    it('should get schedules for an authenticated user', function(done: $TSFixMe) {
+    it('should get schedules for an authenticated user', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/schedule/${projectId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -121,7 +121,7 @@ describe('Schedule API', function() {
             });
     });
 
-    it('should rename a schedule when the `projectId` is valid and the `scheduleName` is given', function(done: $TSFixMe) {
+    it('should rename a schedule when the `projectId` is valid and the `scheduleName` is given', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put(`/schedule/${projectId}/${scheduleId}`)
@@ -129,7 +129,7 @@ describe('Schedule API', function() {
             .send({
                 name: 'Renamed Schedule',
             })
-            .end(function(err: $TSFixMe, response: $TSFixMe) {
+            .end(function (err: $TSFixMe, response: $TSFixMe) {
                 scheduleId = response.body[0]._id;
                 expect(response).to.have.status(200);
                 expect(response.body).to.be.an('array');
@@ -138,7 +138,7 @@ describe('Schedule API', function() {
             });
     });
 
-    it('should delete a schedule when the `projectId` and `scheduleId` is valid', function(done: $TSFixMe) {
+    it('should delete a schedule when the `projectId` and `scheduleId` is valid', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -146,11 +146,11 @@ describe('Schedule API', function() {
             .send({
                 name: 'Delete Schedule',
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 request
                     .delete(`/schedule/${projectId}/${res.body._id}`)
                     .set('Authorization', authorization)
-                    .end(function(err: $TSFixMe, response: $TSFixMe) {
+                    .end(function (err: $TSFixMe, response: $TSFixMe) {
                         expect(response).to.have.status(200);
                         ScheduleService.hardDeleteBy({ _id: res.body._id });
                         done();
@@ -164,28 +164,28 @@ let subProjectId: $TSFixMe,
     newUserToken: $TSFixMe,
     subProjectScheduleId: $TSFixMe;
 
-describe('Schedule API with Sub-Projects', function() {
+describe('Schedule API with Sub-Projects', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
-        GlobalConfig.initTestConfig().then(function() {
+        GlobalConfig.initTestConfig().then(function () {
             request
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function(err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, req: Response) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(
+                    createUser(request, userData.newUser, function (
                         err: $TSFixMe,
-                        res: $TSFixMe
+                        req: Response
                     ) {
                         VerificationTokenModel.findOne(
                             { userId: res.body.id },
-                            function(
+                            function (
                                 err: $TSFixMe,
                                 verificationToken: $TSFixMe
                             ) {
@@ -194,7 +194,7 @@ describe('Schedule API with Sub-Projects', function() {
                                         `/user/confirmation/${verificationToken.token}`
                                     )
                                     .redirects(0)
-                                    .end(function() {
+                                    .end(function () {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -202,9 +202,9 @@ describe('Schedule API with Sub-Projects', function() {
                                                 password:
                                                     userData.newUser.password,
                                             })
-                                            .end(function(
+                                            .end(function (
                                                 err: $TSFixMe,
-                                                res: $TSFixMe
+                                                req: Response
                                             ) {
                                                 newUserToken =
                                                     res.body.tokens
@@ -225,7 +225,7 @@ describe('Schedule API with Sub-Projects', function() {
                                                                 .email,
                                                         role: 'Member',
                                                     })
-                                                    .end(function() {
+                                                    .end(function () {
                                                         done();
                                                     });
                                             });
@@ -237,7 +237,7 @@ describe('Schedule API with Sub-Projects', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
@@ -253,26 +253,26 @@ describe('Schedule API with Sub-Projects', function() {
         });
     });
 
-    it('should not create a schedule for user not present in project', function(done: $TSFixMe) {
-        createUser(request, userData.anotherUser, function(
+    it('should not create a schedule for user not present in project', function (done: $TSFixMe) {
+        createUser(request, userData.anotherUser, function (
             err: $TSFixMe,
-            res: $TSFixMe
+            req: Response
         ) {
-            VerificationTokenModel.findOne({ userId: res.body.id }, function(
+            VerificationTokenModel.findOne({ userId: res.body.id }, function (
                 err: $TSFixMe,
-                res: $TSFixMe
+                req: Response
             ) {
                 request
                     .get(`/user/confirmation/${res.token}`)
                     .redirects(0)
-                    .end(function() {
+                    .end(function () {
                         request
                             .post('/user/login')
                             .send({
                                 email: userData.anotherUser.email,
                                 password: userData.anotherUser.password,
                             })
-                            .end(function(err: $TSFixMe, res: $TSFixMe) {
+                            .end(function (err: $TSFixMe, req: Response) {
                                 const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                 request
                                     .post(`/schedule/${projectId}`)
@@ -280,9 +280,9 @@ describe('Schedule API with Sub-Projects', function() {
                                     .send({
                                         name: 'Valid Schedule',
                                     })
-                                    .end(function(
+                                    .end(function (
                                         err: $TSFixMe,
-                                        res: $TSFixMe
+                                        req: Response
                                     ) {
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
@@ -296,7 +296,7 @@ describe('Schedule API with Sub-Projects', function() {
         });
     });
 
-    it('should not create a schedule for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
+    it('should not create a schedule for user that is not `admin` in sub-project.', function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .post(`/schedule/${subProjectId}`)
@@ -304,7 +304,7 @@ describe('Schedule API with Sub-Projects', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -313,7 +313,7 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should create a schedule in parent project by valid admin.', function(done: $TSFixMe) {
+    it('should create a schedule in parent project by valid admin.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
@@ -321,7 +321,7 @@ describe('Schedule API with Sub-Projects', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 scheduleId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('Valid Schedule');
@@ -329,7 +329,7 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should create a schedule in parent project by valid admin.', function(done: $TSFixMe) {
+    it('should create a schedule in parent project by valid admin.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${subProjectId}`)
@@ -337,7 +337,7 @@ describe('Schedule API with Sub-Projects', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 subProjectScheduleId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('Valid Schedule');
@@ -345,12 +345,12 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it("should get only sub-project's schedules for valid sub-project user", function(done: $TSFixMe) {
+    it("should get only sub-project's schedules for valid sub-project user", function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .get(`/schedule/${subProjectId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -360,12 +360,12 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should get both project and sub-project schedule for valid parent project user.', function(done: $TSFixMe) {
+    it('should get both project and sub-project schedule for valid parent project user.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/schedule/${projectId}/schedules`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('schedules');
@@ -377,12 +377,12 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should not delete a schedule for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
+    it('should not delete a schedule for user that is not `admin` in sub-project.', function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .delete(`/schedule/${subProjectId}/${subProjectScheduleId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -391,23 +391,23 @@ describe('Schedule API with Sub-Projects', function() {
             });
     });
 
-    it('should delete sub-project schedule', function(done: $TSFixMe) {
+    it('should delete sub-project schedule', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/schedule/${subProjectId}/${subProjectScheduleId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should delete project schedule', function(done: $TSFixMe) {
+    it('should delete project schedule', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/schedule/${projectId}/${scheduleId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 done();
             });

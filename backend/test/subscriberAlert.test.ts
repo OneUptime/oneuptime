@@ -37,43 +37,43 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-describe('Subcriber Alert API', function() {
+describe('Subcriber Alert API', function () {
     this.timeout(20000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (
                 err: $TSFixMe,
-                res: $TSFixMe
+                req: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
+                VerificationTokenModel.findOne({ userId }, function (
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function() {
+                        .end(function () {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                .end(function (err: $TSFixMe, req: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
                                         .post(`/monitor/${projectId}`)
                                         .set('Authorization', authorization)
                                         .send(monitor)
-                                        .end(function(
+                                        .end(function (
                                             err: $TSFixMe,
-                                            res: $TSFixMe
+                                            req: Response
                                         ) {
                                             monitorId = res.body._id;
                                             incidentData.monitors = [monitorId];
@@ -89,7 +89,7 @@ describe('Subcriber Alert API', function() {
                                                 .end(
                                                     (
                                                         err: $TSFixMe,
-                                                        res: $TSFixMe
+                                                        req: Response
                                                     ) => {
                                                         idNumber =
                                                             res.body.idNumber; // This has replaced incidentId and is used to query subscriber alert
@@ -142,7 +142,7 @@ describe('Subcriber Alert API', function() {
                     .post(`/emailSmtp/${projectId}`)
                     .set('Authorization', authorization)
                     .send(smtpCredentials)
-                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                    .end((err: $TSFixMe, req: Response) => {
                         expect(res).to.have.status(200);
                         request
                             .post(
@@ -152,7 +152,7 @@ describe('Subcriber Alert API', function() {
                                 alertVia: 'email',
                                 contactEmail: userData.user.email,
                             })
-                            .end((err: $TSFixMe, res: $TSFixMe) => {
+                            .end((err: $TSFixMe, req: Response) => {
                                 subscriberId = res.body._id;
                                 request
                                     .post(
@@ -163,7 +163,7 @@ describe('Subcriber Alert API', function() {
                                         alertVia: 'email',
                                         eventType: 'identified',
                                     })
-                                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                                    .end((err: $TSFixMe, req: Response) => {
                                         expect(res).to.have.status(200);
                                         expect(res.body).to.be.an('object');
                                         expect(res.body.alertVia).to.be.equal(
@@ -188,7 +188,7 @@ describe('Subcriber Alert API', function() {
                 alertVia: null,
                 eventType: 'identified',
             })
-            .end((err: $TSFixMe, res: $TSFixMe) => {
+            .end((err: $TSFixMe, req: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -197,7 +197,7 @@ describe('Subcriber Alert API', function() {
     it('should get subscriber alerts by projectId', (done: $TSFixMe) => {
         request
             .get(`/subscriberAlert/${projectId}`)
-            .end((err: $TSFixMe, res: $TSFixMe) => {
+            .end((err: $TSFixMe, req: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -209,7 +209,7 @@ describe('Subcriber Alert API', function() {
     it('should get subscriber alerts by incidentId', (done: $TSFixMe) => {
         request
             .get(`/subscriberAlert/${projectId}/incident/${idNumber}`)
-            .end((err: $TSFixMe, res: $TSFixMe) => {
+            .end((err: $TSFixMe, req: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();

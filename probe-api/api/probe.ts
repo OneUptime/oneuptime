@@ -7,9 +7,9 @@ import { sendErrorResponse } from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
 
-router.get('/monitors', isAuthorizedProbe, async function(
-    req: $TSFixMe,
-    res: $TSFixMe
+router.get('/monitors', isAuthorizedProbe, async function (
+    req: Request,
+    req: Response
 ) {
     try {
         const { limit = 10 } = req.query;

@@ -98,7 +98,7 @@ class SlackTeamList extends React.Component {
                         </thead>
                         <tbody className="Table-body">
                             <ShouldRender if={teams.teams.length > 0}>
-                                {teams.teams.map((res: $TSFixMe) => <SlackTeamItem
+                                {teams.teams.map((req: Response) => <SlackTeamItem
                                     key={`${res._id}`}
                                     // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: string; team: any; projectId: any; }'... Remove this comment to see the full error message
                                     team={res}
@@ -176,11 +176,10 @@ class SlackTeamList extends React.Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${
-                                        !canPaginateBackward
+                                    className={`Button bs-ButtonLegacy ${!canPaginateBackward
                                             ? 'Is--disabled'
                                             : ''
-                                    }`}
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!canPaginateBackward}
                                     type="button"
@@ -195,11 +194,10 @@ class SlackTeamList extends React.Component {
                             </div>
                             <div className="Box-root">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${
-                                        !canPaginateForward
+                                    className={`Button bs-ButtonLegacy ${!canPaginateForward
                                             ? 'Is--disabled'
                                             : ''
-                                    }`}
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!canPaginateForward}
                                     type="button"

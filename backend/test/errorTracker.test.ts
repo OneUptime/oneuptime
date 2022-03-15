@@ -25,35 +25,35 @@ let token: $TSFixMe,
     errorEventMembers = 0;
 const sampleErrorEvent = {};
 
-describe('Error Tracker API', function() {
+describe('Error Tracker API', function () {
     this.timeout(80000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(95000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (
                 err: $TSFixMe,
-                res: $TSFixMe
+                req: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
+                VerificationTokenModel.findOne({ userId }, function (
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function() {
+                        .end(function () {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                .end(function (err: $TSFixMe, req: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
@@ -62,9 +62,9 @@ describe('Error Tracker API', function() {
                                         .send({
                                             name: 'New Component',
                                         })
-                                        .end(function(
+                                        .end(function (
                                             err: $TSFixMe,
-                                            res: $TSFixMe
+                                            req: Response
                                         ) {
                                             componentId = res.body._id;
                                             expect(res).to.have.status(200);
@@ -80,19 +80,19 @@ describe('Error Tracker API', function() {
         });
     });
 
-    it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
+    it('should reject the request of an unauthenticated user', function (done: $TSFixMe) {
         request
             .post(`/error-tracker/${projectId}/${componentId}/create`)
             .send({
                 name: 'New Error Tracker',
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject the request of an empty error tracker name', function(done: $TSFixMe) {
+    it('should reject the request of an empty error tracker name', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/error-tracker/${projectId}/${componentId}/create`)
@@ -100,13 +100,13 @@ describe('Error Tracker API', function() {
             .send({
                 name: null,
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create an error tracker', function(done: $TSFixMe) {
+    it('should create an error tracker', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/error-tracker/${projectId}/${componentId}/create`)
@@ -114,7 +114,7 @@ describe('Error Tracker API', function() {
             .send({
                 name: 'Node Project',
             })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 errorTracker = res.body;
                 expect(res).to.have.status(200);
                 expect(res.body).to.include({ name: 'Node Project' });
@@ -122,24 +122,24 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should return a list of error trackers under component', function(done: $TSFixMe) {
+    it('should return a list of error trackers under component', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/error-tracker/${projectId}/${componentId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
             });
     });
 
-    it('should not return a list of error trackers under wrong component', function(done: $TSFixMe) {
+    it('should not return a list of error trackers under wrong component', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/error-tracker/${projectId}/5ee8d7cc8701d678901ab908`) // wrong component ID
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Component does not exist.'
@@ -149,7 +149,7 @@ describe('Error Tracker API', function() {
     });
     // reset api key
 
-    it('should reset error tracker key', function(done: $TSFixMe) {
+    it('should reset error tracker key', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const currentKey = errorTracker.key;
         request
@@ -157,7 +157,7 @@ describe('Error Tracker API', function() {
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/reset-key`
             )
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(errorTracker._id); // same error tracker id
                 expect(res.body.key).to.not.be.equal(currentKey); // error tracker key has chaged
@@ -167,7 +167,7 @@ describe('Error Tracker API', function() {
     });
     // edit error tracker details
 
-    it('should update the current error tracker name', function(done: $TSFixMe) {
+    it('should update the current error tracker name', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const appName = 'Python API App';
         request
@@ -176,7 +176,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ name: appName })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 const updatedErrorTracker = res.body;
                 expect(errorTracker._id).to.be.equal(updatedErrorTracker._id); // same id
@@ -187,20 +187,20 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should request for eventId for tracking an error event', function(done: $TSFixMe) {
+    it('should request for eventId for tracking an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Event ID is required.');
                 done();
             });
     });
 
-    it('should request for fingerprint for tracking an error event', function(done: $TSFixMe) {
+    it('should request for fingerprint for tracking an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -208,7 +208,7 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Fingerprint is required.'
@@ -217,7 +217,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should request for fingerprint as an array for tracking an error event', function(done: $TSFixMe) {
+    it('should request for fingerprint as an array for tracking an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -227,7 +227,7 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Fingerprint is to be of type Array.'
@@ -236,7 +236,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should request for error event type for tracking an error event', function(done: $TSFixMe) {
+    it('should request for error event type for tracking an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -246,7 +246,7 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Error Event Type must be of the allowed types.'
@@ -255,7 +255,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should request for tags for tracking an error event', function(done: $TSFixMe) {
+    it('should request for tags for tracking an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -267,14 +267,14 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Tags is required.');
                 done();
             });
     });
 
-    it('should request for timeline in array format for tracking an error event', function(done: $TSFixMe) {
+    it('should request for timeline in array format for tracking an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -290,7 +290,7 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Timeline is to be of type Array.'
@@ -299,7 +299,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should request for exception for tracking an error event', function(done: $TSFixMe) {
+    it('should request for exception for tracking an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -313,14 +313,14 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Exception is required.');
                 done();
             });
     });
 
-    it('should declare Error Tracker not existing for an error event', function(done: $TSFixMe) {
+    it('should declare Error Tracker not existing for an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -338,7 +338,7 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Error Tracker does not exist.'
@@ -347,7 +347,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should create an error event and set a fingerprint hash and issueId', function(done: $TSFixMe) {
+    it('should create an error event and set a fingerprint hash and issueId', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -367,7 +367,7 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 errorEvent = res.body; // save as an error event
 
@@ -380,7 +380,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should create a new error event with the old fingerprint, create a new one with a different fingerprint and confirm the two have different issueId', function(done: $TSFixMe) {
+    it('should create a new error event with the old fingerprint, create a new one with a different fingerprint and confirm the two have different issueId', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         sampleErrorEvent.eventId = 'samplId';
@@ -400,7 +400,7 @@ describe('Error Tracker API', function() {
             .post(`/error-tracker/${errorTracker._id}/track`)
             .set('Authorization', authorization)
             .send(sampleErrorEvent)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200); // weve created an error event with the existing issue fingerprint
                 expect(res.body.issueId).to.be.equal(errorEvent.issueId);
 
@@ -409,7 +409,7 @@ describe('Error Tracker API', function() {
                     .post(`/error-tracker/${errorTracker._id}/track`)
                     .set('Authorization', authorization)
                     .send(sampleErrorEvent)
-                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, req: Response) {
                         expect(res).to.have.status(200);
                         issueCount = issueCount + 1; // weve created a new issue entirely
 
@@ -426,14 +426,14 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should return a list of issues under an error event', function(done: $TSFixMe) {
+    it('should return a list of issues under an error event', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues`
             )
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.data.errorTrackerIssues).to.be.an('array');
                 expect(res.body.data.count).to.be.equal(issueCount); // confirm the issue count is accurate
@@ -441,7 +441,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should return a list of issues under an error event based on limit', function(done: $TSFixMe) {
+    it('should return a list of issues under an error event based on limit', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const limit = 1;
         request
@@ -450,7 +450,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ limit })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.data.errorTrackerIssues).to.be.an('array');
                 expect(res.body.data.count).to.be.equal(limit); // confirm the issue count is accurate based on the limit
@@ -458,14 +458,14 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should return an error event with its next and previous', function(done: $TSFixMe) {
+    it('should return an error event with its next and previous', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events/${errorEvent._id}`
             )
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.errorEvent).to.be.an('object');
                 expect(res.body.previous).to.be.equal(null); // since this error event is the first, nothing should come before it
@@ -475,21 +475,21 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should return an error when trying to ignore an issue without passing the IssueID', function(done: $TSFixMe) {
+    it('should return an error when trying to ignore an issue without passing the IssueID', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/issues/action`
             )
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Issue ID is required');
                 done();
             });
     });
 
-    it('should return an error when trying to ignore an issue without passing an array of issues', function(done: $TSFixMe) {
+    it('should return an error when trying to ignore an issue without passing an array of issues', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -497,7 +497,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ issueId: errorEvent.issueId })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Issue ID has to be of type array'
@@ -506,7 +506,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should return an error when trying to ignore an issue without passing a valid action type', function(done: $TSFixMe) {
+    it('should return an error when trying to ignore an issue without passing a valid action type', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -514,14 +514,14 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ issueId: [errorEvent.issueId], action: 'test' })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Action is not allowed');
                 done();
             });
     });
 
-    it('should ignore an issue successfully', function(done: $TSFixMe) {
+    it('should ignore an issue successfully', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -529,7 +529,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ issueId: [errorEvent.issueId], action: 'ignore' })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
                 const currentIssue = res.body.issues.filter(
@@ -542,7 +542,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should resolve an issue and change the ignore state successfully', function(done: $TSFixMe) {
+    it('should resolve an issue and change the ignore state successfully', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -550,7 +550,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ issueId: [errorEvent.issueId], action: 'resolve' })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
                 const currentIssue = res.body.issues.filter(
@@ -566,7 +566,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should unresolve an issue and change the ignore and resolved state successfully', function(done: $TSFixMe) {
+    it('should unresolve an issue and change the ignore and resolved state successfully', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -574,7 +574,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ issueId: [errorEvent.issueId], action: 'unresolve' })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('issues');
                 const currentIssue = res.body.issues.filter(
@@ -589,14 +589,14 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should not fetch errors attached to a fingerprint if fingerprint is not provided', function(done: $TSFixMe) {
+    it('should not fetch errors attached to a fingerprint if fingerprint is not provided', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/error-events`
             )
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Fingerprint Hash is required'
@@ -605,7 +605,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should fetch errors attached to a fingerprint successfully', function(done: $TSFixMe) {
+    it('should fetch errors attached to a fingerprint successfully', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -613,7 +613,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ fingerprintHash: errorEvent.fingerprintHash })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[res.body.length - 1]._id).to.be.equal(
@@ -623,7 +623,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should fetch errors attached to a fingerprint successfully based on limit', function(done: $TSFixMe) {
+    it('should fetch errors attached to a fingerprint successfully based on limit', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const limit = 1;
         request
@@ -632,7 +632,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ fingerprintHash: errorEvent.fingerprintHash, limit })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body.length).to.be.equal(limit);
@@ -640,7 +640,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should fetch members attached to an issue successfully', function(done: $TSFixMe) {
+    it('should fetch members attached to an issue successfully', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -648,7 +648,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ fingerprintHash: errorEvent.fingerprintHash })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.have.property('issueId');
                 expect(res.body).to.be.have.property('issueMembers');
@@ -660,14 +660,14 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should not assign member to issue due to no member ID passed', function(done: $TSFixMe) {
+    it('should not assign member to issue due to no member ID passed', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}/assign/${errorEvent.issueId}`
             )
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Team Member ID is required'
@@ -676,7 +676,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should not assign member to issue if member ID is not of required type', function(done: $TSFixMe) {
+    it('should not assign member to issue if member ID is not of required type', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -684,7 +684,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ teamMemberId: userId })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Team Member ID has to be of type array'
@@ -693,7 +693,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should assign member to issue if member ID is of required type', function(done: $TSFixMe) {
+    it('should assign member to issue if member ID is of required type', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -701,7 +701,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ teamMemberId: [userId] })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 errorEventMembers += 1; // increase the member count
                 expect(res.body.issueId).to.be.equal(errorEvent.issueId);
@@ -714,7 +714,7 @@ describe('Error Tracker API', function() {
             });
     });
 
-    it('should unassign member to issue if member ID is of required type', function(done: $TSFixMe) {
+    it('should unassign member to issue if member ID is of required type', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(
@@ -722,7 +722,7 @@ describe('Error Tracker API', function() {
             )
             .set('Authorization', authorization)
             .send({ teamMemberId: [userId] })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 errorEventMembers -= 1;
                 expect(res.body.issueId).to.be.equal(errorEvent.issueId);
@@ -732,14 +732,14 @@ describe('Error Tracker API', function() {
     });
     // delete error tracker
 
-    it('should delete the error tracker', function(done: $TSFixMe) {
+    it('should delete the error tracker', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(
                 `/error-tracker/${projectId}/${componentId}/${errorTracker._id}`
             )
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.deleted).to.be.equal(true);
                 done();

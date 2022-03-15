@@ -240,7 +240,7 @@ export class Component extends React.Component {
                     smtpToUse,
                 };
 
-                return testSmtp(payload).then((res: $TSFixMe) => {
+                return testSmtp(payload).then((req: Response) => {
                     if (res && typeof res === 'string') {
                         // prevent dismissal of modal if errored
                         // res will only be a string if errored
@@ -352,7 +352,7 @@ export class Component extends React.Component {
                                                                 settings.requesting
                                                             }
                                                         />
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'explanation' does not exist on type '{ k... Remove this comment to see the full error message
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'explanation' does not exist on type '{k... Remove this comment to see the full error message
                                                         {field.explanation && (
                                                             <p className="bs-Fieldset-explanation">
                                                                 {
@@ -366,12 +366,12 @@ export class Component extends React.Component {
                                             ))}
                                             {smtpForm.values &&
                                                 smtpForm.values[
-                                                    'email-enabled'
+                                                'email-enabled'
                                                 ] &&
                                                 smtpOptions.map(field => {
                                                     if (
                                                         field.key ===
-                                                            'internalSmtp' &&
+                                                        'internalSmtp' &&
                                                         !IS_INTERNAL_SMTP_DEPLOYED
                                                     ) {
                                                         return null;
@@ -428,7 +428,7 @@ export class Component extends React.Component {
                                                 })}
                                             {smtpForm.values &&
                                                 smtpForm.values[
-                                                    'email-enabled'
+                                                'email-enabled'
                                                 ] &&
                                                 smtpForm.values.customSmtp &&
                                                 fields.map(field => (

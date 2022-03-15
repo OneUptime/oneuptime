@@ -17,7 +17,7 @@ export class CreateProjectModal extends Component {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchProject' does not exist on type 'R... Remove this comment to see the full error message
         const { switchProject, dispatch } = this.props;
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'createProject' does not exist on type 'R... Remove this comment to see the full error message
-        return this.props.createProject(values).then((res: $TSFixMe) => {
+        return this.props.createProject(values).then((req: Response) => {
             if (
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'projects' does not exist on type 'Readon... Remove this comment to see the full error message
                 this.props.projects &&

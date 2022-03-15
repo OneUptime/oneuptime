@@ -29,7 +29,7 @@
         "ping": "^0.4.1",
         "simple-git": "^2.40.0",
         "ssh2": "^0.8.9",
-        "uuid": "^3.4.0",
+        "uuid": "^8.3.2",
         "winston": "^3.3.3",
         "winston-slack-transport": "^2.0.0"
     }

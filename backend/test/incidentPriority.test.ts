@@ -22,34 +22,34 @@ let token: $TSFixMe,
     defaultIncidentPriorityId: $TSFixMe,
     newIncidentPriorityId: $TSFixMe;
 
-describe('Incident Priority API', function() {
+describe('Incident Priority API', function () {
     this.timeout(500000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (
                 err: $TSFixMe,
-                res: $TSFixMe
+                req: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
+                VerificationTokenModel.findOne({ userId }, function (
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function() {
+                        .end(function () {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                .end(function (err: $TSFixMe, req: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
@@ -59,7 +59,7 @@ describe('Incident Priority API', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await IncidentSettings.hardDeleteBy({ projectId: projectId });
         await UserService.hardDeleteBy({ _id: userId });
@@ -91,7 +91,7 @@ describe('Incident Priority API', function() {
             .delete(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
             .send({ _id: defaultIncidentPriorityId })
-            .end((error: $TSFixMe, res: $TSFixMe) => {
+            .end((error: $TSFixMe, req: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });

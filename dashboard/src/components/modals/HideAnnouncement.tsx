@@ -65,7 +65,7 @@ class HideAnnouncement extends Component {
             announcement._id,
             { data }
         )
-            .then((res: $TSFixMe) => {
+            .then((req: Response) => {
                 if (res) {
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
                     this.props.closeThisDialog();

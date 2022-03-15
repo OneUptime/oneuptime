@@ -4,7 +4,7 @@ export default {
     //Param 1: projectId: Project id.
     //Param 2: subProjectId: SubProject id
     //Returns: list of team members
-    getTeamMembersBy: async function(query: $TSFixMe) {
+    getTeamMembersBy: async function (query: $TSFixMe) {
         let projectMembers: $TSFixMe = [];
 
         const projects = await ProjectService.findBy({
@@ -65,7 +65,7 @@ export default {
         return response;
     },
 
-    getTeamMemberBy: async function(
+    getTeamMemberBy: async function (
         projectId: $TSFixMe,
         teamMemberUserId: $TSFixMe
     ) {
@@ -120,7 +120,7 @@ export default {
         }
     },
 
-    getSeats: async function(members: $TSFixMe) {
+    getSeats: async function (members: $TSFixMe) {
         let seats = members.filter(async (user: $TSFixMe) => {
             let count = 0;
             const user_member = await UserService.findOneBy({
@@ -149,7 +149,7 @@ export default {
     //Param 2: emails: Emails of new user added by Admin.
     //Param 3: role: Role set by Admin.
     //Returns: promise
-    inviteTeamMembers: async function(
+    inviteTeamMembers: async function (
         addedByUserId: $TSFixMe,
         projectId: $TSFixMe,
         emails: $TSFixMe,
@@ -165,7 +165,7 @@ export default {
 
         //Checks if users to be added to project are not duplicate.
         let duplicateEmail = false;
-        emails.forEach(function(element: $TSFixMe, index: $TSFixMe) {
+        emails.forEach(function (element: $TSFixMe, index: $TSFixMe) {
             // Find if there is a duplicate or not
             if (emails.indexOf(element, index + 1) > -1) {
                 duplicateEmail = true;
@@ -255,7 +255,7 @@ export default {
     //Params:
     //Param 1: projectId: Project id.
     //Returns: promise
-    getTeamMembers: async function(projectId: $TSFixMe) {
+    getTeamMembers: async function (projectId: $TSFixMe) {
         const _this = this;
 
         const subProject = await ProjectService.findOneBy({
@@ -279,7 +279,7 @@ export default {
         return [];
     },
 
-    isValidBusinessEmails: function(emails: $TSFixMe) {
+    isValidBusinessEmails: function (emails: $TSFixMe) {
         let valid = true;
         if (emails && emails.length > 0) {
             for (let i = 0; i < emails.length; i++) {
@@ -323,7 +323,7 @@ export default {
     //Param 4: addedBy: Admin who added the user.
     //Param 5: project: Project.
     //Returns: promise
-    inviteTeamMembersMethod: async function(
+    inviteTeamMembersMethod: async function (
         projectId: $TSFixMe,
         emails: $TSFixMe,
         role: $TSFixMe,
@@ -579,7 +579,7 @@ export default {
     //Param 2: userId: User id of admin.
     //Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
     //Returns: promise
-    removeTeamMember: async function(
+    removeTeamMember: async function (
         projectId: $TSFixMe,
         userId: $TSFixMe,
         teamMemberUserId: $TSFixMe
@@ -767,7 +767,7 @@ export default {
     //Param 3: teamMemberUserId: id of Team Member.
     //Param 4: nextRole: Role of user to updated by Admin.
     //Returns: promise
-    updateTeamMemberRole: async function(
+    updateTeamMemberRole: async function (
         projectId: $TSFixMe,
         userId: $TSFixMe,
         teamMemberUserId: $TSFixMe,
@@ -809,7 +809,7 @@ export default {
         });
         const prevTeams = subProjects
             .concat(project)
-            .map((res: $TSFixMe) => res.users);
+            .map((req: Response) => res.users);
         const prevFlatTeams = flatten(prevTeams);
         const prevTeamArr = prevFlatTeams.filter(
             user => String(user.userId) === String(teamMemberUserId)

@@ -51,7 +51,7 @@ class SideNav extends Component {
                 this.props
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSubProjects' does not exist on type '... Remove this comment to see the full error message
                     .getSubProjects(this.props.currentProject._id)
-                    .then((res: $TSFixMe) => {
+                    .then((req: Response) => {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewer' does not exist on... Remove this comment to see the full error message
                         this.props.switchToProjectViewer(
                             User.getUserId(),
@@ -143,10 +143,10 @@ class SideNav extends Component {
         const IMG_URL =
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.profilePic &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
-            this.props.profilePic !== '' &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
-            this.props.profilePic !== 'null'
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
+                this.props.profilePic !== '' &&
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
+                this.props.profilePic !== 'null'
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'profilePic' does not exist on type 'Read... Remove this comment to see the full error message
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
@@ -311,7 +311,7 @@ class SideNav extends Component {
                     className={`db-World-sideNavContainer${
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'sidenavopen' does not exist on type 'Rea... Remove this comment to see the full error message
                         this.props.sidenavopen ? ' open' : ''
-                    }`}
+                        }`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
@@ -328,7 +328,7 @@ class SideNav extends Component {
                                 this.props.animateSidebar
                                     ? ' animate-in'
                                     : ' animate-out'
-                            }`}
+                                }`}
                         >
                             // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
                             {(this.state.navLoading === 'projectShow' ||
@@ -429,7 +429,7 @@ class SideNav extends Component {
 // @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function(state: $TSFixMe) {
+const mapStateToProps = function (state: $TSFixMe) {
     const allIndividualComponents = state.component.componentList.components.reduce(
         (acc: $TSFixMe, curr: $TSFixMe) => acc.concat(curr.components || []),
         []
@@ -465,7 +465,7 @@ const mapStateToProps = function(state: $TSFixMe) {
     };
 };
 
-const mapDispatchToProps = function(dispatch: $TSFixMe) {
+const mapDispatchToProps = function (dispatch: $TSFixMe) {
     return bindActionCreators(
         {
             openModal,
@@ -537,7 +537,7 @@ const WrappedSideNav = (props: $TSFixMe) => {
             router =>
                 !titleToExclude.includes(router.title) ||
                 router.path ===
-                    '/dashboard/project/:slug/component/:componentSlug/settings/advanced'
+                '/dashboard/project/:slug/component/:componentSlug/settings/advanced'
         );
     }
 

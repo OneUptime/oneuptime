@@ -24,15 +24,15 @@ let token: $TSFixMe,
     incidentId: $TSFixMe,
     alertId: $TSFixMe;
 
-describe('Enterprise Alert API', function() {
+describe('Enterprise Alert API', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createEnterpriseUser(request, userData.user, function(
+        GlobalConfig.initTestConfig().then(function () {
+            createEnterpriseUser(request, userData.user, function (
                 err: $TSFixMe,
-                res: $TSFixMe
+                req: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -45,7 +45,7 @@ describe('Enterprise Alert API', function() {
                                 email: userData.user.email,
                                 password: userData.user.password,
                             })
-                            .end(function(err: $TSFixMe, res: $TSFixMe) {
+                            .end(function (err: $TSFixMe, req: Response) {
                                 token = res.body.tokens.jwtAccessToken;
                                 const authorization = `Basic ${token}`;
                                 request
@@ -59,9 +59,9 @@ describe('Enterprise Alert API', function() {
                                         },
                                         componentId: component._id,
                                     })
-                                    .end(function(
+                                    .end(function (
                                         err: $TSFixMe,
-                                        res: $TSFixMe
+                                        req: Response
                                     ) {
                                         monitorId = res.body._id;
                                         incidentData.monitors = [monitorId];
@@ -74,7 +74,7 @@ describe('Enterprise Alert API', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
@@ -85,13 +85,13 @@ describe('Enterprise Alert API', function() {
         await AlertService.hardDeleteBy({ _id: alertId });
     });
 
-    it('should create alert with valid details for project with no billing plan', function(done: $TSFixMe) {
+    it('should create alert with valid details for project with no billing plan', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData)
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 incidentId = res.body._id;
                 request
                     .post(`/alert/${projectId}`)
@@ -102,7 +102,7 @@ describe('Enterprise Alert API', function() {
                         incidentId,
                         eventType: 'identified',
                     })
-                    .end(function(err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, req: Response) {
                         alertId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');

@@ -11,7 +11,7 @@ import ShouldRender from '../basic/ShouldRender';
 const getDescription = (type: $TSFixMe) => {
     return tutorials.getTutorials().filter(note => note.id === type);
 };
-const renderFeatures = (features: $TSFixMe) => {
+const renderFeatures = (featureq: Response) => {
     if (features) {
         return features.map((feature: $TSFixMe) => <FeatureList key={uuidv4()} content={feature} />);
     }
@@ -31,8 +31,8 @@ const CustomTutorial = ({
         {/* Here, component and monitor notifier */}
 
         {components &&
-        components.length < 1 &&
-        tutorialStat.componentCustom.show ? (
+            components.length < 1 &&
+            tutorialStat.componentCustom.show ? (
             <div>
                 {/* No Component Notifier */}
                 <QuickTipBox
@@ -61,8 +61,8 @@ const CustomTutorial = ({
                 />
             </div>
         ) : monitors &&
-          monitors.length < 1 &&
-          tutorialStat.monitorCustom.show ? (
+            monitors.length < 1 &&
+            tutorialStat.monitorCustom.show ? (
             <div>
                 {/* No Monitor Notifier */}
                 <QuickTipBox

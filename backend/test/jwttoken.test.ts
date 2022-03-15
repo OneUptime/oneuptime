@@ -18,35 +18,35 @@ import { createUser } from './utils/userSignUp';
 
 let token: $TSFixMe, projectId: $TSFixMe, refreshToken: $TSFixMe, userId;
 
-describe('Jwt Token API', function() {
+describe('Jwt Token API', function () {
     this.timeout(20000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (
                 err: $TSFixMe,
-                res: $TSFixMe
+                req: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
+                VerificationTokenModel.findOne({ userId }, function (
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function() {
+                        .end(function () {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function(err: $TSFixMe, res: $TSFixMe) {
+                                .end(function (err: $TSFixMe, req: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     refreshToken =
                                         res.body.tokens.jwtRefreshToken;
@@ -58,7 +58,7 @@ describe('Jwt Token API', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -73,13 +73,13 @@ describe('Jwt Token API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should get new access and refresh token when provided a valid jwtRefreshToken', function(done: $TSFixMe) {
+    it('should get new access and refresh token when provided a valid jwtRefreshToken', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post('/token/new')
             .set('Authorization', authorization)
             .send({ refreshToken: refreshToken })
-            .end(function(err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, req: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
