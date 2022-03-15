@@ -2,7 +2,7 @@
 # OneUptime Init Script
 #
 
-FROM node:17-alpine
+FROM node:alpine
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
@@ -10,7 +10,7 @@ RUN apk update && apk add bash && apk add curl
 
 # Install python
 RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
-   
+
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 
