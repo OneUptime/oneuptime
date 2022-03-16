@@ -61,7 +61,7 @@ if (process.env.ONEUPTIME_HOST) {
 
 app.get(['/env.js', '/status-page/env.js'], function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     let REACT_APP_ONEUPTIME_HOST = null;
     let REACT_APP_BACKEND_PROTOCOL = null;
@@ -114,7 +114,7 @@ app.get(['/env.js', '/status-page/env.js'], function (
 
 app.use('/.well-known/acme-challenge/:token', async function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     // make api call to backend and fetch keyAuthorization
     const { token } = req.params;
@@ -216,7 +216,7 @@ app.use('/', async function (req: Request, res: Response, next: $TSFixMe) {
 
 app.get(['/status-page/status', '/status'], function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -245,7 +245,7 @@ async function fetchCredential(
     configPath: $TSFixMe
 ) {
     return new Promise((resolve, reject) => {
-        fetch(`${apiHost}/file/${credentialName}`).then((req: Response) => {
+        fetch(`${apiHost}/file/${credentialName}`).then((res: Response) => {
             const dest = fs.createWriteStream(configPath);
             res.body.pipe(dest);
             // at this point, writing to the specified file is complete

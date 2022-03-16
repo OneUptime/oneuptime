@@ -27,7 +27,7 @@ module.exports.create = function (config: $TSFixMe) {
                 method: 'put',
                 data,
             })
-                .then((req: Response) => res.data)
+                .then((res: Response) => res.data)
                 .finally(() => null);
         },
         checkKeypair: function (opts: $TSFixMe) {
@@ -39,7 +39,7 @@ module.exports.create = function (config: $TSFixMe) {
                 url,
                 method: 'get',
             })
-                .then((req: Response) => res.data)
+                .then((res: Response) => res.data)
                 .finally(() => null);
         },
         options: config,
@@ -63,7 +63,7 @@ module.exports.create = function (config: $TSFixMe) {
                 method: 'put',
                 data,
             })
-                .then((req: Response) => res.data)
+                .then((res: Response) => res.data)
                 .finally(() => null);
         },
         checkKeypair: function (opts: $TSFixMe) {
@@ -77,7 +77,7 @@ module.exports.create = function (config: $TSFixMe) {
                 url,
                 method: 'get',
             })
-                .then((req: Response) => res.data)
+                .then((res: Response) => res.data)
                 .finally(() => null);
         },
         set: function (opts: $TSFixMe) {
@@ -95,7 +95,7 @@ module.exports.create = function (config: $TSFixMe) {
                 method: 'put',
                 data,
             })
-                .then((req: Response) => res.data)
+                .then((res: Response) => res.data)
                 .finally(() => null);
         },
         check: function (opts: $TSFixMe) {
@@ -107,7 +107,7 @@ module.exports.create = function (config: $TSFixMe) {
                 url,
                 method: 'get',
             })
-                .then((req: Response) => res.data)
+                .then((res: Response) => res.data)
                 .finally(() => null);
         },
         options: config,

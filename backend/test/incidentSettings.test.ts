@@ -54,7 +54,7 @@ describe('Incident Settings API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
@@ -73,7 +73,7 @@ describe('Incident Settings API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
@@ -87,7 +87,7 @@ describe('Incident Settings API', function () {
                                             .send({ ...monitor, componentId })
                                             .end(async function (
                                                 err: $TSFixMe,
-                                                req: Response
+                                                res: Response
                                             ) {
                                                 monitorId = res.body._id;
                                                 expect(res).to.have.status(200);

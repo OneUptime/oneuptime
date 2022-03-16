@@ -30,7 +30,7 @@ describe('Incident Priority API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
@@ -49,7 +49,7 @@ describe('Incident Priority API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
@@ -91,7 +91,7 @@ describe('Incident Priority API', function () {
             .delete(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
             .send({ _id: defaultIncidentPriorityId })
-            .end((error: $TSFixMe, req: Response) => {
+            .end((error: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });

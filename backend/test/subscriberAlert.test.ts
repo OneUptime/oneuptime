@@ -45,7 +45,7 @@ describe('Subcriber Alert API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
@@ -64,7 +64,7 @@ describe('Subcriber Alert API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
@@ -73,7 +73,7 @@ describe('Subcriber Alert API', function () {
                                         .send(monitor)
                                         .end(function (
                                             err: $TSFixMe,
-                                            req: Response
+                                            res: Response
                                         ) {
                                             monitorId = res.body._id;
                                             incidentData.monitors = [monitorId];
@@ -89,7 +89,7 @@ describe('Subcriber Alert API', function () {
                                                 .end(
                                                     (
                                                         err: $TSFixMe,
-                                                        req: Response
+                                                        res: Response
                                                     ) => {
                                                         idNumber =
                                                             res.body.idNumber; // This has replaced incidentId and is used to query subscriber alert
@@ -142,7 +142,7 @@ describe('Subcriber Alert API', function () {
                     .post(`/emailSmtp/${projectId}`)
                     .set('Authorization', authorization)
                     .send(smtpCredentials)
-                    .end((err: $TSFixMe, req: Response) => {
+                    .end((err: $TSFixMe, res: Response) => {
                         expect(res).to.have.status(200);
                         request
                             .post(
@@ -152,7 +152,7 @@ describe('Subcriber Alert API', function () {
                                 alertVia: 'email',
                                 contactEmail: userData.user.email,
                             })
-                            .end((err: $TSFixMe, req: Response) => {
+                            .end((err: $TSFixMe, res: Response) => {
                                 subscriberId = res.body._id;
                                 request
                                     .post(
@@ -163,7 +163,7 @@ describe('Subcriber Alert API', function () {
                                         alertVia: 'email',
                                         eventType: 'identified',
                                     })
-                                    .end((err: $TSFixMe, req: Response) => {
+                                    .end((err: $TSFixMe, res: Response) => {
                                         expect(res).to.have.status(200);
                                         expect(res.body).to.be.an('object');
                                         expect(res.body.alertVia).to.be.equal(
@@ -188,7 +188,7 @@ describe('Subcriber Alert API', function () {
                 alertVia: null,
                 eventType: 'identified',
             })
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -197,7 +197,7 @@ describe('Subcriber Alert API', function () {
     it('should get subscriber alerts by projectId', (done: $TSFixMe) => {
         request
             .get(`/subscriberAlert/${projectId}`)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -209,7 +209,7 @@ describe('Subcriber Alert API', function () {
     it('should get subscriber alerts by incidentId', (done: $TSFixMe) => {
         request
             .get(`/subscriberAlert/${projectId}/incident/${idNumber}`)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();

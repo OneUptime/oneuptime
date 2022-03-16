@@ -178,7 +178,7 @@ app.get('/error-tracking', function (req: Request, res: Response) {
 
 app.get('/unsubscribe/:monitorId/:subscriberId', async function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     const { monitorId, subscriberId } = req.params;
     let apiHost;
@@ -260,7 +260,7 @@ app.post('/unsubscribe', async function (req: Request, res: Response) {
 
 app.get('/product/docker-container-security', function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     res.render('container-security', {
         support: false,
@@ -307,7 +307,7 @@ app.get('/api-monitoring', function (req: Request, res: Response) {
 
 app.get('/product/kubernetes-monitoring', function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     res.render('kubernetes-monitoring', {
         support: false,
@@ -324,7 +324,7 @@ app.get('/kubernetes-monitoring', function (req: Request, res: Response) {
 
 app.get('/product/performance-monitoring', function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     res.render('performance-monitoring', {
         support: false,
@@ -369,7 +369,7 @@ app.get('/website-monitoring', function (req: Request, res: Response) {
 
 app.get('/product/iot-device-monitoring', function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     res.render('iot-device-monitoring', {
         support: false,
@@ -653,7 +653,7 @@ app.get('/legal/sla', function (req: Request, res: Response) {
 
 app.get('/enterprise/download-resource/:resourceName', function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     res.render('download-resource.ejs', {
         footerCards: false,
@@ -836,7 +836,7 @@ app.get('/sitemap.xml', async (req: Request, res: Response) => {
 // loads up the site faster
 app.use(
     express.static(path.join(__dirname, 'public'), {
-        setHeaders(req: Response) {
+        setHeaders(res: Response) {
             res.setHeader('Cache-Control', 'public,max-age=31536000,immutable');
         },
     })

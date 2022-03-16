@@ -68,7 +68,7 @@ describe('Status API', function () {
         GlobalConfig.initTestConfig().then(async function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 if (err) throw err;
                 projectId = res.body.project._id;
@@ -84,7 +84,7 @@ describe('Status API', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, req: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             if (err) throw err;
                             token = res.body.tokens.jwtAccessToken;
                             const authorization = `Basic ${token}`;
@@ -92,7 +92,7 @@ describe('Status API', function () {
                                 .post(`/resourceCategory/${projectId}`)
                                 .set('Authorization', authorization)
                                 .send(resourceCategory)
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     if (err) throw err;
                                     resourceCategoryId = res.body._id;
 
@@ -110,7 +110,7 @@ describe('Status API', function () {
                                             })
                                             .end(function (
                                                 err: $TSFixMe,
-                                                req: Response
+                                                res: Response
                                             ) {
                                                 if (err) throw err;
                                                 monitorId = res.body._id;
@@ -129,7 +129,7 @@ describe('Status API', function () {
                                                     .send(scheduledEvent)
                                                     .end(function (
                                                         err: $TSFixMe,
-                                                        req: Response
+                                                        res: Response
                                                     ) {
                                                         if (err) throw err;
                                                         scheduledEventId =
@@ -169,7 +169,7 @@ describe('Status API', function () {
                 copyright: 'status copyright',
                 projectId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -202,7 +202,7 @@ describe('Status API', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 statusPageId = res.body._id;
                 expect(res).to.have.status(200);
@@ -238,7 +238,7 @@ describe('Status API', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 privateStatusPageId = res.body._id;
                 expect(res).to.have.status(200);
@@ -254,7 +254,7 @@ describe('Status API', function () {
         request
             .get(`/status-page/${privateStatusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -267,7 +267,7 @@ describe('Status API', function () {
         request
             .get(`/status-page/${privateStatusPageId}/rss`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -277,7 +277,7 @@ describe('Status API', function () {
     it('should not get private status page for unauthorized user', function (done: $TSFixMe) {
         request
             .get(`/status-page/${privateStatusPageId}`)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(401);
                 done();
@@ -292,7 +292,7 @@ describe('Status API', function () {
             .send({
                 domain: 5,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -307,7 +307,7 @@ describe('Status API', function () {
             .send({
                 domain: 'wwwtest',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -341,7 +341,7 @@ describe('Status API', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -354,7 +354,7 @@ describe('Status API', function () {
             .get(`/status-page/${statusPageId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
@@ -378,7 +378,7 @@ describe('Status API', function () {
             .get(`/status-page/${projectId}/${statusPageId}/events`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
@@ -399,7 +399,7 @@ describe('Status API', function () {
             )
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
@@ -429,7 +429,7 @@ describe('Status API', function () {
                     .send({
                         responseTime: true,
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         if (err) throw err;
                         expect(res).to.have.status(200);
                         expect(res).to.be.an('object');
@@ -447,7 +447,7 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -461,7 +461,7 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -484,7 +484,7 @@ describe('Status API', function () {
                 .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
                 .set('Authorization', authorization)
                 .send({ domain, verificationToken })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     if (err) throw err;
                     expect(res).to.have.status(200);
                     expect(res.body.verified).to.be.true;
@@ -500,7 +500,7 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 const domain = 'status.x.com';
@@ -512,7 +512,7 @@ describe('Status API', function () {
                     request
                         .get(`/status-page/null?url=${domain}`)
                         .send()
-                        .end(function (err: $TSFixMe, req: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             if (err) throw err;
                             expect(res).to.have.status(200);
                             expect(res.body._id).to.be.equal(statusPageId);
@@ -529,14 +529,14 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 const domain = 'status.y.com';
                 request
                     .get(`/status-page/null?url=${domain}`)
                     .send()
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         if (err) throw err;
                         expect(res).to.have.status(400);
                         expect(res.body.message).to.be.equal(
@@ -560,7 +560,7 @@ describe('Status API', function () {
                 .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
                 .set('Authorization', authorization)
                 .send({ domain, verificationToken })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
@@ -590,7 +590,7 @@ describe('Status API', function () {
                         )
                         .set('Authorization', authorization)
                         .send({ domain, verificationToken })
-                        .end(function (err: $TSFixMe, req: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             if (err) throw err;
                             expect(res).to.have.status(400);
                             done();
@@ -607,7 +607,7 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -629,7 +629,7 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -651,7 +651,7 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -665,7 +665,7 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -679,7 +679,7 @@ describe('Status API', function () {
             .put(`/status-page/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -696,7 +696,7 @@ describe('Status API', function () {
             .post(`/project/create`)
             .set('Authorization', authorization)
             .send(project.newProject)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 const newProjectId = res.body._id;
                 request
@@ -711,7 +711,7 @@ describe('Status API', function () {
                         projectId,
                         monitorIds: [monitorId],
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         if (err) throw err;
                         const newStatusPageId = res.body._id;
                         request
@@ -720,7 +720,7 @@ describe('Status API', function () {
                             )
                             .set('Authorization', authorization)
                             .send(data)
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 if (err) throw err;
                                 expect(res).to.have.status(200);
                                 expect(
@@ -742,7 +742,7 @@ describe('Status API', function () {
             .post(`/project/create`)
             .set('Authorization', authorization)
             .send(project.newSecondProject)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 const newProjectId = res.body._id;
                 request
@@ -757,7 +757,7 @@ describe('Status API', function () {
                         projectId,
                         monitorIds: [monitorId],
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         if (err) throw err;
                         const newStatusPageId = res.body._id;
                         request
@@ -766,7 +766,7 @@ describe('Status API', function () {
                             )
                             .set('Authorization', authorization)
                             .send(data)
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 if (err) throw err;
                                 expect(res).to.have.status(400);
                                 expect(res.body.message).to.be.equals(
@@ -794,7 +794,7 @@ describe('Status API', function () {
                 .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
-                .end((err: $TSFixMe, req: Response) => {
+                .end((err: $TSFixMe, res: Response) => {
                     if (err) throw err;
                     expect(res).to.have.status(200);
                     done();
@@ -814,7 +814,7 @@ describe('Status API', function () {
                 .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
-                .end((err: $TSFixMe, req: Response) => {
+                .end((err: $TSFixMe, res: Response) => {
                     if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
@@ -834,7 +834,7 @@ describe('Status API', function () {
                 .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
-                .end((err: $TSFixMe, req: Response) => {
+                .end((err: $TSFixMe, res: Response) => {
                     if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
@@ -856,7 +856,7 @@ describe('Status API', function () {
                 .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
-                .end((err: $TSFixMe, req: Response) => {
+                .end((err: $TSFixMe, res: Response) => {
                     if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
@@ -873,7 +873,7 @@ describe('Status API', function () {
             request
                 .delete(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)
-                .end((err: $TSFixMe, req: Response) => {
+                .end((err: $TSFixMe, res: Response) => {
                     if (err) throw err;
                     expect(res).to.have.status(200);
                     done();
@@ -892,7 +892,7 @@ describe('Status API', function () {
             request
                 .delete(`/status-page/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)
-                .end((err: $TSFixMe, req: Response) => {
+                .end((err: $TSFixMe, res: Response) => {
                     if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
@@ -919,7 +919,7 @@ describe('StatusPage API with Sub-Projects', function () {
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     if (err) throw err;
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
@@ -930,7 +930,7 @@ describe('StatusPage API with Sub-Projects', function () {
                                 email: userData.newUser.email,
                                 password: userData.newUser.password,
                             })
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 if (err) throw err;
                                 newUserToken = res.body.tokens.jwtAccessToken;
                                 const authorization = `Basic ${token}`;
@@ -975,7 +975,7 @@ describe('StatusPage API with Sub-Projects', function () {
                     email: userData.anotherUser.email,
                     password: userData.anotherUser.password,
                 })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     if (err) throw err;
                     anotherUserToken = res.body.tokens.jwtAccessToken;
                     const authorization = `Basic ${anotherUserToken}`;
@@ -1002,7 +1002,7 @@ describe('StatusPage API with Sub-Projects', function () {
                                 },
                             ],
                         })
-                        .end(function (err: $TSFixMe, req: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             if (err) throw err;
                             expect(res).to.have.status(400);
                             expect(res.body.message).to.be.equal(
@@ -1019,7 +1019,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request
             .get(`/status-page/${privateStatusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -1051,7 +1051,7 @@ describe('StatusPage API with Sub-Projects', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
@@ -1088,7 +1088,7 @@ describe('StatusPage API with Sub-Projects', function () {
                 ],
                 domains: [],
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 statusPageId = res.body._id;
                 expect(res).to.have.status(200);
@@ -1123,7 +1123,7 @@ describe('StatusPage API with Sub-Projects', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 subProjectStatusPageId = res.body._id;
                 expect(res).to.have.status(200);
@@ -1137,7 +1137,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request
             .get(`/status-page/${subProjectId}/statuspage`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -1153,7 +1153,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request
             .get(`/status-page/${projectId}/statuspages`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
@@ -1179,7 +1179,7 @@ describe('StatusPage API with Sub-Projects', function () {
                 request
                     .get(`/status-page/${subProjectStatusPageId}`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         if (err) throw err;
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
@@ -1194,7 +1194,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request
             .delete(`/status-page/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
@@ -1209,7 +1209,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request
             .delete(`/status-page/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -1221,7 +1221,7 @@ describe('StatusPage API with Sub-Projects', function () {
         request
             .delete(`/status-page/${projectId}/${statusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();

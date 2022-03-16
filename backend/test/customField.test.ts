@@ -42,7 +42,7 @@ describe('Incident Custom Field API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -62,7 +62,7 @@ describe('Incident Custom Field API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     authorization = `Basic ${token}`;
                                     done();
@@ -89,7 +89,7 @@ describe('Incident Custom Field API', function () {
             .post(`/customField/${projectId}`)
             .send({ fieldType: 'text' })
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Field name is required');
                 done();
@@ -101,7 +101,7 @@ describe('Incident Custom Field API', function () {
             .post(`/customField/${projectId}`)
             .send({ fieldName: 'missingType' })
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Field type is required');
                 done();
@@ -113,7 +113,7 @@ describe('Incident Custom Field API', function () {
             .post(`/customField/${projectId}`)
             .send(incidentFieldText)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 customFieldId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.fieldName).to.be.equal(
@@ -128,7 +128,7 @@ describe('Incident Custom Field API', function () {
             .post(`/customField/${projectId}`)
             .send(incidentFieldText)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Custom field with this name already exist'
@@ -144,7 +144,7 @@ describe('Incident Custom Field API', function () {
             .put(`/customField/${projectId}/${customFieldId}`)
             .send(incidentFieldText)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.fieldName).to.be.equal(
                     incidentFieldText.fieldName
@@ -164,7 +164,7 @@ describe('Incident Custom Field API', function () {
                 request
                     .get(`/customField/${projectId}?skip=0&limit=10`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         expect(res.body.count).to.be.equal(2);
                         expect(res.body.data).to.be.an('array');
@@ -177,7 +177,7 @@ describe('Incident Custom Field API', function () {
         request
             .delete(`/customField/${projectId}/${customFieldId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(String(res.body._id)).to.be.equal(String(customFieldId));
                 done();

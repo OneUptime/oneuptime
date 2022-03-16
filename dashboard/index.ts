@@ -44,7 +44,7 @@ app.use(function (req: Request, res: Response, next: $TSFixMe) {
 
 app.get(['/env.js', '/dashboard/env.js'], function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     const isClustLocal = req.get('host').includes('cluster.local');
     if (!isClustLocal) {
@@ -108,7 +108,7 @@ app.get(['/env.js', '/dashboard/env.js'], function (
 //APP VERSION
 app.use(['/dashboard/api/version', '/dashboard/version'], function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.json({ dashboardVersion: process.env.npm_package_version });
@@ -116,7 +116,7 @@ app.use(['/dashboard/api/version', '/dashboard/version'], function (
 
 app.get(['/dashboard/status', '/status'], function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     res.setHeader('Content-Type', 'application/json');
     res.send(

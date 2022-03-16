@@ -72,7 +72,7 @@ describe('Scheduled Event Note', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 userId = res.body.id;
@@ -92,7 +92,7 @@ describe('Scheduled Event Note', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
@@ -112,7 +112,7 @@ describe('Scheduled Event Note', function () {
                                             })
                                             .end(async function (
                                                 err: $TSFixMe,
-                                                req: Response
+                                                res: Response
                                             ) {
                                                 monitorId = res.body._id;
 
@@ -130,7 +130,7 @@ describe('Scheduled Event Note', function () {
                                                     })
                                                     .end(async function (
                                                         err: $TSFixMe,
-                                                        req: Response
+                                                        res: Response
                                                     ) {
                                                         scheduledEventId =
                                                             res.body._id;
@@ -215,7 +215,7 @@ describe('Scheduled Event Note', function () {
                 `/scheduledEvent/${projectId}/${scheduledEventId}/notes?type=internal`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('count');
                 expect(res.body.count).to.be.a('number');
@@ -232,7 +232,7 @@ describe('Scheduled Event Note', function () {
                 `/scheduledEvent/${projectId}/${scheduledEventId}/notes?type=internal&skip=0&limit=10`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -261,7 +261,7 @@ describe('Scheduled Event Note', function () {
                 `/scheduledEvent/${projectId}/${scheduledEventId}/notes?type=internal&skip=10&limit=10`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -289,7 +289,7 @@ describe('Scheduled Event Note', function () {
             .post(`/scheduledEvent/${projectId}/${scheduledEventId}/notes`)
             .set('Authorization', authorization)
             .send(internalNote)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 internalNoteId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.event_state).to.equal(internalNote.event_state);
@@ -304,7 +304,7 @@ describe('Scheduled Event Note', function () {
             .post(`/scheduledEvent/${projectId}/${scheduledEventId}/notes`)
             .set('Authorization', authorization)
             .send(investigationNote)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 investigationNoteId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.content).to.equal(investigationNote.content);
@@ -319,7 +319,7 @@ describe('Scheduled Event Note', function () {
             .post(`/scheduledEvent/${projectId}/${scheduledEventId}/notes`)
             .set('Authorization', authorization)
             .send({ ...internalNote, event_state: '' })
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -332,7 +332,7 @@ describe('Scheduled Event Note', function () {
             .post(`/scheduledEvent/${projectId}/${scheduledEventId}/notes`)
             .set('Authorization', authorization)
             .send({ ...internalNote, type: 'randomType' })
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -347,7 +347,7 @@ describe('Scheduled Event Note', function () {
             )
             .set('Authorization', authorization)
             .send(updatedInternalNote)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body.event_state).to.equal(
                     updatedInternalNote.event_state
@@ -365,7 +365,7 @@ describe('Scheduled Event Note', function () {
             )
             .set('Authorization', authorization)
             .send(updatedInvestigationNote)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body.event_state).to.equal(
                     updatedInvestigationNote.event_state
@@ -384,7 +384,7 @@ describe('Scheduled Event Note', function () {
             )
             .set('Authorization', authorization)
             .send(updatedInternalNote)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -398,7 +398,7 @@ describe('Scheduled Event Note', function () {
                 `/scheduledEvent/${projectId}/${scheduledEventId}/notes/${internalNoteId}`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.equal(internalNoteId);
                 done();
@@ -413,7 +413,7 @@ describe('Scheduled Event Note', function () {
                 `/scheduledEvent/${projectId}/${scheduledEventId}/notes/${investigationNoteId}`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.equal(investigationNoteId);
                 done();
@@ -429,7 +429,7 @@ describe('Scheduled Event Note', function () {
                 `/scheduledEvent/${projectId}/${scheduledEventId}/notes/${noteId}`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });

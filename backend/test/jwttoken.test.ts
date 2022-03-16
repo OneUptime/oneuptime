@@ -26,7 +26,7 @@ describe('Jwt Token API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -46,7 +46,7 @@ describe('Jwt Token API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     refreshToken =
                                         res.body.tokens.jwtRefreshToken;
@@ -79,7 +79,7 @@ describe('Jwt Token API', function () {
             .post('/token/new')
             .set('Authorization', authorization)
             .send({ refreshToken: refreshToken })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });

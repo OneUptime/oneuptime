@@ -26,7 +26,7 @@ describe('Enterprise User API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createEnterpriseUser(request, data.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -38,7 +38,7 @@ describe('Enterprise User API', function () {
                         email: data.user.email,
                         password: data.user.password,
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         token = res.body.tokens.jwtAccessToken;
                         done();
                     });
@@ -68,7 +68,7 @@ describe('Enterprise User API', function () {
     it('should confirm that `master-admin` exists', function (done: $TSFixMe) {
         request
             .get('/user/masterAdminExists')
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).have.property('result');
                 expect(res.body.result).to.eql(true);
@@ -81,7 +81,7 @@ describe('Enterprise User API', function () {
     it('should register `user` without stripeToken, stripePlanId', function (done: $TSFixMe) {
         createEnterpriseUser(request, data.newUser, function (
             err: $TSFixMe,
-            req: Response
+            res: Response
         ) {
             const project = res.body.project;
             newProjectId = project._id;
@@ -101,7 +101,7 @@ describe('Enterprise User API', function () {
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(
                     data.newUser.email.toLocaleLowerCase()
@@ -119,7 +119,7 @@ describe('Enterprise User API', function () {
                 password: data.newUser.password,
                 redirect: 'http://oneuptime.com',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(
                     data.newUser.email.toLocaleLowerCase()
@@ -135,7 +135,7 @@ describe('Enterprise User API', function () {
         request
             .get('/user/users')
             .set('Authorization', authorization)
-            .end(async function (err: $TSFixMe, req: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -157,7 +157,7 @@ describe('Enterprise User API', function () {
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .then(function (req: Response) {
+            .then(function (res: Response) {
                 const jwtToken = res.body.tokens.jwtAccessToken;
                 request
                     .put('/user/profile')
@@ -166,7 +166,7 @@ describe('Enterprise User API', function () {
                         twoFactorAuthEnabled: true,
                         email: data.newUser.email,
                     })
-                    .then(function (req: Response) {
+                    .then(function (res: Response) {
                         request
                             .put(`/user/${res.body._id}/2fa`)
                             .set('Authorization', `Basic ${token}`)
@@ -175,7 +175,7 @@ describe('Enterprise User API', function () {
                                 twoFactorAuthEnabled: !res.body
                                     .twoFactorAuthEnabled,
                             })
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 expect(res.body.twoFactorAuthEnabled).to.eql(
                                     false
                                 );
@@ -192,7 +192,7 @@ describe('Enterprise User API', function () {
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .then(function (req: Response) {
+            .then(function (res: Response) {
                 const jwtToken = res.body.tokens.jwtAccessToken;
                 request
                     .put('/user/profile')
@@ -201,7 +201,7 @@ describe('Enterprise User API', function () {
                         twoFactorAuthEnabled: true,
                         email: data.newUser.email,
                     })
-                    .then(function (req: Response) {
+                    .then(function (res: Response) {
                         request
                             .put(`/user/${res.body._id}/2fa`)
                             .set('Authorization', `Basic ${jwtToken}`)

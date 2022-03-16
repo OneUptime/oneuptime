@@ -30,7 +30,7 @@ describe('OneUptimeLogger', function () {
             request
                 .post('/user/signup')
                 .send(user)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     const project = res.body.project;
                     projectId = project._id;
                     token = res.body.tokens.jwtAccessToken;
@@ -38,7 +38,7 @@ describe('OneUptimeLogger', function () {
                         .post(`/component/${projectId}`)
                         .set('Authorization', `Basic ${token}`)
                         .send(component)
-                        .end(function (err: $TSFixMe, req: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             componentId = res.body._id;
                             request
                                 .post(
@@ -46,7 +46,7 @@ describe('OneUptimeLogger', function () {
                                 )
                                 .set('Authorization', `Basic ${token}`)
                                 .send({ name: 'Application OneUptimeLogger' })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
                                     expect(res.body).to.have.property('_id');

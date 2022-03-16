@@ -63,7 +63,7 @@ describe('Subscriber API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
@@ -82,7 +82,7 @@ describe('Subscriber API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
@@ -98,7 +98,7 @@ describe('Subscriber API', function () {
                                             })
                                             .end(function (
                                                 err: $TSFixMe,
-                                                req: Response
+                                                res: Response
                                             ) {
                                                 monitorId = res.body._id;
                                                 expect(
@@ -125,7 +125,7 @@ describe('Subscriber API', function () {
                                                     })
                                                     .end(function (
                                                         err: $TSFixMe,
-                                                        req: Response
+                                                        res: Response
                                                     ) {
                                                         statusPageId =
                                                             res.body._id;
@@ -175,7 +175,7 @@ describe('Subscriber API', function () {
                     method: 'email',
                 },
             })
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 subscriberId = res.body[0]._id;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
@@ -192,7 +192,7 @@ describe('Subscriber API', function () {
             .send({
                 monitorIds: monitorId,
             })
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -201,7 +201,7 @@ describe('Subscriber API', function () {
     it('should get list of subscribers to a project', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}`)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -213,7 +213,7 @@ describe('Subscriber API', function () {
     it('should get list of subscribers to a monitorId', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}/monitor/${monitorId}`)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -225,7 +225,7 @@ describe('Subscriber API', function () {
     it('should get a subscriber', (done: $TSFixMe) => {
         request
             .get(`/subscriber/${projectId}/${subscriberId}`)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();
@@ -237,7 +237,7 @@ describe('Subscriber API', function () {
         request
             .delete(`/subscriber/${projectId}/${subscriberId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -247,7 +247,7 @@ describe('Subscriber API', function () {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
-            .end((_err: $TSFixMe, req: Response) => {
+            .end((_err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.lengthOf(2);
                 expect(res.body[0]).to.have.property('_id');
@@ -260,7 +260,7 @@ describe('Subscriber API', function () {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
-            .end((_err: $TSFixMe, req: Response) => {
+            .end((_err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body[0]).to.not.have.property('_id');
                 expect(res.body[0]).to.not.have.property('projectId');
@@ -279,7 +279,7 @@ describe('Subscriber API', function () {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
-            .end((_err: $TSFixMe, req: Response) => {
+            .end((_err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body[0]).to.not.have.property('_id');
                 expect(res.body[0]).to.not.have.property('projectId');
@@ -296,7 +296,7 @@ describe('Subscriber API', function () {
         request
             .post(`/subscriber/${projectId}/${monitorId}/csv`)
             .send(csvData)
-            .end((_err: $TSFixMe, req: Response) => {
+            .end((_err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.equal('Empty files submitted');
                 done();

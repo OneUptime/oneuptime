@@ -98,7 +98,7 @@ class SlackTeamList extends React.Component {
                         </thead>
                         <tbody className="Table-body">
                             <ShouldRender if={teams.teams.length > 0}>
-                                {teams.teams.map((req: Response) => <SlackTeamItem
+                                {teams.teams.map((res: Response) => <SlackTeamItem
                                     key={`${res._id}`}
                                     // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: string; team: any; projectId: any; }'... Remove this comment to see the full error message
                                     team={res}
@@ -177,8 +177,8 @@ class SlackTeamList extends React.Component {
                             <div className="Box-root Margin-right--8">
                                 <button
                                     className={`Button bs-ButtonLegacy ${!canPaginateBackward
-                                            ? 'Is--disabled'
-                                            : ''
+                                        ? 'Is--disabled'
+                                        : ''
                                         }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!canPaginateBackward}
@@ -195,8 +195,8 @@ class SlackTeamList extends React.Component {
                             <div className="Box-root">
                                 <button
                                     className={`Button bs-ButtonLegacy ${!canPaginateForward
-                                            ? 'Is--disabled'
-                                            : ''
+                                        ? 'Is--disabled'
+                                        : ''
                                         }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!canPaginateForward}

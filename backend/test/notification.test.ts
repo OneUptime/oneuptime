@@ -28,7 +28,7 @@ describe('Notification API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -48,7 +48,7 @@ describe('Notification API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
@@ -83,7 +83,7 @@ describe('Notification API', function () {
                 message: 'New Notification',
                 icon: 'bell',
             })
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();
@@ -96,7 +96,7 @@ describe('Notification API', function () {
             .get(`/notification/${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -111,7 +111,7 @@ describe('Notification API', function () {
             .get(`/notification/${projectData.firstProject._id}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -126,13 +126,13 @@ describe('Notification API', function () {
                 message: 'New Notification',
                 icon: 'bell',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 const notificationId = res.body._id;
                 request
                     .put(`/notification/${projectId}/read`)
                     .set('Authorization', authorization)
                     .send({ notificationIds: [notificationId] })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('array');
                         expect(res.body).to.include(notificationId);
@@ -150,12 +150,12 @@ describe('Notification API', function () {
                 message: 'New Notification',
                 icon: 'bell',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 const notificationId = res.body._id;
                 request
                     .put(`/notification/${projectId}/${notificationId}/closed`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
                         expect(res.body._id).to.be.equal(notificationId);
@@ -177,7 +177,7 @@ describe('Notification API', function () {
                 request
                     .put(`/notification/${projectId}/readAll`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         done();
                     });
@@ -188,7 +188,7 @@ describe('Notification API', function () {
         request
             .put(`/notification/${projectId}/read`)
             .send({ notificationIds: [projectData.fakeProject._id] })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(401);
                 done();
             });

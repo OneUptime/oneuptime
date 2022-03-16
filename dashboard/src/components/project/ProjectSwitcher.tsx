@@ -42,7 +42,7 @@ export class ProjectSwitcher extends Component {
 
         if (project._id !== currentProject._id) {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSubProjects' does not exist on type '... Remove this comment to see the full error message
-            this.props.getSubProjects(project._id).then((req: Response) => {
+            this.props.getSubProjects(project._id).then((res: Response) => {
                 const { data: subProjects } = res.data;
                 switchProject(dispatch, project, subProjects);
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message

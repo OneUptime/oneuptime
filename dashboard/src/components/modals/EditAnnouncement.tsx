@@ -100,7 +100,7 @@ class EditAnnouncement extends Component {
         updateAnnouncement(projectId, statusPage._id, announcement._id, {
             data: postObj,
         })
-            .then((req: Response) => {
+            .then((res: Response) => {
                 if (res) {
                     this.handleCloseModal();
                     fetchAnnouncements(projectId, statusPage._id, 0, 10);

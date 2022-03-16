@@ -29,7 +29,7 @@ describe('Stripe payment API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -49,7 +49,7 @@ describe('Stripe payment API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     authorization = `Basic ${token}`;
                                     done();
@@ -79,7 +79,7 @@ describe('Stripe payment API', function () {
         request
             .get(`/stripe/${userId}/charges`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -97,7 +97,7 @@ describe('Stripe payment API', function () {
         request
             .post(`/stripe/${userId}/creditCard/${'tok_amex'}/pi`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 cardId = res.body.source;
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
@@ -113,7 +113,7 @@ describe('Stripe payment API', function () {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -126,7 +126,7 @@ describe('Stripe payment API', function () {
         request
             .put(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('default_source');
@@ -139,7 +139,7 @@ describe('Stripe payment API', function () {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -152,7 +152,7 @@ describe('Stripe payment API', function () {
         request
             .get(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('id');
@@ -167,7 +167,7 @@ describe('Stripe payment API', function () {
         request
             .delete(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('id');
@@ -180,12 +180,12 @@ describe('Stripe payment API', function () {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 cardId = res.body.data[0].id;
                 request
                     .delete(`/stripe/${userId}/creditCard/${cardId}`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(403);
                         expect(res.body.message).to.be.equal(
                             'Cannot delete the only card'
@@ -199,7 +199,7 @@ describe('Stripe payment API', function () {
         request
             .post(`/stripe/${userId}/creditCard/${'tok_invalid'}/pi`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "No such token: 'tok_invalid'"
@@ -215,7 +215,7 @@ describe('Stripe payment API', function () {
             .send({
                 rechargeBalanceAmount: '43_',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Amount should be present and it should be a valid number.'
@@ -231,7 +231,7 @@ describe('Stripe payment API', function () {
             .send({
                 rechargeBalanceAmount: '100',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
                 expect(res.body).to.have.property('client_secret');

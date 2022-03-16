@@ -33,7 +33,7 @@ describe('Email verification API', function () {
             GlobalConfig.enableEmailLog().then(function () {
                 createUser(request, userData.user, function (
                     err: $TSFixMe,
-                    req: Response
+                    res: Response
                 ) {
                     userId = res.body.id;
                     projectId = res.body.project._id;

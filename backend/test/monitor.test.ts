@@ -86,7 +86,7 @@ describe('Monitor API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -115,7 +115,7 @@ describe('Monitor API', function () {
                                     })
                                     .end(function (
                                         err: $TSFixMe,
-                                        req: Response
+                                        res: Response
                                     ) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
@@ -150,7 +150,7 @@ describe('Monitor API', function () {
             .send({
                 name: 'New Schedule',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -167,7 +167,7 @@ describe('Monitor API', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -184,7 +184,7 @@ describe('Monitor API', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -201,7 +201,7 @@ describe('Monitor API', function () {
                 data: null,
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -220,7 +220,7 @@ describe('Monitor API', function () {
                 },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -237,7 +237,7 @@ describe('Monitor API', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 3');
@@ -253,7 +253,7 @@ describe('Monitor API', function () {
             .send({
                 siteUrl: 'https://twitter.com',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 expect(res.body.siteUrls).to.contain('https://twitter.com');
@@ -269,7 +269,7 @@ describe('Monitor API', function () {
             .send({
                 siteUrl: 'https://twitter.com',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 expect(res.body.siteUrls).to.not.contain('https://twitter.com');
@@ -290,7 +290,7 @@ describe('Monitor API', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -305,7 +305,7 @@ describe('Monitor API', function () {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 scheduleId = res.body._id;
                 request
                     .post(`/monitor/${projectId}`)
@@ -317,14 +317,14 @@ describe('Monitor API', function () {
                         data: { url: 'http://www.tests.org' },
                         componentId,
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         monitorId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body.name).to.be.equal('New Monitor 5');
                         request
                             .get(`/schedule/${projectId}`)
                             .set('Authorization', authorization)
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 expect(res).to.have.status(200);
                                 expect(res.body).to.be.an('object');
                                 expect(res.body).to.have.property('data');
@@ -346,7 +346,7 @@ describe('Monitor API', function () {
             .send({
                 name: 'Valid Schedule for two monitors',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 scheduleId = res.body._id;
                 request
                     .post(`/monitor/${projectId}`)
@@ -358,7 +358,7 @@ describe('Monitor API', function () {
                         data: { url: 'http://www.tests.org' },
                         componentId,
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         monitorId = res.body._id;
                         request
                             .post(`/monitor/${projectId}`)
@@ -370,14 +370,14 @@ describe('Monitor API', function () {
                                 data: { url: 'http://www.tests.org' },
                                 componentId,
                             })
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 monitorId = res.body._id;
                                 request
                                     .get(`/schedule/${projectId}`)
                                     .set('Authorization', authorization)
                                     .end(function (
                                         err: $TSFixMe,
-                                        req: Response
+                                        res: Response
                                     ) {
                                         expect(res).to.have.status(200);
                                         expect(res.body).to.be.an('object');
@@ -411,7 +411,7 @@ describe('Monitor API', function () {
                     url: 'https://twitter.com',
                 },
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 done();
@@ -423,7 +423,7 @@ describe('Monitor API', function () {
         request
             .get(`/monitor/${projectId}/monitor`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -437,7 +437,7 @@ describe('Monitor API', function () {
         request
             .get(`/monitor/${projectId}/monitor/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body._id).to.be.equal(monitorId);
@@ -450,7 +450,7 @@ describe('Monitor API', function () {
         request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -470,7 +470,7 @@ describe('API Monitor API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -499,7 +499,7 @@ describe('API Monitor API', function () {
                                     })
                                     .end(function (
                                         err: $TSFixMe,
-                                        req: Response
+                                        res: Response
                                     ) {
                                         token = res.body.tokens.jwtAccessToken;
                                         testServer
@@ -545,7 +545,7 @@ describe('API Monitor API', function () {
                 data: { url: 'https://google.com' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'API Monitor URL should not be a HTML page.'
@@ -566,7 +566,7 @@ describe('API Monitor API', function () {
                 data: { url: `https://oneuptime.com/api/monitor/${projectId}` },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -584,7 +584,7 @@ describe('API Monitor API', function () {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Unauthorized');
                 done();
@@ -604,7 +604,7 @@ describe('API Monitor API', function () {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Bad Request');
                 done();
@@ -626,7 +626,7 @@ describe('API Monitor API', function () {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Bad Request');
                 done();
@@ -645,7 +645,7 @@ describe('API Monitor API', function () {
                 data: { url: HTTP_TEST_SERVER_URL },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 30');
@@ -665,7 +665,7 @@ describe('API Monitor API', function () {
                 data: { url: 'https://google.com' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'API Monitor URL should not be a HTML page.'
@@ -683,7 +683,7 @@ describe('IncomingHttpRequest Monitor', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -712,7 +712,7 @@ describe('IncomingHttpRequest Monitor', function () {
                                     })
                                     .end(function (
                                         err: $TSFixMe,
-                                        req: Response
+                                        res: Response
                                     ) {
                                         token = res.body.tokens.jwtAccessToken;
                                         done();
@@ -750,7 +750,7 @@ describe('IncomingHttpRequest Monitor', function () {
                 },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 120');
@@ -762,7 +762,7 @@ describe('IncomingHttpRequest Monitor', function () {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
             .send({})
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('degraded');
                 done();
@@ -772,7 +772,7 @@ describe('IncomingHttpRequest Monitor', function () {
     it('should report monitor degraded when api has no body in get request', function (done: $TSFixMe) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('degraded');
                 done();
@@ -783,7 +783,7 @@ describe('IncomingHttpRequest Monitor', function () {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
             .send({ id: '123456' })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('online');
                 done();
@@ -794,7 +794,7 @@ describe('IncomingHttpRequest Monitor', function () {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
             .send({ id: '123456' })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('online');
                 done();
@@ -830,7 +830,7 @@ describe('IncomingHttpRequest Monitor', function () {
                 },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitor2Id = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 121');
@@ -842,7 +842,7 @@ describe('IncomingHttpRequest Monitor', function () {
         request
             .post(`/incomingHttpRequest/${httpMonitor2Id}`)
             .send({ id: '123456' })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitor2Id);
                 expect(res.body.status).to.be.equal('offline');
                 done();
@@ -854,7 +854,7 @@ describe('IncomingHttpRequest Monitor', function () {
             .post(`/incomingHttpRequest/${httpMonitor2Id}?abc=xyz`)
             .set('Cache-Control', 'no-cache')
             .send({ id: '123456' })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitor2Id);
                 expect(res.body.status).to.be.equal('online');
                 done();
@@ -870,7 +870,7 @@ describe('Monitor API with resource Category', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -889,7 +889,7 @@ describe('Monitor API with resource Category', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     request
@@ -898,7 +898,7 @@ describe('Monitor API with resource Category', function () {
                                         .send(resourceCategory)
                                         .end(function (
                                             err: $TSFixMe,
-                                            req: Response
+                                            res: Response
                                         ) {
                                             resourceCategoryId = res.body._id;
                                             done();
@@ -929,7 +929,7 @@ describe('Monitor API with resource Category', function () {
                 resourceCategory: resourceCategoryId,
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 8');
@@ -957,12 +957,12 @@ describe('Monitor API with Sub-Projects', function () {
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
                     createUser(request, userData.newUser, function (
                         err: $TSFixMe,
-                        req: Response
+                        res: Response
                     ) {
                         userId = res.body.id;
                         VerificationTokenModel.findOne({ userId }, function (
@@ -983,7 +983,7 @@ describe('Monitor API with Sub-Projects', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            req: Response
+                                            res: Response
                                         ) {
                                             newUserToken =
                                                 res.body.tokens.jwtAccessToken;
@@ -1020,7 +1020,7 @@ describe('Monitor API with Sub-Projects', function () {
     it('should not create a monitor for user not present in project', function (done: $TSFixMe) {
         createUser(request, userData.anotherUser, function (
             err: $TSFixMe,
-            req: Response
+            res: Response
         ) {
             userId = res.body.id;
             VerificationTokenModel.findOne({ userId }, function (
@@ -1037,7 +1037,7 @@ describe('Monitor API with Sub-Projects', function () {
                                 email: userData.anotherUser.email,
                                 password: userData.anotherUser.password,
                             })
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                 request
                                     .post(`/monitor/${projectId}`)
@@ -1050,7 +1050,7 @@ describe('Monitor API with Sub-Projects', function () {
                                     })
                                     .end(function (
                                         err: $TSFixMe,
-                                        req: Response
+                                        res: Response
                                     ) {
                                         expect(res).to.have.status(400);
                                         expect(res.body.message).to.be.equal(
@@ -1075,7 +1075,7 @@ describe('Monitor API with Sub-Projects', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -1095,7 +1095,7 @@ describe('Monitor API with Sub-Projects', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 11');
@@ -1114,7 +1114,7 @@ describe('Monitor API with Sub-Projects', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 subProjectMonitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 12');
@@ -1127,7 +1127,7 @@ describe('Monitor API with Sub-Projects', function () {
         request
             .get(`/monitor/${subProjectId}/monitor`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -1143,7 +1143,7 @@ describe('Monitor API with Sub-Projects', function () {
         request
             .get(`/monitor/${projectId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('monitors');
@@ -1159,7 +1159,7 @@ describe('Monitor API with Sub-Projects', function () {
         request
             .delete(`/monitor/${subProjectId}/${subProjectMonitorId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -1173,7 +1173,7 @@ describe('Monitor API with Sub-Projects', function () {
         request
             .delete(`/monitor/${subProjectId}/${subProjectMonitorId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -1184,7 +1184,7 @@ describe('Monitor API with Sub-Projects', function () {
         request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -1293,7 +1293,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You can't add any more monitors. Please upgrade your account."
@@ -1322,7 +1322,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function () {
                     data: { url: 'http://www.tests.org' },
                     componentId,
                 })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     monitorId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body.name).to.be.equal('New Monitor 15');

@@ -29,7 +29,7 @@ describe('Enterprise Monitor API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createEnterpriseUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -40,7 +40,7 @@ describe('Enterprise Monitor API', function () {
                         email: userData.user.email,
                         password: userData.user.password,
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         token = res.body.tokens.jwtAccessToken;
                         done();
                     });
@@ -69,7 +69,7 @@ describe('Enterprise Monitor API', function () {
                 .send({
                     projectName: 'Test Project',
                 })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     newProjectId = res.body._id;
                     request
                         .post(`/monitor/${newProjectId}`)
@@ -80,7 +80,7 @@ describe('Enterprise Monitor API', function () {
                             data: { url: 'http://www.tests.org' },
                             componentId: component._id,
                         })
-                        .end(function (err: $TSFixMe, req: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             monitorId = res.body._id;
                             expect(res).to.have.status(200);
                             expect(res.body.name).to.be.equal('New Monitor');

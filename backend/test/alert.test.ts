@@ -50,7 +50,7 @@ describe('Alert API', function () {
             GlobalConfig.initTestConfig().then(function () {
                 createUser(request, userData.user, function (
                     err: $TSFixMe,
-                    req: Response
+                    res: Response
                 ) {
                     const project = res.body.project;
                     projectId = project._id;
@@ -70,7 +70,7 @@ describe('Alert API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            req: Response
+                                            res: Response
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -87,7 +87,7 @@ describe('Alert API', function () {
                                                 })
                                                 .end(function (
                                                     err: $TSFixMe,
-                                                    req: Response
+                                                    res: Response
                                                 ) {
                                                     monitorId = res.body._id;
                                                     incidentData.monitors = [
@@ -130,7 +130,7 @@ describe('Alert API', function () {
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send(incidentData)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     incidentId = res.body._id;
                     monitorId = res.body.monitors[0].monitorId._id;
                     request
@@ -142,7 +142,7 @@ describe('Alert API', function () {
                             incidentId: incidentId,
                             eventType: 'identified',
                         })
-                        .end(function (err: $TSFixMe, req: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             alertId = res.body._id;
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('object');
@@ -156,7 +156,7 @@ describe('Alert API', function () {
             request
                 .get(`/alert/${projectId}/alert`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -170,7 +170,7 @@ describe('Alert API', function () {
             request
                 .get(`/alert/${projectId}/incident/${incidentId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -184,7 +184,7 @@ describe('Alert API', function () {
             request
                 .delete(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     done();
                 });
@@ -195,7 +195,7 @@ describe('Alert API', function () {
             request
                 .delete('/alert/5f71e52737c855f7c5b347d3')
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -216,12 +216,12 @@ describe('Alert API', function () {
                     .post(`/project/${projectId}/subProject`)
                     .set('Authorization', authorization)
                     .send({ subProjectName: 'New SubProject' })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         subProjectId = res.body[0]._id;
                         // sign up second user (subproject user)
                         createUser(request, userData.newUser, function (
                             err: $TSFixMe,
-                            req: Response
+                            res: Response
                         ) {
                             userId = res.body.id;
                             UserModel.findByIdAndUpdate(
@@ -236,7 +236,7 @@ describe('Alert API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            req: Response
+                                            res: Response
                                         ) {
                                             newUserToken =
                                                 res.body.tokens.jwtAccessToken;
@@ -286,7 +286,7 @@ describe('Alert API', function () {
         it('should not create alert for user not in the project.', function (done: $TSFixMe) {
             createUser(request, userData.anotherUser, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 userId = res.body.id;
                 UserModel.findByIdAndUpdate(
@@ -299,7 +299,7 @@ describe('Alert API', function () {
                                 email: userData.anotherUser.email,
                                 password: userData.anotherUser.password,
                             })
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                 request
                                     .post(`/alert/${projectId}`)
@@ -311,7 +311,7 @@ describe('Alert API', function () {
                                     })
                                     .end(function (
                                         err: $TSFixMe,
-                                        req: Response
+                                        res: Response
                                     ) {
                                         alertId = res.body._id;
                                         expect(res).to.have.status(400);
@@ -337,7 +337,7 @@ describe('Alert API', function () {
                     incidentId: incidentId,
                     eventType: 'identified',
                 })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     alertId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
@@ -356,7 +356,7 @@ describe('Alert API', function () {
                     incidentId: incidentId,
                     eventType: 'identified',
                 })
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     done();
@@ -368,7 +368,7 @@ describe('Alert API', function () {
             request
                 .get(`/alert/${subProjectId}/alert`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -382,7 +382,7 @@ describe('Alert API', function () {
             request
                 .get(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('array');
                     expect(res.body[0]).to.have.property('alerts');
@@ -398,7 +398,7 @@ describe('Alert API', function () {
             request
                 .delete(`/alert/${subProjectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     done();
                 });
@@ -409,7 +409,7 @@ describe('Alert API', function () {
             request
                 .delete(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, req: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     done();
                 });

@@ -51,7 +51,7 @@ class SideNav extends Component {
                 this.props
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSubProjects' does not exist on type '... Remove this comment to see the full error message
                     .getSubProjects(this.props.currentProject._id)
-                    .then((req: Response) => {
+                    .then((res: Response) => {
                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewer' does not exist on... Remove this comment to see the full error message
                         this.props.switchToProjectViewer(
                             User.getUserId(),

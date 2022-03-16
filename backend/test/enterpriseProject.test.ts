@@ -23,7 +23,7 @@ describe('Enterprise Project API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createEnterpriseUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -34,7 +34,7 @@ describe('Enterprise Project API', function () {
                         email: userData.user.email,
                         password: userData.user.password,
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         token = res.body.tokens.jwtAccessToken;
                         done();
                     });
@@ -60,7 +60,7 @@ describe('Enterprise Project API', function () {
             .send({
                 projectName: 'Test Project',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 newProjectId = res.body._id;
                 expect(res).to.have.status(200);
                 done();
@@ -72,7 +72,7 @@ describe('Enterprise Project API', function () {
         request
             .delete(`/project/${projectId}/deleteProject`)
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -83,7 +83,7 @@ describe('Enterprise Project API', function () {
         request
             .put(`/project/${projectId}/restoreProject`)
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, req: Response) => {
+            .end((err: $TSFixMe, res: Response) => {
                 expect(res).to.have.status(200);
                 done();
             });

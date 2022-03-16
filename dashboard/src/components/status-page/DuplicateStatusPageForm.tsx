@@ -51,7 +51,7 @@ export class StatusPageForm extends React.Component {
                 data.statusPageSlug,
                 { name }
             )
-            .then((req: Response) => {
+            .then((res: Response) => {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
                 this.props.closeModal({
                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'duplicateModalId' does not exist on type... Remove this comment to see the full error message

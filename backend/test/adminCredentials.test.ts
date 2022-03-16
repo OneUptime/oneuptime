@@ -40,7 +40,7 @@ describe('Admin process.env login API', function () {
                 email: process.env.ADMIN_EMAIL,
                 password: process.env.ADMIN_PASSWORD + '1',
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -53,7 +53,7 @@ describe('Admin process.env login API', function () {
                 email: process.env.ADMIN_EMAIL,
                 password: process.env.ADMIN_PASSWORD,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 token = res.body.tokens.jwtAccessToken;
                 if (token) {
                     done();

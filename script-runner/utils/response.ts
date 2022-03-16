@@ -3,7 +3,7 @@ import { Request, Response } from 'common-server/utils/express';
 export default {
     sendSuccessResponse: function (
         req: Request,
-        req: Response,
+        res: Response,
         data: $TSFixMe
     ) {
         return res.status(200).send(data);

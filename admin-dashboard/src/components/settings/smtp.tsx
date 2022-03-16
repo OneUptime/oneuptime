@@ -240,7 +240,7 @@ export class Component extends React.Component {
                     smtpToUse,
                 };
 
-                return testSmtp(payload).then((req: Response) => {
+                return testSmtp(payload).then((res: Response) => {
                     if (res && typeof res === 'string') {
                         // prevent dismissal of modal if errored
                         // res will only be a string if errored

@@ -25,7 +25,7 @@ describe('Global Config API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, data.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -45,7 +45,7 @@ describe('Global Config API', function () {
                                     email: data.user.email,
                                     password: data.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     UserService.updateBy(
                                         { _id: userId },
@@ -84,7 +84,7 @@ describe('Global Config API', function () {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfig)
-            .end(async function (err: $TSFixMe, req: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal(globalConfig.name);
                 expect(res.body.value).to.equal(globalConfig.value);
@@ -108,7 +108,7 @@ describe('Global Config API', function () {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfigs)
-            .end(async function (err: $TSFixMe, req: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -132,7 +132,7 @@ describe('Global Config API', function () {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfig)
-            .end(async function (err: $TSFixMe, req: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -145,7 +145,7 @@ describe('Global Config API', function () {
             .post('/globalConfig/configs')
             .set('Authorization', authorization)
             .send(globalConfigs)
-            .end(async function (err: $TSFixMe, req: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -165,7 +165,7 @@ describe('Global Config API', function () {
         request
             .get('/globalConfig/TestName')
             .set('Authorization', authorization)
-            .end(async function (err: $TSFixMe, req: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('TestName');
                 done();
@@ -177,7 +177,7 @@ describe('Global Config API', function () {
         request
             .get('/globalConfig/auditLogMonitoringStatus')
             .set('Authorization', authorization)
-            .end(async function (err: $TSFixMe, req: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('auditLogMonitoringStatus');
                 expect(res.body.value).to.equal(true);
@@ -191,7 +191,7 @@ describe('Global Config API', function () {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send({ name: 'auditLogMonitoringStatus', value: false })
-            .end(async function (err: $TSFixMe, req: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('auditLogMonitoringStatus');
                 expect(res.body.value).to.equal(false);

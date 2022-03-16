@@ -56,7 +56,7 @@ describe('Incident Alerts', function () {
         GlobalConfig.initTestConfig().then(() => {
             createEnterpriseUser(request, userData.user, async function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -72,7 +72,7 @@ describe('Incident Alerts', function () {
                         email: userData.user.email,
                         password: userData.user.password,
                     })
-                    .end(async function (err: $TSFixMe, req: Response) {
+                    .end(async function (err: $TSFixMe, res: Response) {
                         token = res.body.tokens.jwtAccessToken;
                         authorization = `Basic ${token}`;
 

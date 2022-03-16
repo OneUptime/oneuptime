@@ -628,7 +628,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function (
 
 router.post('/setTime/:monitorId', isAuthorizedProbe, async function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     try {
         const data = req.body;
@@ -643,7 +643,7 @@ router.post('/setTime/:monitorId', isAuthorizedProbe, async function (
 
 router.post('/getTime/:monitorId', isAuthorizedProbe, async function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     try {
         const data = req.body;
@@ -658,7 +658,7 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function (
 
 router.post('/set-scan-status', isAuthorizedProbe, async function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     try {
         const { monitorIds, scanning } = req.body;
@@ -672,7 +672,7 @@ router.post('/set-scan-status', isAuthorizedProbe, async function (
 
 router.post('/add-probe-scan', isAuthorizedProbe, async function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     try {
         const { monitorIds } = req.body;
@@ -686,7 +686,7 @@ router.post('/add-probe-scan', isAuthorizedProbe, async function (
 
 router.post('/remove-probe-scan', isAuthorizedProbe, async function (
     req: Request,
-    req: Response
+    res: Response
 ) {
     try {
         const { monitorIds } = req.body;

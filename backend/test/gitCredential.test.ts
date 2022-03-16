@@ -28,7 +28,7 @@ describe('Git Credential API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -48,7 +48,7 @@ describe('Git Credential API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, req: Response) {
+                                .end(function (err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
@@ -82,7 +82,7 @@ describe('Git Credential API', function () {
                 gitUsername,
                 gitPassword,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 credentialId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.gitUsername).to.be.equal(gitUsername);
@@ -100,7 +100,7 @@ describe('Git Credential API', function () {
             .send({
                 gitUsername: newGitUsername,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.gitUsername).to.be.equal(newGitUsername);
                 done();
@@ -123,7 +123,7 @@ describe('Git Credential API', function () {
                 request
                     .get(`/credential/${projectId}/gitCredential`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('array');
                         done();
@@ -137,7 +137,7 @@ describe('Git Credential API', function () {
         request
             .delete(`/credential/${projectId}/gitCredential/${credentialId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(credentialId);
                 expect(res.body.deleted).to.be.true;
@@ -157,7 +157,7 @@ describe('Git Credential API', function () {
                 gitUsername,
                 gitPassword,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Credential already exist in this project'
@@ -178,7 +178,7 @@ describe('Git Credential API', function () {
                 gitUsername,
                 gitPassword,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Username is required'
@@ -197,7 +197,7 @@ describe('Git Credential API', function () {
             .send({
                 gitUsername,
             })
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Please provide a password'
@@ -213,7 +213,7 @@ describe('Git Credential API', function () {
         request
             .delete(`/credential/${projectId}/gitCredential/${credentialId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Credential not found or does not exist'

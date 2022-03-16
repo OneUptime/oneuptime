@@ -32,7 +32,7 @@ describe('Enterprise Alert API', function () {
         GlobalConfig.initTestConfig().then(function () {
             createEnterpriseUser(request, userData.user, function (
                 err: $TSFixMe,
-                req: Response
+                res: Response
             ) {
                 const project = res.body.project;
                 projectId = project._id;
@@ -45,7 +45,7 @@ describe('Enterprise Alert API', function () {
                                 email: userData.user.email,
                                 password: userData.user.password,
                             })
-                            .end(function (err: $TSFixMe, req: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 token = res.body.tokens.jwtAccessToken;
                                 const authorization = `Basic ${token}`;
                                 request
@@ -61,7 +61,7 @@ describe('Enterprise Alert API', function () {
                                     })
                                     .end(function (
                                         err: $TSFixMe,
-                                        req: Response
+                                        res: Response
                                     ) {
                                         monitorId = res.body._id;
                                         incidentData.monitors = [monitorId];
@@ -91,7 +91,7 @@ describe('Enterprise Alert API', function () {
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData)
-            .end(function (err: $TSFixMe, req: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 incidentId = res.body._id;
                 request
                     .post(`/alert/${projectId}`)
@@ -102,7 +102,7 @@ describe('Enterprise Alert API', function () {
                         incidentId,
                         eventType: 'identified',
                     })
-                    .end(function (err: $TSFixMe, req: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         alertId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
