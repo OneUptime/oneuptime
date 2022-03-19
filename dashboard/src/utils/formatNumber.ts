@@ -59,7 +59,7 @@ const format = (number: $TSFixMe) => {
 };
 
 // return the provided number in a particular decimal place
-export function numDecimal(num: $TSFixMe, decimalPlace = 2) {
+export const numDecimal = (num: $TSFixMe, decimalPlace = 2) => {
     decimalPlace = Number(decimalPlace);
     return Number.parseFloat(num).toFixed(decimalPlace);
 }

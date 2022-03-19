@@ -79,38 +79,38 @@ export const searchAuditLogsError = (error: $TSFixMe) => {
 
 export const searchAuditLogs =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
-        const values = {
-            filter,
+        async (dispatch: $TSFixMe) => {
+            const values = {
+                filter,
+            };
+
+            dispatch(searchAuditLogsRequest());
+
+            try {
+                const response = await postApi(
+                    `audit-logs/search?skip=${skip}&limit=${limit}`,
+                    values
+                );
+
+                const data = response.data;
+
+                dispatch(searchAuditLogsSuccess(data));
+                return response;
+            } catch (error) {
+                let errorMsg;
+                if (error && error.response && error.response.data)
+                    errorMsg = error.response.data;
+                if (error && error.data) {
+                    errorMsg = error.data;
+                }
+                if (error && error.message) {
+                    errorMsg = error.message;
+                } else {
+                    errorMsg = 'Network Error';
+                }
+                dispatch(searchAuditLogsError(errors(errorMsg)));
+            }
         };
-
-        dispatch(searchAuditLogsRequest());
-
-        try {
-            const response = await postApi(
-                `audit-logs/search?skip=${skip}&limit=${limit}`,
-                values
-            );
-
-            const data = response.data;
-
-            dispatch(searchAuditLogsSuccess(data));
-            return response;
-        } catch (error) {
-            let errorMsg;
-            if (error && error.response && error.response.data)
-                errorMsg = error.response.data;
-            if (error && error.data) {
-                errorMsg = error.data;
-            }
-            if (error && error.message) {
-                errorMsg = error.message;
-            } else {
-                errorMsg = 'Network Error';
-            }
-            dispatch(searchAuditLogsError(errors(errorMsg)));
-        }
-    };
 
 // Delete All Audit Logs
 export const deleteAuditLogsRequest = () => {
@@ -160,21 +160,21 @@ export const deleteAuditLogs = () => async (dispatch: $TSFixMe) => {
 
 // fetch auditLogStatus
 
-export function fetchAuditLogStatusRequest(promise: $TSFixMe) {
+export const fetchAuditLogStatusRequest = (promise: $TSFixMe) => {
     return {
         type: types.FETCH_AUDITLOG_STATUS_REQUEST,
         payload: promise,
     };
 }
 
-export function fetchAuditLogStatusError(error: $TSFixMe) {
+export const fetchAuditLogStatusError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_AUDITLOG_STATUS_FAILED,
         payload: error,
     };
 }
 
-export function fetchAuditLogStatusSuccess(auditLogStatus: $TSFixMe) {
+export const fetchAuditLogStatusSuccess = (auditLogStatus: $TSFixMe) => {
     return {
         type: types.FETCH_AUDITLOG_STATUS_SUCCESS,
         payload: auditLogStatus,
@@ -215,21 +215,21 @@ export const fetchAuditLogStatus = () => async (dispatch: $TSFixMe) => {
 
 // change auditLogStatus
 
-export function changeAuditLogStatusRequest(promise: $TSFixMe) {
+export const changeAuditLogStatusRequest = (promise: $TSFixMe) => {
     return {
         type: types.CHANGE_AUDITLOG_STATUS_REQUEST,
         payload: promise,
     };
 }
 
-export function changeAuditLogStatusError(error: $TSFixMe) {
+export const changeAuditLogStatusError = (error: $TSFixMe) => {
     return {
         type: types.CHANGE_AUDITLOG_STATUS_FAILED,
         payload: error,
     };
 }
 
-export function changeAuditLogStatusSuccess(auditLogStatus: $TSFixMe) {
+export const changeAuditLogStatusSuccess = (auditLogStatus: $TSFixMe) => {
     return {
         type: types.CHANGE_AUDITLOG_STATUS_SUCCESS,
         payload: auditLogStatus,

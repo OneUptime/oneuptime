@@ -79,38 +79,38 @@ export const searchCallLogsError = (error: $TSFixMe) => {
 
 export const searchCallLogs =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
-        const values = {
-            filter,
+        async (dispatch: $TSFixMe) => {
+            const values = {
+                filter,
+            };
+
+            dispatch(searchCallLogsRequest());
+
+            try {
+                const response = await postApi(
+                    `call-logs/search?skip=${skip}&limit=${limit}`,
+                    values
+                );
+
+                const data = response.data;
+
+                dispatch(searchCallLogsSuccess(data));
+                return response;
+            } catch (error) {
+                let errorMsg;
+                if (error && error.response && error.response.data)
+                    errorMsg = error.response.data;
+                if (error && error.data) {
+                    errorMsg = error.data;
+                }
+                if (error && error.message) {
+                    errorMsg = error.message;
+                } else {
+                    errorMsg = 'Network Error';
+                }
+                dispatch(searchCallLogsError(errors(errorMsg)));
+            }
         };
-
-        dispatch(searchCallLogsRequest());
-
-        try {
-            const response = await postApi(
-                `call-logs/search?skip=${skip}&limit=${limit}`,
-                values
-            );
-
-            const data = response.data;
-
-            dispatch(searchCallLogsSuccess(data));
-            return response;
-        } catch (error) {
-            let errorMsg;
-            if (error && error.response && error.response.data)
-                errorMsg = error.response.data;
-            if (error && error.data) {
-                errorMsg = error.data;
-            }
-            if (error && error.message) {
-                errorMsg = error.message;
-            } else {
-                errorMsg = 'Network Error';
-            }
-            dispatch(searchCallLogsError(errors(errorMsg)));
-        }
-    };
 
 // Delete All Call Logs
 export const deleteCallLogsRequest = () => {
@@ -160,21 +160,21 @@ export const deleteCallLogs = () => async (dispatch: $TSFixMe) => {
 
 // fetch callLogStatus
 
-export function fetchCallLogStatusRequest(promise: $TSFixMe) {
+export const fetchCallLogStatusRequest = (promise: $TSFixMe) => {
     return {
         type: types.FETCH_CALLLOG_STATUS_REQUEST,
         payload: promise,
     };
 }
 
-export function fetchCallLogStatusError(error: $TSFixMe) {
+export const fetchCallLogStatusError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_CALLLOG_STATUS_FAILED,
         payload: error,
     };
 }
 
-export function fetchCallLogStatusSuccess(callLogStatus: $TSFixMe) {
+export const fetchCallLogStatusSuccess = (callLogStatus: $TSFixMe) => {
     return {
         type: types.FETCH_CALLLOG_STATUS_SUCCESS,
         payload: callLogStatus,
@@ -215,21 +215,21 @@ export const fetchCallLogStatus = () => async (dispatch: $TSFixMe) => {
 
 // change callLogStatus
 
-export function changeCallLogStatusRequest(promise: $TSFixMe) {
+export const changeCallLogStatusRequest = (promise: $TSFixMe) => {
     return {
         type: types.CHANGE_CALLLOG_STATUS_REQUEST,
         payload: promise,
     };
 }
 
-export function changeCallLogStatusError(error: $TSFixMe) {
+export const changeCallLogStatusError = (error: $TSFixMe) => {
     return {
         type: types.CHANGE_CALLLOG_STATUS_FAILED,
         payload: error,
     };
 }
 
-export function changeCallLogStatusSuccess(callLogStatus: $TSFixMe) {
+export const changeCallLogStatusSuccess = (callLogStatus: $TSFixMe) => {
     return {
         type: types.CHANGE_CALLLOG_STATUS_SUCCESS,
         payload: callLogStatus,

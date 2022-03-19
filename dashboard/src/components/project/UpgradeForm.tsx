@@ -20,7 +20,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export function UpgradeForm(this: $TSFixMe, props: $TSFixMe) {
+export const UpgradeForm = (this: $TSFixMe, props: $TSFixMe) => {
     const {
         handleSubmit,
         hideForm,

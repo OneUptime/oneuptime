@@ -1,20 +1,20 @@
 import { deleteApi, getApi, postApi, putApi } from '../api';
 import * as types from '../constants/slackWebhooks';
 
-export function deleteSlackRequest() {
+export const deleteSlackRequest = () => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_REQUEST,
     };
 }
 
-export function deleteSlackError(error: $TSFixMe) {
+export const deleteSlackError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
 }
 
-export function deleteSlackSuccess(deleteSlack: $TSFixMe) {
+export const deleteSlackSuccess = (deleteSlack: $TSFixMe) => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_SUCCESS,
         payload: deleteSlack,
@@ -28,7 +28,7 @@ export const resetDeleteSlack = () => {
 };
 
 // Calls the API to link webhook team to project
-export function deleteSlack(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
+export const deleteSlack = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${msTeamsId}`,
@@ -60,21 +60,21 @@ export function deleteSlack(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
     };
 }
 
-export function getSlackRequest(promise: $TSFixMe) {
+export const getSlackRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_SLACK_WEBHOOK_REQUEST,
         payload: promise,
     };
 }
 
-export function getSlackError(error: $TSFixMe) {
+export const getSlackError = (error: $TSFixMe) => {
     return {
         type: types.GET_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
 }
 
-export function getSlackSuccess(msTeams: $TSFixMe) {
+export const getSlackSuccess = (msTeams: $TSFixMe) => {
     return {
         type: types.GET_SLACK_WEBHOOK_SUCCESS,
         payload: msTeams,
@@ -87,12 +87,11 @@ export const resetGetSlack = () => {
     };
 };
 
-export function getSlack(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
+export const getSlack = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
-                limit || 10
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10
             }&type=slack`
         );
         dispatch(getSlackRequest(promise));
@@ -129,8 +128,7 @@ export function getSlackMonitor(
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
-                limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
             }&type=slack`
         );
         dispatch(getSlackRequest(promise));
@@ -158,20 +156,20 @@ export function getSlackMonitor(
     };
 }
 
-export function createSlackRequest() {
+export const createSlackRequest = () => {
     return {
         type: types.CREATE_SLACK_WEBHOOK_REQUEST,
     };
 }
 
-export function createSlackError(error: $TSFixMe) {
+export const createSlackError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
 }
 
-export function createSlackSuccess(newWebHook: $TSFixMe) {
+export const createSlackSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.CREATE_SLACK_WEBHOOK_SUCCESS,
         payload: newWebHook,
@@ -185,7 +183,7 @@ export const resetCreateSlack = () => {
 };
 
 // Calls the API to add webhook to project
-export function createSlack(projectId: $TSFixMe, data: $TSFixMe) {
+export const createSlack = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
@@ -213,20 +211,20 @@ export function createSlack(projectId: $TSFixMe, data: $TSFixMe) {
     };
 }
 
-export function updateSlackRequest() {
+export const updateSlackRequest = () => {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_REQUEST,
     };
 }
 
-export function updateSlackError(error: $TSFixMe) {
+export const updateSlackError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
 }
 
-export function updateSlackSuccess(newWebHook: $TSFixMe) {
+export const updateSlackSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_SUCCESS,
         payload: newWebHook,
@@ -275,25 +273,25 @@ export function updateSlack(
 
 // Implements pagination for Webhooks Members table
 
-export function paginateNext() {
+export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
 }
 
-export function paginatePrev() {
+export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
 }
 
-export function paginateReset() {
+export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
 }
 
-export function paginate(type: $TSFixMe) {
+export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());

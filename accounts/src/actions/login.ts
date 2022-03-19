@@ -10,21 +10,21 @@ import store from '../store';
 // There are three possible states for our login
 // process and we need actions for each of them
 
-export function loginRequest(promise: $TSFixMe) {
+export const loginRequest = (promise: $TSFixMe) => {
     return {
         type: types.LOGIN_REQUEST,
         payload: promise,
     };
 }
 
-export function loginError(error: $TSFixMe) {
+export const loginError = (error: $TSFixMe) => {
     return {
         type: types.LOGIN_FAILED,
         payload: error,
     };
 }
 
-export function loginSuccess(user: $TSFixMe) {
+export const loginSuccess = (user: $TSFixMe) => {
     //save user session details.
     if (!user.id) {
         return {
@@ -83,14 +83,14 @@ export const resetLogin = () => {
     };
 };
 
-export function verifyTokenRequest(promise: $TSFixMe) {
+export const verifyTokenRequest = (promise: $TSFixMe) => {
     return {
         type: types.AUTH_VERIFICATION_REQUEST,
         payload: promise,
     };
 }
 
-export function verifyTokenError(error: $TSFixMe) {
+export const verifyTokenError = (error: $TSFixMe) => {
     return {
         type: types.AUTH_VERIFICATION_FAILED,
         payload: error,
@@ -98,7 +98,7 @@ export function verifyTokenError(error: $TSFixMe) {
 }
 
 // Calls the API to register a user.
-export function loginUser(values: $TSFixMe) {
+export const loginUser = (values: $TSFixMe) => {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
@@ -161,7 +161,7 @@ export const loginUserSso =
     };
 
 // Calls the API to verify a user token and log them in.
-export function verifyAuthToken(values: $TSFixMe) {
+export const verifyAuthToken = (values: $TSFixMe) => {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
@@ -201,21 +201,21 @@ export const resetBackupCodeLogin = () => {
     };
 };
 
-export function useBackupCodeRequest(promise: $TSFixMe) {
+export const useBackupCodeRequest = (promise: $TSFixMe) => {
     return {
         type: types.BACKUP_CODE_VERIFICATION_REQUEST,
         payload: promise,
     };
 }
 
-export function useBackupCodeError(error: $TSFixMe) {
+export const useBackupCodeError = (error: $TSFixMe) => {
     return {
         type: types.BACKUP_CODE_VERIFICATION_FAILED,
         payload: error,
     };
 }
 
-export function verifyBackupCode(values: $TSFixMe) {
+export const verifyBackupCode = (values: $TSFixMe) => {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
@@ -247,28 +247,28 @@ export function verifyBackupCode(values: $TSFixMe) {
     };
 }
 
-export function saveStatusPage(data: $TSFixMe) {
+export const saveStatusPage = (data: $TSFixMe) => {
     return {
         type: types.SAVE_STATUS_PAGE,
         payload: data,
     };
 }
 
-export function masterAdminExistsRequest(promise: $TSFixMe) {
+export const masterAdminExistsRequest = (promise: $TSFixMe) => {
     return {
         type: types.MASTER_ADMIN_EXISTS_REQUEST,
         payload: promise,
     };
 }
 
-export function masterAdminExistsError(error: $TSFixMe) {
+export const masterAdminExistsError = (error: $TSFixMe) => {
     return {
         type: types.MASTER_ADMIN_EXISTS_FAILED,
         payload: error,
     };
 }
 
-export function masterAdminExistsSuccess(data: $TSFixMe) {
+export const masterAdminExistsSuccess = (data: $TSFixMe) => {
     return {
         type: types.MASTER_ADMIN_EXISTS_SUCCESS,
         payload: data,
@@ -282,7 +282,7 @@ export const resetMasterAdminExists = () => {
 };
 
 // Calls the API to register a user.
-export function checkIfMasterAdminExists(values: $TSFixMe) {
+export const checkIfMasterAdminExists = (values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
@@ -309,7 +309,7 @@ export function checkIfMasterAdminExists(values: $TSFixMe) {
     };
 }
 
-export function changeLogin(data: $TSFixMe) {
+export const changeLogin = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch({
             type: types.CHANGE_LOGIN,

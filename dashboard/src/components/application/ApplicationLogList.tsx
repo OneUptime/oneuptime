@@ -6,7 +6,7 @@ import ApplicationLogDetail from './ApplicationLogDetail';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
-export function ApplicationLogList(props: $TSFixMe) {
+export const ApplicationLogList = (props: $TSFixMe) => {
     const applicationLogs = props.applicationLogs ? props.applicationLogs : [];
     let applicationLogDetails = null;
     const skip = props.skip;

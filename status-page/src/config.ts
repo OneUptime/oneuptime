@@ -6,7 +6,7 @@ let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
-export function env(value: $TSFixMe) {
+export const env = (value: $TSFixMe) => {
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -117,7 +117,7 @@ export const Validate = {
     },
 };
 
-export function getQueryVar(variable: $TSFixMe, url: $TSFixMe) {
+export const getQueryVar = (variable: $TSFixMe, url: $TSFixMe) => {
     if (!url) url = window.location.href;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -159,18 +159,18 @@ export const filterProbeData = (
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
-                      return (
-                          probeStatuses._id === null ||
-                          String(probeStatuses._id) === String(probe._id)
-                      );
-                  })
+                    return (
+                        probeStatuses._id === null ||
+                        String(probeStatuses._id) === String(probe._id)
+                    );
+                })
                 : monitorStatuses
             : [];
     const statuses =
         probesStatus &&
-        probesStatus[0] &&
-        probesStatus[0].statuses &&
-        probesStatus[0].statuses.length > 0
+            probesStatus[0] &&
+            probesStatus[0].statuses &&
+            probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
 
@@ -180,7 +180,7 @@ export const filterProbeData = (
 export const getMonitorStatus = (statuses: $TSFixMe) =>
     statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
 
-export function getServiceStatus(monitorsData: $TSFixMe, probes: $TSFixMe) {
+export const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
     const monitorsLength = monitorsData.length;
     const probesLength = probes && probes.length;
 
@@ -216,8 +216,8 @@ export function getServiceStatus(monitorsData: $TSFixMe, probes: $TSFixMe) {
 export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe) => {
     return Number(
         Math.round(parseFloat(value + 'e' + decimalPlaces)) +
-            'e-' +
-            decimalPlaces
+        'e-' +
+        decimalPlaces
     ).toFixed(decimalPlaces);
 };
 
@@ -231,10 +231,10 @@ export const formatBytes = (
     return (
         formatDecimal(
             ((b = Math),
-            (c = b.log),
-            (d = 1e3),
-            (e = (c(a) / c(d)) | 0),
-            a / b.pow(d, e)),
+                (c = b.log),
+                (d = 1e3),
+                (e = (c(a) / c(d)) | 0),
+                a / b.pow(d, e)),
             2
         ) +
         ' ' +
@@ -300,7 +300,7 @@ export const handleResources = (
 export const cacheProvider = {
     get: (language: $TSFixMe, key: $TSFixMe) =>
         ((JSON.parse(localStorage.getItem('translations')) || {})[key] || {})[
-            language
+        language
         ],
     set: (language: $TSFixMe, key: $TSFixMe, value: $TSFixMe) => {
         const existing = JSON.parse(localStorage.getItem('translations')) || {

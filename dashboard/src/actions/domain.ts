@@ -1,33 +1,33 @@
 import { putApi, deleteApi } from '../api';
 import * as types from '../constants/domain';
 
-export function resetDomain() {
+export const resetDomain = () => {
     return {
         type: types.RESET_VERIFY_DOMAIN,
     };
 }
 
-export function verifyDomainRequest() {
+export const verifyDomainRequest = () => {
     return {
         type: types.VERIFY_DOMAIN_REQUEST,
     };
 }
 
-export function verifyDomainSuccess(payload: $TSFixMe) {
+export const verifyDomainSuccess = (payload: $TSFixMe) => {
     return {
         type: types.VERIFY_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function verifyDomainFailure(error: $TSFixMe) {
+export const verifyDomainFailure = (error: $TSFixMe) => {
     return {
         type: types.VERIFY_DOMAIN_FAILURE,
         payload: error,
     };
 }
 
-export function verifyDomain({ projectId, domainId, payload }: $TSFixMe) {
+export const verifyDomain = ({ projectId, domainId, payload }: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
         dispatch(verifyDomainRequest());
 
@@ -43,29 +43,29 @@ export function verifyDomain({ projectId, domainId, payload }: $TSFixMe) {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(verifyDomainFailure(errorMsg));
         }
     };
 }
 
-export function createDomainRequest() {
+export const createDomainRequest = () => {
     return {
         type: types.CREATE_DOMAIN_REQUEST,
     };
 }
 
-export function createDomainSuccess(payload: $TSFixMe) {
+export const createDomainSuccess = (payload: $TSFixMe) => {
     return {
         type: types.CREATE_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function createDomainFailure(payload: $TSFixMe) {
+export const createDomainFailure = (payload: $TSFixMe) => {
     return {
         type: types.CREATE_DOMAIN_FAILURE,
         payload,
@@ -96,36 +96,36 @@ export function createDomain({
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(createDomainFailure(errorMsg));
         }
     };
 }
 
-export function deleteDomainRequest() {
+export const deleteDomainRequest = () => {
     return {
         type: types.DELETE_DOMAIN_REQUEST,
     };
 }
 
-export function deleteDomainSuccess(payload: $TSFixMe) {
+export const deleteDomainSuccess = (payload: $TSFixMe) => {
     return {
         type: types.DELETE_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function deleteDomainFailure(payload: $TSFixMe) {
+export const deleteDomainFailure = (payload: $TSFixMe) => {
     return {
         type: types.DELETE_DOMAIN_FAILURE,
         payload,
     };
 }
 
-export function deleteDomain({ projectId, statusPageId, domainId }: $TSFixMe) {
+export const deleteDomain = ({ projectId, statusPageId, domainId }: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
         dispatch(deleteDomainRequest());
         try {
@@ -139,29 +139,29 @@ export function deleteDomain({ projectId, statusPageId, domainId }: $TSFixMe) {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(deleteDomainFailure(errorMsg));
         }
     };
 }
 
-export function updateDomainRequest() {
+export const updateDomainRequest = () => {
     return {
         type: types.UPDATE_DOMAIN_REQUEST,
     };
 }
 
-export function updateDomainSuccess(payload: $TSFixMe) {
+export const updateDomainSuccess = (payload: $TSFixMe) => {
     return {
         type: types.UPDATE_DOMAIN_SUCCESS,
         payload,
     };
 }
 
-export function updateDomainFailure(payload: $TSFixMe) {
+export const updateDomainFailure = (payload: $TSFixMe) => {
     return {
         type: types.UPDATE_DOMAIN_FAILURE,
         payload,
@@ -192,10 +192,10 @@ export function updateDomain({
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(updateDomainFailure(errorMsg));
         }
     };

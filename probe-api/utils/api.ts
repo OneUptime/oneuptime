@@ -25,10 +25,10 @@ const _this = {
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity,
             })
-                .then((response) => {
+                .then(response => {
                     resolve(response.data);
                 })
-                .then((error) => {
+                .then(error => {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {

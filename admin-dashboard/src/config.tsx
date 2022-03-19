@@ -10,7 +10,7 @@ import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 import booleanParser from './utils/booleanParser';
 
-export function env(value: $TSFixMe) {
+export const env = (value: $TSFixMe) => {
     // @ts-expect-error ts-migrate(2339) FIXME: Property '_env' does not exist on type 'Window & t... Remove this comment to see the full error message
     const { _env } = window;
     return (
@@ -38,8 +38,8 @@ if (
     const address = window.location.host.includes('localhost:')
         ? 'localhost'
         : window.location.host.includes('0.0.0.0:')
-        ? '0.0.0.0'
-        : '127.0.0.1';
+            ? '0.0.0.0'
+            : '127.0.0.1';
     apiUrl = window.location.protocol + `//${address}:3002`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     adminDashboardUrl = window.location.protocol + `//${address}:3100/admin`;
@@ -294,8 +294,8 @@ export const ValidateField = {
     password6: (password: $TSFixMe) => !password || !password.length
         ? 'Password cannot be blank'
         : password.length < 6
-        ? 'Password must be a minimum of 6 characters'
-        : undefined,
+            ? 'Password must be a minimum of 6 characters'
+            : undefined,
 };
 
 export const PricingPlan = {
@@ -475,7 +475,7 @@ export const tutorials = {
     },
 };
 
-export function getQueryVar(variable: $TSFixMe, url: $TSFixMe) {
+export const getQueryVar = (variable: $TSFixMe, url: $TSFixMe) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -485,12 +485,12 @@ export function getQueryVar(variable: $TSFixMe, url: $TSFixMe) {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export function saveFile(content: $TSFixMe, filename: $TSFixMe) {
+export const saveFile = (content: $TSFixMe, filename: $TSFixMe) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }
 
-export function makeCriteria(val: $TSFixMe) {
+export const makeCriteria = (val: $TSFixMe) => {
     const val2 = {};
     const and = [];
     const or = [];
@@ -531,7 +531,7 @@ export function makeCriteria(val: $TSFixMe) {
     return val2;
 }
 
-export function mapCriteria(val: $TSFixMe) {
+export const mapCriteria = (val: $TSFixMe) => {
     const val2 = [];
     if (val && val.and && val.and.length) {
         for (let i = 0; i < val.and.length; i++) {

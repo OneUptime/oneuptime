@@ -1,20 +1,20 @@
 import { deleteApi, getApi, postApi, putApi } from '../api';
 import * as types from '../constants/msteams';
 
-export function deleteMsTeamsRequest() {
+export const deleteMsTeamsRequest = () => {
     return {
         type: types.DELETE_MS_TEAMS_REQUEST,
     };
 }
 
-export function deleteMsTeamsError(error: $TSFixMe) {
+export const deleteMsTeamsError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_MS_TEAMS_FAILED,
         payload: error,
     };
 }
 
-export function deleteMsTeamsSuccess(deleteMsTeams: $TSFixMe) {
+export const deleteMsTeamsSuccess = (deleteMsTeams: $TSFixMe) => {
     return {
         type: types.DELETE_MS_TEAMS_SUCCESS,
         payload: deleteMsTeams,
@@ -28,7 +28,7 @@ export const resetDeleteMsTeams = () => {
 };
 
 // Calls the API to link webhook team to project
-export function deleteMsTeams(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
+export const deleteMsTeams = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${msTeamsId}`,
@@ -60,21 +60,21 @@ export function deleteMsTeams(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
     };
 }
 
-export function getMsTeamsRequest(promise: $TSFixMe) {
+export const getMsTeamsRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_MS_TEAMS_REQUEST,
         payload: promise,
     };
 }
 
-export function getMsTeamsError(error: $TSFixMe) {
+export const getMsTeamsError = (error: $TSFixMe) => {
     return {
         type: types.GET_MS_TEAMS_FAILED,
         payload: error,
     };
 }
 
-export function getMsTeamsSuccess(msTeams: $TSFixMe) {
+export const getMsTeamsSuccess = (msTeams: $TSFixMe) => {
     return {
         type: types.GET_MS_TEAMS_SUCCESS,
         payload: msTeams,
@@ -95,8 +95,7 @@ export function getMsTeams(
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
-                limit || 10
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10
             }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
@@ -133,8 +132,7 @@ export function getMsTeamsMonitor(
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
-                limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
             }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
@@ -162,20 +160,20 @@ export function getMsTeamsMonitor(
     };
 }
 
-export function createMsTeamsRequest() {
+export const createMsTeamsRequest = () => {
     return {
         type: types.CREATE_MS_TEAMS_REQUEST,
     };
 }
 
-export function createMsTeamsError(error: $TSFixMe) {
+export const createMsTeamsError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_MS_TEAMS_FAILED,
         payload: error,
     };
 }
 
-export function createMsTeamsSuccess(newWebHook: $TSFixMe) {
+export const createMsTeamsSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.CREATE_MS_TEAMS_SUCCESS,
         payload: newWebHook,
@@ -189,7 +187,7 @@ export const resetCreateMsTeams = () => {
 };
 
 // Calls the API to add webhook to project
-export function createMsTeams(projectId: $TSFixMe, data: $TSFixMe) {
+export const createMsTeams = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
@@ -217,20 +215,20 @@ export function createMsTeams(projectId: $TSFixMe, data: $TSFixMe) {
     };
 }
 
-export function updateMsTeamsRequest() {
+export const updateMsTeamsRequest = () => {
     return {
         type: types.UPDATE_MS_TEAMS_REQUEST,
     };
 }
 
-export function updateMsTeamsError(error: $TSFixMe) {
+export const updateMsTeamsError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_MS_TEAMS_FAILED,
         payload: error,
     };
 }
 
-export function updateMsTeamsSuccess(newWebHook: $TSFixMe) {
+export const updateMsTeamsSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.UPDATE_MS_TEAMS_SUCCESS,
         payload: newWebHook,
@@ -279,25 +277,25 @@ export function updateMsTeams(
 
 // Implements pagination for Webhooks Members table
 
-export function paginateNext() {
+export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
 }
 
-export function paginatePrev() {
+export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
 }
 
-export function paginateReset() {
+export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
 }
 
-export function paginate(type: $TSFixMe) {
+export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());

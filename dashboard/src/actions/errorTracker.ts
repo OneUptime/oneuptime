@@ -41,33 +41,33 @@ export function createErrorTracker(
     };
 }
 
-export function createErrorTrackerSuccess(newErrorTracker: $TSFixMe) {
+export const createErrorTrackerSuccess = (newErrorTracker: $TSFixMe) => {
     return {
         type: types.CREATE_ERROR_TRACKER_SUCCESS,
         payload: newErrorTracker,
     };
 }
 
-export function createErrorTrackerRequest() {
+export const createErrorTrackerRequest = () => {
     return {
         type: types.CREATE_ERROR_TRACKER_REQUEST,
     };
 }
 
-export function createErrorTrackerFailure(error: $TSFixMe) {
+export const createErrorTrackerFailure = (error: $TSFixMe) => {
     return {
         type: types.CREATE_ERROR_TRACKER_FAILURE,
         payload: error,
     };
 }
 
-export function resetCreateErrorTracker() {
+export const resetCreateErrorTracker = () => {
     return {
         type: types.CREATE_ERROR_TRACKER_RESET,
     };
 }
 
-export function fetchErrorTrackersByProject(projectId: $TSFixMe) {
+export const fetchErrorTrackersByProject = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`component/${projectId}/issues`);
 
@@ -134,28 +134,28 @@ export function fetchErrorTrackers(
     };
 }
 
-export function fetchErrorTrackersSuccess(errorTrackers: $TSFixMe) {
+export const fetchErrorTrackersSuccess = (errorTrackers: $TSFixMe) => {
     return {
         type: types.FETCH_ERROR_TRACKERS_SUCCESS,
         payload: errorTrackers,
     };
 }
 
-export function fetchErrorTrackersRequest(fetchingPage: $TSFixMe) {
+export const fetchErrorTrackersRequest = (fetchingPage: $TSFixMe) => {
     return {
         type: types.FETCH_ERROR_TRACKERS_REQUEST,
         payload: fetchingPage,
     };
 }
 
-export function fetchErrorTrackersFailure(error: $TSFixMe) {
+export const fetchErrorTrackersFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_ERROR_TRACKERS_FAILURE,
         payload: error,
     };
 }
 
-export function resetFetchErrorTrackers() {
+export const resetFetchErrorTrackers = () => {
     return {
         type: types.FETCH_ERROR_TRACKERS_RESET,
     };
@@ -213,28 +213,28 @@ export function fetchErrorTrackerIssues(
     };
 }
 
-export function fetchErrorTrackerIssuesSuccess(errorTrackersList: $TSFixMe) {
+export const fetchErrorTrackerIssuesSuccess = (errorTrackersList: $TSFixMe) => {
     return {
         type: types.FETCH_ISSUES_SUCCESS,
         payload: errorTrackersList,
     };
 }
 
-export function fetchErrorTrackerIssuesRequest(errorTrackerId: $TSFixMe) {
+export const fetchErrorTrackerIssuesRequest = (errorTrackerId: $TSFixMe) => {
     return {
         type: types.FETCH_ISSUES_REQUEST,
         payload: errorTrackerId,
     };
 }
 
-export function fetchErrorTrackerIssuesFailure(error: $TSFixMe) {
+export const fetchErrorTrackerIssuesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_ISSUES_FAILURE,
         payload: error,
     };
 }
 
-export function resetFetchErrorTrackerIssues() {
+export const resetFetchErrorTrackerIssues = () => {
     return {
         type: types.FETCH_ISSUES_RESET,
     };
@@ -288,7 +288,7 @@ export function fetchErrorEvent(
     };
 }
 
-export function fetchErrorEventSuccess(errorEvent: $TSFixMe) {
+export const fetchErrorEventSuccess = (errorEvent: $TSFixMe) => {
     return {
         type: types.FETCH_ERROR_EVENT_SUCCESS,
         payload: errorEvent,
@@ -305,20 +305,20 @@ export function fetchErrorEventRequest(
     };
 }
 
-export function fetchErrorEventFailure(error: $TSFixMe) {
+export const fetchErrorEventFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_ERROR_EVENT_FAILURE,
         payload: error,
     };
 }
 
-export function resetFetchErrorEvent() {
+export const resetFetchErrorEvent = () => {
     return {
         type: types.FETCH_ERROR_EVENT_RESET,
     };
 }
 
-export function setCurrentErrorEvent(errorEventId: $TSFixMe) {
+export const setCurrentErrorEvent = (errorEventId: $TSFixMe) => {
     return {
         type: types.SET_CURRENT_ERROR_EVENT,
         payload: { errorEventId },
@@ -366,28 +366,28 @@ export function deleteErrorTracker(
     };
 }
 
-export function deleteErrorTrackerSuccess(removedErrorTrackerId: $TSFixMe) {
+export const deleteErrorTrackerSuccess = (removedErrorTrackerId: $TSFixMe) => {
     return {
         type: types.DELETE_ERROR_TRACKER_SUCCESS,
         payload: removedErrorTrackerId,
     };
 }
 
-export function deleteErrorTrackerRequest(errorTrackerId: $TSFixMe) {
+export const deleteErrorTrackerRequest = (errorTrackerId: $TSFixMe) => {
     return {
         type: types.DELETE_ERROR_TRACKER_REQUEST,
         payload: errorTrackerId,
     };
 }
 
-export function deleteErrorTrackerFailure(error: $TSFixMe) {
+export const deleteErrorTrackerFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_ERROR_TRACKER_FAILURE,
         payload: error,
     };
 }
 
-export function editErrorTrackerSwitch(index: $TSFixMe) {
+export const editErrorTrackerSwitch = (index: $TSFixMe) => {
     return {
         type: types.EDIT_ERROR_TRACKER_SWITCH,
         payload: index,
@@ -431,20 +431,20 @@ export function editErrorTracker(
     };
 }
 
-export function editErrorTrackerSuccess(newErrorTracker: $TSFixMe) {
+export const editErrorTrackerSuccess = (newErrorTracker: $TSFixMe) => {
     return {
         type: types.EDIT_ERROR_TRACKER_SUCCESS,
         payload: newErrorTracker,
     };
 }
 
-export function editErrorTrackerRequest() {
+export const editErrorTrackerRequest = () => {
     return {
         type: types.EDIT_ERROR_TRACKER_REQUEST,
     };
 }
 
-export function editErrorTrackerFailure(error: $TSFixMe) {
+export const editErrorTrackerFailure = (error: $TSFixMe) => {
     return {
         type: types.EDIT_ERROR_TRACKER_FAILURE,
         payload: error,
@@ -485,27 +485,27 @@ export function resetErrorTrackerKey(
     };
 }
 
-export function resetErrorTrackerKeySuccess(errorTracker: $TSFixMe) {
+export const resetErrorTrackerKeySuccess = (errorTracker: $TSFixMe) => {
     return {
         type: types.RESET_ERROR_TRACKER_KEY_SUCCESS,
         payload: errorTracker,
     };
 }
 
-export function resetErrorTrackerKeyRequest() {
+export const resetErrorTrackerKeyRequest = () => {
     return {
         type: types.RESET_ERROR_TRACKER_KEY_REQUEST,
     };
 }
 
-export function resetErrorTrackerKeyFailure(error: $TSFixMe) {
+export const resetErrorTrackerKeyFailure = (error: $TSFixMe) => {
     return {
         type: types.RESET_ERROR_TRACKER_KEY_FAILURE,
         payload: error,
     };
 }
 
-export function resetresetErrorTrackerKey() {
+export const resetresetErrorTrackerKey = () => {
     return {
         type: types.RESET_ERROR_TRACKER_KEY_RESET,
     };
@@ -556,7 +556,7 @@ export function ignoreErrorEvent(
     };
 }
 
-export function ignoreErrorEventReset() {
+export const ignoreErrorEventReset = () => {
     return {
         type: types.IGNORE_ERROR_EVENT_RESET,
     };
@@ -580,7 +580,7 @@ export function ignoreErrorEventFailure(
         payload: { error, errorTrackerId },
     };
 }
-export function ignoreErrorEventSuccess(errorEvents: $TSFixMe) {
+export const ignoreErrorEventSuccess = (errorEvents: $TSFixMe) => {
     return {
         type: types.IGNORE_ERROR_EVENT_SUCCESS,
         payload: errorEvents,
@@ -631,7 +631,7 @@ export function unresolveErrorEvent(
     };
 }
 
-export function unresolveErrorEventReset() {
+export const unresolveErrorEventReset = () => {
     return {
         type: types.UNRESOLVE_ERROR_EVENT_RESET,
     };
@@ -655,7 +655,7 @@ export function unresolveErrorEventFailure(
         payload: { error, errorTrackerId },
     };
 }
-export function unresolveErrorEventSuccess(errorEvents: $TSFixMe) {
+export const unresolveErrorEventSuccess = (errorEvents: $TSFixMe) => {
     return {
         type: types.UNRESOLVE_ERROR_EVENT_SUCCESS,
         payload: errorEvents,
@@ -706,7 +706,7 @@ export function resolveErrorEvent(
     };
 }
 
-export function resolveErrorEventReset() {
+export const resolveErrorEventReset = () => {
     return {
         type: types.RESOLVE_ERROR_EVENT_RESET,
     };
@@ -730,7 +730,7 @@ export function resolveErrorEventFailure(
         payload: { error, errorTrackerId },
     };
 }
-export function resolveErrorEventSuccess(errorEvents: $TSFixMe) {
+export const resolveErrorEventSuccess = (errorEvents: $TSFixMe) => {
     return {
         type: types.RESOLVE_ERROR_EVENT_SUCCESS,
         payload: errorEvents,
@@ -787,7 +787,7 @@ export function updateErrorEventMember(
     };
 }
 
-export function updateErrorEventMemberReset() {
+export const updateErrorEventMemberReset = () => {
     return {
         type: types.UPDATE_ERROR_EVENT_MEMBER_RESET,
     };
@@ -801,7 +801,7 @@ export function updateErrorEventMemberRequest(
         payload: errorTrackerIssueMembers,
     };
 }
-export function updateErrorEventMemberFailure(error: $TSFixMe) {
+export const updateErrorEventMemberFailure = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_ERROR_EVENT_MEMBER_FAILURE,
         payload: error,
@@ -815,7 +815,7 @@ export function updateErrorEventMemberSuccess(
         payload: errorTrackerIssueMembers,
     };
 }
-export function getErrorEventSuccess(data: $TSFixMe) {
+export const getErrorEventSuccess = (data: $TSFixMe) => {
     return {
         type: types.NEW_ERROR_EVENT_SUCCESS,
         payload: data,
@@ -871,14 +871,14 @@ export function deleteErrorTrackerIssueSuccess(
     };
 }
 
-export function deleteErrorTrackerIssueRequest(errorTrackerIssueId: $TSFixMe) {
+export const deleteErrorTrackerIssueRequest = (errorTrackerIssueId: $TSFixMe) => {
     return {
         type: types.DELETE_ERROR_TRACKER_ISSUE_REQUEST,
         payload: errorTrackerIssueId,
     };
 }
 
-export function deleteErrorTrackerIssueFailure(error: $TSFixMe) {
+export const deleteErrorTrackerIssueFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_ERROR_TRACKER_ISSUE_FAILURE,
         payload: error,

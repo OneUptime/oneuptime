@@ -4,21 +4,21 @@ import errors from '../errors';
 
 //Array of Incidents
 
-export function probeRequest(promise: $TSFixMe) {
+export const probeRequest = (promise: $TSFixMe) => {
     return {
         type: types.PROBE_REQUEST,
         payload: promise,
     };
 }
 
-export function probeError(error: $TSFixMe) {
+export const probeError = (error: $TSFixMe) => {
     return {
         type: types.PROBE_FAILED,
         payload: error,
     };
 }
 
-export function probeSuccess(probes: $TSFixMe) {
+export const probeSuccess = (probes: $TSFixMe) => {
     return {
         type: types.PROBE_SUCCESS,
         payload: probes,
@@ -32,7 +32,7 @@ export const resetProbe = () => {
 };
 
 // Gets project Probes
-export function getProbes(skip = 0, limit = 10) {
+export const getProbes = (skip = 0, limit = 10) => {
     skip = parseInt(skip);
 
     limit = parseInt(limit);
@@ -147,7 +147,7 @@ export const addProbeError = (error: $TSFixMe) => {
     };
 };
 
-export function resetAddProbe() {
+export const resetAddProbe = () => {
     return function (dispatch: $TSFixMe) {
         dispatch(addProbeReset());
     };

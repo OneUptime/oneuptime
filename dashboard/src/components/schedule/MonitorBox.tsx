@@ -35,7 +35,7 @@ function submitMonitorForm(values: $TSFixMe, dispatch: $TSFixMe, props: $TSFixMe
     });
 }
 
-export function MonitorBox(props: $TSFixMe) {
+export const MonitorBox = (props: $TSFixMe) => {
     const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
     const slug = currentProject ? currentProject.slug : null;
@@ -43,7 +43,7 @@ export function MonitorBox(props: $TSFixMe) {
     if (!subProject && subProjectId) {
         subProject = subProjects.find(
             (subProject: $TSFixMe) => subProject._id === subProjectId ||
-            subProject._id === subProjectId._id
+                subProject._id === subProjectId._id
         );
     }
     return (
@@ -60,7 +60,7 @@ export function MonitorBox(props: $TSFixMe) {
                                     {' '}
                                     <span>
                                         {IsAdminSubProject(subProject) ||
-                                        IsOwnerSubProject(subProject)
+                                            IsOwnerSubProject(subProject)
                                             ? 'Check the boxes and save to attach more monitors.'
                                             : 'Here are the list of monitors that are attached to this schedule'}
                                     </span>
@@ -78,7 +78,7 @@ export function MonitorBox(props: $TSFixMe) {
                                             <ShouldRender
                                                 if={
                                                     props.monitors.length ===
-                                                        0 && !props.isRequesting
+                                                    0 && !props.isRequesting
                                                 }
                                             >
                                                 <div
@@ -111,7 +111,7 @@ export function MonitorBox(props: $TSFixMe) {
                                                             Schedule Monitors
                                                         </span>
                                                     </label>
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
                                                     <Tooltip title="Moniors and Criteria Using Schedule">
                                                         <div>
                                                             <p>
@@ -147,7 +147,7 @@ export function MonitorBox(props: $TSFixMe) {
                                                         ></div>
                                                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
                                                             {currentProjectId ===
-                                                            subProjectId ? (
+                                                                subProjectId ? (
                                                                 <MonitorInputs
                                                                     monitors={
                                                                         props.monitors
@@ -276,7 +276,7 @@ export function MonitorBox(props: $TSFixMe) {
                                             <ShouldRender
                                                 if={
                                                     props.monitors.length ===
-                                                        0 && props.isRequesting
+                                                    0 && props.isRequesting
                                                 }
                                             >
                                                 <div

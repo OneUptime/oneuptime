@@ -5,7 +5,7 @@ import ErrorTrackerDetail from './ErrorTrackerDetail';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
-export function ErrorTrackerList(props: $TSFixMe) {
+export const ErrorTrackerList = (props: $TSFixMe) => {
     const errorTrackers = props.errorTrackers || [];
     let errorTrackerDetails = null;
     const skip = props.skip;

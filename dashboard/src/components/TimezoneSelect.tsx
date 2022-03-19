@@ -3422,6 +3422,6 @@ const TimezoneSelect = () => (
 
 TimezoneSelect.displayName = 'TimezoneSelect';
 
-export default connect(null, function mapDispatchToProps(dispatch) {
+export default connect(null, (dispatch) => {
     return bindActionCreators({}, dispatch);
 })(TimezoneSelect);

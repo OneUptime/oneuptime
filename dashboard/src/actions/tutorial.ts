@@ -1,61 +1,61 @@
 import { getApi, putApi } from '../api';
 import * as types from '../constants/tutorial';
 
-export function fetchTutorialRequest(promise: $TSFixMe) {
+export const fetchTutorialRequest = (promise: $TSFixMe) => {
     return {
         type: types.FETCH_TUTORIAL_REQUEST,
         payload: promise,
     };
 }
 
-export function fetchTutorialSuccess(tutorial: $TSFixMe) {
+export const fetchTutorialSuccess = (tutorial: $TSFixMe) => {
     return {
         type: types.FETCH_TUTORIAL_SUCCESS,
         payload: tutorial,
     };
 }
 
-export function fetchTutorialError(error: $TSFixMe) {
+export const fetchTutorialError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_TUTORIAL_FAILURE,
         payload: error,
     };
 }
 
-export function resetFetchTutorial() {
+export const resetFetchTutorial = () => {
     return {
         type: types.FETCH_TUTORIAL_RESET,
     };
 }
 
-export function closeTutorialRequest(promise: $TSFixMe) {
+export const closeTutorialRequest = (promise: $TSFixMe) => {
     return {
         type: types.CLOSE_TUTORIAL_REQUEST,
         payload: promise,
     };
 }
 
-export function closeTutorialSuccess(tutorial: $TSFixMe) {
+export const closeTutorialSuccess = (tutorial: $TSFixMe) => {
     return {
         type: types.CLOSE_TUTORIAL_SUCCESS,
         payload: tutorial,
     };
 }
 
-export function closeTutorialError(error: $TSFixMe) {
+export const closeTutorialError = (error: $TSFixMe) => {
     return {
         type: types.CLOSE_TUTORIAL_FAILURE,
         payload: error,
     };
 }
 
-export function resetCloseTutorial() {
+export const resetCloseTutorial = () => {
     return {
         type: types.CLOSE_TUTORIAL_RESET,
     };
 }
 
-export function fetchTutorial() {
+export const fetchTutorial = () => {
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi('tutorial');
@@ -85,7 +85,7 @@ export function fetchTutorial() {
     };
 }
 
-export function closeTutorial(type: $TSFixMe, projectId: $TSFixMe) {
+export const closeTutorial = (type: $TSFixMe, projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = putApi('tutorial', { type, projectId });

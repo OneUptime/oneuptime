@@ -10,55 +10,55 @@ import Cookies from 'universal-cookie';
 
 const cookies = new Cookies();
 
-export function signupError(error: $TSFixMe) {
+export const signupError = (error: $TSFixMe) => {
     return {
         type: types.SIGNUP_FAILED,
         payload: error,
     };
 }
 
-export function saveUserState(values: $TSFixMe) {
+export const saveUserState = (values: $TSFixMe) => {
     return {
         type: types.SAVE_USER_STATE,
         payload: values,
     };
 }
 
-export function savePlanId(planId: $TSFixMe) {
+export const savePlanId = (planId: $TSFixMe) => {
     return {
         type: types.SAVE_PLAN_ID,
         payload: planId,
     };
 }
 
-export function saveCardState(values: $TSFixMe) {
+export const saveCardState = (values: $TSFixMe) => {
     return {
         type: types.SAVE_CARD_STATE,
         payload: values,
     };
 }
 
-export function saveCompanyState(values: $TSFixMe) {
+export const saveCompanyState = (values: $TSFixMe) => {
     return {
         type: types.SAVE_COMPANY_STATE,
         payload: values,
     };
 }
 
-export function signUpRequest(promise: $TSFixMe) {
+export const signUpRequest = (promise: $TSFixMe) => {
     return {
         type: types.SIGNUP_REQUEST,
         payload: promise,
     };
 }
 
-export function signUpReset() {
+export const signUpReset = () => {
     return {
         type: types.RESET_SIGNUP,
     };
 }
 
-export function signupSuccess(user: $TSFixMe) {
+export const signupSuccess = (user: $TSFixMe) => {
     return {
         type: types.SIGNUP_SUCCESS,
         payload: user,
@@ -72,7 +72,7 @@ export const resetSignup = () => {
 };
 
 // Calls the API to register a user.
-export function signupUser(values: $TSFixMe) {
+export const signupUser = (values: $TSFixMe) => {
     // This is basically for users redirected to oneuptime
     const redirectSource = cookies.get('source');
     if (redirectSource) {
@@ -138,27 +138,27 @@ export const decrementStep = () => {
 // There are three possible states for our login
 // process and we need actions for each of them
 
-export function isUserInvitedRequest(promise: $TSFixMe) {
+export const isUserInvitedRequest = (promise: $TSFixMe) => {
     return {
         type: types.IS_USER_INVITED_REQUEST,
         payload: promise,
     };
 }
 
-export function isUserInvitedReset() {
+export const isUserInvitedReset = () => {
     return {
         type: types.IS_USER_INVITED_RESET,
     };
 }
 
-export function isUserInvitedError(error: $TSFixMe) {
+export const isUserInvitedError = (error: $TSFixMe) => {
     return {
         type: types.IS_USER_INVITED_RESET,
         payload: error,
     };
 }
 
-export function isUserInvitedSuccess(data: $TSFixMe) {
+export const isUserInvitedSuccess = (data: $TSFixMe) => {
     return {
         type: types.IS_USER_INVITED_SUCCESS,
         payload: data,
@@ -172,7 +172,7 @@ export const resetIsUserInvited = () => {
 };
 
 // Calls the API to register a user.
-export function isUserInvited(values: $TSFixMe) {
+export const isUserInvited = (values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi('user/isInvited', values);
         dispatch(isUserInvitedRequest(promise));
@@ -199,28 +199,28 @@ export function isUserInvited(values: $TSFixMe) {
     };
 }
 
-export function addCardRequest(promise: $TSFixMe) {
+export const addCardRequest = (promise: $TSFixMe) => {
     return {
         type: types.ADD_CARD_REQUEST,
         payload: promise,
     };
 }
 
-export function addCardFailed(error: $TSFixMe) {
+export const addCardFailed = (error: $TSFixMe) => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
     };
 }
 
-export function addCardSuccess(card: $TSFixMe) {
+export const addCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.ADD_CARD_SUCCESS,
         payload: card,
     };
 }
 
-export function addCard(data: $TSFixMe) {
+export const addCard = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi('stripe/checkCard', data);
 
@@ -248,14 +248,14 @@ export function addCard(data: $TSFixMe) {
     };
 }
 
-export function getEmailSuccess(email: $TSFixMe) {
+export const getEmailSuccess = (email: $TSFixMe) => {
     return {
         type: types.GET_EMAIL_FROM_TOKEN,
         payload: email,
     };
 }
 
-export function getEmailFromToken(token: $TSFixMe) {
+export const getEmailFromToken = (token: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`user/${token}/email`);
         promise.then(

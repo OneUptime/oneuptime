@@ -2,21 +2,21 @@ import { postApi } from '../api';
 import * as types from '../constants/changePassword';
 import errors from '../errors';
 
-export function changePasswordRequest(promise: $TSFixMe) {
+export const changePasswordRequest = (promise: $TSFixMe) => {
     return {
         type: types.CHANGEPASSWORD_REQUEST,
         payload: promise,
     };
 }
 
-export function changePasswordError(error: $TSFixMe) {
+export const changePasswordError = (error: $TSFixMe) => {
     return {
         type: types.CHANGEPASSWORD_FAILED,
         payload: error,
     };
 }
 
-export function changePasswordSuccess(values: $TSFixMe) {
+export const changePasswordSuccess = (values: $TSFixMe) => {
     return {
         type: types.CHANGEPASSWORD_SUCCESS,
         payload: values,
@@ -30,7 +30,7 @@ export const resetChangePassword = () => {
 };
 
 // Calls the API to register a user.
-export function changePassword(values: $TSFixMe) {
+export const changePassword = (values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi('user/reset-password', values);
         dispatch(changePasswordRequest(promise));

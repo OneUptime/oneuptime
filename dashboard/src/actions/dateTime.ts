@@ -1,4 +1,4 @@
-export function setStartDate(date: $TSFixMe) {
+export const setStartDate = (date: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch({
             type: 'SET_START_DATE',
@@ -7,7 +7,7 @@ export function setStartDate(date: $TSFixMe) {
     };
 }
 
-export function setEndDate(date: $TSFixMe) {
+export const setEndDate = (date: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch({
             type: 'SET_END_DATE',

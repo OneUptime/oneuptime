@@ -13,7 +13,7 @@ export const createSsoFailure = (error: $TSFixMe) => ({
     type: types.CREATE_SSO_FAILURE,
     payload: error,
 });
-export function createSso({ data }: $TSFixMe) {
+export const createSso = ({ data }: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`sso`, data);
         dispatch(createSsoRequest());
@@ -51,7 +51,7 @@ export const fetchSsosFailure = (error: $TSFixMe) => ({
     type: types.FETCH_SSOS_FAILURE,
     payload: error,
 });
-export function fetchSsos({ projectId, skip, limit }: $TSFixMe) {
+export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
@@ -94,7 +94,7 @@ export const fetchSsoFailure = (error: $TSFixMe) => ({
     type: types.FETCH_SSO_FAILURE,
     payload: error,
 });
-export function fetchSso(ssoId: $TSFixMe) {
+export const fetchSso = (ssoId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`sso/${ssoId}`);
         dispatch(fetchSsoRequest());
@@ -132,7 +132,7 @@ export const updateSsoFailure = (error: $TSFixMe) => ({
     type: types.UPDATE_SSO_FAILURE,
     payload: error,
 });
-export function updateSso({ id, data }: $TSFixMe) {
+export const updateSso = ({ id, data }: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = putApi(`sso/${id}`, data);
         dispatch(updateSsoRequest());
@@ -170,7 +170,7 @@ export const deleteSsoFailure = (error: $TSFixMe) => ({
     type: types.DELETE_SSO_FAILURE,
     payload: error,
 });
-export function deleteSso(ssoId: $TSFixMe) {
+export const deleteSso = (ssoId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`sso/${ssoId}`);
         dispatch(deleteSsoRequest());

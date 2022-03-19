@@ -20,7 +20,7 @@ const isLocalhost = Boolean(
     )
 );
 
-export function register(config: $TSFixMe) {
+export const register = (config: $TSFixMe) => {
     if ('serviceWorker' in navigator) {
         // The URL constructor is available in all browsers that support SW.
 
@@ -48,7 +48,7 @@ export function register(config: $TSFixMe) {
 
         window.addEventListener('fetch', event => {
             event.respondWith(
-                caches.match(event.request).then((response) => {
+                caches.match(event.request).then(response => {
                     // Cache hit - return response
                     if (response) {
                         return response;
@@ -131,7 +131,7 @@ function checkValidServiceWorker(swUrl: $TSFixMe, config: $TSFixMe) {
         });
 }
 
-export function unregister() {
+export const unregister = () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(registration => {
             registration.unregister();

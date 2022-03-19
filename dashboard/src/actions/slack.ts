@@ -4,20 +4,20 @@ import errors from '../errors';
 
 // UNLINK a new SLACK LINK
 
-export function deleteSlackLinkRequest() {
+export const deleteSlackLinkRequest = () => {
     return {
         type: types.DELETE_SLACK_LINK_REQUEST,
     };
 }
 
-export function deleteSlackLinkError(error: $TSFixMe) {
+export const deleteSlackLinkError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SLACK_LINK_FAILED,
         payload: error,
     };
 }
 
-export function deleteSlackLinkSuccess(deletedTeam: $TSFixMe) {
+export const deleteSlackLinkSuccess = (deletedTeam: $TSFixMe) => {
     return {
         type: types.DELETE_SLACK_LINK_SUCCESS,
         payload: deletedTeam,
@@ -31,7 +31,7 @@ export const resetdeleteSlackLink = () => {
 };
 
 // Calls the API to link slack team to project
-export function deleteSlackLink(projectId: $TSFixMe, teamId: $TSFixMe) {
+export const deleteSlackLink = (projectId: $TSFixMe, teamId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`slack/${projectId}/unLink/${teamId}`, null);
 
@@ -60,21 +60,21 @@ export function deleteSlackLink(projectId: $TSFixMe, teamId: $TSFixMe) {
     };
 }
 
-export function getSlackTeamsRequest(promise: $TSFixMe) {
+export const getSlackTeamsRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_SLACK_TEAM_REQUEST,
         payload: promise,
     };
 }
 
-export function getSlackTeamsError(error: $TSFixMe) {
+export const getSlackTeamsError = (error: $TSFixMe) => {
     return {
         type: types.GET_SLACK_TEAM_FAILED,
         payload: error,
     };
 }
 
-export function getSlackTeamsSuccess(teams: $TSFixMe) {
+export const getSlackTeamsSuccess = (teams: $TSFixMe) => {
     return {
         type: types.GET_SLACK_TEAM_SUCCESS,
         payload: teams,
@@ -128,25 +128,25 @@ export function getSlackTeams(
 
 // Implements pagination for Webhooks Members table
 
-export function paginateNext() {
+export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
 }
 
-export function paginatePrev() {
+export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
 }
 
-export function paginateReset() {
+export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
 }
 
-export function paginate(type: $TSFixMe) {
+export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());

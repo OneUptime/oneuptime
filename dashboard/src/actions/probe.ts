@@ -4,21 +4,21 @@ import errors from '../errors';
 
 //Array of Incidents
 
-export function probeRequest(promise: $TSFixMe) {
+export const probeRequest = (promise: $TSFixMe) => {
     return {
         type: types.PROBE_REQUEST,
         payload: promise,
     };
 }
 
-export function probeError(error: $TSFixMe) {
+export const probeError = (error: $TSFixMe) => {
     return {
         type: types.PROBE_FAILED,
         payload: error,
     };
 }
 
-export function probeSuccess(probes: $TSFixMe) {
+export const probeSuccess = (probes: $TSFixMe) => {
     return {
         type: types.PROBE_SUCCESS,
         payload: probes,

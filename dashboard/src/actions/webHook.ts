@@ -1,20 +1,20 @@
 import { deleteApi, getApi, postApi, putApi } from '../api';
 import * as types from '../constants/webHook';
 
-export function deleteWebHookRequest() {
+export const deleteWebHookRequest = () => {
     return {
         type: types.DELETE_WEB_HOOK_REQUEST,
     };
 }
 
-export function deleteWebHookError(error: $TSFixMe) {
+export const deleteWebHookError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_WEB_HOOK_FAILED,
         payload: error,
     };
 }
 
-export function deleteWebHookSuccess(deleteWebHook: $TSFixMe) {
+export const deleteWebHookSuccess = (deleteWebHook: $TSFixMe) => {
     return {
         type: types.DELETE_WEB_HOOK_SUCCESS,
         payload: deleteWebHook,
@@ -28,7 +28,7 @@ export const resetDeleteWebHook = () => {
 };
 
 // Calls the API to link webhook team to project
-export function deleteWebHook(projectId: $TSFixMe, webhookId: $TSFixMe) {
+export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${webhookId}`,
@@ -60,21 +60,21 @@ export function deleteWebHook(projectId: $TSFixMe, webhookId: $TSFixMe) {
     };
 }
 
-export function getWebHookRequest(promise: $TSFixMe) {
+export const getWebHookRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_WEB_HOOK_REQUEST,
         payload: promise,
     };
 }
 
-export function getWebHookError(error: $TSFixMe) {
+export const getWebHookError = (error: $TSFixMe) => {
     return {
         type: types.GET_WEB_HOOK_FAILED,
         payload: error,
     };
 }
 
-export function getWebHookSuccess(webhooks: $TSFixMe) {
+export const getWebHookSuccess = (webhooks: $TSFixMe) => {
     return {
         type: types.GET_WEB_HOOK_SUCCESS,
         payload: webhooks,
@@ -131,8 +131,7 @@ export function getWebHookMonitor(
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
-                limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
             }`
         );
         dispatch(getWebHookRequest(promise));
@@ -160,20 +159,20 @@ export function getWebHookMonitor(
     };
 }
 
-export function createWebHookRequest() {
+export const createWebHookRequest = () => {
     return {
         type: types.CREATE_WEB_HOOK_REQUEST,
     };
 }
 
-export function createWebHookError(error: $TSFixMe) {
+export const createWebHookError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_WEB_HOOK_FAILED,
         payload: error,
     };
 }
 
-export function createWebHookSuccess(newWebHook: $TSFixMe) {
+export const createWebHookSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.CREATE_WEB_HOOK_SUCCESS,
         payload: newWebHook,
@@ -187,7 +186,7 @@ export const resetCreateWebHook = () => {
 };
 
 // Calls the API to add webhook to project
-export function createWebHook(projectId: $TSFixMe, data: $TSFixMe) {
+export const createWebHook = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
@@ -216,20 +215,20 @@ export function createWebHook(projectId: $TSFixMe, data: $TSFixMe) {
     };
 }
 
-export function updateWebHookRequest() {
+export const updateWebHookRequest = () => {
     return {
         type: types.UPDATE_WEB_HOOK_REQUEST,
     };
 }
 
-export function updateWebHookError(error: $TSFixMe) {
+export const updateWebHookError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_WEB_HOOK_FAILED,
         payload: error,
     };
 }
 
-export function updateWebHookSuccess(newWebHook: $TSFixMe) {
+export const updateWebHookSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.UPDATE_WEB_HOOK_SUCCESS,
         payload: newWebHook,
@@ -278,25 +277,25 @@ export function updateWebHook(
 
 // Implements pagination for Webhooks Members table
 
-export function paginateNext() {
+export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
 }
 
-export function paginatePrev() {
+export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
 }
 
-export function paginateReset() {
+export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
 }
 
-export function paginate(type: $TSFixMe) {
+export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());

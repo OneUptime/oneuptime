@@ -2,20 +2,20 @@ import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/team';
 import errors from '../errors';
 
-export function teamLoadingRequest() {
+export const teamLoadingRequest = () => {
     return {
         type: types.TEAM_LOADING_REQUEST,
     };
 }
 
-export function teamLoadingSuccess(team: $TSFixMe) {
+export const teamLoadingSuccess = (team: $TSFixMe) => {
     return {
         type: types.TEAM_LOADING_SUCCESS,
         payload: team,
     };
 }
 
-export function teamLoadingError(error: $TSFixMe) {
+export const teamLoadingError = (error: $TSFixMe) => {
     return {
         type: types.TEAM_LOADING_FAILURE,
         payload: error,
@@ -23,7 +23,7 @@ export function teamLoadingError(error: $TSFixMe) {
 }
 
 // Calls the API to load team.
-export function teamLoading(projectId: $TSFixMe) {
+export const teamLoading = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`team/${projectId}`);
         dispatch(teamLoadingRequest());
@@ -51,27 +51,27 @@ export function teamLoading(projectId: $TSFixMe) {
     };
 }
 
-export function subProjectTeamLoadingRequest() {
+export const subProjectTeamLoadingRequest = () => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_REQUEST,
     };
 }
 
-export function subProjectTeamLoadingSuccess(team: $TSFixMe) {
+export const subProjectTeamLoadingSuccess = (team: $TSFixMe) => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_SUCCESS,
         payload: team,
     };
 }
 
-export function subProjectTeamLoadingError(error: $TSFixMe) {
+export const subProjectTeamLoadingError = (error: $TSFixMe) => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_FAILURE,
         payload: error,
     };
 }
 // Calls the API to load team.
-export function subProjectTeamLoading(projectId: $TSFixMe) {
+export const subProjectTeamLoading = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
@@ -100,20 +100,20 @@ export function subProjectTeamLoading(projectId: $TSFixMe) {
 }
 
 // Team create
-export function teamCreateRequest() {
+export const teamCreateRequest = () => {
     return {
         type: types.TEAM_CREATE_REQUEST,
     };
 }
 
-export function teamCreateSuccess(team: $TSFixMe) {
+export const teamCreateSuccess = (team: $TSFixMe) => {
     return {
         type: types.TEAM_CREATE_SUCCESS,
         payload: team,
     };
 }
 
-export function teamCreateError(error: $TSFixMe) {
+export const teamCreateError = (error: $TSFixMe) => {
     return {
         type: types.TEAM_CREATE_FAILURE,
         payload: error,
@@ -121,7 +121,7 @@ export function teamCreateError(error: $TSFixMe) {
 }
 
 // Calls the API to create team members.
-export function teamCreate(projectId: $TSFixMe, values: $TSFixMe) {
+export const teamCreate = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`team/${projectId}`, values);
         dispatch(teamCreateRequest());
@@ -150,41 +150,41 @@ export function teamCreate(projectId: $TSFixMe, values: $TSFixMe) {
     };
 }
 
-export function teamDeleteRequest(id: $TSFixMe) {
+export const teamDeleteRequest = (id: $TSFixMe) => {
     return {
         type: types.TEAM_DELETE_REQUEST,
         payload: id,
     };
 }
 
-export function teamDeleteSuccess(team: $TSFixMe) {
+export const teamDeleteSuccess = (team: $TSFixMe) => {
     return {
         type: types.TEAM_DELETE_SUCCESS,
         payload: team,
     };
 }
 
-export function teamDeleteError(error: $TSFixMe) {
+export const teamDeleteError = (error: $TSFixMe) => {
     return {
         type: types.TEAM_DELETE_FAILURE,
         payload: error,
     };
 }
 
-export function teamDeleteReset() {
+export const teamDeleteReset = () => {
     return {
         type: types.TEAM_DELETE_RESET,
     };
 }
 
-export function resetTeamDelete() {
+export const resetTeamDelete = () => {
     return function (dispatch: $TSFixMe) {
         dispatch(teamDeleteReset());
     };
 }
 
 // Calls the API to delete team meber.
-export function teamDelete(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
+export const teamDelete = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
@@ -215,21 +215,21 @@ export function teamDelete(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
     };
 }
 
-export function teamMemberRequest(teamMemberId: $TSFixMe) {
+export const teamMemberRequest = (teamMemberId: $TSFixMe) => {
     return {
         type: types.TEAM_MEMBER_REQUEST,
         payload: teamMemberId,
     };
 }
 
-export function teamMemberSuccess(teamMember: $TSFixMe) {
+export const teamMemberSuccess = (teamMember: $TSFixMe) => {
     return {
         type: types.TEAM_MEMBER_SUCCESS,
         payload: teamMember,
     };
 }
 
-export function teamMemberError(error: $TSFixMe) {
+export const teamMemberError = (error: $TSFixMe) => {
     return {
         type: types.TEAM_MEMBER_FAILURE,
         payload: error,
@@ -237,7 +237,7 @@ export function teamMemberError(error: $TSFixMe) {
 }
 
 // Calls the API to get team member.
-export function getTeamMember(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
+export const getTeamMember = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`team/${projectId}/${teamMemberId}`);
         dispatch(teamMemberRequest(teamMemberId));
@@ -265,21 +265,21 @@ export function getTeamMember(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
     };
 }
 
-export function teamUpdateRoleRequest(id: $TSFixMe) {
+export const teamUpdateRoleRequest = (id: $TSFixMe) => {
     return {
         type: types.TEAM_UPDATE_ROLE_REQUEST,
         payload: id,
     };
 }
 
-export function teamUpdateRoleSuccess(team: $TSFixMe) {
+export const teamUpdateRoleSuccess = (team: $TSFixMe) => {
     return {
         type: types.TEAM_UPDATE_ROLE_SUCCESS,
         payload: team,
     };
 }
 
-export function teamUpdateRoleError(error: $TSFixMe) {
+export const teamUpdateRoleError = (error: $TSFixMe) => {
     return {
         type: types.TEAM_UPDATE_ROLE_FAILURE,
         payload: error,
@@ -287,7 +287,7 @@ export function teamUpdateRoleError(error: $TSFixMe) {
 }
 
 // Calls the API to update team member role.
-export function teamUpdateRole(projectId: $TSFixMe, values: $TSFixMe) {
+export const teamUpdateRole = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `team/${projectId}/${values.teamMemberId}/changerole`,
@@ -320,27 +320,27 @@ export function teamUpdateRole(projectId: $TSFixMe, values: $TSFixMe) {
 }
 
 // Implements pagination for Team Members table
-export function paginateNext(Id: $TSFixMe) {
+export const paginateNext = (Id: $TSFixMe) => {
     return {
         type: types.PAGINATE_NEXT,
         payload: Id,
     };
 }
 
-export function paginatePrev(Id: $TSFixMe) {
+export const paginatePrev = (Id: $TSFixMe) => {
     return {
         type: types.PAGINATE_PREV,
         payload: Id,
     };
 }
 
-export function paginateReset() {
+export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
 }
 
-export function paginate(type: $TSFixMe, Id: $TSFixMe) {
+export const paginate = (type: $TSFixMe, Id: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext(Id));
         type === 'prev' && dispatch(paginatePrev(Id));

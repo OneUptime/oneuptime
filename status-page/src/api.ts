@@ -7,7 +7,7 @@ const headers = {
     'Content-Type': 'application/json;charset=UTF-8',
 };
 
-export function postApi(url: $TSFixMe, data: $TSFixMe) {
+export const postApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn()) {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
@@ -19,17 +19,17 @@ export function postApi(url: $TSFixMe, data: $TSFixMe) {
             headers,
             data,
         })
-            .then((response) => {
+            .then(response => {
                 resolve(response);
             })
-            .then((error) => {
+            .then(error => {
                 reject(error);
             });
     });
     return promise;
 }
 
-export function getApi(url: $TSFixMe) {
+export const getApi = (url: $TSFixMe) => {
     if (User.isLoggedIn()) {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
@@ -40,17 +40,17 @@ export function getApi(url: $TSFixMe) {
             url: `${API_URL}/${url}`,
             headers,
         })
-            .then((response) => {
+            .then(response => {
                 resolve(response);
             })
-            .then((error) => {
+            .then(error => {
                 reject(error);
             });
     });
     return promise;
 }
 
-export function putApi(url: $TSFixMe, data: $TSFixMe) {
+export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn()) {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
@@ -62,10 +62,10 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
             headers,
             data,
         })
-            .then((response) => {
+            .then(response => {
                 resolve(response);
             })
-            .then((error) => {
+            .then(error => {
                 reject(error);
             });
     });

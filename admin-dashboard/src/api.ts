@@ -20,7 +20,7 @@ const headers = {
     'Content-Type': 'application/json;charset=UTF-8',
 };
 
-export function postApi(url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) {
+export const postApi = (url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -31,10 +31,10 @@ export function postApi(url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) {
         headers,
         data,
     })
-        .then((response) => {
+        .then(response => {
             deffered.resolve(response);
         })
-        .then((error) => {
+        .then(error => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -53,7 +53,7 @@ export function postApi(url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) {
     return deffered.promise;
 }
 
-export function getApi(url: $TSFixMe, licensing: $TSFixMe) {
+export const getApi = (url: $TSFixMe, licensing: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -62,10 +62,10 @@ export function getApi(url: $TSFixMe, licensing: $TSFixMe) {
         url: `${licensing ? licensingURL : baseURL}/${url}`,
         headers,
     })
-        .then((response) => {
+        .then(response => {
             deffered.resolve(response);
         })
-        .then((error) => {
+        .then(error => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -85,7 +85,7 @@ export function getApi(url: $TSFixMe, licensing: $TSFixMe) {
     return deffered.promise;
 }
 
-export function putApi(url: $TSFixMe, data: $TSFixMe) {
+export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -95,10 +95,10 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
         headers,
         data,
     })
-        .then((response) => {
+        .then(response => {
             deffered.resolve(response);
         })
-        .then((error) => {
+        .then(error => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -118,7 +118,7 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
     return deffered.promise;
 }
 
-export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
+export const deleteApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -128,10 +128,10 @@ export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
         headers,
         data,
     })
-        .then((response) => {
+        .then(response => {
             deffered.resolve(response);
         })
-        .then((error) => {
+        .then(error => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -151,7 +151,7 @@ export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
     return deffered.promise;
 }
 
-export function getApiDocs(url: $TSFixMe) {
+export const getApiDocs = (url: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -160,10 +160,10 @@ export function getApiDocs(url: $TSFixMe) {
         url: `${API_DOCS_URL}/${url}`,
         headers,
     })
-        .then((response) => {
+        .then(response => {
             deffered.resolve(response);
         })
-        .then((error) => {
+        .then(error => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -183,7 +183,7 @@ export function getApiDocs(url: $TSFixMe) {
     return deffered.promise;
 }
 
-export function getApiHelm(url: $TSFixMe) {
+export const getApiHelm = (url: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -192,10 +192,10 @@ export function getApiHelm(url: $TSFixMe) {
         url: `${HELM_CHART_URL}/${url}`,
         headers,
     })
-        .then((response) => {
+        .then(response => {
             deffered.resolve(response);
         })
-        .then((error) => {
+        .then(error => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -215,7 +215,7 @@ export function getApiHelm(url: $TSFixMe) {
     return deffered.promise;
 }
 
-export function getApiDashboard(url: $TSFixMe) {
+export const getApiDashboard = (url: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -224,10 +224,10 @@ export function getApiDashboard(url: $TSFixMe) {
         url: `${DASHBOARD_URL}/api/${url}`,
         headers,
     })
-        .then((response) => {
+        .then(response => {
             deffered.resolve(response);
         })
-        .then((error) => {
+        .then(error => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });

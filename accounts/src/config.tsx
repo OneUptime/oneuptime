@@ -32,7 +32,7 @@ if (
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
 }
 
-export function env(value: $TSFixMe) {
+export const env = (value: $TSFixMe) => {
     // @ts-expect-error ts-migrate(2339) FIXME: Property '_env' does not exist on type 'Window & t... Remove this comment to see the full error message
     const { _env } = window;
     return (
@@ -412,7 +412,7 @@ export const tutorials = {
     },
 };
 
-export function getQueryVar(variable: $TSFixMe, url: $TSFixMe) {
+export const getQueryVar = (variable: $TSFixMe, url: $TSFixMe) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -422,7 +422,7 @@ export function getQueryVar(variable: $TSFixMe, url: $TSFixMe) {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export function saveFile(content: $TSFixMe, filename: $TSFixMe) {
+export const saveFile = (content: $TSFixMe, filename: $TSFixMe) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }

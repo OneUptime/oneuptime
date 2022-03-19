@@ -29,8 +29,7 @@ export function fetchIncidentPriorities(
 ) {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(
-            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${
-                limit || 10
+            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${limit || 10
             }`
         );
         dispatch(fetchIncidentPrioritiesRequest());
@@ -57,7 +56,7 @@ export function fetchIncidentPriorities(
     };
 }
 
-export function createIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
+export const createIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`incidentPriorities/${projectId}`, data);
         dispatch(createIncidentPriorityRequest());
@@ -103,7 +102,7 @@ function createIncidentPriorityFailure(data: $TSFixMe) {
     };
 }
 
-export function updateIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
+export const updateIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = putApi(`incidentPriorities/${projectId}`, data);
         dispatch(updateIncidentPriorityRequest());
@@ -149,7 +148,7 @@ function updateIncidentPriorityFailure(data: $TSFixMe) {
     };
 }
 
-export function deleteIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
+export const deleteIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`incidentPriorities/${projectId}`, data);
         dispatch(deleteIncidentPriorityRequest());

@@ -3,40 +3,40 @@ import * as types from '../constants/invoice';
 
 // Array of invoices
 
-export function getInvoiceRequest(promise: $TSFixMe) {
+export const getInvoiceRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_INVOICE_REQUEST,
         payload: promise,
     };
 }
 
-export function getInvoiceError(error: $TSFixMe) {
+export const getInvoiceError = (error: $TSFixMe) => {
     return {
         type: types.GET_INVOICE_FAILED,
         payload: error,
     };
 }
 
-export function getInvoiceSuccess(invoices: $TSFixMe) {
+export const getInvoiceSuccess = (invoices: $TSFixMe) => {
     return {
         type: types.GET_INVOICE_SUCCESS,
         payload: invoices,
     };
 }
 
-export function getInvoiceReset() {
+export const getInvoiceReset = () => {
     return {
         type: types.GET_INVOICE_RESET,
     };
 }
 
-export function incrementNextCount() {
+export const incrementNextCount = () => {
     return {
         type: types.INCREMENT_NEXT_COUNT,
     };
 }
 
-export function decrementNextCount() {
+export const decrementNextCount = () => {
     return {
         type: types.DECREMENT_NEXT_COUNT,
     };

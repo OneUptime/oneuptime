@@ -79,38 +79,38 @@ export const searchEmailLogsError = (error: $TSFixMe) => {
 
 export const searchEmailLogs =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
-        const values = {
-            filter,
+        async (dispatch: $TSFixMe) => {
+            const values = {
+                filter,
+            };
+
+            dispatch(searchEmailLogsRequest());
+
+            try {
+                const response = await postApi(
+                    `email-logs/search?skip=${skip}&limit=${limit}`,
+                    values
+                );
+
+                const data = response.data;
+
+                dispatch(searchEmailLogsSuccess(data));
+                return response;
+            } catch (error) {
+                let errorMsg;
+                if (error && error.response && error.response.data)
+                    errorMsg = error.response.data;
+                if (error && error.data) {
+                    errorMsg = error.data;
+                }
+                if (error && error.message) {
+                    errorMsg = error.message;
+                } else {
+                    errorMsg = 'Network Error';
+                }
+                dispatch(searchEmailLogsError(errors(errorMsg)));
+            }
         };
-
-        dispatch(searchEmailLogsRequest());
-
-        try {
-            const response = await postApi(
-                `email-logs/search?skip=${skip}&limit=${limit}`,
-                values
-            );
-
-            const data = response.data;
-
-            dispatch(searchEmailLogsSuccess(data));
-            return response;
-        } catch (error) {
-            let errorMsg;
-            if (error && error.response && error.response.data)
-                errorMsg = error.response.data;
-            if (error && error.data) {
-                errorMsg = error.data;
-            }
-            if (error && error.message) {
-                errorMsg = error.message;
-            } else {
-                errorMsg = 'Network Error';
-            }
-            dispatch(searchEmailLogsError(errors(errorMsg)));
-        }
-    };
 
 // Delete All Email Logs
 export const deleteEmailLogsRequest = () => {
@@ -160,21 +160,21 @@ export const deleteEmailLogs = () => async (dispatch: $TSFixMe) => {
 
 // fetch emailLogStatus
 
-export function fetchEmailLogStatusRequest(promise: $TSFixMe) {
+export const fetchEmailLogStatusRequest = (promise: $TSFixMe) => {
     return {
         type: types.FETCH_EMAILLOG_STATUS_REQUEST,
         payload: promise,
     };
 }
 
-export function fetchEmailLogStatusError(error: $TSFixMe) {
+export const fetchEmailLogStatusError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_EMAILLOG_STATUS_FAILED,
         payload: error,
     };
 }
 
-export function fetchEmailLogStatusSuccess(emailLogStatus: $TSFixMe) {
+export const fetchEmailLogStatusSuccess = (emailLogStatus: $TSFixMe) => {
     return {
         type: types.FETCH_EMAILLOG_STATUS_SUCCESS,
         payload: emailLogStatus,
@@ -215,21 +215,21 @@ export const fetchEmailLogStatus = () => async (dispatch: $TSFixMe) => {
 
 // change emailLogStatus
 
-export function changeEmailLogStatusRequest(promise: $TSFixMe) {
+export const changeEmailLogStatusRequest = (promise: $TSFixMe) => {
     return {
         type: types.CHANGE_EMAILLOG_STATUS_REQUEST,
         payload: promise,
     };
 }
 
-export function changeEmailLogStatusError(error: $TSFixMe) {
+export const changeEmailLogStatusError = (error: $TSFixMe) => {
     return {
         type: types.CHANGE_EMAILLOG_STATUS_FAILED,
         payload: error,
     };
 }
 
-export function changeEmailLogStatusSuccess(emailLogStatus: $TSFixMe) {
+export const changeEmailLogStatusSuccess = (emailLogStatus: $TSFixMe) => {
     return {
         type: types.CHANGE_EMAILLOG_STATUS_SUCCESS,
         payload: emailLogStatus,

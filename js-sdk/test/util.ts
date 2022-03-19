@@ -24,12 +24,12 @@ export const user = {
     companyPhoneNumber: '+919910568840',
     reference: 'Github',
 };
-export function generateRandomBusinessEmail() {
+export const generateRandomBusinessEmail = () => {
     return `${Math.random().toString(36).substring(7)}@${Math.random()
         .toString(36)
         .substring(5)}.com`;
 }
-export function generateSecondRandomBusinessEmail() {
+export const generateSecondRandomBusinessEmail = () => {
     return `${Math.random().toString(26).substring(7)}@${Math.random()
         .toString(36)
         .substring(5)}.com`;

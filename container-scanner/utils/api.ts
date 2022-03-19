@@ -23,10 +23,10 @@ const _this = {
                 headers,
                 data,
             })
-                .then((response) => {
+                .then(response => {
                     resolve(response.data);
                 })
-                .then((error) => {
+                .then(error => {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -45,10 +45,10 @@ const _this = {
                 url: `${config.serverUrl}/${url}`,
                 headers,
             })
-                .then((response) => {
+                .then(response => {
                     resolve(response.data);
                 })
-                .then((error) => {
+                .then(error => {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -68,10 +68,10 @@ const _this = {
                 headers,
                 data,
             })
-                .then((response) => {
+                .then(response => {
                     resolve(response.data);
                 })
-                .then((error) => {
+                .then(error => {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -91,10 +91,10 @@ const _this = {
                 headers,
                 data,
             })
-                .then((response) => {
+                .then(response => {
                     resolve(response.data);
                 })
-                .then((error) => {
+                .then(error => {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {

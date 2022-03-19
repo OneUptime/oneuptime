@@ -3,27 +3,27 @@ import * as types from '../constants/schedule';
 import errors from '../errors';
 
 // Get a payload of Schedules
-export function resetSchedule() {
+export const resetSchedule = () => {
     return {
         type: types.SCHEDULE_FETCH_RESET,
     };
 }
 
-export function scheduleRequest(promise: $TSFixMe) {
+export const scheduleRequest = (promise: $TSFixMe) => {
     return {
         type: types.SCHEDULE_FETCH_REQUEST,
         payload: promise,
     };
 }
 
-export function scheduleError(error: $TSFixMe) {
+export const scheduleError = (error: $TSFixMe) => {
     return {
         type: types.SCHEDULE_FETCH_FAILED,
         payload: error,
     };
 }
 
-export function scheduleSuccess(schedule: $TSFixMe) {
+export const scheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.SCHEDULE_FETCH_SUCCESS,
         payload: schedule,
@@ -67,27 +67,27 @@ export function fetchSchedules(
 
 // Get a payload of SubProject Schedules
 
-export function resetSubProjectSchedule() {
+export const resetSubProjectSchedule = () => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_RESET,
     };
 }
 
-export function subProjectScheduleRequest(promise: $TSFixMe) {
+export const subProjectScheduleRequest = (promise: $TSFixMe) => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_REQUEST,
         payload: promise,
     };
 }
 
-export function subProjectScheduleError(error: $TSFixMe) {
+export const subProjectScheduleError = (error: $TSFixMe) => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_FAILED,
         payload: error,
     };
 }
 
-export function subProjectScheduleSuccess(schedule: $TSFixMe) {
+export const subProjectScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_SUCCESS,
         payload: schedule,
@@ -96,7 +96,7 @@ export function subProjectScheduleSuccess(schedule: $TSFixMe) {
 
 // Calls the API to fetch Schedules.
 
-export function fetchSubProjectSchedules(projectId: $TSFixMe) {
+export const fetchSubProjectSchedules = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(`schedule/${projectId}/schedules`);
@@ -125,27 +125,27 @@ export function fetchSubProjectSchedules(projectId: $TSFixMe) {
     };
 }
 
-export function resetProjectSchedule() {
+export const resetProjectSchedule = () => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_RESET,
     };
 }
 
-export function projectScheduleRequest(promise: $TSFixMe) {
+export const projectScheduleRequest = (promise: $TSFixMe) => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_REQUEST,
         payload: promise,
     };
 }
 
-export function projectScheduleError(error: $TSFixMe) {
+export const projectScheduleError = (error: $TSFixMe) => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_FAILED,
         payload: error,
     };
 }
 
-export function projectScheduleSuccess(schedule: $TSFixMe) {
+export const projectScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_SUCCESS,
         payload: schedule,
@@ -191,20 +191,20 @@ export function fetchProjectSchedule(
 
 // Create a new schedule
 
-export function createScheduleRequest() {
+export const createScheduleRequest = () => {
     return {
         type: types.CREATE_SCHEDULE_REQUEST,
     };
 }
 
-export function createScheduleError(error: $TSFixMe) {
+export const createScheduleError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_SCHEDULE_FAILED,
         payload: error,
     };
 }
 
-export function createScheduleSuccess(schedule: $TSFixMe) {
+export const createScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.CREATE_SCHEDULE_SUCCESS,
         payload: schedule,
@@ -213,7 +213,7 @@ export function createScheduleSuccess(schedule: $TSFixMe) {
 
 // Calls the API to create the schedule.
 
-export function createSchedule(projectId: $TSFixMe, values: $TSFixMe) {
+export const createSchedule = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`schedule/${projectId}`, values);
 
@@ -243,27 +243,27 @@ export function createSchedule(projectId: $TSFixMe, values: $TSFixMe) {
 
 // Rename a Schedule
 
-export function renameScheduleReset() {
+export const renameScheduleReset = () => {
     return {
         type: types.RENAME_SCHEDULE_RESET,
     };
 }
 
-export function renameScheduleRequest() {
+export const renameScheduleRequest = () => {
     return {
         type: types.RENAME_SCHEDULE_REQUEST,
         payload: true,
     };
 }
 
-export function renameScheduleSuccess(schedule: $TSFixMe) {
+export const renameScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.RENAME_SCHEDULE_SUCCESS,
         payload: schedule.data,
     };
 }
 
-export function renameScheduleError(error: $TSFixMe) {
+export const renameScheduleError = (error: $TSFixMe) => {
     return {
         type: types.RENAME_SCHEDULE_FAILED,
         payload: error,
@@ -311,41 +311,41 @@ export function renameSchedule(
 
 // Delete a Schedule
 
-export function deleteScheduleReset() {
+export const deleteScheduleReset = () => {
     return {
         type: types.DELETE_SCHEDULE_RESET,
     };
 }
 
-export function deleteScheduleRequest() {
+export const deleteScheduleRequest = () => {
     return {
         type: types.DELETE_SCHEDULE_REQUEST,
         payload: true,
     };
 }
 
-export function deleteScheduleSuccess(schedule: $TSFixMe) {
+export const deleteScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.DELETE_SCHEDULE_SUCCESS,
         payload: schedule.data,
     };
 }
 
-export function deleteProjectSchedules(projectId: $TSFixMe) {
+export const deleteProjectSchedules = (projectId: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_SCHEDULES,
         payload: projectId,
     };
 }
 
-export function deleteScheduleError(error: $TSFixMe) {
+export const deleteScheduleError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SCHEDULE_FAILED,
         payload: error,
     };
 }
 
-export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
+export const deleteSchedule = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`schedule/${projectId}/${scheduleId}`);
 
@@ -388,27 +388,27 @@ export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
 
 // Add Monitors to Schedule
 
-export function addMonitorReset() {
+export const addMonitorReset = () => {
     return {
         type: types.ADD_MONITOR_RESET,
     };
 }
 
-export function addMonitorRequest() {
+export const addMonitorRequest = () => {
     return {
         type: types.ADD_MONITOR_REQUEST,
         payload: true,
     };
 }
 
-export function addMonitorSuccess(schedule: $TSFixMe) {
+export const addMonitorSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.ADD_MONITOR_SUCCESS,
         payload: schedule.data,
     };
 }
 
-export function addMonitorError(error: $TSFixMe) {
+export const addMonitorError = (error: $TSFixMe) => {
     return {
         type: types.ADD_MONITOR_FAILED,
         payload: error,
@@ -454,27 +454,27 @@ export function addMonitors(
 
 // Add Users to Schedule
 
-export function addUserReset() {
+export const addUserReset = () => {
     return {
         type: types.ADD_USER_RESET,
     };
 }
 
-export function addUserRequest() {
+export const addUserRequest = () => {
     return {
         type: types.ADD_USER_REQUEST,
         payload: true,
     };
 }
 
-export function addUserSuccess(schedule: $TSFixMe) {
+export const addUserSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.ADD_USER_SUCCESS,
         payload: schedule.data,
     };
 }
 
-export function addUserError(error: $TSFixMe) {
+export const addUserError = (error: $TSFixMe) => {
     return {
         type: types.ADD_USER_FAILED,
         payload: error,
@@ -523,27 +523,27 @@ export function addUsers(
 
 // onCallAlertBox
 
-export function escalationReset() {
+export const escalationReset = () => {
     return {
         type: types.ESCALATION_RESET,
     };
 }
 
-export function escalationRequest() {
+export const escalationRequest = () => {
     return {
         type: types.ESCALATION_REQUEST,
         payload: true,
     };
 }
 
-export function escalationSuccess(escalation: $TSFixMe) {
+export const escalationSuccess = (escalation: $TSFixMe) => {
     return {
         type: types.ESCALATION_SUCCESS,
         payload: escalation,
     };
 }
 
-export function escalationError(error: $TSFixMe) {
+export const escalationError = (error: $TSFixMe) => {
     return {
         type: types.ESCALATION_FAILED,
         payload: error,
@@ -588,7 +588,7 @@ export function addEscalation(
     };
 }
 
-export function getEscalation(projectId: $TSFixMe, scheduleId: $TSFixMe) {
+export const getEscalation = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `schedule/${projectId}/${scheduleId}/getescalation`
@@ -621,25 +621,25 @@ export function getEscalation(projectId: $TSFixMe, scheduleId: $TSFixMe) {
 
 // Implements pagination for Team Members table
 
-export function paginateNext() {
+export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
 }
 
-export function paginatePrev() {
+export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
 }
 
-export function paginateReset() {
+export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
 }
 
-export function paginate(type: $TSFixMe) {
+export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
@@ -647,33 +647,33 @@ export function paginate(type: $TSFixMe) {
     };
 }
 
-export function userScheduleReset() {
+export const userScheduleReset = () => {
     return {
         type: types.USER_SCHEDULE_RESET,
     };
 }
 
-export function userScheduleRequest() {
+export const userScheduleRequest = () => {
     return {
         type: types.USER_SCHEDULE_REQUEST,
     };
 }
 
-export function userScheduleSuccess(userSchedule: $TSFixMe) {
+export const userScheduleSuccess = (userSchedule: $TSFixMe) => {
     return {
         type: types.USER_SCHEDULE_SUCCESS,
         payload: userSchedule,
     };
 }
 
-export function userScheduleError(error: $TSFixMe) {
+export const userScheduleError = (error: $TSFixMe) => {
     return {
         type: types.USER_SCHEDULE_FAILED,
         payload: error,
     };
 }
 
-export function fetchUserSchedule(projectId: $TSFixMe, userId: $TSFixMe) {
+export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `schedule/${projectId}/${userId}/getescalations`

@@ -6,7 +6,7 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 
-export function RenderIfAdmin(props: $TSFixMe) {
+export const RenderIfAdmin = (props: $TSFixMe) => {
     const { currentProject, children } = props;
     const userId = User.getUserId();
     let renderItems = null;

@@ -1,21 +1,21 @@
 import { getApi } from '../api';
 import * as types from '../constants/version';
 
-export function getVersionRequest(promise: $TSFixMe) {
+export const getVersionRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_VERSION_REQUEST,
         payload: promise,
     };
 }
 
-export function getVersionError(error: $TSFixMe) {
+export const getVersionError = (error: $TSFixMe) => {
     return {
         type: types.GET_VERSION_FAILED,
         payload: error,
     };
 }
 
-export function getVersionSuccess(versions: $TSFixMe) {
+export const getVersionSuccess = (versions: $TSFixMe) => {
     return {
         type: types.GET_VERSION_SUCCESS,
         payload: versions,
@@ -28,7 +28,7 @@ export const resetGetVersion = () => {
     };
 };
 
-export function getVersion() {
+export const getVersion = () => {
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi('version');

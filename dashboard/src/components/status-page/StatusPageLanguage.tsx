@@ -13,7 +13,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { openModal } from '../../actions/modal';
 
-export function StatusPageLanguage(props: $TSFixMe) {
+export const StatusPageLanguage = (props: $TSFixMe) => {
     const [error, setError] = useState('');
     const [language] = useState([
         'English',
@@ -118,9 +118,9 @@ export function StatusPageLanguage(props: $TSFixMe) {
                                     },
                                     ...(language && language.length > 0
                                         ? language.map(lang => ({
-                                              value: lang,
-                                              label: lang,
-                                          }))
+                                            value: lang,
+                                            label: lang,
+                                        }))
                                         : []),
                                 ]}
                             />

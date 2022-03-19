@@ -5,21 +5,21 @@ import errors from '../errors';
 // There are three possible states for our resetPassword
 // process and we need actions for each of them
 
-export function resetPasswordRequest(promise: $TSFixMe) {
+export const resetPasswordRequest = (promise: $TSFixMe) => {
     return {
         type: types.PASSWORDRESET_REQUEST,
         payload: promise,
     };
 }
 
-export function resetPasswordError(error: $TSFixMe) {
+export const resetPasswordError = (error: $TSFixMe) => {
     return {
         type: types.PASSWORDRESET_FAILED,
         payload: error,
     };
 }
 
-export function resetPasswordSuccess(data: $TSFixMe) {
+export const resetPasswordSuccess = (data: $TSFixMe) => {
     return {
         type: types.PASSWORDRESET_SUCCESS,
         payload: data,
@@ -32,7 +32,7 @@ export const resetResetPassword = () => {
     };
 };
 
-export function resetPassword(values: $TSFixMe) {
+export const resetPassword = (values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi('user/forgot-password', values);
         dispatch(resetPasswordRequest(promise));

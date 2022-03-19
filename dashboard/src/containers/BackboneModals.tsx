@@ -37,11 +37,11 @@ Modals.propTypes = {
 Modals.displayName = 'BlackBoneModals';
 
 export default connect(
-    function mapStateToProps(state) {
+    (state) => {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'modal' does not exist on type 'DefaultRo... Remove this comment to see the full error message
         return state.modal;
     },
-    function mapDispatchToProps(dispatch) {
+    (dispatch) => {
         return bindActionCreators(
             {
                 closeModal,

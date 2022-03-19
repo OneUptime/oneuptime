@@ -645,63 +645,63 @@ export const searchUsersError = (error: $TSFixMe) => {
 // Calls the search users api
 export const searchUsers =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
-        const values = {
-            filter,
+        async (dispatch: $TSFixMe) => {
+            const values = {
+                filter,
+            };
+            skip = skip ? parseInt(skip) : 0;
+            limit = limit ? parseInt(limit) : 10;
+
+            dispatch(searchUsersRequest());
+
+            try {
+                const response = await postApi(
+                    `user/users/search?skip=${skip}&limit=${limit}`,
+                    values
+                );
+
+                const data = response.data;
+
+                dispatch(searchUsersSuccess(data));
+                return response;
+            } catch (error) {
+                let errorMsg;
+                if (error && error.response && error.response.data)
+                    errorMsg = error.response.data;
+                if (error && error.data) {
+                    errorMsg = error.data;
+                }
+                if (error && error.message) {
+                    errorMsg = error.message;
+                } else {
+                    errorMsg = 'Network Error';
+                }
+                dispatch(searchUsersError(errors(errorMsg)));
+            }
         };
-        skip = skip ? parseInt(skip) : 0;
-        limit = limit ? parseInt(limit) : 10;
-
-        dispatch(searchUsersRequest());
-
-        try {
-            const response = await postApi(
-                `user/users/search?skip=${skip}&limit=${limit}`,
-                values
-            );
-
-            const data = response.data;
-
-            dispatch(searchUsersSuccess(data));
-            return response;
-        } catch (error) {
-            let errorMsg;
-            if (error && error.response && error.response.data)
-                errorMsg = error.response.data;
-            if (error && error.data) {
-                errorMsg = error.data;
-            }
-            if (error && error.message) {
-                errorMsg = error.message;
-            } else {
-                errorMsg = 'Network Error';
-            }
-            dispatch(searchUsersError(errors(errorMsg)));
-        }
-    };
 
 // Update user twoFactorAuthToken
-export function twoFactorAuthTokenRequest() {
+export const twoFactorAuthTokenRequest = () => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_REQUEST,
     };
 }
 
-export function twoFactorAuthTokenSuccess(payload: $TSFixMe) {
+export const twoFactorAuthTokenSuccess = (payload: $TSFixMe) => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_SUCCESS,
         payload: payload,
     };
 }
 
-export function twoFactorAuthTokenError(error: $TSFixMe) {
+export const twoFactorAuthTokenError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_FAILURE,
         payload: error,
     };
 }
 
-export function updateTwoFactorAuthToken(userId: $TSFixMe, data: $TSFixMe) {
+export const updateTwoFactorAuthToken = (userId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = putApi(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
@@ -730,7 +730,7 @@ export function updateTwoFactorAuthToken(userId: $TSFixMe, data: $TSFixMe) {
     };
 }
 
-export function setTwoFactorAuth(enabled: $TSFixMe) {
+export const setTwoFactorAuth = (enabled: $TSFixMe) => {
     return {
         type: types.SET_TWO_FACTOR_AUTH,
         payload: enabled,
@@ -739,20 +739,20 @@ export function setTwoFactorAuth(enabled: $TSFixMe) {
 
 //fetching user login history
 // Update user twoFactorAuthToken
-export function fetchUserHistoryRequest() {
+export const fetchUserHistoryRequest = () => {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_REQUEST,
     };
 }
 
-export function fetchUserHistorySuccess(payload: $TSFixMe) {
+export const fetchUserHistorySuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_SUCCESS,
         payload: payload,
     };
 }
 
-export function fetchUserHistoryError(error: $TSFixMe) {
+export const fetchUserHistoryError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_FAILURE,
         payload: error,

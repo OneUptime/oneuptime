@@ -46,27 +46,27 @@ export function fetchResourceCategories(
     };
 }
 
-export function fetchResourceCategoriesSuccess(resourceCategories: $TSFixMe) {
+export const fetchResourceCategoriesSuccess = (resourceCategories: $TSFixMe) => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_SUCCESS,
         payload: resourceCategories,
     };
 }
 
-export function fetchResourceCategoriesRequest() {
+export const fetchResourceCategoriesRequest = () => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_REQUEST,
     };
 }
 
-export function fetchResourceCategoriesFailure(error: $TSFixMe) {
+export const fetchResourceCategoriesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FAILURE,
         payload: error,
     };
 }
 
-export function createResourceCategory(projectId: $TSFixMe, values: $TSFixMe) {
+export const createResourceCategory = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`resourceCategory/${projectId}`, values);
         dispatch(createResourceCategoryRequest());
@@ -131,27 +131,27 @@ export function updateResourceCategory(
     };
 }
 
-export function createResourceCategorySuccess(newResourceCategory: $TSFixMe) {
+export const createResourceCategorySuccess = (newResourceCategory: $TSFixMe) => {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_SUCCESS,
         payload: newResourceCategory,
     };
 }
 
-export function createResourceCategoryRequest() {
+export const createResourceCategoryRequest = () => {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_REQUEST,
     };
 }
 
-export function createResourceCategoryFailure(error: $TSFixMe) {
+export const createResourceCategoryFailure = (error: $TSFixMe) => {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
     };
 }
 
-export function updateResourceCategoryRequest() {
+export const updateResourceCategoryRequest = () => {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_REQUEST,
     };
@@ -166,7 +166,7 @@ export function updateResourceCategorySuccess(
     };
 }
 
-export function updateResourceCategoryFailure(error: $TSFixMe) {
+export const updateResourceCategoryFailure = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
@@ -218,21 +218,21 @@ export function deleteResourceCategorySuccess(
     };
 }
 
-export function deleteResourceCategoryRequest(resourceCategoryId: $TSFixMe) {
+export const deleteResourceCategoryRequest = (resourceCategoryId: $TSFixMe) => {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_REQUEST,
         payload: resourceCategoryId,
     };
 }
 
-export function deleteResourceCategoryFailure(error: $TSFixMe) {
+export const deleteResourceCategoryFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
     };
 }
 
-export function fetchResourceCategoriesForNewResource(projectId: $TSFixMe) {
+export const fetchResourceCategoriesForNewResource = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());
@@ -274,13 +274,13 @@ export function fetchResourceCategoriesForNewResourceSuccess(
     };
 }
 
-export function fetchResourceCategoriesForNewResourceRequest() {
+export const fetchResourceCategoriesForNewResourceRequest = () => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_REQUEST,
     };
 }
 
-export function fetchResourceCategoriesForNewResourceFailure(error: $TSFixMe) {
+export const fetchResourceCategoriesForNewResourceFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_FAILURE,
         payload: error,

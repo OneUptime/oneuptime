@@ -1,28 +1,28 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/card';
 
-export function addCardRequest(promise: $TSFixMe) {
+export const addCardRequest = (promise: $TSFixMe) => {
     return {
         type: types.ADD_CARD_REQUEST,
         payload: promise,
     };
 }
 
-export function addCardFailed(error: $TSFixMe) {
+export const addCardFailed = (error: $TSFixMe) => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
     };
 }
 
-export function addCardSuccess(card: $TSFixMe) {
+export const addCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.ADD_CARD_SUCCESS,
         payload: card,
     };
 }
 
-export function addCard(userId: $TSFixMe, token: $TSFixMe) {
+export const addCard = (userId: $TSFixMe, token: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`stripe/${userId}/creditCard/${token}`);
 
@@ -49,28 +49,28 @@ export function addCard(userId: $TSFixMe, token: $TSFixMe) {
         return promise;
     };
 }
-export function fetchCardsRequest(promise: $TSFixMe) {
+export const fetchCardsRequest = (promise: $TSFixMe) => {
     return {
         type: types.FETCH_CARDS_REQUEST,
         payload: promise,
     };
 }
 
-export function fetchCardsFailed(error: $TSFixMe) {
+export const fetchCardsFailed = (error: $TSFixMe) => {
     return {
         type: types.FETCH_CARDS_FAILED,
         payload: error,
     };
 }
 
-export function fetchCardsSuccess(cards: $TSFixMe) {
+export const fetchCardsSuccess = (cards: $TSFixMe) => {
     return {
         type: types.FETCH_CARDS_SUCCESS,
         payload: cards,
     };
 }
 
-export function fetchCards(userId: $TSFixMe) {
+export const fetchCards = (userId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`stripe/${userId}/creditCard`);
 
@@ -98,28 +98,28 @@ export function fetchCards(userId: $TSFixMe) {
     };
 }
 
-export function deleteCardRequest(promise: $TSFixMe) {
+export const deleteCardRequest = (promise: $TSFixMe) => {
     return {
         type: types.DELETE_CARD_REQUEST,
         payload: promise,
     };
 }
 
-export function deleteCardFailed(error: $TSFixMe) {
+export const deleteCardFailed = (error: $TSFixMe) => {
     return {
         type: types.DELETE_CARD_FAILED,
         payload: error,
     };
 }
 
-export function deleteCardSuccess(card: $TSFixMe) {
+export const deleteCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.DELETE_CARD_SUCCESS,
         payload: card,
     };
 }
 
-export function deleteCard(userId: $TSFixMe, cardId: $TSFixMe) {
+export const deleteCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`stripe/${userId}/creditCard/${cardId}`);
 
@@ -147,7 +147,7 @@ export function deleteCard(userId: $TSFixMe, cardId: $TSFixMe) {
     };
 }
 
-export function setDefaultCardRequest(promise: $TSFixMe, cardId: $TSFixMe) {
+export const setDefaultCardRequest = (promise: $TSFixMe, cardId: $TSFixMe) => {
     return {
         type: types.SET_DEFAULT_CARD_REQUEST,
         payload: {
@@ -157,21 +157,21 @@ export function setDefaultCardRequest(promise: $TSFixMe, cardId: $TSFixMe) {
     };
 }
 
-export function setDefaultCardFailed(error: $TSFixMe) {
+export const setDefaultCardFailed = (error: $TSFixMe) => {
     return {
         type: types.SET_DEFAULT_CARD_FAILED,
         payload: error,
     };
 }
 
-export function setDefaultCardSuccess(card: $TSFixMe) {
+export const setDefaultCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.SET_DEFAULT_CARD_SUCCESS,
         payload: card,
     };
 }
 
-export function setDefaultCard(userId: $TSFixMe, cardId: $TSFixMe) {
+export const setDefaultCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = putApi(`stripe/${userId}/creditCard/${cardId}`);
 

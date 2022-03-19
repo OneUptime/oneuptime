@@ -23,24 +23,24 @@ export const resetSearch = () => async (dispatch: $TSFixMe) =>
     dispatch({
         type: RESET_SEARCH_FIELDS,
     });
-export function searchRequest() {
+export const searchRequest = () => {
     return {
         type: POPULATE_SEARCH_REQUEST,
     };
 }
-export function searchSuccess(payload: $TSFixMe) {
+export const searchSuccess = (payload: $TSFixMe) => {
     return {
         type: POPULATE_SEARCH_SUCCESS,
         payload,
     };
 }
-export function searchFailure(payload: $TSFixMe) {
+export const searchFailure = (payload: $TSFixMe) => {
     return {
         type: POPULATE_SEARCH_FAILURE,
         payload,
     };
 }
-export function search(projectId: $TSFixMe, values: $TSFixMe) {
+export const search = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch(searchRequest());
         const promise = postApi(`search/${projectId}`, values);

@@ -4,21 +4,21 @@ import errors from '../errors';
 
 // fetch license
 
-export function fetchLicenseRequest(promise: $TSFixMe) {
+export const fetchLicenseRequest = (promise: $TSFixMe) => {
     return {
         type: types.FETCH_LICENSE_REQUEST,
         payload: promise,
     };
 }
 
-export function fetchLicenseError(error: $TSFixMe) {
+export const fetchLicenseError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_LICENSE_FAILED,
         payload: error,
     };
 }
 
-export function fetchLicenseSuccess(license: $TSFixMe) {
+export const fetchLicenseSuccess = (license: $TSFixMe) => {
     return {
         type: types.FETCH_LICENSE_SUCCESS,
         payload: license,
@@ -65,21 +65,21 @@ export const fetchLicense = () => async (dispatch: $TSFixMe) => {
 
 // confirm license
 
-export function confirmLicenseRequest(promise: $TSFixMe) {
+export const confirmLicenseRequest = (promise: $TSFixMe) => {
     return {
         type: types.CONFIRM_LICENSE_REQUEST,
         payload: promise,
     };
 }
 
-export function confirmLicenseError(error: $TSFixMe) {
+export const confirmLicenseError = (error: $TSFixMe) => {
     return {
         type: types.CONFIRM_LICENSE_FAILED,
         payload: error,
     };
 }
 
-export function confirmLicenseSuccess(license: $TSFixMe) {
+export const confirmLicenseSuccess = (license: $TSFixMe) => {
     return {
         type: types.CONFIRM_LICENSE_SUCCESS,
         payload: license,
