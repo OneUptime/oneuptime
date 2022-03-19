@@ -5,7 +5,8 @@
     "main": "index.ts",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "start": "node --max-old-space-size=4096 --max-http-header-size=80000 index.ts",
+        "start": "ts-node index.ts",
+        "build": "tsc",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 --max-http-header-size=80000 index.ts",
         "test": "echo 'no tests'",
         "audit": "npm audit --audit-level=low",

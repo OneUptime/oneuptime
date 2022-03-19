@@ -5,8 +5,8 @@
     "main": "index.ts",
     "scripts": {
         "start": "ts-node index.ts",
-        "build": "tsc --project './../tsconfig.json' index.ts",
-        "dev": "cross-env NODE_ENV=development ts-node-dev --project './../tsconfig.json' --inspect=0.0.0.0 index.ts",
+        "build": "tsc",
+        "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
     },
