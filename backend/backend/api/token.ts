@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 
 const router = express.getRouter();
 import UserService from '../services/userService';
@@ -15,7 +19,7 @@ import {
 //                                                   jwtAccessToken: token.accessToken,
 //                                                   jwtRefreshToken: token.refreshToken,
 //                                               }
-router.post('/new', async function (req: Request, res: Response) {
+router.post('/new', async function(req: Request, res: Response) {
     try {
         const jwtRefreshToken = req.body.refreshToken;
 

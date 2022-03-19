@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 
 const router = express.getRouter();
 import NotificationService from '../services/notificationService';
@@ -12,7 +16,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function (
+router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     req,
     res
 ) {
@@ -56,7 +60,7 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function 
     }
 });
 
-router.put('/:projectId/read', getUser, isAuthorized, async function (
+router.put('/:projectId/read', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -87,7 +91,7 @@ router.put(
     '/:projectId/:notificationId/closed',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const notificationId = req.params.notificationId;
 
@@ -115,7 +119,7 @@ router.put(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -144,7 +148,7 @@ router.put(
     }
 );
 
-router.put('/:projectId/:notificationId', getUser, isAuthorized, async function (
+router.put('/:projectId/:notificationId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -168,7 +172,7 @@ router.put('/:projectId/:notificationId', getUser, isAuthorized, async function 
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {

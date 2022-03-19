@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import EmailSmtpService from '../services/emailSmtpService';
 import MailService from '../services/mailService';
 const router = express.getRouter();
@@ -14,7 +18,7 @@ import {
 
 import UserService from '../services/userService';
 
-router.post('/test', getUser, isUserMasterAdmin, async function (
+router.post('/test', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -86,7 +90,7 @@ router.post('/test', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -151,7 +155,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -170,7 +174,7 @@ router.get('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function (
+router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -239,7 +243,7 @@ router.put('/:projectId/:emailSmtpId', getUser, isAuthorized, async function (
     }
 });
 
-router.delete('/:projectId/:emailSmtpId', getUser, isUserOwner, async function (
+router.delete('/:projectId/:emailSmtpId', getUser, isUserOwner, async function(
     req,
     res
 ) {

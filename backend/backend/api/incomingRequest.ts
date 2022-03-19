@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -16,7 +20,7 @@ router.get(
     '/:projectId/all-incoming-request',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
@@ -57,7 +61,7 @@ router.post(
     '/:projectId/create-request-url',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const data = req.body;
@@ -114,7 +118,7 @@ router.put(
     '/:projectId/update/:requestId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
             const data = req.body;
@@ -171,7 +175,7 @@ router.delete(
     '/:projectId/remove/:requestId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
 
@@ -187,7 +191,7 @@ router.delete(
 );
 
 // process incoming http request from post request
-router.post('/:projectId/request/:requestId', async function (
+router.post('/:projectId/request/:requestId', async function(
     req: Request,
     res: Response
 ) {
@@ -212,7 +216,7 @@ router.post('/:projectId/request/:requestId', async function (
 });
 
 // process incoming http request from get request
-router.get('/:projectId/request/:requestId', async function (
+router.get('/:projectId/request/:requestId', async function(
     req: Request,
     res: Response
 ) {
@@ -240,7 +244,7 @@ router.post(
     '/:projectId/toggle/:requestId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
             const data = req.body;

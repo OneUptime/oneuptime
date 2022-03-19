@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 
 import SubscriberService from '../services/subscriberService';
@@ -16,7 +20,7 @@ import {
 // req.params->{projectId}; req.body -> {monitorIds, alertVia, contactEmail, contactPhone, }
 // Returns: response status page, error message
 
-router.post('/:projectId/:statusPageId', async function (
+router.post('/:projectId/:statusPageId', async function(
     req: Request,
     res: Response
 ) {
@@ -159,7 +163,7 @@ router.post('/:projectId/:statusPageId', async function (
     }
 });
 
-router.post('/:projectId/subscribe/:monitorId', async function (
+router.post('/:projectId/subscribe/:monitorId', async function(
     req: Request,
     res: Response
 ) {
@@ -308,7 +312,7 @@ router.post('/:projectId/subscribe/:monitorId', async function (
 // get subscribers by projectId
 // req.params-> {projectId};
 // Returns: response subscriber, error message
-router.get('/:projectId', async function (req: Request, res: Response) {
+router.get('/:projectId', async function(req: Request, res: Response) {
     try {
         const projectId = req.params.projectId;
         const skip = req.query.skip || 0;
@@ -329,7 +333,7 @@ router.get('/:projectId', async function (req: Request, res: Response) {
 //get subscribers by monitorId
 // req.params-> {projectId, monitorId};
 // Returns: response subscriber, error message
-router.get('/:projectId/monitor/:monitorId', async function (
+router.get('/:projectId/monitor/:monitorId', async function(
     req: Request,
     res: Response
 ) {
@@ -363,7 +367,7 @@ router.get('/:projectId/monitor/:monitorId', async function (
 //get monitors by subscriberId
 // req.params-> {subscriberId};
 // Returns: response subscriber, error message
-router.get('/monitorList/:subscriberId', async function (
+router.get('/monitorList/:subscriberId', async function(
     req: Request,
     res: Response
 ) {
@@ -419,7 +423,7 @@ router.get('/monitorList/:subscriberId', async function (
 //Get a subscriber.
 //req.params-> {projectId, subscriberId}
 // Returns: response subscriber, error message
-router.get('/:projectId/:subscriberId', async function (
+router.get('/:projectId/:subscriberId', async function(
     req: Request,
     res: Response
 ) {
@@ -446,7 +450,7 @@ router.get('/:projectId/:subscriberId', async function (
 //unsubscribe subscriber.
 //req.params-> {monitorId, subscriberId}
 // Returns: response subscriber, error message
-router.put('/unsubscribe/:monitorId/:email', async function (
+router.put('/unsubscribe/:monitorId/:email', async function(
     req: Request,
     res: Response
 ) {
@@ -464,7 +468,7 @@ router.put('/unsubscribe/:monitorId/:email', async function (
 //  delete a subscriber.
 //  req.params-> {projectId, subscriberId}
 //  Returns: response subscriber, error message
-router.delete('/:projectId/:subscriberId', getUser, async function (
+router.delete('/:projectId/:subscriberId', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -482,7 +486,7 @@ router.delete('/:projectId/:subscriberId', getUser, async function (
     }
 });
 
-router.post('/:projectId/:monitorId/csv', async function (
+router.post('/:projectId/:monitorId/csv', async function(
     req: Request,
     res: Response
 ) {

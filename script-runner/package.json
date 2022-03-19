@@ -5,6 +5,7 @@
     "main": "index.ts",
     "scripts": {
         "start": "ts-node index.ts",
+        "build": "tsc index.ts",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "test": "echo \"Error: no test specified\" && exit 1",
         "audit": "npm audit --audit-level=low"

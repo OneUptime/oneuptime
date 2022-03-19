@@ -46,34 +46,34 @@ const incidentSettings = {
     name: 'Another update',
 };
 
-describe('Incident Settings API', function () {
+describe('Incident Settings API', function() {
     this.timeout(500000);
 
-    before(function (done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function () {
-            createUser(request, userData.user, function (
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(
                 err: $TSFixMe,
                 res: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function (
+                VerificationTokenModel.findOne({ userId }, function(
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function () {
+                        .end(function() {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, res: Response) {
+                                .end(function(err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
@@ -85,7 +85,7 @@ describe('Incident Settings API', function () {
                                             .post(`/monitor/${projectId}`)
                                             .set('Authorization', authorization)
                                             .send({ ...monitor, componentId })
-                                            .end(async function (
+                                            .end(async function(
                                                 err: $TSFixMe,
                                                 res: Response
                                             ) {
@@ -104,7 +104,7 @@ describe('Incident Settings API', function () {
         });
     });
 
-    after(async function () {
+    after(async function() {
         await GlobalConfig.removeTestConfig();
         await IncidentService.hardDeleteBy({ _id: incidentId });
         await IncidentSettings.hardDeleteBy({ projectId });

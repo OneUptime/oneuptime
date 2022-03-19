@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import moment from 'moment';
@@ -14,7 +18,7 @@ import { isValidAPIKey } from '../middlewares/performanceTracker';
 // Route
 // Description: Receiving Performance metric data from sdk.
 // Returns: response status, error message
-router.post('/:appId/key/:key', isValidAPIKey, async function (
+router.post('/:appId/key/:key', isValidAPIKey, async function(
     req: Request,
     res: Response
 ) {
@@ -44,7 +48,7 @@ router.post('/:appId/key/:key', isValidAPIKey, async function (
 });
 
 // fetch transaction time for performance metrics
-router.get('/:appId/key/:key/time', isValidAPIKey, async function (
+router.get('/:appId/key/:key/time', isValidAPIKey, async function(
     req: Request,
     res: Response
 ) {
@@ -110,7 +114,7 @@ router.get('/:appId/key/:key/time', isValidAPIKey, async function (
 });
 
 // fetch throughput for performance metrics
-router.get('/:appId/key/:key/throughput', isValidAPIKey, async function (
+router.get('/:appId/key/:key/throughput', isValidAPIKey, async function(
     req,
     res
 ) {
@@ -175,7 +179,7 @@ router.get('/:appId/key/:key/throughput', isValidAPIKey, async function (
     }
 });
 
-router.get('/:appId/key/:key/error', isValidAPIKey, async function (
+router.get('/:appId/key/:key/error', isValidAPIKey, async function(
     req: Request,
     res: Response
 ) {
@@ -242,7 +246,7 @@ router.get('/:appId/key/:key/error', isValidAPIKey, async function (
 
 // Route
 // Description: Fetch all the Performance metrics for a particular identifier
-router.get('/:appId/key/:key', isValidAPIKey, async function (
+router.get('/:appId/key/:key', isValidAPIKey, async function(
     req: Request,
     res: Response
 ) {
@@ -336,7 +340,7 @@ router.get('/:appId/key/:key', isValidAPIKey, async function (
 });
 
 // Delete a performance metric
-router.delete('/:appId/key/:key/:metricId', isValidAPIKey, async function (
+router.delete('/:appId/key/:key/:metricId', isValidAPIKey, async function(
     req,
     res
 ) {

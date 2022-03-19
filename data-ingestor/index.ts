@@ -1,6 +1,10 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const app = express();
 
 import http from 'http';
@@ -20,7 +24,7 @@ function getMongoClient() {
 }
 // setup mongodb connection
 const client = getMongoClient();
-(async function () {
+(async function() {
     try {
         console.log('connecting to db');
         await client.connect();
@@ -36,7 +40,7 @@ global.db = client.db(databaseName);
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use(function(req: Request, res: Response, next: NextFunction) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -65,7 +69,7 @@ const getActualRequestDurationInMilliseconds = start => {
     return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
 };
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use(function(req: Request, res: Response, next: NextFunction) {
     const current_datetime = new Date();
     const formatted_date =
         current_datetime.getFullYear() +
@@ -91,7 +95,7 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
     return next();
 });
 
-app.get(['/data-ingestor/status', '/status'], function (
+app.get(['/data-ingestor/status', '/status'], function(
     req: Request,
     res: Response
 ) {
@@ -109,7 +113,7 @@ app.use(['/probe', '/api/probe'], require('./api/probe'));
 
 app.set('port', process.env.PORT || 3200);
 
-http.listen(app.get('port'), function () {
+http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('data-ingestor server started on port ' + app.get('port'));
 });

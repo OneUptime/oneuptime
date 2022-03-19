@@ -17,7 +17,11 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import path from 'path';
 const app = express();
 
@@ -25,7 +29,7 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: $TSFixMe) {
+app.use(function(req: Request, res: Response, next: $TSFixMe) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -42,7 +46,7 @@ app.use(function (req: Request, res: Response, next: $TSFixMe) {
     return next();
 });
 
-app.get(['/env.js', '/dashboard/env.js'], function (
+app.get(['/env.js', '/dashboard/env.js'], function(
     req: Request,
     res: Response
 ) {
@@ -106,7 +110,7 @@ app.get(['/env.js', '/dashboard/env.js'], function (
 });
 
 //APP VERSION
-app.use(['/dashboard/api/version', '/dashboard/version'], function (
+app.use(['/dashboard/api/version', '/dashboard/version'], function(
     req: Request,
     res: Response
 ) {
@@ -114,7 +118,7 @@ app.use(['/dashboard/api/version', '/dashboard/version'], function (
     res.json({ dashboardVersion: process.env.npm_package_version });
 });
 
-app.get(['/dashboard/status', '/status'], function (
+app.get(['/dashboard/status', '/status'], function(
     req: Request,
     res: Response
 ) {
@@ -168,7 +172,7 @@ app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 //     }
 // });
 
-app.get('/*', function (req: Request, res: Response) {
+app.get('/*', function(req: Request, res: Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

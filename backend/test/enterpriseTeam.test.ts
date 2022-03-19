@@ -17,13 +17,13 @@ let token: $TSFixMe, projectId: $TSFixMe, newProjectId: $TSFixMe;
 
 const teamEmail = 'noreply1@oneuptime.com';
 
-describe('Enterprise Team API', function () {
+describe('Enterprise Team API', function() {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            createEnterpriseUser(request, userData.user, function (
+        GlobalConfig.initTestConfig().then(function() {
+            createEnterpriseUser(request, userData.user, function(
                 err: $TSFixMe,
                 res: Response
             ) {
@@ -36,7 +36,7 @@ describe('Enterprise Team API', function () {
                         email: userData.user.email,
                         password: userData.user.password,
                     })
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function(err: $TSFixMe, res: Response) {
                         token = res.body.tokens.jwtAccessToken;
                         done();
                     });
@@ -44,7 +44,7 @@ describe('Enterprise Team API', function () {
         });
     });
 
-    after(async function () {
+    after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
@@ -56,7 +56,7 @@ describe('Enterprise Team API', function () {
         });
     });
 
-    it('should add new user with valid details for project with no billing plan', function (done: $TSFixMe) {
+    it('should add new user with valid details for project with no billing plan', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/team/${projectId}`)
@@ -65,7 +65,7 @@ describe('Enterprise Team API', function () {
                 emails: teamEmail,
                 role: 'Member',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function(err: $TSFixMe, res: Response) {
                 expect(res.body[0].team[0].userId).to.be.a('string');
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');

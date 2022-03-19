@@ -34,13 +34,13 @@ const startDate = moment()
     .format('YYYY-MM-DD');
 const filter = 'month';
 
-describe('Reports API', function () {
+describe('Reports API', function() {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            createUser(request, userData.user, function (
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(
                 err: $TSFixMe,
                 res: Response
             ) {
@@ -48,21 +48,21 @@ describe('Reports API', function () {
                 projectId = project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function (
+                VerificationTokenModel.findOne({ userId }, function(
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function () {
+                        .end(function() {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, res: Response) {
+                                .end(function(err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
@@ -75,7 +75,7 @@ describe('Reports API', function () {
                                                 ...monitor,
                                                 componentId: component._id,
                                             })
-                                            .end(function (
+                                            .end(function(
                                                 err: $TSFixMe,
                                                 res: Response
                                             ) {
@@ -90,7 +90,7 @@ describe('Reports API', function () {
         });
     });
 
-    after(async function () {
+    after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({

@@ -15,13 +15,13 @@ import ProjectService from '../backend/services/projectService';
 
 let token: $TSFixMe, projectId: $TSFixMe, newProjectId: $TSFixMe;
 
-describe('Enterprise Project API', function () {
+describe('Enterprise Project API', function() {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            createEnterpriseUser(request, userData.user, function (
+        GlobalConfig.initTestConfig().then(function() {
+            createEnterpriseUser(request, userData.user, function(
                 err: $TSFixMe,
                 res: Response
             ) {
@@ -34,7 +34,7 @@ describe('Enterprise Project API', function () {
                         email: userData.user.email,
                         password: userData.user.password,
                     })
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function(err: $TSFixMe, res: Response) {
                         token = res.body.tokens.jwtAccessToken;
                         done();
                     });
@@ -42,7 +42,7 @@ describe('Enterprise Project API', function () {
         });
     });
 
-    after(async function () {
+    after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
@@ -52,7 +52,7 @@ describe('Enterprise Project API', function () {
         });
     });
 
-    it('should create a project when `planId` is not given', function (done: $TSFixMe) {
+    it('should create a project when `planId` is not given', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post('/project/create')
@@ -60,7 +60,7 @@ describe('Enterprise Project API', function () {
             .send({
                 projectName: 'Test Project',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function(err: $TSFixMe, res: Response) {
                 newProjectId = res.body._id;
                 expect(res).to.have.status(200);
                 done();

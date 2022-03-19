@@ -1,7 +1,11 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const app = express();
 
 import http from 'http';
@@ -18,7 +22,7 @@ const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
 app.use(cors());
 app.set('port', process.env.PORT || 3055);
 
-app.get(['/container/status', '/status'], function (
+app.get(['/container/status', '/status'], function(
     req: Request,
     res: Response
 ) {
@@ -34,7 +38,7 @@ app.get(['/container/status', '/status'], function (
 
 //App Version
 
-app.get(['/container/version', '/version'], function (
+app.get(['/container/version', '/version'], function(
     req: Request,
     res: Response
 ) {
@@ -49,7 +53,7 @@ cron.schedule('*/5 * * * *', () => {
     }, cronContainerSecurityStartTime * 1000);
 });
 
-http.listen(app.get('port'), function () {
+http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
         `Container Scanner Started on port ${app.get(

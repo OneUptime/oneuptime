@@ -7,11 +7,11 @@ export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
 
 type Probe = {
-    id: String
-}
+    id: String;
+};
 
 export interface Request extends express.Request {
-    probe?: Probe // or any other type
+    probe?: Probe; // or any other type
 }
 
 class Express {

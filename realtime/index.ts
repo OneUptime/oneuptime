@@ -1,6 +1,10 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const app = express();
 
 import http from 'http';
@@ -70,7 +74,7 @@ io.sockets.on('connection', socket => {
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use(function(req: Request, res: Response, next: NextFunction) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -90,7 +94,7 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
-app.get(['/realtime/status', '/status'], function (req: Request, res: Response) {
+app.get(['/realtime/status', '/status'], function(req: Request, res: Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -105,7 +109,7 @@ app.use('/realtime', require('./api/realtime'));
 
 app.set('port', process.env.PORT || 3300);
 
-http.listen(app.get('port'), function () {
+http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('realtime server started on port ' + app.get('port'));
 });

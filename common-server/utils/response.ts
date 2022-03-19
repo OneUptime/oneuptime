@@ -4,18 +4,19 @@ import logger from './logger';
 import { GridFSBucket } from 'mongodb';
 import { Request, Response } from './express';
 
-
 function logResponse(req: Request, res: Response, responsebody: $TSFixMe) {
     const requestEndedAt = Date.now();
     const method = req.method;
     const url = req.url;
 
-    const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${process.env.POD_NAME
-        } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${requestEndedAt -
+    const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${
+        process.env.POD_NAME
+    } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${requestEndedAt -
         req.requestStartedAt}ms -- STATUS: ${res.statusCode}`;
 
-    const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
-        }`;
+    const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${
+        responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
+    }`;
 
     if (res.statusCode > 299) {
         logger.error(duration_info);

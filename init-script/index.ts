@@ -5,7 +5,11 @@ import fs from 'fs';
 import util from './util/db';
 import scripts from './scripts';
 
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const app = express();
 
 import { find, save, update, removeMany } from './util/db';
@@ -38,16 +42,15 @@ if (process.env['NODE_ENV'] === 'development') {
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
     app.use(bodyParser.json({ limit: '10mb' }));
 
-    app.listen(1447, function () {
-
+    app.listen(1447, function() {
         logger.info('Server running on: 1447');
     });
 
-    app.get('/:dbFunction', async function (req: Request, res: Response) {
+    app.get('/:dbFunction', async function(req: Request, res: Response) {
         return await interactWithDB(req, res);
     });
 
-    app.post('/:dbFunction', async function (req: Request, res: Response) {
+    app.post('/:dbFunction', async function(req: Request, res: Response) {
         return await interactWithDB(req, res);
     });
 }
@@ -55,18 +58,15 @@ if (process.env['NODE_ENV'] === 'development') {
 async function run() {
     const excludedScripts = ['index.ts', 'start.ts', 'end.ts'];
 
-
     logger.info('Connecting to MongoDB.');
 
     const connection = await util.connectToDb();
 
     global.db = connection.db();
 
-
     logger.info('Connected to MongoDB.');
 
     let currentVersion = await util.getVersion();
-
 
     logger.info('Current Version: ' + currentVersion);
 
@@ -74,11 +74,9 @@ async function run() {
         currentVersion = currentVersion.split('.')[2];
     }
 
-
     logger.info('START SCRIPT: Running script.');
 
     await scripts.start();
-
 
     logger.info('START SCRIPT: Completed');
 
@@ -93,20 +91,16 @@ async function run() {
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
 
-
         logger.info(file + ': Running script.');
 
         await require(`./scripts/${file}`)();
 
-
         logger.info(file + ': Completed. ');
     }
-
 
     logger.info('END SCRIPT: Running script.');
 
     await scripts.end();
-
 
     logger.info('END SCRIPT: Completed');
     // keep connection open in dev
@@ -115,7 +109,6 @@ async function run() {
 
         logger.info('Mongo connection closed.');
     } else {
-
         logger.info('Mongo connection open in development mode.');
     }
 }

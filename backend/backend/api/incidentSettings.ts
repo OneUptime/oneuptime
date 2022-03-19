@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 
@@ -14,7 +18,7 @@ import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
 import { variables } from '../config/incidentDefaultSettings';
 
-router.get('/variables', async function (req: Request, res: Response) {
+router.get('/variables', async function(req: Request, res: Response) {
     try {
         return sendItemResponse(req, res, variables);
     } catch (error) {
@@ -23,7 +27,7 @@ router.get('/variables', async function (req: Request, res: Response) {
 });
 
 // fetch default incident template in a project
-router.get('/:projectId/default', getUser, isAuthorized, async function (
+router.get('/:projectId/default', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -51,7 +55,7 @@ router.get('/:projectId/default', getUser, isAuthorized, async function (
 });
 
 // fetch all incident template in a project
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -91,7 +95,7 @@ router.put(
     '/:projectId/:templateId/setDefault',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const { projectId, templateId } = req.params;
         if (!projectId)
             return sendErrorResponse(req, res, {
@@ -116,7 +120,7 @@ router.put(
     }
 );
 
-router.put('/:projectId/:templateId', getUser, isAuthorized, async function (
+router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -184,7 +188,7 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function (
     }
 });
 
-router.delete('/:projectId/:templateId', getUser, isAuthorized, async function (
+router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -214,7 +218,7 @@ router.delete('/:projectId/:templateId', getUser, isAuthorized, async function (
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {

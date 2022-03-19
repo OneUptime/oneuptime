@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -37,7 +41,7 @@ router.get(
 );
 
 // ping script monitor
-router.post('/ping/:monitorId', isAuthorizedService, async function (
+router.post('/ping/:monitorId', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -69,10 +73,10 @@ router.post('/ping/:monitorId', isAuthorizedService, async function (
         }: $TSFixMe =
             monitor && monitor.criteria && monitor.criteria.down
                 ? await ProbeService.scriptConditions(resp, [
-                    ...monitor.criteria.down.filter(
-                        (criterion: $TSFixMe) => criterion.default !== true
-                    ),
-                ])
+                      ...monitor.criteria.down.filter(
+                          (criterion: $TSFixMe) => criterion.default !== true
+                      ),
+                  ])
                 : { stat: false, successReasons: [], failedReasons: [] };
 
         // determine if monitor is degraded and reasons therefore
@@ -84,9 +88,9 @@ router.post('/ping/:monitorId', isAuthorizedService, async function (
         }: $TSFixMe =
             monitor && monitor.criteria && monitor.criteria.degraded
                 ? await ProbeService.scriptConditions(
-                    resp,
-                    monitor.criteria.degraded
-                )
+                      resp,
+                      monitor.criteria.degraded
+                  )
                 : { stat: false, successReasons: [], failedReasons: [] };
 
         // normalize response
@@ -147,9 +151,9 @@ router.post('/ping/:monitorId', isAuthorizedService, async function (
         data.reason =
             data && data.reason && data.reason.length
                 ? data.reason.filter(
-                    (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
-                        self.indexOf(item) === pos
-                )
+                      (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
+                          self.indexOf(item) === pos
+                  )
                 : data.reason;
 
         data.matchedUpCriterion =

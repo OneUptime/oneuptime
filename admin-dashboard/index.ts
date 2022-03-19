@@ -17,11 +17,15 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import path from 'path';
 const app = express();
 
-app.get(['/env.js', '/admin/env.js'], function (req: Request, res: Response) {
+app.get(['/env.js', '/admin/env.js'], function(req: Request, res: Response) {
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
         REACT_APP_LICENSE_URL: process.env.LICENSE_URL,
@@ -34,7 +38,7 @@ app.get(['/env.js', '/admin/env.js'], function (req: Request, res: Response) {
     res.send('window._env = ' + JSON.stringify(env));
 });
 
-app.get(['/admin/status', '/status'], function (req: Request, res: Response) {
+app.get(['/admin/status', '/status'], function(req: Request, res: Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -52,7 +56,7 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function (req: Request, res: Response) {
+app.get('/*', function(req: Request, res: Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

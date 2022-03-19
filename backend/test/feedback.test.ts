@@ -21,14 +21,14 @@ const selectEmailStatus =
 
 let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 
-describe('Feedback API', function () {
+describe('Feedback API', function() {
     this.timeout(50000);
 
-    before(function (done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            GlobalConfig.enableEmailLog().then(function () {
-                createUser(request, userData.user, function (
+        GlobalConfig.initTestConfig().then(function() {
+            GlobalConfig.enableEmailLog().then(function() {
+                createUser(request, userData.user, function(
                     err: $TSFixMe,
                     res: Response
                 ) {
@@ -36,7 +36,7 @@ describe('Feedback API', function () {
                     projectId = project._id;
                     userId = res.body.id;
 
-                    VerificationTokenModel.findOne({ userId }, function (
+                    VerificationTokenModel.findOne({ userId }, function(
                         err: $TSFixMe,
                         verificationToken: $TSFixMe
                     ) {
@@ -45,14 +45,14 @@ describe('Feedback API', function () {
                                 `/user/confirmation/${verificationToken.token}`
                             )
                             .redirects(0)
-                            .end(function () {
+                            .end(function() {
                                 request
                                     .post('/user/login')
                                     .send({
                                         email: userData.user.email,
                                         password: userData.user.password,
                                     })
-                                    .end(function (
+                                    .end(function(
                                         err: $TSFixMe,
                                         res: Response
                                     ) {
@@ -66,7 +66,7 @@ describe('Feedback API', function () {
         });
     });
 
-    after(async function () {
+    after(async function() {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -82,7 +82,7 @@ describe('Feedback API', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create feedback and check the sent emails to oneuptime team and user', async function () {
+    it('should create feedback and check the sent emails to oneuptime team and user', async function() {
         const authorization = `Basic ${token}`;
         const testFeedback = {
             feedback: 'test feedback',

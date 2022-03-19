@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import loginHistoryService from '../services/loginHistoryService';
 
 const router = express.getRouter();
@@ -10,7 +14,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.get('/:userId', getUser, isAuthorized, async function (
+router.get('/:userId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {

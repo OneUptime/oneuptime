@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import ScheduleService from '../services/scheduleService';
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -12,7 +16,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
+router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     req,
     res
 ) {
@@ -36,7 +40,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function (
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -91,7 +95,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -106,7 +110,7 @@ router.get(
     }
 );
 
-router.get('/:projectId/schedule', getUser, isAuthorized, async function (
+router.get('/:projectId/schedule', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -153,7 +157,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId, scheduleId } = req.params;
             const data = req.body;
@@ -173,7 +177,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const scheduleId = req.params.scheduleId;
 
@@ -261,7 +265,7 @@ router.post(
                             'Please select how should OneUptime alert your team - SMS, Email, Call OR Push notification ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -273,7 +277,7 @@ router.post(
                             'Number of Email Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -285,7 +289,7 @@ router.post(
                             'Number of Call Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -297,7 +301,7 @@ router.post(
                             'Number of SMS Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -309,7 +313,7 @@ router.post(
                             'Number of Push notification Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -321,7 +325,7 @@ router.post(
                             'Please specify Rotation Interval ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -337,7 +341,7 @@ router.post(
                             'Please specify "First rotation happens on" ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -354,7 +358,7 @@ router.post(
                             'You must specify timezone for "First rotation happens on" ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -366,7 +370,7 @@ router.post(
                             'You need more than one team for rotations ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -448,7 +452,7 @@ router.post(
                                 'Team Members are required ' +
                                 (req.body.length > 1
                                     ? ' in Escalation Policy ' +
-                                    escalationPolicyCount
+                                      escalationPolicyCount
                                     : ''),
                         });
                     }
@@ -466,7 +470,7 @@ router.post(
                                     'Please add team members or group to your on-call schedule ' +
                                     (req.body.length > 1
                                         ? ' in Escalation Policy ' +
-                                        escalationPolicyCount
+                                          escalationPolicyCount
                                         : ''),
                             });
                         }
@@ -484,7 +488,7 @@ router.post(
                                     'Please remove duplicate team members from your on-call schedule' +
                                     (req.body.length > 1
                                         ? ' in Escalation Policy ' +
-                                        escalationPolicyCount
+                                          escalationPolicyCount
                                         : ''),
                             });
                         }

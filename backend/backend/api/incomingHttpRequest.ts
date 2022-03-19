@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 import ProbeService from '../services/probeService';
 import {
@@ -8,7 +12,7 @@ import {
 
 import { isValidMonitor } from '../middlewares/api';
 
-const incomingHttpRequest = async function (req: Request, res: Response) {
+const incomingHttpRequest = async function(req: Request, res: Response) {
     try {
         const monitor = req.monitor;
         const body = req.body;

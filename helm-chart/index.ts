@@ -17,7 +17,11 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const app = express();
 import path from 'path';
 import version from './api/version';
@@ -26,7 +30,7 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: $TSFixMe) {
+app.use(function(req: Request, res: Response, next: $TSFixMe) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -60,7 +64,7 @@ app.use(
 //Application version
 app.get(['/chart/version', '/version'], version);
 
-app.listen(app.get('port'), function () {
+app.listen(app.get('port'), function() {
     // eslint-disable-next-line no-console
     console.log('API Reference started on PORT:' + app.get('port'));
 });

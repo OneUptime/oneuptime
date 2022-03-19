@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 
 import AuditLogsService from '../services/auditLogsService';
@@ -11,7 +15,7 @@ import { sendListResponse } from 'common-server/utils/response';
 
 import { sendItemResponse } from 'common-server/utils/response';
 
-router.get('/', getUser, isUserMasterAdmin, async function (
+router.get('/', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -43,7 +47,7 @@ router.get('/', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.post('/search', getUser, isUserMasterAdmin, async function (
+router.post('/search', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -63,7 +67,7 @@ router.post('/search', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.delete('/', getUser, isUserMasterAdmin, async function (
+router.delete('/', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {

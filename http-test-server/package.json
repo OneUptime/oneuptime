@@ -6,6 +6,7 @@
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "ts-node index.ts",
+        "build": "tsc index.ts",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "audit": "npm audit --audit-level=low",
         "test": "jest --forceExit --runInBand test",

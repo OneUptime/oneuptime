@@ -6,7 +6,7 @@ import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
 global.probes = {};
 
-export const isAuthorizedProbe = async function (
+export const isAuthorizedProbe = async function(
     req: Request,
     res: Response,
     next: NextFunction
@@ -42,8 +42,7 @@ export const isAuthorizedProbe = async function (
             (req.headers['probeName'] || req.headers['probename'])
         ) {
             // header keys are automatically transformed to lowercase
-            probeName =
-                req.headers['probeName'] || req.headers['probename'];
+            probeName = req.headers['probeName'] || req.headers['probename'];
         } else if (req.body && req.body.probeName) {
             probeName = req.body.probeName;
         } else {
@@ -62,8 +61,7 @@ export const isAuthorizedProbe = async function (
             (req.headers['clusterKey'] || req.headers['clusterkey'])
         ) {
             // header keys are automatically transformed to lowercase
-            clusterKey =
-                req.headers['clusterKey'] || req.headers['clusterkey'];
+            clusterKey = req.headers['clusterKey'] || req.headers['clusterkey'];
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
         }
@@ -197,4 +195,4 @@ export const isAuthorizedProbe = async function (
         ErrorService.log('probeAuthorization.isAuthorizedProbe', error);
         throw error;
     }
-}
+};

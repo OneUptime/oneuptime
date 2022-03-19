@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 
@@ -10,7 +14,7 @@ import {
 } from 'common-server/utils/response';
 import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -40,7 +44,7 @@ router.get('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -77,7 +81,7 @@ router.post('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.put('/:projectId', getUser, isAuthorized, async function (
+router.put('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -123,7 +127,7 @@ router.put('/:projectId', getUser, isAuthorized, async function (
     }
 });
 
-router.delete('/:projectId', getUser, isAuthorized, async function (
+router.delete('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {

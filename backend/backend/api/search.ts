@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 const getUser = require('../middlewares/user').getUser;
@@ -19,7 +23,7 @@ import { getSubProjects } from '../middlewares/subProject';
 
 const router = express.getRouter();
 
-router.post('/:projectId', getUser, getSubProjects, async function (
+router.post('/:projectId', getUser, getSubProjects, async function(
     req: Request,
     res: Response
 ) {

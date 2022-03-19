@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 
 import { fetchPhoneNumbers } from '../services/twilioService';
 import CallRoutingService from '../services/callRoutingService';
@@ -175,7 +179,7 @@ router.get(
     }
 );
 
-router.post('/:projectId/routingNumber', getUser, isUserAdmin, async function (
+router.post('/:projectId/routingNumber', getUser, isUserAdmin, async function(
     req,
     res
 ) {
@@ -192,7 +196,7 @@ router.post('/:projectId/routingNumber', getUser, isUserAdmin, async function (
     }
 });
 
-router.put('/:projectId/:callRoutingId', getUser, isUserAdmin, async function (
+router.put('/:projectId/:callRoutingId', getUser, isUserAdmin, async function(
     req,
     res
 ) {
@@ -211,7 +215,7 @@ router.put(
     '/:projectId/:callRoutingId/:audioFieldName',
     getUser,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { audioFieldName, callRoutingId } = req.params;
             const upload = multer({
@@ -222,7 +226,7 @@ router.put(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe) {
+            upload(req, res, async function(error: $TSFixMe) {
                 if (error) {
                     return sendErrorResponse(req, res, error);
                 }
@@ -255,7 +259,7 @@ router.delete(
     '/:projectId/:callRoutingId',
     getUser,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId, callRoutingId } = req.params;
 
@@ -284,7 +288,7 @@ router.delete(
     '/:projectId/:callRoutingId/removeAudio',
     getUser,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { callRoutingId, backup } = req.body;
             if (!callRoutingId) {

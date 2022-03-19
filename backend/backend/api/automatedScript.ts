@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 
 import AutomatedScriptService from '../services/automatedScriptService';
@@ -12,7 +16,7 @@ import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';
 
-router.get('/:projectId', getUser, isAuthorized, async function (
+router.get('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {
@@ -246,7 +250,7 @@ router.delete(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId, automatedSlug } = req.params;
             const query = {

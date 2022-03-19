@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 
 const router = express.getRouter();
 import FeedbackService from '../services/feedbackService';
@@ -11,7 +15,7 @@ const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 
-router.post('/:projectId', getUser, isAuthorized, async function (
+router.post('/:projectId', getUser, isAuthorized, async function(
     req: Request,
     res: Response
 ) {

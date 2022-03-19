@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 import NotificationService from '../services/notificationService';
 import ErrorService from 'common-server/utils/error';
@@ -27,7 +31,7 @@ router.post(
     '/:projectId/:componentId/create',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const data = req.body;
             const { componentId } = req.params;
@@ -75,7 +79,7 @@ router.post(
 );
 
 // Description: Get all Performance tracker by componentId.
-router.get('/:projectId/:componentId', getUser, isAuthorized, async function (
+router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -107,7 +111,7 @@ router.get(
     '/:projectId/tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const { performanceTrackerId } = req.params;
         const { slug } = req.query;
         try {
@@ -155,7 +159,7 @@ router.delete(
     '/:projectId/tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const { performanceTrackerId } = req.params;
         try {
             const performanceTracker = await PerformanceTrackerService.deleteBy(
@@ -185,7 +189,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const { performanceTrackerId } = req.params;
 
         const select = 'componentId name slug key showQuickStart createdById';
@@ -232,7 +236,7 @@ router.put(
     '/:projectId/remove-quickstart/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const { performanceTrackerId } = req.params;
 
         const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
@@ -270,7 +274,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         const { performanceTrackerId, componentId } = req.params;
         const data = req.body;
 

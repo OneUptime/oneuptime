@@ -27,38 +27,38 @@ const ssoObject = {
 
 let token: $TSFixMe, userId: $TSFixMe;
 
-describe('SSO API', function () {
+describe('SSO API', function() {
     this.timeout(300000);
 
-    before(function (done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            createUser(request, userData.adminUser, function (
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.adminUser, function(
                 err: $TSFixMe,
                 res: Response
             ) {
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function (
+                VerificationTokenModel.findOne({ userId }, function(
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function () {
+                        .end(function() {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.adminUser.email,
                                     password: userData.adminUser.password,
                                 })
-                                .end(function (err: $TSFixMe, res: Response) {
+                                .end(function(err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     UserService.updateBy(
                                         { _id: userId },
                                         { role: 'master-admin' }
-                                    ).then(function () {
+                                    ).then(function() {
                                         done();
                                     });
                                 });
@@ -68,7 +68,7 @@ describe('SSO API', function () {
         });
     });
 
-    after(async function () {
+    after(async function() {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ 'users.userId': userId });
         await UserService.hardDeleteBy({
@@ -84,47 +84,47 @@ describe('SSO API', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    describe('should reject requests from an unauthenticated users', function () {
-        it('should reject GET requests', function (done: $TSFixMe) {
-            request.get('/sso').end(function (err: $TSFixMe, res: Response) {
+    describe('should reject requests from an unauthenticated users', function() {
+        it('should reject GET requests', function(done: $TSFixMe) {
+            request.get('/sso').end(function(err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(401);
                 done();
             });
         });
 
-        it('should reject POST requests', function (done: $TSFixMe) {
-            request.post('/sso').end(function (err: $TSFixMe, res: Response) {
+        it('should reject POST requests', function(done: $TSFixMe) {
+            request.post('/sso').end(function(err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(401);
                 done();
             });
         });
 
-        it('should reject PUT requests', function (done: $TSFixMe) {
+        it('should reject PUT requests', function(done: $TSFixMe) {
             request
                 .put('/sso/5ea951228877984ea9f47660')
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function(err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(401);
                     done();
                 });
         });
 
-        it('should reject DELETE requests', function (done: $TSFixMe) {
+        it('should reject DELETE requests', function(done: $TSFixMe) {
             request
                 .delete('/sso/5ea951228877984ea9f47660')
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function(err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(401);
                     done();
                 });
         });
     });
 
-    describe('GET /sso/', function () {
-        it('should return SSOs list with count', function (done: $TSFixMe) {
+    describe('GET /sso/', function() {
+        it('should return SSOs list with count', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
                 .get('/sso')
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function(err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -133,12 +133,12 @@ describe('SSO API', function () {
                 });
         });
 
-        it('should return SSOs list with count, skip and limit (when skip&limit specified)', function (done: $TSFixMe) {
+        it('should return SSOs list with count, skip and limit (when skip&limit specified)', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
                 .get('/sso?limit=10&skip=0')
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function(err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -150,14 +150,14 @@ describe('SSO API', function () {
         });
     });
 
-    describe('POST /sso', function () {
-        it('should create a new SSO', function (done: $TSFixMe) {
+    describe('POST /sso', function() {
+        it('should create a new SSO', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             request
                 .post('/sso')
                 .set('Authorization', authorization)
                 .send(ssoObject)
-                .end(async function (err: $TSFixMe, res: Response) {
+                .end(async function(err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('_id');
@@ -180,7 +180,7 @@ describe('SSO API', function () {
                 });
         });
 
-        it('should not create a new SSO if domaine is not defined', function (done: $TSFixMe) {
+        it('should not create a new SSO if domaine is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
 
@@ -190,13 +190,13 @@ describe('SSO API', function () {
                 .post('/sso')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function(err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(400);
                     done();
                 });
         });
 
-        it('should not create a new SSO if Saml SSO url is not defined', function (done: $TSFixMe) {
+        it('should not create a new SSO if Saml SSO url is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
 
@@ -206,13 +206,13 @@ describe('SSO API', function () {
                 .post('/sso')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function(err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(400);
                     done();
                 });
         });
 
-        it('should not create a new SSO if remote logout url is not defined', function (done: $TSFixMe) {
+        it('should not create a new SSO if remote logout url is not defined', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             const payload = { ...ssoObject };
 
@@ -222,22 +222,22 @@ describe('SSO API', function () {
                 .post('/sso')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function(err: $TSFixMe, res: Response) {
                     expect(res).to.have.status(400);
                     done();
                 });
         });
     });
 
-    describe('DELETE /sso', function () {
-        it('should delete sso', function (done: $TSFixMe) {
+    describe('DELETE /sso', function() {
+        it('should delete sso', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             SsoService.create(ssoObject).then(sso => {
                 const { _id: ssoId } = sso;
                 request
                     .delete(`/sso/${ssoId}`)
                     .set('Authorization', authorization)
-                    .end(async function (err: $TSFixMe, res: Response) {
+                    .end(async function(err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
                         expect(res.body).to.have.property('_id');
@@ -259,8 +259,8 @@ describe('SSO API', function () {
         });
     });
 
-    describe('UPDATE /sso', function () {
-        it('should update SSO', function (done: $TSFixMe) {
+    describe('UPDATE /sso', function() {
+        it('should update SSO', function(done: $TSFixMe) {
             const authorization = `Basic ${token}`;
             SsoService.create(ssoObject).then(sso => {
                 const { _id: ssoId } = sso;
@@ -273,7 +273,7 @@ describe('SSO API', function () {
                     .put(`/sso/${ssoId}`)
                     .set('Authorization', authorization)
                     .send(updatedSsoObject)
-                    .end(async function (err: $TSFixMe, res: Response) {
+                    .end(async function(err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         expect(res.body[0]).to.be.an('object');
                         expect(res.body[0].domain).to.equal(

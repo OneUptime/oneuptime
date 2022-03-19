@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 import {
     sendErrorResponse,
@@ -8,7 +12,7 @@ import {
 import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 import RealtimeService from '../services/realtimeService';
 
-router.post('/send-created-incident', isAuthorizedService, async function (
+router.post('/send-created-incident', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -22,7 +26,7 @@ router.post('/send-created-incident', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-incident-timeline', isAuthorizedService, async function (
+router.post('/send-incident-timeline', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -36,7 +40,7 @@ router.post('/send-incident-timeline', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-sla-countdown', isAuthorizedService, async function (
+router.post('/send-sla-countdown', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -54,7 +58,7 @@ router.post('/send-sla-countdown', isAuthorizedService, async function (
     }
 });
 
-router.post('/delete-incident', isAuthorizedService, async function (
+router.post('/delete-incident', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -68,7 +72,7 @@ router.post('/delete-incident', isAuthorizedService, async function (
     }
 });
 
-router.post('/add-incident-note', isAuthorizedService, async function (
+router.post('/add-incident-note', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -82,7 +86,7 @@ router.post('/add-incident-note', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-incident-note', isAuthorizedService, async function (
+router.post('/update-incident-note', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -96,7 +100,7 @@ router.post('/update-incident-note', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-incident-timeline', isAuthorizedService, async function (
+router.post('/update-incident-timeline', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -110,7 +114,7 @@ router.post('/update-incident-timeline', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-incident', isAuthorizedService, async function (
+router.post('/update-incident', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -124,7 +128,7 @@ router.post('/update-incident', isAuthorizedService, async function (
     }
 });
 
-router.post('/delete-incident-note', isAuthorizedService, async function (
+router.post('/delete-incident-note', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -138,7 +142,7 @@ router.post('/delete-incident-note', isAuthorizedService, async function (
     }
 });
 
-router.post('/add-scheduled-event', isAuthorizedService, async function (
+router.post('/add-scheduled-event', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -152,7 +156,7 @@ router.post('/add-scheduled-event', isAuthorizedService, async function (
     }
 });
 
-router.post('/delete-scheduled-event', isAuthorizedService, async function (
+router.post('/delete-scheduled-event', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -166,7 +170,7 @@ router.post('/delete-scheduled-event', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-scheduled-event', isAuthorizedService, async function (
+router.post('/update-scheduled-event', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -180,7 +184,7 @@ router.post('/update-scheduled-event', isAuthorizedService, async function (
     }
 });
 
-router.post('/resolve-scheduled-event', isAuthorizedService, async function (
+router.post('/resolve-scheduled-event', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -197,7 +201,7 @@ router.post('/resolve-scheduled-event', isAuthorizedService, async function (
 router.post(
     '/add-scheduled-event-internal-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -215,7 +219,7 @@ router.post(
 router.post(
     '/add-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -234,7 +238,7 @@ router.post(
 router.post(
     '/delete-scheduled-event-internal-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -252,7 +256,7 @@ router.post(
 router.post(
     '/delete-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -271,7 +275,7 @@ router.post(
 router.post(
     '/update-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -290,7 +294,7 @@ router.post(
 router.post(
     '/update-scheduled-event-internal-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -305,7 +309,7 @@ router.post(
     }
 );
 
-router.post('/send-component-created', isAuthorizedService, async function (
+router.post('/send-component-created', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -319,7 +323,7 @@ router.post('/send-component-created', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-monitor-created', isAuthorizedService, async function (
+router.post('/send-monitor-created', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -333,7 +337,7 @@ router.post('/send-monitor-created', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-monitor-delete', isAuthorizedService, async function (
+router.post('/send-monitor-delete', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -347,7 +351,7 @@ router.post('/send-monitor-delete', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-component-delete', isAuthorizedService, async function (
+router.post('/send-component-delete', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -361,7 +365,7 @@ router.post('/send-component-delete', isAuthorizedService, async function (
     }
 });
 
-router.post('/incident-resolved', isAuthorizedService, async function (
+router.post('/incident-resolved', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -375,7 +379,7 @@ router.post('/incident-resolved', isAuthorizedService, async function (
     }
 });
 
-router.post('/incident-acknowledged', isAuthorizedService, async function (
+router.post('/incident-acknowledged', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -389,7 +393,7 @@ router.post('/incident-acknowledged', isAuthorizedService, async function (
     }
 });
 
-router.post('/status-page-edit', isAuthorizedService, async function (
+router.post('/status-page-edit', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -403,7 +407,7 @@ router.post('/status-page-edit', isAuthorizedService, async function (
     }
 });
 
-router.post('/component-edit', isAuthorizedService, async function (
+router.post('/component-edit', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -417,7 +421,7 @@ router.post('/component-edit', isAuthorizedService, async function (
     }
 });
 
-router.post('/monitor-edit', isAuthorizedService, async function (
+router.post('/monitor-edit', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -431,7 +435,7 @@ router.post('/monitor-edit', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-monitor-log', isAuthorizedService, async function (
+router.post('/update-monitor-log', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -457,7 +461,7 @@ router.post('/update-monitor-log', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-lighthouse-log', isAuthorizedService, async function (
+router.post('/update-lighthouse-log', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -477,7 +481,7 @@ router.post('/update-lighthouse-log', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-all-lighthouse-log', isAuthorizedService, async function (
+router.post('/update-all-lighthouse-log', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -496,7 +500,7 @@ router.post('/update-all-lighthouse-log', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-monitor-status', isAuthorizedService, async function (
+router.post('/update-monitor-status', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -515,7 +519,7 @@ router.post('/update-monitor-status', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-probe', isAuthorizedService, async function (
+router.post('/update-probe', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -529,7 +533,7 @@ router.post('/update-probe', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-notification', isAuthorizedService, async function (
+router.post('/send-notification', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -543,7 +547,7 @@ router.post('/send-notification', isAuthorizedService, async function (
     }
 });
 
-router.post('/update-team-member-role', isAuthorizedService, async function (
+router.post('/update-team-member-role', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -557,7 +561,7 @@ router.post('/update-team-member-role', isAuthorizedService, async function (
     }
 });
 
-router.post('/create-team-member', isAuthorizedService, async function (
+router.post('/create-team-member', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -571,7 +575,7 @@ router.post('/create-team-member', isAuthorizedService, async function (
     }
 });
 
-router.post('/delete-team-member', isAuthorizedService, async function (
+router.post('/delete-team-member', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -588,7 +592,7 @@ router.post('/delete-team-member', isAuthorizedService, async function (
 router.post(
     '/send-application-log-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { applicationLog, componentId } = req.body;
 
@@ -603,7 +607,7 @@ router.post(
     }
 );
 
-router.post('/send-application-log-delete', isAuthorizedService, async function (
+router.post('/send-application-log-delete', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -620,7 +624,7 @@ router.post('/send-application-log-delete', isAuthorizedService, async function 
     }
 });
 
-router.post('/send-log-created', isAuthorizedService, async function (
+router.post('/send-log-created', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -634,7 +638,7 @@ router.post('/send-log-created', isAuthorizedService, async function (
     }
 });
 
-router.post('/application-log-key-reset', isAuthorizedService, async function (
+router.post('/application-log-key-reset', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -651,7 +655,7 @@ router.post('/application-log-key-reset', isAuthorizedService, async function (
 router.post(
     '/send-container-security-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { containerSecurity, componentId } = req.body;
 
@@ -669,7 +673,7 @@ router.post(
 router.post(
     '/send-application-security-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { applicationSecurity, componentId } = req.body;
 
@@ -684,7 +688,7 @@ router.post(
     }
 );
 
-router.post('/send-error-tracker-created', isAuthorizedService, async function (
+router.post('/send-error-tracker-created', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -698,7 +702,7 @@ router.post('/send-error-tracker-created', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-error-tracker-delete', isAuthorizedService, async function (
+router.post('/send-error-tracker-delete', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -712,7 +716,7 @@ router.post('/send-error-tracker-delete', isAuthorizedService, async function (
     }
 });
 
-router.post('/error-tracker-key-reset', isAuthorizedService, async function (
+router.post('/error-tracker-key-reset', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -726,7 +730,7 @@ router.post('/error-tracker-key-reset', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-error-event-created', isAuthorizedService, async function (
+router.post('/send-error-event-created', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -740,7 +744,7 @@ router.post('/send-error-event-created', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-issue-status-change', isAuthorizedService, async function (
+router.post('/send-issue-status-change', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -757,7 +761,7 @@ router.post('/send-issue-status-change', isAuthorizedService, async function (
 router.post(
     '/send-error-tracker-issue-delete',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { issue, errorTrackerId } = req.body;
 
@@ -772,7 +776,7 @@ router.post(
     }
 );
 
-router.post('/send-time-metrics', isAuthorizedService, async function (
+router.post('/send-time-metrics', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -786,7 +790,7 @@ router.post('/send-time-metrics', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-throughput-metrics', isAuthorizedService, async function (
+router.post('/send-throughput-metrics', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -800,7 +804,7 @@ router.post('/send-throughput-metrics', isAuthorizedService, async function (
     }
 });
 
-router.post('/send-error-metrics', isAuthorizedService, async function (
+router.post('/send-error-metrics', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -814,7 +818,7 @@ router.post('/send-error-metrics', isAuthorizedService, async function (
     }
 });
 
-router.post('/handle-scanning', isAuthorizedService, async function (
+router.post('/handle-scanning', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -828,7 +832,7 @@ router.post('/handle-scanning', isAuthorizedService, async function (
     }
 });
 
-router.post('/handle-log', isAuthorizedService, async function (
+router.post('/handle-log', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {
@@ -842,7 +846,7 @@ router.post('/handle-log', isAuthorizedService, async function (
     }
 });
 
-router.post('/status-page-update-tweets', isAuthorizedService, async function (
+router.post('/status-page-update-tweets', isAuthorizedService, async function(
     req: Request,
     res: Response
 ) {

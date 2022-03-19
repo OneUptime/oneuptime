@@ -4,7 +4,7 @@ import ErrorService from 'common-server/utils/error';
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 
 export default {
-    isAuthorizedService: async function (
+    isAuthorizedService: async function(
         req: Request,
         res: Response,
         next: NextFunction

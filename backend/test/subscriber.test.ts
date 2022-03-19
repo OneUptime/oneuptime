@@ -55,34 +55,34 @@ const csvData = {
     ],
 };
 
-describe('Subscriber API', function () {
+describe('Subscriber API', function() {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            createUser(request, userData.user, function (
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(
                 err: $TSFixMe,
                 res: Response
             ) {
                 projectId = res.body.project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function (
+                VerificationTokenModel.findOne({ userId }, function(
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function () {
+                        .end(function() {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, res: Response) {
+                                .end(function(err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
                                     ComponentModel.create({
@@ -96,7 +96,7 @@ describe('Subscriber API', function () {
                                                 ...monitor,
                                                 componentId,
                                             })
-                                            .end(function (
+                                            .end(function(
                                                 err: $TSFixMe,
                                                 res: Response
                                             ) {
@@ -123,7 +123,7 @@ describe('Subscriber API', function () {
                                                         projectId,
                                                         monitorIds: [monitorId],
                                                     })
-                                                    .end(function (
+                                                    .end(function(
                                                         err: $TSFixMe,
                                                         res: Response
                                                     ) {
@@ -232,12 +232,12 @@ describe('Subscriber API', function () {
             });
     });
 
-    it('should delete a subscriber', function (done: $TSFixMe) {
+    it('should delete a subscriber', function(done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/subscriber/${projectId}/${subscriberId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function(err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });

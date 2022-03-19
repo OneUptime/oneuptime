@@ -20,14 +20,14 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
 
-describe('Audit Logs API', function () {
+describe('Audit Logs API', function() {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function(done: $TSFixMe) {
         testSuiteStartTime = new Date();
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            createUser(request, userData.user, function (
+        GlobalConfig.initTestConfig().then(function() {
+            createUser(request, userData.user, function(
                 err: $TSFixMe,
                 res: Response
             ) {
@@ -35,21 +35,21 @@ describe('Audit Logs API', function () {
                 projectId = project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function (
+                VerificationTokenModel.findOne({ userId }, function(
                     err: $TSFixMe,
                     verificationToken: $TSFixMe
                 ) {
                     request
                         .get(`/user/confirmation/${verificationToken.token}`)
                         .redirects(0)
-                        .end(function () {
+                        .end(function() {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, res: Response) {
+                                .end(function(err: $TSFixMe, res: Response) {
                                     token = res.body.tokens.jwtAccessToken;
                                     done();
                                 });
@@ -59,7 +59,7 @@ describe('Audit Logs API', function () {
         });
     });
 
-    after(async function () {
+    after(async function() {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -89,11 +89,11 @@ describe('Audit Logs API', function () {
         await AuditLogsService.hardDeleteBy({ query: deleteQuery });
     });
 
-    beforeEach(async function () {
+    beforeEach(async function() {
         testCaseStartTime = new Date();
     });
 
-    afterEach(async function () {
+    afterEach(async function() {
         // Deleting any auditLogs created between each test case in this suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
         const deleteQuery = {
@@ -112,25 +112,25 @@ describe('Audit Logs API', function () {
         });
     });
 
-    it('should reject get audit logs request of an unauthenticated user', function (done: $TSFixMe) {
+    it('should reject get audit logs request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .get('/audit-logs')
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function(err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject get audit logs request of NON master-admin user', function (done: $TSFixMe) {
-        createUser(request, userData.newUser, function () {
+    it('should reject get audit logs request of NON master-admin user', function(done: $TSFixMe) {
+        createUser(request, userData.newUser, function() {
             request
                 .post('/user/login')
                 .send({
                     email: userData.newUser.email,
                     password: userData.newUser.password,
                 })
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function(err: $TSFixMe, res: Response) {
                     const token = res.body.tokens.jwtAccessToken;
                     const authorization = `Basic ${token}`;
 
@@ -138,7 +138,7 @@ describe('Audit Logs API', function () {
                         .get('/audit-logs/')
                         .set('Authorization', authorization)
                         .send()
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function(err: $TSFixMe, res: Response) {
                             expect(res).to.have.status(400);
                             done();
                         });
@@ -146,7 +146,7 @@ describe('Audit Logs API', function () {
         });
     });
 
-    it('should send get audit logs data for master-admin user', async function () {
+    it('should send get audit logs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -163,7 +163,7 @@ describe('Audit Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send appopriate data set when limit is provided', async function () {
+    it('should send appopriate data set when limit is provided', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -187,7 +187,7 @@ describe('Audit Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send appopriate data set when skip is provided', async function () {
+    it('should send appopriate data set when skip is provided', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -213,17 +213,17 @@ describe('Audit Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should reject search request of an unauthenticated user', function (done: $TSFixMe) {
+    it('should reject search request of an unauthenticated user', function(done: $TSFixMe) {
         request
             .post('/audit-logs/search')
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function(err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject search request of NON master-admin user', async function () {
+    it('should reject search request of NON master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Resetting user to normal USER.
         const authorization = `Basic ${token}`;
 
@@ -237,7 +237,7 @@ describe('Audit Logs API', function () {
         }
     });
 
-    it('should send Searched AuditLogs data for master-admin user', async function () {
+    it('should send Searched AuditLogs data for master-admin user', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -254,7 +254,7 @@ describe('Audit Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send only matched result to provided search string when searched.', async function () {
+    it('should send only matched result to provided search string when searched.', async function() {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 

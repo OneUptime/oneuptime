@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import ProjectService from '../services/projectService';
 
 const router = express.getRouter();
@@ -28,7 +32,7 @@ import ErrorService from 'common-server/utils/error';
 // Params:
 // Param 1: req.body-> {project_name}; req.headers-> {token}
 // Returns: 200: Project Details; 400: Error.
-router.post('/create', getUser, async function (req: Request, res: Response) {
+router.post('/create', getUser, async function(req: Request, res: Response) {
     try {
         const data = req.body;
         data.name = data.projectName;
@@ -212,7 +216,7 @@ router.post('/create', getUser, async function (req: Request, res: Response) {
 // Params:
 // Param 1: req.headers-> {token};
 // Returns: 200: [{project}]; 400: Error.
-router.get('/projects', getUser, async function (req: Request, res: Response) {
+router.get('/projects', getUser, async function(req: Request, res: Response) {
     try {
         const userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
@@ -280,7 +284,7 @@ router.get('/projects', getUser, async function (req: Request, res: Response) {
 //Description: Get project balance of a project
 // Param 1: req.headers-> {token}; req.params-> {projectId};
 //Returns: 200: {projectBalance}; 400: Error.
-router.get('/:projectId/balance', getUser, isAuthorized, async function (
+router.get('/:projectId/balance', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -303,7 +307,7 @@ router.get('/:projectId/balance', getUser, isAuthorized, async function (
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId};
 // Returns: 200: {project}; 400: Error.
-router.get('/:projectId/resetToken', getUser, isAuthorized, async function (
+router.get('/:projectId/resetToken', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -332,7 +336,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
@@ -369,7 +373,7 @@ router.put(
     '/:projectId/updateBalance',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             if (!projectId) {
@@ -398,7 +402,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
 
@@ -494,7 +498,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
 
@@ -556,7 +560,7 @@ router.delete(
 router.delete(
     '/:projectId/initScript/deleteProject',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             if (!projectId) {
@@ -603,7 +607,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
@@ -676,7 +680,7 @@ router.put(
     '/:projectId/admin/changePlan',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
@@ -770,7 +774,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const projectName = req.body.projectName;
@@ -831,7 +835,7 @@ router.delete(
     '/:projectId/user/:userId/exitProject',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         // Call the ProjectService
         try {
             const userId = req.user ? req.user.id : null;
@@ -852,7 +856,7 @@ router.delete(
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId, userId}
 // Returns: 200: subproject;
-router.post('/:projectId/subProject', getUser, isAuthorized, async function (
+router.post('/:projectId/subProject', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -913,7 +917,7 @@ router.delete(
     '/:projectId/:subProjectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const parentProjectId = req.params.projectId;
             const subProjectId = req.params.subProjectId;
@@ -941,7 +945,7 @@ router.delete(
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {projectId, userId}
 // Returns: 200: [...subprojects];
-router.get('/:projectId/subProjects', getUser, isAuthorized, async function (
+router.get('/:projectId/subProjects', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -974,7 +978,7 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function (
     }
 });
 
-router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function (
+router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -993,7 +997,7 @@ router.get('/projects/user/:userId', getUser, isUserMasterAdmin, async function 
     }
 });
 
-router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (
+router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1013,7 +1017,7 @@ router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.get('/projects/:slug', getUser, isUserMasterAdmin, async function (
+router.get('/projects/:slug', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1034,7 +1038,7 @@ router.get('/projects/:slug', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.get('/project-slug/:slug', getUser, async function (
+router.get('/project-slug/:slug', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -1059,7 +1063,7 @@ router.put(
     '/:projectId/blockProject',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const project = await ProjectService.updateOneBy(
@@ -1077,7 +1081,7 @@ router.put(
     '/:projectId/renewAlertLimit',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             let limit = req.body.alertLimit;
@@ -1111,7 +1115,7 @@ router.put(
     '/:projectId/unblockProject',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const project = await ProjectService.updateOneBy(
@@ -1129,7 +1133,7 @@ router.put(
     '/:projectId/restoreProject',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const project = await ProjectService.restoreBy({
@@ -1144,7 +1148,7 @@ router.put(
 );
 
 // Description: Rename subproject.
-router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (
+router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function(
     req,
     res
 ) {
@@ -1189,7 +1193,7 @@ router.put('/:projectId/:subProjectId', getUser, isAuthorized, async function (
     }
 });
 
-router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (
+router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1235,7 +1239,7 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function (
     }
 });
 
-router.post('/projects/search', getUser, isUserMasterAdmin, async function (
+router.post('/projects/search', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
@@ -1270,7 +1274,7 @@ router.put(
     '/:projectId/advancedOptions/email',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const data = req.body;
@@ -1327,7 +1331,7 @@ router.put(
     '/:projectId/advancedOptions/sms',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const data = req.body;
@@ -1375,7 +1379,7 @@ router.put(
     '/:projectId/advancedOptions/webhook',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const data = req.body;

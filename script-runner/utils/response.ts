@@ -1,14 +1,10 @@
 import { Request, Response } from 'common-server/utils/express';
 
 export default {
-    sendSuccessResponse: function (
-        req: Request,
-        res: Response,
-        data: $TSFixMe
-    ) {
+    sendSuccessResponse: function(req: Request, res: Response, data: $TSFixMe) {
         return res.status(200).send(data);
     },
-    sendErrorResponse: function (req: Request, res: Response, error: $TSFixMe) {
+    sendErrorResponse: function(req: Request, res: Response, error: $TSFixMe) {
         if (
             error.message &&
             error.code !== 'ENOTFOUND' &&

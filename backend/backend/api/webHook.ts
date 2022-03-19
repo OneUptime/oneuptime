@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import IntegrationService from '../services/integrationService';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -10,7 +14,7 @@ import {
 
 const router = express.getRouter();
 
-router.post('/:projectId/create', getUser, isUserAdmin, async function (
+router.post('/:projectId/create', getUser, isUserAdmin, async function(
     req,
     res
 ) {
@@ -134,7 +138,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function (
 });
 
 // update webhook
-router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function (
+router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
     req,
     res
 ) {
@@ -251,7 +255,7 @@ router.delete(
     '/:projectId/delete/:integrationId',
     getUser,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async function(req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const integrationId = req.params.integrationId;
@@ -269,7 +273,7 @@ router.delete(
 );
 
 // req => params => {projectId}
-router.get('/:projectId/hooks', getUser, async function (
+router.get('/:projectId/hooks', getUser, async function(
     req: Request,
     res: Response
 ) {
@@ -305,7 +309,7 @@ router.get('/:projectId/hooks', getUser, async function (
 });
 
 // req => params => {projectId, monitorId}
-router.get('/:projectId/hooks/:monitorId', getUser, async function (
+router.get('/:projectId/hooks/:monitorId', getUser, async function(
     req: Request,
     res: Response
 ) {

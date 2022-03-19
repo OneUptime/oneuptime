@@ -2,7 +2,7 @@ import { sendErrorResponse } from 'common-server/utils/response';
 
 import ErrorService from 'common-server/utils/error';
 export default {
-    isAuthorizedLighthouse: async function (
+    isAuthorizedLighthouse: async function(
         req: Request,
         res: Response,
         next: NextFunction

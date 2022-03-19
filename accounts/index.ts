@@ -1,7 +1,11 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 import path from 'path';
 const app = express();
 
@@ -9,10 +13,7 @@ import compression from 'compression';
 
 app.use(compression());
 
-app.get(['/env.js', '/accounts/env.js'], function (
-    req: Request,
-    res: Response
-) {
+app.get(['/env.js', '/accounts/env.js'], function(req: Request, res: Response) {
     const env = {
         REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
         REACT_APP_DISABLE_SIGNUP: process.env.DISABLE_SIGNUP,
@@ -69,7 +70,7 @@ app.use(
 
 app.use('/accounts', express.static(path.join(__dirname, 'build')));
 
-app.get('/*', function (req: Request, res: Response) {
+app.get('/*', function(req: Request, res: Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

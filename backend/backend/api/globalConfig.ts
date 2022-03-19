@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from 'common-server/utils/express';
+import express, {
+    Request,
+    Response,
+    NextFunction,
+} from 'common-server/utils/express';
 
 const router = express.getRouter();
 import GlobalConfigService from '../services/globalConfigService';
@@ -15,7 +19,7 @@ import twilioService from '../services/twilioService';
 // Body: [{name, value}] | {name, value}
 // Return: [{name, value, createdAt}] | {name, value, createdAt}
 
-router.post('/', getUser, isUserMasterAdmin, async function (
+router.post('/', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -105,7 +109,7 @@ router.post('/', getUser, isUserMasterAdmin, async function (
 // Params: [name];
 // Return: [{name, value, createdAt}]
 
-router.post('/configs', getUser, isUserMasterAdmin, async function (
+router.post('/configs', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
@@ -135,7 +139,7 @@ router.post('/configs', getUser, isUserMasterAdmin, async function (
 // Params: {name};
 // Return: {name, value, createdAt}
 
-router.get('/:name', getUser, isUserMasterAdmin, async function (
+router.get('/:name', getUser, isUserMasterAdmin, async function(
     req: Request,
     res: Response
 ) {
