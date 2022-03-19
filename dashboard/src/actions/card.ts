@@ -6,21 +6,21 @@ export const addCardRequest = (promise: $TSFixMe) => {
         type: types.ADD_CARD_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const addCardFailed = (error: $TSFixMe) => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
     };
-}
+};
 
 export const addCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.ADD_CARD_SUCCESS,
         payload: card,
     };
-}
+};
 
 export const addCard = (userId: $TSFixMe, token: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -48,27 +48,27 @@ export const addCard = (userId: $TSFixMe, token: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 export const fetchCardsRequest = (promise: $TSFixMe) => {
     return {
         type: types.FETCH_CARDS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const fetchCardsFailed = (error: $TSFixMe) => {
     return {
         type: types.FETCH_CARDS_FAILED,
         payload: error,
     };
-}
+};
 
 export const fetchCardsSuccess = (cards: $TSFixMe) => {
     return {
         type: types.FETCH_CARDS_SUCCESS,
         payload: cards,
     };
-}
+};
 
 export const fetchCards = (userId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -96,28 +96,28 @@ export const fetchCards = (userId: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const deleteCardRequest = (promise: $TSFixMe) => {
     return {
         type: types.DELETE_CARD_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const deleteCardFailed = (error: $TSFixMe) => {
     return {
         type: types.DELETE_CARD_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.DELETE_CARD_SUCCESS,
         payload: card,
     };
-}
+};
 
 export const deleteCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -145,7 +145,7 @@ export const deleteCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const setDefaultCardRequest = (promise: $TSFixMe, cardId: $TSFixMe) => {
     return {
@@ -155,21 +155,21 @@ export const setDefaultCardRequest = (promise: $TSFixMe, cardId: $TSFixMe) => {
             cardId,
         },
     };
-}
+};
 
 export const setDefaultCardFailed = (error: $TSFixMe) => {
     return {
         type: types.SET_DEFAULT_CARD_FAILED,
         payload: error,
     };
-}
+};
 
 export const setDefaultCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.SET_DEFAULT_CARD_SUCCESS,
         payload: card,
     };
-}
+};
 
 export const setDefaultCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -198,4 +198,4 @@ export const setDefaultCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
         );
         return promise;
     };
-}
+};

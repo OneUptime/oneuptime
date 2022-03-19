@@ -46,26 +46,26 @@ export const createErrorTrackerSuccess = (newErrorTracker: $TSFixMe) => {
         type: types.CREATE_ERROR_TRACKER_SUCCESS,
         payload: newErrorTracker,
     };
-}
+};
 
 export const createErrorTrackerRequest = () => {
     return {
         type: types.CREATE_ERROR_TRACKER_REQUEST,
     };
-}
+};
 
 export const createErrorTrackerFailure = (error: $TSFixMe) => {
     return {
         type: types.CREATE_ERROR_TRACKER_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetCreateErrorTracker = () => {
     return {
         type: types.CREATE_ERROR_TRACKER_RESET,
     };
-}
+};
 
 export const fetchErrorTrackersByProject = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -96,7 +96,7 @@ export const fetchErrorTrackersByProject = (projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export function fetchErrorTrackers(
     projectId: $TSFixMe,
@@ -139,27 +139,27 @@ export const fetchErrorTrackersSuccess = (errorTrackers: $TSFixMe) => {
         type: types.FETCH_ERROR_TRACKERS_SUCCESS,
         payload: errorTrackers,
     };
-}
+};
 
 export const fetchErrorTrackersRequest = (fetchingPage: $TSFixMe) => {
     return {
         type: types.FETCH_ERROR_TRACKERS_REQUEST,
         payload: fetchingPage,
     };
-}
+};
 
 export const fetchErrorTrackersFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_ERROR_TRACKERS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchErrorTrackers = () => {
     return {
         type: types.FETCH_ERROR_TRACKERS_RESET,
     };
-}
+};
 
 export function fetchErrorTrackerIssues(
     projectId: $TSFixMe,
@@ -218,27 +218,27 @@ export const fetchErrorTrackerIssuesSuccess = (errorTrackersList: $TSFixMe) => {
         type: types.FETCH_ISSUES_SUCCESS,
         payload: errorTrackersList,
     };
-}
+};
 
 export const fetchErrorTrackerIssuesRequest = (errorTrackerId: $TSFixMe) => {
     return {
         type: types.FETCH_ISSUES_REQUEST,
         payload: errorTrackerId,
     };
-}
+};
 
 export const fetchErrorTrackerIssuesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_ISSUES_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchErrorTrackerIssues = () => {
     return {
         type: types.FETCH_ISSUES_RESET,
     };
-}
+};
 
 export function fetchErrorEvent(
     projectId: $TSFixMe,
@@ -293,7 +293,7 @@ export const fetchErrorEventSuccess = (errorEvent: $TSFixMe) => {
         type: types.FETCH_ERROR_EVENT_SUCCESS,
         payload: errorEvent,
     };
-}
+};
 
 export function fetchErrorEventRequest(
     errorTrackerId: $TSFixMe,
@@ -310,20 +310,20 @@ export const fetchErrorEventFailure = (error: $TSFixMe) => {
         type: types.FETCH_ERROR_EVENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchErrorEvent = () => {
     return {
         type: types.FETCH_ERROR_EVENT_RESET,
     };
-}
+};
 
 export const setCurrentErrorEvent = (errorEventId: $TSFixMe) => {
     return {
         type: types.SET_CURRENT_ERROR_EVENT,
         payload: { errorEventId },
     };
-}
+};
 
 //Delete an errorTrackeer
 //props -> {name: '', type, data -> { data.url}}
@@ -371,28 +371,28 @@ export const deleteErrorTrackerSuccess = (removedErrorTrackerId: $TSFixMe) => {
         type: types.DELETE_ERROR_TRACKER_SUCCESS,
         payload: removedErrorTrackerId,
     };
-}
+};
 
 export const deleteErrorTrackerRequest = (errorTrackerId: $TSFixMe) => {
     return {
         type: types.DELETE_ERROR_TRACKER_REQUEST,
         payload: errorTrackerId,
     };
-}
+};
 
 export const deleteErrorTrackerFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_ERROR_TRACKER_FAILURE,
         payload: error,
     };
-}
+};
 
 export const editErrorTrackerSwitch = (index: $TSFixMe) => {
     return {
         type: types.EDIT_ERROR_TRACKER_SWITCH,
         payload: index,
     };
-}
+};
 //Edit new errorTracker
 export function editErrorTracker(
     projectId: $TSFixMe,
@@ -436,20 +436,20 @@ export const editErrorTrackerSuccess = (newErrorTracker: $TSFixMe) => {
         type: types.EDIT_ERROR_TRACKER_SUCCESS,
         payload: newErrorTracker,
     };
-}
+};
 
 export const editErrorTrackerRequest = () => {
     return {
         type: types.EDIT_ERROR_TRACKER_REQUEST,
     };
-}
+};
 
 export const editErrorTrackerFailure = (error: $TSFixMe) => {
     return {
         type: types.EDIT_ERROR_TRACKER_FAILURE,
         payload: error,
     };
-}
+};
 
 export function resetErrorTrackerKey(
     projectId: $TSFixMe,
@@ -490,26 +490,26 @@ export const resetErrorTrackerKeySuccess = (errorTracker: $TSFixMe) => {
         type: types.RESET_ERROR_TRACKER_KEY_SUCCESS,
         payload: errorTracker,
     };
-}
+};
 
 export const resetErrorTrackerKeyRequest = () => {
     return {
         type: types.RESET_ERROR_TRACKER_KEY_REQUEST,
     };
-}
+};
 
 export const resetErrorTrackerKeyFailure = (error: $TSFixMe) => {
     return {
         type: types.RESET_ERROR_TRACKER_KEY_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetresetErrorTrackerKey = () => {
     return {
         type: types.RESET_ERROR_TRACKER_KEY_RESET,
     };
-}
+};
 
 export function ignoreErrorEvent(
     projectId: $TSFixMe,
@@ -560,7 +560,7 @@ export const ignoreErrorEventReset = () => {
     return {
         type: types.IGNORE_ERROR_EVENT_RESET,
     };
-}
+};
 
 export function ignoreErrorEventRequest(
     errorTrackerId: $TSFixMe,
@@ -585,7 +585,7 @@ export const ignoreErrorEventSuccess = (errorEvents: $TSFixMe) => {
         type: types.IGNORE_ERROR_EVENT_SUCCESS,
         payload: errorEvents,
     };
-}
+};
 
 export function unresolveErrorEvent(
     projectId: $TSFixMe,
@@ -635,7 +635,7 @@ export const unresolveErrorEventReset = () => {
     return {
         type: types.UNRESOLVE_ERROR_EVENT_RESET,
     };
-}
+};
 
 export function unresolveErrorEventRequest(
     errorTrackerId: $TSFixMe,
@@ -660,7 +660,7 @@ export const unresolveErrorEventSuccess = (errorEvents: $TSFixMe) => {
         type: types.UNRESOLVE_ERROR_EVENT_SUCCESS,
         payload: errorEvents,
     };
-}
+};
 
 export function resolveErrorEvent(
     projectId: $TSFixMe,
@@ -710,7 +710,7 @@ export const resolveErrorEventReset = () => {
     return {
         type: types.RESOLVE_ERROR_EVENT_RESET,
     };
-}
+};
 
 export function resolveErrorEventRequest(
     errorTrackerId: $TSFixMe,
@@ -735,7 +735,7 @@ export const resolveErrorEventSuccess = (errorEvents: $TSFixMe) => {
         type: types.RESOLVE_ERROR_EVENT_SUCCESS,
         payload: errorEvents,
     };
-}
+};
 
 export function updateErrorEventMember(
     projectId: $TSFixMe,
@@ -791,7 +791,7 @@ export const updateErrorEventMemberReset = () => {
     return {
         type: types.UPDATE_ERROR_EVENT_MEMBER_RESET,
     };
-}
+};
 
 export function updateErrorEventMemberRequest(
     errorTrackerIssueMembers: $TSFixMe
@@ -806,7 +806,7 @@ export const updateErrorEventMemberFailure = (error: $TSFixMe) => {
         type: types.UPDATE_ERROR_EVENT_MEMBER_FAILURE,
         payload: error,
     };
-}
+};
 export function updateErrorEventMemberSuccess(
     errorTrackerIssueMembers: $TSFixMe
 ) {
@@ -820,7 +820,7 @@ export const getErrorEventSuccess = (data: $TSFixMe) => {
         type: types.NEW_ERROR_EVENT_SUCCESS,
         payload: data,
     };
-}
+};
 //Delete an errorTracker Issue
 export function deleteErrorTrackerIssue(
     projectId: $TSFixMe,
@@ -871,16 +871,18 @@ export function deleteErrorTrackerIssueSuccess(
     };
 }
 
-export const deleteErrorTrackerIssueRequest = (errorTrackerIssueId: $TSFixMe) => {
+export const deleteErrorTrackerIssueRequest = (
+    errorTrackerIssueId: $TSFixMe
+) => {
     return {
         type: types.DELETE_ERROR_TRACKER_ISSUE_REQUEST,
         payload: errorTrackerIssueId,
     };
-}
+};
 
 export const deleteErrorTrackerIssueFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_ERROR_TRACKER_ISSUE_FAILURE,
         payload: error,
     };
-}
+};

@@ -18,7 +18,7 @@ export const incidentresolvedbysocket = (incident: $TSFixMe) => {
             payload: incident,
         });
     };
-}
+};
 
 // Acknowledge Incident
 export const incidentacknowledgedbysocket = (incident: $TSFixMe) => {
@@ -32,14 +32,14 @@ export const incidentacknowledgedbysocket = (incident: $TSFixMe) => {
             payload: incident,
         });
     };
-}
+};
 
 // Create new monitor
 export const createmonitorbysocket = (monitor: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch(createMonitorSuccess(monitor));
     };
-}
+};
 
 // Edit monitor
 export const updatemonitorbysocket = (monitor: $TSFixMe) => {
@@ -50,7 +50,7 @@ export const updatemonitorbysocket = (monitor: $TSFixMe) => {
             payload: monitor,
         });
     };
-}
+};
 
 export const updatemonitorlogbysocket = (log: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -59,7 +59,7 @@ export const updatemonitorlogbysocket = (log: $TSFixMe) => {
             payload: log,
         });
     };
-}
+};
 
 export function updatemonitorstatusbysocket(
     status: $TSFixMe,
@@ -80,7 +80,7 @@ export const updateincidenttimelinebysocket = (incidentTimeline: $TSFixMe) => {
             payload: incidentTimeline,
         });
     };
-}
+};
 
 export const updatelighthouselogbysocket = (log: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -89,7 +89,7 @@ export const updatelighthouselogbysocket = (log: $TSFixMe) => {
             payload: log,
         });
     };
-}
+};
 
 export const updateAlllighthouselogbysocket = (log: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -98,7 +98,7 @@ export const updateAlllighthouselogbysocket = (log: $TSFixMe) => {
             payload: log,
         });
     };
-}
+};
 export const updateprobebysocket = (probe: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch({
@@ -106,7 +106,7 @@ export const updateprobebysocket = (probe: $TSFixMe) => {
             payload: probe,
         });
     };
-}
+};
 
 //Delete Monitor
 export const deletemonitorbysocket = (monitor: $TSFixMe) => {
@@ -116,7 +116,7 @@ export const deletemonitorbysocket = (monitor: $TSFixMe) => {
             payload: monitor._id,
         });
     };
-}
+};
 
 export const incidentcreatedbysocket = (incident: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -129,7 +129,7 @@ export const incidentcreatedbysocket = (incident: $TSFixMe) => {
             payload: incident,
         });
     };
-}
+};
 
 export const addnotifications = (notification: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -138,26 +138,26 @@ export const addnotifications = (notification: $TSFixMe) => {
             payload: notification,
         });
     };
-}
+};
 
 export const teamMemberRoleUpdate = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch(teamUpdateRoleSuccess(data));
         dispatch(changeProjectRoles(data));
     };
-}
+};
 
 export const teamMemberCreate = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch(teamCreateSuccess(data));
     };
-}
+};
 
 export const teamMemberDelete = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch(teamDeleteSuccess(data));
     };
-}
+};
 
 export const addIncidentNote = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -166,7 +166,7 @@ export const addIncidentNote = (data: $TSFixMe) => {
             payload: data,
         });
     };
-}
+};
 
 export const createMonitor = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -175,7 +175,7 @@ export const createMonitor = (data: $TSFixMe) => {
             payload: data,
         });
     };
-}
+};
 
 export const updateincidentbysocket = (incident: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -184,7 +184,7 @@ export const updateincidentbysocket = (incident: $TSFixMe) => {
             payload: incident,
         });
     };
-}
+};
 
 export const deleteincidentbysocket = (incident: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -193,7 +193,7 @@ export const deleteincidentbysocket = (incident: $TSFixMe) => {
             payload: incident,
         });
     };
-}
+};
 
 export const resolvescheduledevent = (event: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -202,7 +202,7 @@ export const resolvescheduledevent = (event: $TSFixMe) => {
             payload: event,
         });
     };
-}
+};
 
 export const slacountdown = ({ incident, countDown }: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -211,7 +211,7 @@ export const slacountdown = ({ incident, countDown }: $TSFixMe) => {
             payload: { incident, countDown },
         });
     };
-}
+};
 
 // Update Timeline
 export const updateTimelineBySocket = (data: $TSFixMe) => {
@@ -221,4 +221,4 @@ export const updateTimelineBySocket = (data: $TSFixMe) => {
             payload: data,
         });
     };
-}
+};

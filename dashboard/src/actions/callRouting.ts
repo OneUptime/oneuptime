@@ -43,20 +43,20 @@ export const getCallRoutingNumbersSuccess = (numbers: $TSFixMe) => {
         type: types.GET_CALL_ROUTING_NUMBERS_SUCCESS,
         payload: numbers,
     };
-}
+};
 
 export const getCallRoutingNumbersRequest = () => {
     return {
         type: types.GET_CALL_ROUTING_NUMBERS_REQUEST,
     };
-}
+};
 
 export const getCallRoutingNumbersFailure = (error: $TSFixMe) => {
     return {
         type: types.GET_CALL_ROUTING_NUMBERS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const getTeamAndSchedules = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -91,27 +91,27 @@ export const getTeamAndSchedules = (projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const getTeamAndSchedulesSuccess = (data: $TSFixMe) => {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const getTeamAndSchedulesRequest = () => {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_REQUEST,
     };
-}
+};
 
 export const getTeamAndSchedulesFailure = (error: $TSFixMe) => {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_FAILURE,
         payload: error,
     };
-}
+};
 
 export const addCallRoutingNumber = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -143,33 +143,33 @@ export const addCallRoutingNumber = (projectId: $TSFixMe, values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const addCallRoutingNumberSuccess = (number: $TSFixMe) => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_SUCCESS,
         payload: number,
     };
-}
+};
 
 export const addCallRoutingNumberRequest = () => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_REQUEST,
     };
-}
+};
 
 export const addCallRoutingNumberFailure = (error: $TSFixMe) => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetAddCallRoutingNumber = () => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_RESET,
     };
-}
+};
 
 export function uploadCallRoutingAudio(
     projectId: $TSFixMe,
@@ -294,20 +294,20 @@ export const addCallRoutingScheduleSuccess = (data: $TSFixMe) => {
         type: types.ADD_CALL_ROUTING_SCHEDULE_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const addCallRoutingScheduleRequest = () => {
     return {
         type: types.ADD_CALL_ROUTING_SCHEDULE_REQUEST,
     };
-}
+};
 
 export const addCallRoutingScheduleFailure = (error: $TSFixMe) => {
     return {
         type: types.ADD_CALL_ROUTING_SCHEDULE_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchNumbers(
     projectId: $TSFixMe,
@@ -348,26 +348,26 @@ export const fetchNumbersSuccess = (numbers: $TSFixMe) => {
         type: types.FETCH_NUMBERS_SUCCESS,
         payload: numbers,
     };
-}
+};
 
 export const fetchNumbersRequest = () => {
     return {
         type: types.FETCH_NUMBERS_REQUEST,
     };
-}
+};
 
 export const fetchNumbersFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_NUMBERS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchNumbers = () => {
     return {
         type: types.FETCH_NUMBERS_RESET,
     };
-}
+};
 
 export const removeNumbers = (projectId: $TSFixMe, callRoutingId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -397,28 +397,28 @@ export const removeNumbers = (projectId: $TSFixMe, callRoutingId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const removeNumbersSuccess = (numbers: $TSFixMe) => {
     return {
         type: types.REMOVE_NUMBERS_SUCCESS,
         payload: numbers,
     };
-}
+};
 
 export const removeNumbersRequest = (callRoutingId: $TSFixMe) => {
     return {
         type: types.REMOVE_NUMBERS_REQUEST,
         payload: callRoutingId,
     };
-}
+};
 
 export const removeNumbersFailure = (error: $TSFixMe) => {
     return {
         type: types.REMOVE_NUMBERS_FAILURE,
         payload: error,
     };
-}
+};
 
 export function getCallRoutingLogs(
     projectId: $TSFixMe,
@@ -467,26 +467,26 @@ export const getCallRoutingLogsSuccess = (logs: $TSFixMe) => {
         type: types.GET_CALL_ROUTING_LOGS_SUCCESS,
         payload: logs,
     };
-}
+};
 
 export const getCallRoutingLogsRequest = () => {
     return {
         type: types.GET_CALL_ROUTING_LOGS_REQUEST,
     };
-}
+};
 
 export const getCallRoutingLogsFailure = (error: $TSFixMe) => {
     return {
         type: types.GET_CALL_ROUTING_LOGS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const getCallRoutingLogsReset = () => {
     return {
         type: types.GET_CALL_ROUTING_LOGS_RESET,
     };
-}
+};
 
 export function removeIntroAudio(
     projectId: $TSFixMe,
@@ -526,7 +526,10 @@ export function removeIntroAudio(
     };
 }
 
-export const removeIntroAudioSuccess = (numbers: $TSFixMe, backup: $TSFixMe) => {
+export const removeIntroAudioSuccess = (
+    numbers: $TSFixMe,
+    backup: $TSFixMe
+) => {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_SUCCESS,
@@ -538,7 +541,7 @@ export const removeIntroAudioSuccess = (numbers: $TSFixMe, backup: $TSFixMe) => 
             payload: numbers,
         };
     }
-}
+};
 
 export function removeIntroAudioRequest(
     callRoutingId: $TSFixMe,
@@ -569,4 +572,4 @@ export const removeIntroAudioFailure = (error: $TSFixMe, backup: $TSFixMe) => {
             payload: error,
         };
     }
-}
+};

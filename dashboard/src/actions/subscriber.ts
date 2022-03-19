@@ -10,21 +10,21 @@ export const createSubscriberRequest = (promise: $TSFixMe) => {
         type: types.CREATE_SUBSCRIBER_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const createSubscriberError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_SUBSCRIBER_FAILED,
         payload: error,
     };
-}
+};
 
 export const createSubscriberSuccess = (subscriber: $TSFixMe) => {
     return {
         type: types.CREATE_SUBSCRIBER_SUCCESS,
         payload: subscriber,
     };
-}
+};
 
 export const resetCreateSubscriber = () => {
     return {
@@ -76,21 +76,21 @@ export const exportCsvRequest = (promise: $TSFixMe) => {
         type: types.EXPORT_CSV_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const exportCsvError = (error: $TSFixMe) => {
     return {
         type: types.EXPORT_CSV_FAILED,
         payload: error,
     };
-}
+};
 
 export const exportCsvSuccess = (data: $TSFixMe) => {
     return {
         type: types.EXPORT_CSV_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const resetExportCsv = () => {
     return {
@@ -145,21 +145,21 @@ export const deleteSubscriberRequest = (promise: $TSFixMe) => {
         type: types.DELETE_SUBSCRIBER_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const deleteSubscriberError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SUBSCRIBER_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteSubscriberSuccess = (subscriber: $TSFixMe) => {
     return {
         type: types.DELETE_SUBSCRIBER_SUCCESS,
         payload: subscriber,
     };
-}
+};
 
 export const resetDeleteSubscriber = () => {
     return {
@@ -168,7 +168,10 @@ export const resetDeleteSubscriber = () => {
 };
 
 // Calls the API to delete a subscriber.
-export const deleteSubscriber = (projectId: $TSFixMe, subscriberId: $TSFixMe) => {
+export const deleteSubscriber = (
+    projectId: $TSFixMe,
+    subscriberId: $TSFixMe
+) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subscriber/${projectId}/${subscriberId}`,
@@ -203,7 +206,7 @@ export const deleteSubscriber = (projectId: $TSFixMe, subscriberId: $TSFixMe) =>
 
         return promise;
     };
-}
+};
 
 // Import subscriber from csv
 export const downloadCsvTemplateRequest = () => {
@@ -240,7 +243,7 @@ export const downloadCsvTemplate = () => {
             dispatch(downloadCsvTemplateError(error));
         }
     };
-}
+};
 
 /**
  * Imports data from a csv file

@@ -15,14 +15,14 @@ export const loginRequest = (promise: $TSFixMe) => {
         type: types.LOGIN_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const loginError = (error: $TSFixMe) => {
     return {
         type: types.LOGIN_FAILED,
         payload: error,
     };
-}
+};
 
 export const loginSuccess = (user: $TSFixMe) => {
     //save user session details.
@@ -75,7 +75,7 @@ export const loginSuccess = (user: $TSFixMe) => {
         type: types.LOGIN_SUCCESS,
         payload: user,
     };
-}
+};
 
 export const resetLogin = () => {
     return {
@@ -88,14 +88,14 @@ export const verifyTokenRequest = (promise: $TSFixMe) => {
         type: types.AUTH_VERIFICATION_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const verifyTokenError = (error: $TSFixMe) => {
     return {
         type: types.AUTH_VERIFICATION_FAILED,
         payload: error,
     };
-}
+};
 
 // Calls the API to register a user.
 export const loginUser = (values: $TSFixMe) => {
@@ -133,7 +133,7 @@ export const loginUser = (values: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const loginUserSso =
     (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
@@ -191,7 +191,7 @@ export const verifyAuthToken = (values: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 // Use backup code to login a user.
 
@@ -206,14 +206,14 @@ export const useBackupCodeRequest = (promise: $TSFixMe) => {
         type: types.BACKUP_CODE_VERIFICATION_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const useBackupCodeError = (error: $TSFixMe) => {
     return {
         type: types.BACKUP_CODE_VERIFICATION_FAILED,
         payload: error,
     };
-}
+};
 
 export const verifyBackupCode = (values: $TSFixMe) => {
     const initialUrl = User.initialUrl();
@@ -245,35 +245,35 @@ export const verifyBackupCode = (values: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const saveStatusPage = (data: $TSFixMe) => {
     return {
         type: types.SAVE_STATUS_PAGE,
         payload: data,
     };
-}
+};
 
 export const masterAdminExistsRequest = (promise: $TSFixMe) => {
     return {
         type: types.MASTER_ADMIN_EXISTS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const masterAdminExistsError = (error: $TSFixMe) => {
     return {
         type: types.MASTER_ADMIN_EXISTS_FAILED,
         payload: error,
     };
-}
+};
 
 export const masterAdminExistsSuccess = (data: $TSFixMe) => {
     return {
         type: types.MASTER_ADMIN_EXISTS_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const resetMasterAdminExists = () => {
     return {
@@ -307,7 +307,7 @@ export const checkIfMasterAdminExists = (values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const changeLogin = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -316,4 +316,4 @@ export const changeLogin = (data: $TSFixMe) => {
             payload: data,
         });
     };
-}
+};

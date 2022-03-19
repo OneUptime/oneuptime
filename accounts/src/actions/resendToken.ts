@@ -7,21 +7,21 @@ export const resendTokenRequest = (promise: $TSFixMe) => {
         type: types.RESENDTOKEN_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const resendTokenError = (error: $TSFixMe) => {
     return {
         type: types.RESENDTOKEN_FAILED,
         payload: error,
     };
-}
+};
 
 export const resendTokenSuccess = (data: $TSFixMe) => {
     return {
         type: types.RESENDTOKEN_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const resendTokenReset = () => {
     return function (dispatch: $TSFixMe) {
@@ -29,7 +29,7 @@ export const resendTokenReset = () => {
             type: types.RESENDTOKEN_RESET,
         });
     };
-}
+};
 
 export const resendToken = (values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -55,4 +55,4 @@ export const resendToken = (values: $TSFixMe) => {
             }
         );
     };
-}
+};

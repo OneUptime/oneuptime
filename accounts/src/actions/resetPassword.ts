@@ -10,21 +10,21 @@ export const resetPasswordRequest = (promise: $TSFixMe) => {
         type: types.PASSWORDRESET_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const resetPasswordError = (error: $TSFixMe) => {
     return {
         type: types.PASSWORDRESET_FAILED,
         payload: error,
     };
-}
+};
 
 export const resetPasswordSuccess = (data: $TSFixMe) => {
     return {
         type: types.PASSWORDRESET_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const resetResetPassword = () => {
     return {
@@ -56,4 +56,4 @@ export const resetPassword = (values: $TSFixMe) => {
             }
         );
     };
-}
+};

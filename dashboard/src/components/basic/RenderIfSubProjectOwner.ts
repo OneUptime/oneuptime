@@ -39,7 +39,7 @@ export const RenderIfSubProjectOwner = (props: $TSFixMe) => {
     }
 
     return renderItems;
-}
+};
 
 function mapStateToProps(state: $TSFixMe) {
     return {

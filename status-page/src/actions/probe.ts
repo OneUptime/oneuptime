@@ -54,21 +54,21 @@ export const probeRequest = (promise: $TSFixMe) => {
         type: types.PROBE_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const probeError = (error: $TSFixMe) => {
     return {
         type: types.PROBE_FAILED,
         payload: error,
     };
-}
+};
 
 export const probeSuccess = (probes: $TSFixMe) => {
     return {
         type: types.PROBE_SUCCESS,
         payload: probes,
     };
-}
+};
 
 export const resetProbe = () => {
     return {

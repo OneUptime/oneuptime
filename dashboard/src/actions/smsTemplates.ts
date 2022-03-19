@@ -9,21 +9,21 @@ export const smsTemplatesRequest = (promise: $TSFixMe) => {
         type: types.SMS_TEMPLATES_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const smsTemplatesError = (error: $TSFixMe) => {
     return {
         type: types.SMS_TEMPLATES_FAILED,
         payload: error,
     };
-}
+};
 
 export const smsTemplatesSuccess = (incidents: $TSFixMe) => {
     return {
         type: types.SMS_TEMPLATES_SUCCESS,
         payload: incidents,
     };
-}
+};
 
 export const smsTemplatesReset = () => {
     return {
@@ -56,35 +56,35 @@ export const getSmsTemplates = (projectId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 // Edit sms templates
 export const editSmsTemplateReset = () => {
     return {
         type: types.EDIT_SMS_TEMPLATES_RESET,
     };
-}
+};
 
 export const editSmsTemplateRequest = () => {
     return {
         type: types.EDIT_SMS_TEMPLATES_REQUEST,
         payload: true,
     };
-}
+};
 
 export const editSmsTemplateSuccess = (smsTemplates: $TSFixMe) => {
     return {
         type: types.EDIT_SMS_TEMPLATES_SUCCESS,
         payload: smsTemplates,
     };
-}
+};
 
 export const editSmsTemplateError = (error: $TSFixMe) => {
     return {
         type: types.EDIT_SMS_TEMPLATES_FAILED,
         payload: error,
     };
-}
+};
 
 export const editSmsTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -110,7 +110,7 @@ export const editSmsTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 //Array of sms templates
 
@@ -119,24 +119,27 @@ export const resetSmsTemplatesRequest = (promise: $TSFixMe) => {
         type: types.RESET_SMS_TEMPLATES_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const resetSmsTemplatesError = (error: $TSFixMe) => {
     return {
         type: types.RESET_SMS_TEMPLATES_FAILED,
         payload: error,
     };
-}
+};
 
 export const resetSmsTemplatesSuccess = (smsTemplates: $TSFixMe) => {
     return {
         type: types.RESET_SMS_TEMPLATES_SUCCESS,
         payload: smsTemplates,
     };
-}
+};
 
 // Calls the API to reset sms templates
-export const resetSmsTemplates = (projectId: $TSFixMe, templateId: $TSFixMe) => {
+export const resetSmsTemplates = (
+    projectId: $TSFixMe,
+    templateId: $TSFixMe
+) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`smsTemplate/${projectId}/${templateId}/reset`);
         dispatch(resetSmsTemplatesRequest(promise));
@@ -161,28 +164,28 @@ export const resetSmsTemplates = (projectId: $TSFixMe, templateId: $TSFixMe) => 
         );
         return promise;
     };
-}
+};
 
 export const smtpConfigRequest = (promise: $TSFixMe) => {
     return {
         type: types.SMTP_CONFIG_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const smtpConfigError = (error: $TSFixMe) => {
     return {
         type: types.SMTP_CONFIG_FAILED,
         payload: error,
     };
-}
+};
 
 export const smtpConfigSuccess = (config: $TSFixMe) => {
     return {
         type: types.SMTP_CONFIG_SUCCESS,
         payload: config,
     };
-}
+};
 
 // Calls the API to reset email templates
 export const getSmtpConfig = (projectId: $TSFixMe) => {
@@ -221,7 +224,7 @@ export const getSmtpConfig = (projectId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -259,28 +262,28 @@ export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const deleteSmtpConfigRequest = (promise: $TSFixMe) => {
     return {
         type: types.DELETE_SMTP_CONFIG_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const deleteSmtpConfigError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SMTP_CONFIG_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteSmtpConfigSuccess = (config: $TSFixMe) => {
     return {
         type: types.DELETE_SMTP_CONFIG_SUCCESS,
         payload: config,
     };
-}
+};
 
 export const deleteSmtpConfig = (projectId: $TSFixMe, smtpId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -318,7 +321,7 @@ export const deleteSmtpConfig = (projectId: $TSFixMe, smtpId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export function updateSmtpConfig(
     projectId: $TSFixMe,
@@ -369,7 +372,7 @@ export const changeShowingTemplate = (smsTemplate: $TSFixMe) => {
             payload: smsTemplate,
         });
     };
-}
+};
 
 export const setRevealVariable = (smstype: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -378,7 +381,7 @@ export const setRevealVariable = (smstype: $TSFixMe) => {
             payload: smstype,
         });
     };
-}
+};
 
 export const setSmtpConfig = (val: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -387,4 +390,4 @@ export const setSmtpConfig = (val: $TSFixMe) => {
             payload: val,
         });
     };
-}
+};

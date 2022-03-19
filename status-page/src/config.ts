@@ -12,7 +12,7 @@ export const env = (value: $TSFixMe) => {
         (_env && _env[`REACT_APP_${value}`]) ||
         process.env[`REACT_APP_${value}`]
     );
-}
+};
 
 let protocol = window.location.protocol;
 if (env('BACKEND_PROTOCOL')) {
@@ -125,7 +125,7 @@ export const getQueryVar = (variable: $TSFixMe, url: $TSFixMe) => {
     if (!results) return null;
     if (!results[2]) return '';
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
-}
+};
 
 export const bindRaf = (fn: $TSFixMe) => {
     let isRunning: $TSFixMe = null;
@@ -159,18 +159,18 @@ export const filterProbeData = (
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
-                    return (
-                        probeStatuses._id === null ||
-                        String(probeStatuses._id) === String(probe._id)
-                    );
-                })
+                      return (
+                          probeStatuses._id === null ||
+                          String(probeStatuses._id) === String(probe._id)
+                      );
+                  })
                 : monitorStatuses
             : [];
     const statuses =
         probesStatus &&
-            probesStatus[0] &&
-            probesStatus[0].statuses &&
-            probesStatus[0].statuses.length > 0
+        probesStatus[0] &&
+        probesStatus[0].statuses &&
+        probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
 
@@ -211,13 +211,13 @@ export const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
     } else if (onlineServices < totalServices) {
         return 'some';
     }
-}
+};
 
 export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe) => {
     return Number(
         Math.round(parseFloat(value + 'e' + decimalPlaces)) +
-        'e-' +
-        decimalPlaces
+            'e-' +
+            decimalPlaces
     ).toFixed(decimalPlaces);
 };
 
@@ -231,10 +231,10 @@ export const formatBytes = (
     return (
         formatDecimal(
             ((b = Math),
-                (c = b.log),
-                (d = 1e3),
-                (e = (c(a) / c(d)) | 0),
-                a / b.pow(d, e)),
+            (c = b.log),
+            (d = 1e3),
+            (e = (c(a) / c(d)) | 0),
+            a / b.pow(d, e)),
             2
         ) +
         ' ' +
@@ -300,7 +300,7 @@ export const handleResources = (
 export const cacheProvider = {
     get: (language: $TSFixMe, key: $TSFixMe) =>
         ((JSON.parse(localStorage.getItem('translations')) || {})[key] || {})[
-        language
+            language
         ],
     set: (language: $TSFixMe, key: $TSFixMe, value: $TSFixMe) => {
         const existing = JSON.parse(localStorage.getItem('translations')) || {

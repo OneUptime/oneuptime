@@ -6,54 +6,54 @@ export const fetchTutorialRequest = (promise: $TSFixMe) => {
         type: types.FETCH_TUTORIAL_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const fetchTutorialSuccess = (tutorial: $TSFixMe) => {
     return {
         type: types.FETCH_TUTORIAL_SUCCESS,
         payload: tutorial,
     };
-}
+};
 
 export const fetchTutorialError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_TUTORIAL_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchTutorial = () => {
     return {
         type: types.FETCH_TUTORIAL_RESET,
     };
-}
+};
 
 export const closeTutorialRequest = (promise: $TSFixMe) => {
     return {
         type: types.CLOSE_TUTORIAL_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const closeTutorialSuccess = (tutorial: $TSFixMe) => {
     return {
         type: types.CLOSE_TUTORIAL_SUCCESS,
         payload: tutorial,
     };
-}
+};
 
 export const closeTutorialError = (error: $TSFixMe) => {
     return {
         type: types.CLOSE_TUTORIAL_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetCloseTutorial = () => {
     return {
         type: types.CLOSE_TUTORIAL_RESET,
     };
-}
+};
 
 export const fetchTutorial = () => {
     return function (dispatch: $TSFixMe) {
@@ -83,7 +83,7 @@ export const fetchTutorial = () => {
 
         return promise;
     };
-}
+};
 
 export const closeTutorial = (type: $TSFixMe, projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -113,4 +113,4 @@ export const closeTutorial = (type: $TSFixMe, projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};

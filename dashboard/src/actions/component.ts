@@ -6,17 +6,21 @@ export const showDeleteModal = () => {
     return {
         type: types.SHOW_DELETE_MODAL,
     };
-}
+};
 
 export const hideDeleteModal = () => {
     return {
         type: types.HIDE_DELETE_MODAL,
     };
-}
+};
 
 // Component list
 // props -> {name: '', type, data -> { data.url}}
-export const fetchComponents = ({ projectId, skip = 0, limit = 3 }: $TSFixMe) => {
+export const fetchComponents = ({
+    projectId,
+    skip = 0,
+    limit = 3,
+}: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}?skip=${skip}&limit=${limit}`
@@ -44,33 +48,33 @@ export const fetchComponents = ({ projectId, skip = 0, limit = 3 }: $TSFixMe) =>
 
         return promise;
     };
-}
+};
 
 export const fetchComponentsSuccess = (components: $TSFixMe) => {
     return {
         type: types.FETCH_COMPONENTS_SUCCESS,
         payload: components,
     };
-}
+};
 
 export const fetchComponentsRequest = () => {
     return {
         type: types.FETCH_COMPONENTS_REQUEST,
     };
-}
+};
 
 export const fetchComponentsFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_COMPONENTS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchComponents = () => {
     return {
         type: types.FETCH_COMPONENTS_RESET,
     };
-}
+};
 
 // Component list
 // props -> {name: '', type, data -> { data.url}}
@@ -115,14 +119,14 @@ export const fetchPaginatedComponentsSuccess = (payload: $TSFixMe) => {
         type: types.FETCH_PAGINATED_COMPONENTS_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchPaginatedComponentsRequest = (projectId: $TSFixMe) => {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_REQUEST,
         payload: projectId,
     };
-}
+};
 
 export function fetchPaginatedComponentsFailure(
     error: $TSFixMe,
@@ -162,33 +166,33 @@ export const createComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const createComponentSuccess = (newComponent: $TSFixMe) => {
     return {
         type: types.CREATE_COMPONENT_SUCCESS,
         payload: newComponent,
     };
-}
+};
 
 export const createComponentRequest = () => {
     return {
         type: types.CREATE_COMPONENT_REQUEST,
     };
-}
+};
 
 export const createComponentFailure = (error: $TSFixMe) => {
     return {
         type: types.CREATE_COMPONENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetCreateComponent = () => {
     return {
         type: types.CREATE_COMPONENT_RESET,
     };
-}
+};
 
 export const editComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId;
@@ -219,40 +223,40 @@ export const editComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const editComponentSuccess = (newComponent: $TSFixMe) => {
     return {
         type: types.EDIT_COMPONENT_SUCCESS,
         payload: newComponent,
     };
-}
+};
 
 export const editComponentRequest = () => {
     return {
         type: types.EDIT_COMPONENT_REQUEST,
     };
-}
+};
 
 export const editComponentFailure = (error: $TSFixMe) => {
     return {
         type: types.EDIT_COMPONENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const editComponentSwitch = (index: $TSFixMe) => {
     return {
         type: types.EDIT_COMPONENT_SWITCH,
         payload: index,
     };
-}
+};
 
 export const resetEditComponent = () => {
     return {
         type: types.EDIT_COMPONENT_RESET,
     };
-}
+};
 
 // Delete a component
 // props -> {name: '', type, data -> { data.url}}
@@ -289,35 +293,35 @@ export const deleteComponent = (componentId: $TSFixMe, projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const deleteComponentSuccess = (removedComponentId: $TSFixMe) => {
     return {
         type: types.DELETE_COMPONENT_SUCCESS,
         payload: removedComponentId,
     };
-}
+};
 
 export const deleteComponentRequest = (componentId: $TSFixMe) => {
     return {
         type: types.DELETE_COMPONENT_REQUEST,
         payload: componentId,
     };
-}
+};
 
 export const deleteComponentFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_COMPONENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const deleteProjectComponents = (projectId: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_COMPONENTS,
         payload: projectId,
     };
-}
+};
 
 export const addSeat = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -348,33 +352,33 @@ export const addSeat = (projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const addSeatSuccess = (message: $TSFixMe) => {
     return {
         type: types.ADD_SEAT_SUCCESS,
         payload: message,
     };
-}
+};
 
 export const addSeatRequest = () => {
     return {
         type: types.ADD_SEAT_REQUEST,
     };
-}
+};
 
 export const addSeatFailure = (error: $TSFixMe) => {
     return {
         type: types.ADD_SEAT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const addSeatReset = () => {
     return {
         type: types.ADD_SEAT_RESET,
     };
-}
+};
 
 // Component Resources list
 // props -> {name: '', type, data -> { data.url}}
@@ -418,27 +422,27 @@ export const fetchComponentResourcesSuccess = (resources: $TSFixMe) => {
         type: types.FETCH_COMPONENT_RESOURCES_SUCCESS,
         payload: resources,
     };
-}
+};
 
 export const fetchComponentResourcesRequest = (componentId: $TSFixMe) => {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_REQUEST,
         payload: { componentId: componentId },
     };
-}
+};
 
 export const fetchComponentResourcesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchComponentResources = () => {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_RESET,
     };
-}
+};
 
 // Component Summary
 export function fetchComponentSummary(
@@ -482,54 +486,54 @@ export const fetchComponentSummarySuccess = (summary: $TSFixMe) => {
         type: types.FETCH_COMPONENT_SUMMARY_SUCCESS,
         payload: summary,
     };
-}
+};
 
 export const fetchComponentSummaryRequest = (componentId: $TSFixMe) => {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_REQUEST,
         payload: componentId,
     };
-}
+};
 
 export const fetchComponentSummaryFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchComponentSummary = () => {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_RESET,
     };
-}
+};
 
 export const addCurrentComponent = (currentComponent: $TSFixMe) => {
     return {
         type: types.ADD_CURRENT_COMPONENT,
         payload: currentComponent,
     };
-}
+};
 
 export const fetchComponentRequest = () => {
     return {
         type: types.FETCH_COMPONENT_REQUEST,
     };
-}
+};
 
 export const fetchComponentSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_COMPONENT_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchComponentFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_COMPONENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchComponent = (projectId: $TSFixMe, slug: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -557,4 +561,4 @@ export const fetchComponent = (projectId: $TSFixMe, slug: $TSFixMe) => {
 
         return promise;
     };
-}
+};

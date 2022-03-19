@@ -44,49 +44,49 @@ export const changeDeleteModal = () => {
     return {
         type: types.CHANGE_DELETE_MODAL,
     };
-}
+};
 
 export const showDeleteModal = () => {
     return {
         type: types.SHOW_DELETE_MODAL,
     };
-}
+};
 
 export const hideDeleteModal = () => {
     return {
         type: types.HIDE_DELETE_MODAL,
     };
-}
+};
 
 export const hideDeleteModalSaasMode = () => {
     return {
         type: types.HIDE_DELETE_MODAL_SAAS_MODE,
     };
-}
+};
 
 export const showForm = () => {
     return {
         type: types.SHOW_PROJECT_FORM,
     };
-}
+};
 
 export const hideForm = () => {
     return {
         type: types.HIDE_PROJECT_FORM,
     };
-}
+};
 
 export const showUpgradeForm = () => {
     return {
         type: types.SHOW_UPGRADE_FORM,
     };
-}
+};
 
 export const hideUpgradeForm = () => {
     return {
         type: types.HIDE_UPGRADE_FORM,
     };
-}
+};
 
 // Sets the whether the user can upgrade(canUpgrade) their plan
 // if their returned plan list is empty or not.
@@ -94,28 +94,28 @@ export const upgradePlanEmpty = () => {
     return {
         type: types.UPGRADE_PLAN_EMPTY,
     };
-}
+};
 
 export const projectsRequest = (promise: $TSFixMe) => {
     return {
         type: types.PROJECTS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const projectsError = (error: $TSFixMe) => {
     return {
         type: types.PROJECTS_FAILED,
         payload: error,
     };
-}
+};
 
 export const projectsSuccess = (projects: $TSFixMe) => {
     return {
         type: types.PROJECTS_SUCCESS,
         payload: projects,
     };
-}
+};
 
 export const resetProjects = () => {
     return {
@@ -191,25 +191,25 @@ export const getProjects = (switchToProjectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const getProjectBalanceRequest = () => {
     return {
         type: types.GET_PROJECT_BALANCE_REQUEST,
     };
-}
+};
 export const getprojectError = (error: $TSFixMe) => {
     return {
         type: types.GET_PROJECT_BALANCE_FAILED,
         payload: error,
     };
-}
+};
 export const getProjectBalanceSuccess = (project: $TSFixMe) => {
     return {
         type: types.GET_PROJECT_BALANCE_SUCCESS,
         payload: project,
     };
-}
+};
 
 export const getProjectBalance = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -236,26 +236,26 @@ export const getProjectBalance = (projectId: $TSFixMe) => {
             }
         );
     };
-}
+};
 export const createProjectRequest = () => {
     return {
         type: types.CREATE_PROJECT_REQUEST,
     };
-}
+};
 
 export const createProjectError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_PROJECT_FAILED,
         payload: error,
     };
-}
+};
 
 export const createProjectSuccess = (project: $TSFixMe) => {
     return {
         type: types.CREATE_PROJECT_SUCCESS,
         payload: project,
     };
-}
+};
 
 export const resetCreateProject = () => {
     return {
@@ -294,7 +294,7 @@ export const createProject = (values: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export function switchToProjectViewerNav(
     userId: $TSFixMe,
@@ -432,45 +432,45 @@ export const switchProjectReset = () => {
     return {
         type: types.SWITCH_PROJECT_RESET,
     };
-}
+};
 
 export const showProjectSwitcher = () => {
     return {
         type: types.SHOW_PROJECT_SWITCHER,
     };
-}
+};
 
 export const hideProjectSwitcher = () => {
     return {
         type: types.HIDE_PROJECT_SWITCHER,
     };
-}
+};
 
 export const resetProjectTokenReset = () => {
     return {
         type: types.RESET_PROJECT_TOKEN_RESET,
     };
-}
+};
 
 export const resetProjectTokenRequest = () => {
     return {
         type: types.RESET_PROJECT_TOKEN_REQUEST,
     };
-}
+};
 
 export const resetProjectTokenSuccess = (project: $TSFixMe) => {
     return {
         type: types.RESET_PROJECT_TOKEN_SUCCESS,
         payload: project.data,
     };
-}
+};
 
 export const resetProjectTokenError = (error: $TSFixMe) => {
     return {
         type: types.RESET_PROJECT_TOKEN_FAILED,
         payload: error,
     };
-}
+};
 
 export const resetProjectToken = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -503,33 +503,33 @@ export const resetProjectToken = (projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const renameProjectReset = () => {
     return {
         type: types.RENAME_PROJECT_RESET,
     };
-}
+};
 
 export const renameProjectRequest = () => {
     return {
         type: types.RENAME_PROJECT_REQUEST,
     };
-}
+};
 
 export const renameProjectSuccess = (project: $TSFixMe) => {
     return {
         type: types.RENAME_PROJECT_SUCCESS,
         payload: project.data,
     };
-}
+};
 
 export const renameProjectError = (error: $TSFixMe) => {
     return {
         type: types.RENAME_PROJECT_FAILED,
         payload: error,
     };
-}
+};
 
 export const renameProject = (projectId: $TSFixMe, projectName: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -565,27 +565,27 @@ export const renameProject = (projectId: $TSFixMe, projectName: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const deleteProjectRequest = () => {
     return {
         type: types.DELETE_PROJECT_REQUEST,
     };
-}
+};
 
 export const deleteProjectSuccess = (projectId: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_SUCCESS,
         payload: projectId,
     };
-}
+};
 
 export const deleteProjectError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteProject = (projectId: $TSFixMe, feedback: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -621,33 +621,33 @@ export const deleteProject = (projectId: $TSFixMe, feedback: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const changePlanReset = () => {
     return {
         type: types.CHANGE_PLAN_RESET,
     };
-}
+};
 
 export const changePlanRequest = () => {
     return {
         type: types.CHANGE_PLAN_REQUEST,
     };
-}
+};
 
 export const changePlanSuccess = (project: $TSFixMe) => {
     return {
         type: types.CHANGE_PLAN_SUCCESS,
         payload: project.data,
     };
-}
+};
 
 export const changePlanError = (error: $TSFixMe) => {
     return {
         type: types.CHANGE_PLAN_FAILED,
         payload: error,
     };
-}
+};
 
 export function changePlan(
     projectId: $TSFixMe,
@@ -739,21 +739,21 @@ export const exitProjectRequest = () => {
     return {
         type: types.EXIT_PROJECT_REQUEST,
     };
-}
+};
 
 export const exitProjectSuccess = (userId: $TSFixMe) => {
     return {
         type: types.EXIT_PROJECT_SUCCESS,
         payload: userId,
     };
-}
+};
 
 export const exitProjectError = (error: $TSFixMe) => {
     return {
         type: types.EXIT_PROJECT_FAILED,
         payload: error,
     };
-}
+};
 
 export const exitProject = (projectId: $TSFixMe, userId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -784,37 +784,40 @@ export const exitProject = (projectId: $TSFixMe, userId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const changeProjectRoles = (team: $TSFixMe) => {
     return {
         type: types.CHANGE_PROJECT_ROLES,
         payload: team,
     };
-}
+};
 
 // Calls API to mark project for removal
 export const markProjectForDeleteRequest = () => {
     return {
         type: types.MARK_PROJECT_DELETE_REQUEST,
     };
-}
+};
 
 export const markProjectForDeleteSuccess = (projectId: $TSFixMe) => {
     return {
         type: types.MARK_PROJECT_DELETE_SUCCESS,
         payload: projectId,
     };
-}
+};
 
 export const markProjectForDeleteError = (error: $TSFixMe) => {
     return {
         type: types.MARK_PROJECT_DELETE_FAILED,
         payload: error,
     };
-}
+};
 
-export const markProjectForDelete = (projectId: $TSFixMe, feedback: $TSFixMe) => {
+export const markProjectForDelete = (
+    projectId: $TSFixMe,
+    feedback: $TSFixMe
+) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`project/${projectId}/deleteProject`, {
             projectId,
@@ -844,29 +847,32 @@ export const markProjectForDelete = (projectId: $TSFixMe, feedback: $TSFixMe) =>
 
         return promise;
     };
-}
+};
 
 export const alertOptionsUpdateRequest = () => {
     return {
         type: types.ALERT_OPTIONS_UPDATE_REQUEST,
     };
-}
+};
 
 export const alertOptionsUpdateSuccess = (project: $TSFixMe) => {
     return {
         type: types.ALERT_OPTIONS_UPDATE_SUCCESS,
         payload: project.data,
     };
-}
+};
 
 export const alertOptionsUpdateError = (error: $TSFixMe) => {
     return {
         type: types.ALERT_OPTIONS_UPDATE_FAILED,
         payload: error,
     };
-}
+};
 
-export const alertOptionsUpdate = (projectId: $TSFixMe, alertData: $TSFixMe) => {
+export const alertOptionsUpdate = (
+    projectId: $TSFixMe,
+    alertData: $TSFixMe
+) => {
     return function (dispatch: $TSFixMe) {
         const promise = putApi(`project/${projectId}/alertOptions`, alertData);
 
@@ -892,27 +898,27 @@ export const alertOptionsUpdate = (projectId: $TSFixMe, alertData: $TSFixMe) => 
         );
         return promise;
     };
-}
+};
 
 export const addBalanceRequest = () => {
     return {
         type: types.ADD_BALANCE_REQUEST,
     };
-}
+};
 
 export const addBalanceSuccess = (pi: $TSFixMe) => {
     return {
         type: types.ADD_BALANCE_SUCCESS,
         payload: pi.data,
     };
-}
+};
 
 export const addBalanceError = (error: $TSFixMe) => {
     return {
         type: types.ADD_BALANCE_FAILED,
         payload: error,
     };
-}
+};
 
 export const addBalance = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -940,72 +946,72 @@ export const addBalance = (projectId: $TSFixMe, data: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const updateProjectBalanceRequest = () => {
     return {
         type: types.UPDATE_PROJECT_BALANCE_REQUEST,
     };
-}
+};
 
 export const updateProjectBalanceSuccess = (payload: $TSFixMe) => {
     return {
         type: types.UPDATE_PROJECT_BALANCE_SUCCESS,
         payload,
     };
-}
+};
 
 export const updateProjectBalanceFailure = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_PROJECT_BALANCE_FAILURE,
         payload: error,
     };
-}
+};
 
 export const updateProjectBalance =
     ({ projectId, intentId }: $TSFixMe) =>
-        async (dispatch: $TSFixMe) => {
-            dispatch(updateProjectBalanceRequest());
+    async (dispatch: $TSFixMe) => {
+        dispatch(updateProjectBalanceRequest());
 
-            try {
-                const response = await getApi(
-                    `stripe/${projectId}/updateBalance/${intentId}`
-                );
+        try {
+            const response = await getApi(
+                `stripe/${projectId}/updateBalance/${intentId}`
+            );
 
-                dispatch(updateProjectBalanceSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(updateProjectBalanceFailure(errorMsg));
-            }
-        };
+            dispatch(updateProjectBalanceSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateProjectBalanceFailure(errorMsg));
+        }
+    };
 
 export const checkCardRequest = (promise: $TSFixMe) => {
     return {
         type: types.CHECK_CARD_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const checkCardFailed = (error: $TSFixMe) => {
     return {
         type: types.CHECK_CARD_FAILED,
         payload: error,
     };
-}
+};
 
 export const checkCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.CHECK_CARD_SUCCESS,
         payload: card,
     };
-}
+};
 
 export const checkCard = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -1033,27 +1039,27 @@ export const checkCard = (data: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const setEmailNotificationRequest = () => {
     return {
         type: types.SET_EMAIL_INCIDENT_NOTIFICATION_REQUEST,
     };
-}
+};
 
 export const setEmailNotificationSuccess = (payload: $TSFixMe) => {
     return {
         type: types.SET_EMAIL_INCIDENT_NOTIFICATION_SUCCESS,
         payload,
     };
-}
+};
 
 export const setEmailNotificationFailure = (error: $TSFixMe) => {
     return {
         type: types.SET_EMAIL_INCIDENT_NOTIFICATION_FAILURE,
         payload: error,
     };
-}
+};
 
 export const setEmailNotification = ({ projectId, data }: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
@@ -1071,34 +1077,34 @@ export const setEmailNotification = ({ projectId, data }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(setEmailNotificationFailure(errorMsg));
         }
     };
-}
+};
 
 export const setSmsNotificationRequest = () => {
     return {
         type: types.SET_SMS_INCIDENT_NOTIFICATION_REQUEST,
     };
-}
+};
 
 export const setSmsNotificationSuccess = (payload: $TSFixMe) => {
     return {
         type: types.SET_SMS_INCIDENT_NOTIFICATION_SUCCESS,
         payload,
     };
-}
+};
 
 export const setSmsNotificationFailure = (error: $TSFixMe) => {
     return {
         type: types.SET_SMS_INCIDENT_NOTIFICATION_FAILURE,
         payload: error,
     };
-}
+};
 
 export const setSmsNotification = ({ projectId, data }: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
@@ -1116,37 +1122,40 @@ export const setSmsNotification = ({ projectId, data }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(setSmsNotificationFailure(errorMsg));
         }
     };
-}
+};
 
 /* for webhook notification settings */
 export const setWebhookNotificationSettingsRequest = () => {
     return {
         type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_REQUEST,
     };
-}
+};
 
 export const setWebhookNotificationSettingsSuccess = (payload: $TSFixMe) => {
     return {
         type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_SUCCESS,
         payload,
     };
-}
+};
 
 export const setWebhookNotificationSettingsFailure = (error: $TSFixMe) => {
     return {
         type: types.SET_WEBHOOK_NOTIFICATION_SETTINGS_FAILURE,
         payload: error,
     };
-}
+};
 
-export const setWebhookNotificationSettings = ({ projectId, data }: $TSFixMe) => {
+export const setWebhookNotificationSettings = ({
+    projectId,
+    data,
+}: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
         dispatch(setWebhookNotificationSettingsRequest());
 
@@ -1162,41 +1171,41 @@ export const setWebhookNotificationSettings = ({ projectId, data }: $TSFixMe) =>
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(setWebhookNotificationSettingsFailure(errorMessage));
         }
     };
-}
+};
 
 /* for project wide domains */
 export const createProjectDomainRequest = () => {
     return {
         type: types.CREATE_PROJECT_DOMAIN_REQUEST,
     };
-}
+};
 
 export const createProjectDomainSuccess = (payload: $TSFixMe) => {
     return {
         type: types.CREATE_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
-}
+};
 
 export const createProjectDomainFailure = (error: $TSFixMe) => {
     return {
         type: types.CREATE_PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetCreateProjectDomain = () => {
     return {
         type: types.RESET_CREATE_PROJECT_DOMAIN,
     };
-}
+};
 
 export const createProjectDomain = ({ projectId, data }: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
@@ -1216,36 +1225,40 @@ export const createProjectDomain = ({ projectId, data }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(createProjectDomainFailure(errorMessage));
         }
     };
-}
+};
 
 export const fetchProjectDomainsRequest = () => {
     return {
         type: types.FETCH_PROJECT_DOMAINS_REQUEST,
     };
-}
+};
 
 export const fetchProjectDomainsSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECT_DOMAINS_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchProjectDomainsFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECT_DOMAINS_FAILURE,
         payload: error,
     };
-}
+};
 
-export const fetchProjectDomains = (projectId: $TSFixMe, skip = 0, limit = 10) => {
+export const fetchProjectDomains = (
+    projectId: $TSFixMe,
+    skip = 0,
+    limit = 10
+) => {
     return async function (dispatch: $TSFixMe) {
         dispatch(fetchProjectDomainsRequest());
 
@@ -1262,42 +1275,46 @@ export const fetchProjectDomains = (projectId: $TSFixMe, skip = 0, limit = 10) =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchProjectDomainsFailure(errorMessage));
         }
     };
-}
+};
 
 export const updateProjectDomainRequest = () => {
     return {
         type: types.UPDATE_PROJECT_DOMAIN_REQUEST,
     };
-}
+};
 
 export const updateProjectDomainSuccess = (payload: $TSFixMe) => {
     return {
         type: types.UPDATE_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
-}
+};
 
 export const updateProjectDomainFailure = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetUpdateProjectDomain = () => {
     return {
         type: types.RESET_UPDATE_PROJECT_DOMAIN,
     };
-}
+};
 
-export const updateProjectDomain = ({ projectId, domainId, data }: $TSFixMe) => {
+export const updateProjectDomain = ({
+    projectId,
+    domainId,
+    data,
+}: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
         dispatch(updateProjectDomainRequest());
 
@@ -1315,42 +1332,46 @@ export const updateProjectDomain = ({ projectId, domainId, data }: $TSFixMe) => 
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(updateProjectDomainFailure(errorMessage));
         }
     };
-}
+};
 
 export const verifyProjectDomainRequest = () => {
     return {
         type: types.VERIFY_PROJECT_DOMAIN_REQUEST,
     };
-}
+};
 
 export const verifyProjectDomainSuccess = (payload: $TSFixMe) => {
     return {
         type: types.VERIFY_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
-}
+};
 
 export const verifyProjectDomainFailure = (error: $TSFixMe) => {
     return {
         type: types.VERIFY_PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetVerifyProjectDomain = () => {
     return {
         type: types.RESET_VERIFY_PROJECT_DOMAIN,
     };
-}
+};
 
-export const verifyProjectDomain = ({ projectId, domainId, data }: $TSFixMe) => {
+export const verifyProjectDomain = ({
+    projectId,
+    domainId,
+    data,
+}: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
         dispatch(verifyProjectDomainRequest());
 
@@ -1368,40 +1389,40 @@ export const verifyProjectDomain = ({ projectId, domainId, data }: $TSFixMe) => 
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(verifyProjectDomainFailure(errorMessage));
         }
     };
-}
+};
 
 export const deleteProjectDomainRequest = () => {
     return {
         type: types.DELETE_PROJECT_DOMAIN_REQUEST,
     };
-}
+};
 
 export const deleteProjectDomainSuccess = (payload: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
-}
+};
 
 export const deleteProjectDomainFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetDeleteProjectDomain = () => {
     return {
         type: types.RESET_DELETE_PROJECT_DOMAIN,
     };
-}
+};
 
 export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
@@ -1420,40 +1441,40 @@ export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(deleteProjectDomainFailure(errorMessage));
         }
     };
-}
+};
 
 export const fetchTrialReset = () => {
     return {
         type: types.RESET_FETCH_TRIAL,
     };
-}
+};
 
 export const fetchTrialRequest = () => {
     return {
         type: types.FETCH_TRIAL_REQUEST,
     };
-}
+};
 
 export const fetchTrialSuccess = (response: $TSFixMe) => {
     return {
         type: types.FETCH_TRIAL_SUCCESS,
         payload: response.data,
     };
-}
+};
 
 export const fetchTrialError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_TRIAL_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchTrial = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -1482,27 +1503,27 @@ export const fetchTrial = (projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const fetchProjectSlugRequest = () => {
     return {
         type: types.FETCH_PROJECT_SLUG_REQUEST,
     };
-}
+};
 
 export const fetchProjectSlugSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECT_SLUG_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchProjectSlugFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_PROJECT_SLUG_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchProjectSlug = (slug: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -1519,14 +1540,14 @@ export const fetchProjectSlug = (slug: $TSFixMe) => {
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
                 dispatch(fetchProjectSlugFailure(errorMsg));
             }
         );
 
         return promise;
     };
-}
+};

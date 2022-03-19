@@ -79,38 +79,38 @@ export const searchSmsLogsError = (error: $TSFixMe) => {
 
 export const searchSmsLogs =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-        async (dispatch: $TSFixMe) => {
-            const values = {
-                filter,
-            };
-
-            dispatch(searchSmsLogsRequest());
-
-            try {
-                const response = await postApi(
-                    `sms-logs/search?skip=${skip}&limit=${limit}`,
-                    values
-                );
-
-                const data = response.data;
-
-                dispatch(searchSmsLogsSuccess(data));
-                return response;
-            } catch (error) {
-                let errorMsg;
-                if (error && error.response && error.response.data)
-                    errorMsg = error.response.data;
-                if (error && error.data) {
-                    errorMsg = error.data;
-                }
-                if (error && error.message) {
-                    errorMsg = error.message;
-                } else {
-                    errorMsg = 'Network Error';
-                }
-                dispatch(searchSmsLogsError(errors(errorMsg)));
-            }
+    async (dispatch: $TSFixMe) => {
+        const values = {
+            filter,
         };
+
+        dispatch(searchSmsLogsRequest());
+
+        try {
+            const response = await postApi(
+                `sms-logs/search?skip=${skip}&limit=${limit}`,
+                values
+            );
+
+            const data = response.data;
+
+            dispatch(searchSmsLogsSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(searchSmsLogsError(errors(errorMsg)));
+        }
+    };
 
 // Delete All Sms Logs
 export const deleteSmsLogsRequest = () => {
@@ -165,21 +165,21 @@ export const fetchSmsLogStatusRequest = (promise: $TSFixMe) => {
         type: types.FETCH_SMSLOG_STATUS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const fetchSmsLogStatusError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_SMSLOG_STATUS_FAILED,
         payload: error,
     };
-}
+};
 
 export const fetchSmsLogStatusSuccess = (smsLogStatus: $TSFixMe) => {
     return {
         type: types.FETCH_SMSLOG_STATUS_SUCCESS,
         payload: smsLogStatus,
     };
-}
+};
 
 export const resetFetchSmsLogStatus = () => {
     return {
@@ -220,21 +220,21 @@ export const changeSmsLogStatusRequest = (promise: $TSFixMe) => {
         type: types.CHANGE_SMSLOG_STATUS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const changeSmsLogStatusError = (error: $TSFixMe) => {
     return {
         type: types.CHANGE_SMSLOG_STATUS_FAILED,
         payload: error,
     };
-}
+};
 
 export const changeSmsLogStatusSuccess = (smsLogStatus: $TSFixMe) => {
     return {
         type: types.CHANGE_SMSLOG_STATUS_SUCCESS,
         payload: smsLogStatus,
     };
-}
+};
 
 export const resetConfirmSmsLogStatus = () => {
     return {

@@ -30,17 +30,17 @@ export const openSideNav = () => {
     return {
         type: 'OPEN_SIDENAV',
     };
-}
+};
 
 export const closeSideNav = () => {
     return {
         type: 'CLOSE_SIDENAV',
     };
-}
+};
 
 export const toggleProjectSettingsMore = (payload: $TSFixMe) => {
     return {
         type: types.TOGGLE_PROJECT_SETTINGS_MORE,
         payload,
     };
-}
+};

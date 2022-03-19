@@ -12,7 +12,7 @@ export const requestLogout = () => {
         isFetching: true,
         isAuthenticated: true,
     };
-}
+};
 
 export const receiveLogout = () => {
     return {
@@ -20,7 +20,7 @@ export const receiveLogout = () => {
         isFetching: false,
         isAuthenticated: false,
     };
-}
+};
 
 // Logs the user out
 export const logoutUser = () => {
@@ -34,4 +34,4 @@ export const logoutUser = () => {
 
         window.location = ACCOUNTS_URL;
     };
-}
+};

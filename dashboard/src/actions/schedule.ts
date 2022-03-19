@@ -7,28 +7,28 @@ export const resetSchedule = () => {
     return {
         type: types.SCHEDULE_FETCH_RESET,
     };
-}
+};
 
 export const scheduleRequest = (promise: $TSFixMe) => {
     return {
         type: types.SCHEDULE_FETCH_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const scheduleError = (error: $TSFixMe) => {
     return {
         type: types.SCHEDULE_FETCH_FAILED,
         payload: error,
     };
-}
+};
 
 export const scheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.SCHEDULE_FETCH_SUCCESS,
         payload: schedule,
     };
-}
+};
 
 // Calls the API to fetch Schedules.
 
@@ -71,28 +71,28 @@ export const resetSubProjectSchedule = () => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_RESET,
     };
-}
+};
 
 export const subProjectScheduleRequest = (promise: $TSFixMe) => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const subProjectScheduleError = (error: $TSFixMe) => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_FAILED,
         payload: error,
     };
-}
+};
 
 export const subProjectScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_SUCCESS,
         payload: schedule,
     };
-}
+};
 
 // Calls the API to fetch Schedules.
 
@@ -123,34 +123,34 @@ export const fetchSubProjectSchedules = (projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const resetProjectSchedule = () => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_RESET,
     };
-}
+};
 
 export const projectScheduleRequest = (promise: $TSFixMe) => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const projectScheduleError = (error: $TSFixMe) => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_FAILED,
         payload: error,
     };
-}
+};
 
 export const projectScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_SUCCESS,
         payload: schedule,
     };
-}
+};
 
 // Gets list of schedules in a project.
 
@@ -195,21 +195,21 @@ export const createScheduleRequest = () => {
     return {
         type: types.CREATE_SCHEDULE_REQUEST,
     };
-}
+};
 
 export const createScheduleError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_SCHEDULE_FAILED,
         payload: error,
     };
-}
+};
 
 export const createScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.CREATE_SCHEDULE_SUCCESS,
         payload: schedule,
     };
-}
+};
 
 // Calls the API to create the schedule.
 
@@ -239,7 +239,7 @@ export const createSchedule = (projectId: $TSFixMe, values: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 // Rename a Schedule
 
@@ -247,28 +247,28 @@ export const renameScheduleReset = () => {
     return {
         type: types.RENAME_SCHEDULE_RESET,
     };
-}
+};
 
 export const renameScheduleRequest = () => {
     return {
         type: types.RENAME_SCHEDULE_REQUEST,
         payload: true,
     };
-}
+};
 
 export const renameScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.RENAME_SCHEDULE_SUCCESS,
         payload: schedule.data,
     };
-}
+};
 
 export const renameScheduleError = (error: $TSFixMe) => {
     return {
         type: types.RENAME_SCHEDULE_FAILED,
         payload: error,
     };
-}
+};
 
 export function renameSchedule(
     projectId: $TSFixMe,
@@ -315,35 +315,35 @@ export const deleteScheduleReset = () => {
     return {
         type: types.DELETE_SCHEDULE_RESET,
     };
-}
+};
 
 export const deleteScheduleRequest = () => {
     return {
         type: types.DELETE_SCHEDULE_REQUEST,
         payload: true,
     };
-}
+};
 
 export const deleteScheduleSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.DELETE_SCHEDULE_SUCCESS,
         payload: schedule.data,
     };
-}
+};
 
 export const deleteProjectSchedules = (projectId: $TSFixMe) => {
     return {
         type: types.DELETE_PROJECT_SCHEDULES,
         payload: projectId,
     };
-}
+};
 
 export const deleteScheduleError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SCHEDULE_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteSchedule = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -384,7 +384,7 @@ export const deleteSchedule = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 // Add Monitors to Schedule
 
@@ -392,28 +392,28 @@ export const addMonitorReset = () => {
     return {
         type: types.ADD_MONITOR_RESET,
     };
-}
+};
 
 export const addMonitorRequest = () => {
     return {
         type: types.ADD_MONITOR_REQUEST,
         payload: true,
     };
-}
+};
 
 export const addMonitorSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.ADD_MONITOR_SUCCESS,
         payload: schedule.data,
     };
-}
+};
 
 export const addMonitorError = (error: $TSFixMe) => {
     return {
         type: types.ADD_MONITOR_FAILED,
         payload: error,
     };
-}
+};
 
 export function addMonitors(
     projectId: $TSFixMe,
@@ -458,28 +458,28 @@ export const addUserReset = () => {
     return {
         type: types.ADD_USER_RESET,
     };
-}
+};
 
 export const addUserRequest = () => {
     return {
         type: types.ADD_USER_REQUEST,
         payload: true,
     };
-}
+};
 
 export const addUserSuccess = (schedule: $TSFixMe) => {
     return {
         type: types.ADD_USER_SUCCESS,
         payload: schedule.data,
     };
-}
+};
 
 export const addUserError = (error: $TSFixMe) => {
     return {
         type: types.ADD_USER_FAILED,
         payload: error,
     };
-}
+};
 
 export function addUsers(
     projectId: $TSFixMe,
@@ -527,28 +527,28 @@ export const escalationReset = () => {
     return {
         type: types.ESCALATION_RESET,
     };
-}
+};
 
 export const escalationRequest = () => {
     return {
         type: types.ESCALATION_REQUEST,
         payload: true,
     };
-}
+};
 
 export const escalationSuccess = (escalation: $TSFixMe) => {
     return {
         type: types.ESCALATION_SUCCESS,
         payload: escalation,
     };
-}
+};
 
 export const escalationError = (error: $TSFixMe) => {
     return {
         type: types.ESCALATION_FAILED,
         payload: error,
     };
-}
+};
 
 export function addEscalation(
     projectId: $TSFixMe,
@@ -617,7 +617,7 @@ export const getEscalation = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 // Implements pagination for Team Members table
 
@@ -625,19 +625,19 @@ export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
-}
+};
 
 export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
-}
+};
 
 export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
-}
+};
 
 export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -645,33 +645,33 @@ export const paginate = (type: $TSFixMe) => {
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());
     };
-}
+};
 
 export const userScheduleReset = () => {
     return {
         type: types.USER_SCHEDULE_RESET,
     };
-}
+};
 
 export const userScheduleRequest = () => {
     return {
         type: types.USER_SCHEDULE_REQUEST,
     };
-}
+};
 
 export const userScheduleSuccess = (userSchedule: $TSFixMe) => {
     return {
         type: types.USER_SCHEDULE_SUCCESS,
         payload: userSchedule,
     };
-}
+};
 
 export const userScheduleError = (error: $TSFixMe) => {
     return {
         type: types.USER_SCHEDULE_FAILED,
         payload: error,
     };
-}
+};
 
 export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -702,4 +702,4 @@ export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
 
         return promise;
     };
-}
+};

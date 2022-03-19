@@ -9,21 +9,21 @@ export const projectIncidentsRequest = (promise: $TSFixMe) => {
         type: types.PROJECT_INCIDENTS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const projectIncidentsError = (error: $TSFixMe) => {
     return {
         type: types.PROJECT_INCIDENTS_FAILED,
         payload: error,
     };
-}
+};
 
 export const projectIncidentsSuccess = (incidents: $TSFixMe) => {
     return {
         type: types.PROJECT_INCIDENTS_SUCCESS,
         payload: incidents,
     };
-}
+};
 
 export const resetProjectIncidents = () => {
     return {
@@ -129,21 +129,21 @@ export const incidentsRequest = (promise: $TSFixMe) => {
         type: types.INCIDENTS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const incidentsError = (error: $TSFixMe) => {
     return {
         type: types.INCIDENTS_FAILED,
         payload: error,
     };
-}
+};
 
 export const incidentsSuccess = (incidents: $TSFixMe) => {
     return {
         type: types.INCIDENTS_SUCCESS,
         payload: incidents,
     };
-}
+};
 
 export const resetIncidents = () => {
     return {
@@ -176,7 +176,7 @@ export const getIncidents = (projectId: $TSFixMe) => {
             }
         );
     };
-}
+};
 //get component incidents
 export function getComponentIncidents(
     projectId: $TSFixMe,
@@ -216,21 +216,21 @@ export const createIncidentRequest = (projectId: $TSFixMe) => {
         type: types.CREATE_INCIDENT_REQUEST,
         payload: projectId,
     };
-}
+};
 
 export const createIncidentError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_INCIDENT_FAILED,
         payload: error,
     };
-}
+};
 
 export const createIncidentSuccess = (incident: $TSFixMe) => {
     return {
         type: types.CREATE_INCIDENT_SUCCESS,
         payload: incident,
     };
-}
+};
 
 export const resetCreateIncident = () => {
     return {
@@ -308,21 +308,21 @@ export const incidentRequest = (promise: $TSFixMe) => {
         type: types.INCIDENT_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const incidentError = (error: $TSFixMe) => {
     return {
         type: types.INCIDENT_FAILED,
         payload: error,
     };
-}
+};
 
 export const incidentSuccess = (incident: $TSFixMe) => {
     return {
         type: types.INCIDENT_SUCCESS,
         payload: incident,
     };
-}
+};
 
 export const resetIncident = () => {
     return {
@@ -335,28 +335,28 @@ export const acknowledgeIncidentRequest = (promise: $TSFixMe) => {
         type: types.ACKNOWLEDGE_INCIDENT_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const resolveIncidentRequest = (promise: $TSFixMe) => {
     return {
         type: types.RESOLVE_INCIDENT_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const acknowledgeIncidentSuccess = (incident: $TSFixMe) => {
     return {
         type: types.ACKNOWLEDGE_INCIDENT_SUCCESS,
         payload: incident,
     };
-}
+};
 
 export const resolveIncidentSuccess = (incident: $TSFixMe) => {
     return {
         type: types.RESOLVE_INCIDENT_SUCCESS,
         payload: incident,
     };
-}
+};
 
 // Calls the API to get the incident to show
 export const getIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
@@ -387,13 +387,13 @@ export const getIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const addIncident = (incident: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch(incidentSuccess(incident));
     };
-}
+};
 // Calls the API to get the incident timeline
 export function getIncidentTimeline(
     projectId: $TSFixMe,
@@ -434,28 +434,28 @@ export const incidentTimelineRequest = (promise: $TSFixMe) => {
         type: types.INCIDENT_TIMELINE_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const incidentTimelineSuccess = (timeline: $TSFixMe) => {
     return {
         type: types.INCIDENT_TIMELINE_SUCCESS,
         payload: timeline,
     };
-}
+};
 
 export const incidentTimelineError = (error: $TSFixMe) => {
     return {
         type: types.INCIDENT_TIMELINE_FAILED,
         payload: error,
     };
-}
+};
 
 export const setActiveIncident = (incidentId: $TSFixMe) => {
     return {
         type: 'SET_ACTIVE_INCIDENT',
         payload: incidentId,
     };
-}
+};
 
 // calls the api to post acknowledgement data to the database
 export function acknowledgeIncident(
@@ -675,21 +675,21 @@ export const closeIncidentRequest = (incidentId: $TSFixMe) => {
         type: types.CLOSE_INCIDENT_REQUEST,
         payload: incidentId,
     };
-}
+};
 
 export const closeIncidentError = (error: $TSFixMe) => {
     return {
         type: types.CLOSE_INCIDENT_FAILED,
         payload: error,
     };
-}
+};
 
 export const closeIncidentSuccess = (incident: $TSFixMe) => {
     return {
         type: types.CLOSE_INCIDENT_SUCCESS,
         payload: incident,
     };
-}
+};
 
 export const closeIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
     //This function will switch to incidentId of the params beig passed.
@@ -719,7 +719,7 @@ export const closeIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 // Unresolved Incidents Section
 
@@ -728,30 +728,33 @@ export const UnresolvedIncidentsRequest = (promise: $TSFixMe) => {
         type: types.UNRESOLVED_INCIDENTS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const UnresolvedIncidentsError = (error: $TSFixMe) => {
     return {
         type: types.UNRESOLVED_INCIDENTS_FAILED,
         payload: error,
     };
-}
+};
 
 export const UnresolvedIncidentsSuccess = (incidents: $TSFixMe) => {
     return {
         type: types.UNRESOLVED_INCIDENTS_SUCCESS,
         payload: incidents,
     };
-}
+};
 
 export const resetUnresolvedIncidents = () => {
     return {
         type: types.UNRESOLVED_INCIDENTS_RESET,
     };
-}
+};
 
 // Calls the API to register a user.
-export const fetchUnresolvedIncidents = (projectId: $TSFixMe, isHome = false) => {
+export const fetchUnresolvedIncidents = (
+    projectId: $TSFixMe,
+    isHome = false
+) => {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch: $TSFixMe) {
         let promise = null;
@@ -781,7 +784,7 @@ export const fetchUnresolvedIncidents = (projectId: $TSFixMe, isHome = false) =>
             }
         );
     };
-}
+};
 
 // Calls the API to delete incidents after deleting the project
 export const deleteProjectIncidents = (projectId: $TSFixMe) => {
@@ -789,30 +792,33 @@ export const deleteProjectIncidents = (projectId: $TSFixMe) => {
         type: types.DELETE_PROJECT_INCIDENTS,
         payload: projectId,
     };
-}
+};
 
 // Internal notes and investigation notes Section
 
-export const investigationNoteRequest = (promise: $TSFixMe, updated: $TSFixMe) => {
+export const investigationNoteRequest = (
+    promise: $TSFixMe,
+    updated: $TSFixMe
+) => {
     return {
         type: types.INVESTIGATION_NOTE_REQUEST,
         payload: { promise, updated },
     };
-}
+};
 
 export const investigationNoteError = (error: $TSFixMe, updated: $TSFixMe) => {
     return {
         type: types.INVESTIGATION_NOTE_FAILED,
         payload: { error, updated },
     };
-}
+};
 
 export const investigationNoteSuccess = (incidentMessage: $TSFixMe) => {
     return {
         type: types.INVESTIGATION_NOTE_SUCCESS,
         payload: incidentMessage,
     };
-}
+};
 
 export function setInvestigationNote(
     projectId: $TSFixMe,
@@ -858,21 +864,21 @@ export const internalNoteRequest = (promise: $TSFixMe, updated: $TSFixMe) => {
         type: types.INTERNAL_NOTE_REQUEST,
         payload: { promise, updated },
     };
-}
+};
 
 export const internalNoteError = (error: $TSFixMe, updated: $TSFixMe) => {
     return {
         type: types.INTERNAL_NOTE_FAILED,
         payload: { error, updated },
     };
-}
+};
 
 export const internalNoteSuccess = (incident: $TSFixMe) => {
     return {
         type: types.INTERNAL_NOTE_SUCCESS,
         payload: incident,
     };
-}
+};
 
 export function setInternalNote(
     projectId: $TSFixMe,
@@ -933,28 +939,28 @@ export const deleteIncidentSuccess = (incidentId: $TSFixMe) => {
         type: types.DELETE_INCIDENT_SUCCESS,
         payload: incidentId,
     };
-}
+};
 
 export const deleteIncidentRequest = (incidentId: $TSFixMe) => {
     return {
         type: types.DELETE_INCIDENT_REQUEST,
         payload: incidentId,
     };
-}
+};
 
 export const deleteIncidentFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_INCIDENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const deleteIncidentReset = (error: $TSFixMe) => {
     return {
         type: types.DELETE_INCIDENT_RESET,
         payload: error,
     };
-}
+};
 
 //Delete an incident
 export const deleteIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
@@ -985,7 +991,7 @@ export const deleteIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 function hideIncidentSuccess(data: $TSFixMe) {
     return {
@@ -1031,7 +1037,7 @@ export const hideIncident = (data: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export function fetchIncidentMessages(
     projectId: $TSFixMe,
@@ -1100,33 +1106,33 @@ export const fetchIncidentMessagesSuccess = (incidentMessages: $TSFixMe) => {
         type: types.FETCH_INCIDENT_MESSAGES_SUCCESS,
         payload: incidentMessages,
     };
-}
+};
 
 export const fetchIncidentMessagesRequest = (incidentId: $TSFixMe) => {
     return {
         type: types.FETCH_INCIDENT_MESSAGES_REQUEST,
         payload: incidentId,
     };
-}
+};
 
 export const fetchIncidentMessagesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_INCIDENT_MESSAGES_FAILURE,
         payload: error,
     };
-}
+};
 
 export const resetFetchIncidentMessages = () => {
     return {
         type: types.FETCH_INCIDENT_MESSAGES_RESET,
     };
-}
+};
 export const editIncidentMessageSwitch = (index: $TSFixMe) => {
     return {
         type: types.EDIT_INCIDENT_MESSAGE_SWITCH,
         payload: index,
     };
-}
+};
 
 export function deleteIncidentMessage(
     projectId: $TSFixMe,
@@ -1185,26 +1191,28 @@ export function deleteIncidentMessage(
     };
 }
 
-export const deleteIncidentMessageSuccess = (removedIncidentMessage: $TSFixMe) => {
+export const deleteIncidentMessageSuccess = (
+    removedIncidentMessage: $TSFixMe
+) => {
     return {
         type: types.DELETE_INCIDENT_MESSAGE_SUCCESS,
         payload: removedIncidentMessage,
     };
-}
+};
 
 export const deleteIncidentMessageRequest = (incidentMessageId: $TSFixMe) => {
     return {
         type: types.DELETE_INCIDENT_MESSAGE_REQUEST,
         payload: incidentMessageId,
     };
-}
+};
 
 export const deleteIncidentMessageFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_INCIDENT_MESSAGE_FAILURE,
         payload: error,
     };
-}
+};
 
 export function updateIncident(
     projectId: $TSFixMe,

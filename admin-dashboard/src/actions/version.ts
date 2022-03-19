@@ -6,21 +6,21 @@ export const getVersionRequest = (promise: $TSFixMe) => {
         type: types.GET_VERSION_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const getVersionError = (error: $TSFixMe) => {
     return {
         type: types.GET_VERSION_FAILED,
         payload: error,
     };
-}
+};
 
 export const getVersionSuccess = (versions: $TSFixMe) => {
     return {
         type: types.GET_VERSION_SUCCESS,
         payload: versions,
     };
-}
+};
 
 export const resetGetVersion = () => {
     return {
@@ -76,4 +76,4 @@ export const getVersion = () => {
 
         return promise;
     };
-}
+};

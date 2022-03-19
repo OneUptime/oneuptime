@@ -5,21 +5,21 @@ export const deleteMsTeamsRequest = () => {
     return {
         type: types.DELETE_MS_TEAMS_REQUEST,
     };
-}
+};
 
 export const deleteMsTeamsError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_MS_TEAMS_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteMsTeamsSuccess = (deleteMsTeams: $TSFixMe) => {
     return {
         type: types.DELETE_MS_TEAMS_SUCCESS,
         payload: deleteMsTeams,
     };
-}
+};
 
 export const resetDeleteMsTeams = () => {
     return {
@@ -58,28 +58,28 @@ export const deleteMsTeams = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const getMsTeamsRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_MS_TEAMS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const getMsTeamsError = (error: $TSFixMe) => {
     return {
         type: types.GET_MS_TEAMS_FAILED,
         payload: error,
     };
-}
+};
 
 export const getMsTeamsSuccess = (msTeams: $TSFixMe) => {
     return {
         type: types.GET_MS_TEAMS_SUCCESS,
         payload: msTeams,
     };
-}
+};
 
 export const resetGetMsTeams = () => {
     return {
@@ -95,7 +95,8 @@ export function getMsTeams(
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
+                limit || 10
             }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
@@ -132,7 +133,8 @@ export function getMsTeamsMonitor(
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
             }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
@@ -164,21 +166,21 @@ export const createMsTeamsRequest = () => {
     return {
         type: types.CREATE_MS_TEAMS_REQUEST,
     };
-}
+};
 
 export const createMsTeamsError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_MS_TEAMS_FAILED,
         payload: error,
     };
-}
+};
 
 export const createMsTeamsSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.CREATE_MS_TEAMS_SUCCESS,
         payload: newWebHook,
     };
-}
+};
 
 export const resetCreateMsTeams = () => {
     return {
@@ -213,27 +215,27 @@ export const createMsTeams = (projectId: $TSFixMe, data: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const updateMsTeamsRequest = () => {
     return {
         type: types.UPDATE_MS_TEAMS_REQUEST,
     };
-}
+};
 
 export const updateMsTeamsError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_MS_TEAMS_FAILED,
         payload: error,
     };
-}
+};
 
 export const updateMsTeamsSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.UPDATE_MS_TEAMS_SUCCESS,
         payload: newWebHook,
     };
-}
+};
 
 export const resetUpdateMsTeams = () => {
     return {
@@ -281,19 +283,19 @@ export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
-}
+};
 
 export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
-}
+};
 
 export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
-}
+};
 
 export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -301,4 +303,4 @@ export const paginate = (type: $TSFixMe) => {
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());
     };
-}
+};

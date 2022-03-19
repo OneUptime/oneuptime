@@ -5,21 +5,21 @@ export const deleteSlackRequest = () => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_REQUEST,
     };
-}
+};
 
 export const deleteSlackError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteSlackSuccess = (deleteSlack: $TSFixMe) => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_SUCCESS,
         payload: deleteSlack,
     };
-}
+};
 
 export const resetDeleteSlack = () => {
     return {
@@ -58,28 +58,28 @@ export const deleteSlack = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const getSlackRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_SLACK_WEBHOOK_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const getSlackError = (error: $TSFixMe) => {
     return {
         type: types.GET_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
-}
+};
 
 export const getSlackSuccess = (msTeams: $TSFixMe) => {
     return {
         type: types.GET_SLACK_WEBHOOK_SUCCESS,
         payload: msTeams,
     };
-}
+};
 
 export const resetGetSlack = () => {
     return {
@@ -87,11 +87,16 @@ export const resetGetSlack = () => {
     };
 };
 
-export const getSlack = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+export const getSlack = (
+    projectId: $TSFixMe,
+    skip: $TSFixMe,
+    limit: $TSFixMe
+) => {
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
+                limit || 10
             }&type=slack`
         );
         dispatch(getSlackRequest(promise));
@@ -117,7 +122,7 @@ export const getSlack = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =
 
         return promise;
     };
-}
+};
 
 export function getSlackMonitor(
     projectId: $TSFixMe,
@@ -128,7 +133,8 @@ export function getSlackMonitor(
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
             }&type=slack`
         );
         dispatch(getSlackRequest(promise));
@@ -160,21 +166,21 @@ export const createSlackRequest = () => {
     return {
         type: types.CREATE_SLACK_WEBHOOK_REQUEST,
     };
-}
+};
 
 export const createSlackError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
-}
+};
 
 export const createSlackSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.CREATE_SLACK_WEBHOOK_SUCCESS,
         payload: newWebHook,
     };
-}
+};
 
 export const resetCreateSlack = () => {
     return {
@@ -209,27 +215,27 @@ export const createSlack = (projectId: $TSFixMe, data: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const updateSlackRequest = () => {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_REQUEST,
     };
-}
+};
 
 export const updateSlackError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_FAILED,
         payload: error,
     };
-}
+};
 
 export const updateSlackSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_SUCCESS,
         payload: newWebHook,
     };
-}
+};
 
 export const resetUpdateSlack = () => {
     return {
@@ -277,19 +283,19 @@ export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
-}
+};
 
 export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
-}
+};
 
 export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
-}
+};
 
 export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -297,4 +303,4 @@ export const paginate = (type: $TSFixMe) => {
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());
     };
-}
+};

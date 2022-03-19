@@ -9,21 +9,21 @@ export const fetchLicenseRequest = (promise: $TSFixMe) => {
         type: types.FETCH_LICENSE_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const fetchLicenseError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_LICENSE_FAILED,
         payload: error,
     };
-}
+};
 
 export const fetchLicenseSuccess = (license: $TSFixMe) => {
     return {
         type: types.FETCH_LICENSE_SUCCESS,
         payload: license,
     };
-}
+};
 
 export const resetFetchLicense = () => {
     return {
@@ -70,21 +70,21 @@ export const confirmLicenseRequest = (promise: $TSFixMe) => {
         type: types.CONFIRM_LICENSE_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const confirmLicenseError = (error: $TSFixMe) => {
     return {
         type: types.CONFIRM_LICENSE_FAILED,
         payload: error,
     };
-}
+};
 
 export const confirmLicenseSuccess = (license: $TSFixMe) => {
     return {
         type: types.CONFIRM_LICENSE_SUCCESS,
         payload: license,
     };
-}
+};
 
 export const resetConfirmLicense = () => {
     return {

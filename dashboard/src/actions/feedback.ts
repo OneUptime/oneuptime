@@ -19,21 +19,21 @@ export const createFeedbackRequest = () => {
     return {
         type: types.CREATE_FEEDBACK_REQUEST,
     };
-}
+};
 
 export const createFeedbackError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_FEEDBACK_FAILED,
         payload: error,
     };
-}
+};
 
 export const createFeedbackSuccess = (project: $TSFixMe) => {
     return {
         type: types.CREATE_FEEDBACK_SUCCESS,
         payload: project,
     };
-}
+};
 
 export const resetCreateFeedback = () => {
     return {

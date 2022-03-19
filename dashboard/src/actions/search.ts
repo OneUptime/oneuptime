@@ -27,19 +27,19 @@ export const searchRequest = () => {
     return {
         type: POPULATE_SEARCH_REQUEST,
     };
-}
+};
 export const searchSuccess = (payload: $TSFixMe) => {
     return {
         type: POPULATE_SEARCH_SUCCESS,
         payload,
     };
-}
+};
 export const searchFailure = (payload: $TSFixMe) => {
     return {
         type: POPULATE_SEARCH_FAILURE,
         payload,
     };
-}
+};
 export const search = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch(searchRequest());
@@ -66,4 +66,4 @@ export const search = (projectId: $TSFixMe, values: $TSFixMe) => {
 
         return promise;
     };
-}
+};

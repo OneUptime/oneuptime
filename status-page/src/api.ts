@@ -27,7 +27,7 @@ export const postApi = (url: $TSFixMe, data: $TSFixMe) => {
             });
     });
     return promise;
-}
+};
 
 export const getApi = (url: $TSFixMe) => {
     if (User.isLoggedIn()) {
@@ -48,7 +48,7 @@ export const getApi = (url: $TSFixMe) => {
             });
     });
     return promise;
-}
+};
 
 export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn()) {
@@ -70,4 +70,4 @@ export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
             });
     });
     return promise;
-}
+};

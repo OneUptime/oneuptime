@@ -6,28 +6,28 @@ export const resetScripts = (data: $TSFixMe) => {
         type: types.RESET_AUTOMATED_SCRIPT,
         payload: data,
     };
-}
+};
 
 export const createAutomatedScriptRequest = (data: $TSFixMe) => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_REQUEST,
         payload: data,
     };
-}
+};
 
 export const createAutomatedScriptSuccess = (data: $TSFixMe) => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const createAutomatedScriptFailure = (error: $TSFixMe) => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const createAutomatedScript = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -60,28 +60,28 @@ export const createAutomatedScript = (projectId: $TSFixMe, data: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const updateAutomatedScriptRequest = (data: $TSFixMe) => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_REQUEST,
         payload: data,
     };
-}
+};
 
 export const updateAutomatedScriptSuccess = (data: $TSFixMe) => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const updateAutomatedScriptFailure = (error: $TSFixMe) => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
     };
-}
+};
 
 export function updateAutomatedScript(
     projectId: $TSFixMe,
@@ -128,21 +128,21 @@ export const fetchSingleAutomatedScriptSuccess = (data: $TSFixMe) => {
         type: types.FETCH_SINGLE_SCRIPT_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const fetchSingleAutomatedScriptRequest = (data: $TSFixMe) => {
     return {
         type: types.FETCH_SINGLE_SCRIPT_REQUEST,
         payload: data,
     };
-}
+};
 
 export const fetchSingleAutomatedScriptFailure = (data: $TSFixMe) => {
     return {
         type: types.FETCH_SINGLE_SCRIPT_FAILURE,
         payload: data,
     };
-}
+};
 
 export function fetchSingleAutomatedScript(
     projectId: $TSFixMe,
@@ -187,13 +187,13 @@ export const fetchAutomatedScriptSuccess = (scripts: $TSFixMe) => {
         type: types.FETCH_AUTOMATED_SCRIPT_SUCCESS,
         payload: scripts,
     };
-}
+};
 export const fetchAutomatedScriptFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchAutomatedScript(
     projectId: $TSFixMe,
@@ -232,19 +232,19 @@ export const runAutomatedScriptRequest = () => {
     return {
         type: types.RUN_AUTOMATED_SCRIPT_REQUEST,
     };
-}
+};
 export const runAutomatedScriptFailure = (error: $TSFixMe) => {
     return {
         type: types.RUN_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
     };
-}
+};
 export const runAutomatedScriptSuccess = (data: $TSFixMe) => {
     return {
         type: types.RUN_AUTOMATED_SCRIPT_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const runScript = (projectId: $TSFixMe, automatedScriptId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -276,7 +276,7 @@ export const runScript = (projectId: $TSFixMe, automatedScriptId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 const deleteAutomatedScriptSuccess = (data: $TSFixMe) => {
     return {

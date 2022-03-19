@@ -25,7 +25,7 @@ export const RenderIfAdmin = (props: $TSFixMe) => {
     }
 
     return renderItems;
-}
+};
 
 function mapStateToProps(state: $TSFixMe) {
     return {

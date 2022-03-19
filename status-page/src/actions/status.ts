@@ -567,26 +567,26 @@ export const fetchFutureEvents =
         theme: $TSFixMe,
         limit: $TSFixMe
     ) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(futureEventsRequest());
-                const response = await getApi(
-                    `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
-                );
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(futureEventsRequest());
+            const response = await getApi(
+                `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
+            );
 
-                dispatch(futureEventsSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(futureEventsFailure(errorMsg));
-            }
-        };
+            dispatch(futureEventsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(futureEventsFailure(errorMsg));
+        }
+    };
 
 export const pastEventsRequest = () => ({
     type: types.PAST_EVENTS_REQUEST,
@@ -610,26 +610,26 @@ export const fetchPastEvents =
         theme: $TSFixMe,
         limit: $TSFixMe
     ) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(pastEventsRequest());
-                const response = await getApi(
-                    `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
-                );
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(pastEventsRequest());
+            const response = await getApi(
+                `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
+            );
 
-                dispatch(pastEventsSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(pastEventsFailure(errorMsg));
-            }
-        };
+            dispatch(pastEventsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(pastEventsFailure(errorMsg));
+        }
+    };
 
 export const notmonitoredDays = (
     monitorId: $TSFixMe,
@@ -779,26 +779,26 @@ export const fetchMoreFutureEvents =
         skip: $TSFixMe,
         limit: $TSFixMe
     ) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(moreFutureEventsRequest());
-                const response = await getApi(
-                    `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
-                );
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(moreFutureEventsRequest());
+            const response = await getApi(
+                `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
+            );
 
-                dispatch(moreFutureEventsSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(moreFutureEventsFailure(errorMsg));
-            }
-        };
+            dispatch(moreFutureEventsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(moreFutureEventsFailure(errorMsg));
+        }
+    };
 
 export const morePastEventsRequest = () => ({
     type: types.MORE_PAST_EVENTS_REQUEST,
@@ -816,26 +816,26 @@ export const morePastEventsFailure = (error: $TSFixMe) => ({
 
 export const fetchMorePastEvents =
     (projectId: $TSFixMe, statusPageSlug: $TSFixMe, skip: $TSFixMe) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(morePastEventsRequest());
-                const response = await getApi(
-                    `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
-                );
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(morePastEventsRequest());
+            const response = await getApi(
+                `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
+            );
 
-                dispatch(morePastEventsSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(morePastEventsFailure(errorMsg));
-            }
-        };
+            dispatch(morePastEventsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(morePastEventsFailure(errorMsg));
+        }
+    };
 
 export const selectedProbe = (val: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -844,7 +844,7 @@ export const selectedProbe = (val: $TSFixMe) => {
             payload: val,
         });
     };
-}
+};
 
 // Fetch Monitor Statuses list
 export function fetchMonitorStatuses(
@@ -896,21 +896,21 @@ export const fetchMonitorStatusesRequest = (id: $TSFixMe) => {
         type: types.FETCH_MONITOR_STATUSES_REQUEST,
         payload: id,
     };
-}
+};
 
 export const fetchMonitorStatusesSuccess = (monitorStatuses: $TSFixMe) => {
     return {
         type: types.FETCH_MONITOR_STATUSES_SUCCESS,
         payload: monitorStatuses,
     };
-}
+};
 
 export const fetchMonitorStatusesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_MONITOR_STATUSES_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchMonitorLogs(
     projectId: $TSFixMe,
@@ -979,21 +979,21 @@ export const fetchEventRequest = () => {
     return {
         type: types.FETCH_EVENT_REQUEST,
     };
-}
+};
 
 export const fetchEventSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_EVENT_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchEventFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_EVENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchEvent = (projectId: $TSFixMe, scheduledEventId: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
@@ -1010,35 +1010,35 @@ export const fetchEvent = (projectId: $TSFixMe, scheduledEventId: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchEventFailure(errorMsg));
         }
     };
-}
+};
 
 // Handle scheduled event note
 export const fetchEventNoteRequest = () => {
     return {
         type: types.FETCH_EVENT_NOTES_REQUEST,
     };
-}
+};
 
 export const fetchEventNoteSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_EVENT_NOTES_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchEventNoteFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_EVENT_NOTES_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchEventNote(
     projectId: $TSFixMe,
@@ -1059,10 +1059,10 @@ export function fetchEventNote(
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchEventNoteFailure(errorMsg));
         }
     };
@@ -1072,21 +1072,21 @@ export const moreEventNoteRequest = () => {
     return {
         type: types.MORE_EVENT_NOTE_REQUEST,
     };
-}
+};
 
 export const moreEventNoteSuccess = (payload: $TSFixMe) => {
     return {
         type: types.MORE_EVENT_NOTE_SUCCESS,
         payload,
     };
-}
+};
 
 export const moreEventNoteFailure = (error: $TSFixMe) => {
     return {
         type: types.MORE_EVENT_NOTE_FAILURE,
         payload: error,
     };
-}
+};
 
 export function moreEventNote(
     projectId: $TSFixMe,
@@ -1108,10 +1108,10 @@ export function moreEventNote(
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(moreEventNoteFailure(errorMsg));
         }
     };
@@ -1122,21 +1122,21 @@ export const fetchIncidentRequest = () => {
     return {
         type: types.FETCH_INCIDENT_REQUEST,
     };
-}
+};
 
 export const fetchIncidentSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_INCIDENT_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchIncidentFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_INCIDENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
@@ -1152,34 +1152,34 @@ export const fetchIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchIncidentFailure(errorMsg));
         }
     };
-}
+};
 
 export const fetchIncidentNotesRequest = () => {
     return {
         type: types.FETCH_INCIDENT_NOTES_REQUEST,
     };
-}
+};
 
 export const fetchIncidentNotesSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_INCIDENT_NOTES_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchIncidentNotesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_INCIDENT_NOTES_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchIncidentNotes(
     projectId: $TSFixMe,
@@ -1200,10 +1200,10 @@ export function fetchIncidentNotes(
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchIncidentNotesFailure(errorMsg));
         }
     };
@@ -1213,21 +1213,21 @@ export const moreIncidentNotesRequest = () => {
     return {
         type: types.MORE_INCIDENT_NOTES_REQUEST,
     };
-}
+};
 
 export const moreIncidentNotesSuccess = (payload: $TSFixMe) => {
     return {
         type: types.MORE_INCIDENT_NOTES_SUCCESS,
         payload,
     };
-}
+};
 
 export const moreIncidentNotesFailure = (error: $TSFixMe) => {
     return {
         type: types.MORE_INCIDENT_NOTES_FAILURE,
         payload: error,
     };
-}
+};
 
 export function moreIncidentNotes(
     projectId: $TSFixMe,
@@ -1249,10 +1249,10 @@ export function moreIncidentNotes(
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(moreIncidentNotesFailure(errorMsg));
         }
     };
@@ -1262,21 +1262,21 @@ export const fetchLastIncidentTimelineRequest = () => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINE_REQUEST,
     };
-}
+};
 
 export const fetchLastIncidentTimelineSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINE_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchLastIncidentTimelineFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINE_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchLastIncidentTimeline(
     projectId: $TSFixMe,
@@ -1296,10 +1296,10 @@ export function fetchLastIncidentTimeline(
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchLastIncidentTimelineFailure(errorMsg));
         }
     };
@@ -1309,21 +1309,21 @@ export const fetchLastIncidentTimelinesRequest = () => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINES_REQUEST,
     };
-}
+};
 
 export const fetchLastIncidentTimelinesSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINES_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchLastIncidentTimelinesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchLastIncidentTimelines(
     projectId: $TSFixMe,
@@ -1343,10 +1343,10 @@ export function fetchLastIncidentTimelines(
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchLastIncidentTimelinesFailure(errorMsg));
         }
     };
@@ -1358,27 +1358,27 @@ export const showEventCard = (payload: $TSFixMe) => {
         type: types.SHOW_EVENT_CARD,
         payload,
     };
-}
+};
 
 export const getAnnouncementsRequest = () => {
     return {
         type: types.FETCH_ANNOUNCEMENTS_REQUEST,
     };
-}
+};
 
 export const getAnnouncementsSuccess = (data: $TSFixMe) => {
     return {
         type: types.FETCH_ANNOUNCEMENTS_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const getAnnouncementsFailure = (data: $TSFixMe) => {
     return {
         type: types.FETCH_ANNOUNCEMENTS_FAILURE,
         payload: data,
     };
-}
+};
 
 export function getAnnouncements(
     projectId: $TSFixMe,
@@ -1400,10 +1400,10 @@ export function getAnnouncements(
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
                 dispatch(getAnnouncementsFailure(errorMsg));
             }
         );
@@ -1416,20 +1416,20 @@ export const getSingleAnnouncementSuccess = (data: $TSFixMe) => {
         type: types.FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const getSingleAnnouncementRequest = () => {
     return {
         type: types.FETCH_SINGLE_ANNOUNCEMENTS_REQUEST,
     };
-}
+};
 
 export const getSingleAnnouncementFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_SINGLE_ANNOUNCEMENTS_FAILURE,
         payload: error,
     };
-}
+};
 
 export function getSingleAnnouncement(
     projectId: $TSFixMe,
@@ -1450,10 +1450,10 @@ export function getSingleAnnouncement(
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
                 dispatch(getSingleAnnouncementFailure(errorMsg));
             }
         );
@@ -1465,21 +1465,21 @@ export const fetchAnnouncementLogsRequest = () => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_REQUEST,
     };
-}
+};
 
 export const fetchAnnouncementLogsSuccess = (data: $TSFixMe) => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const fetchAnnouncementLogsFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchAnnouncementLogs(
     projectId: $TSFixMe,
@@ -1519,21 +1519,21 @@ export const calculateTimeRequest = (monitorId: $TSFixMe) => {
         type: types.CALCULATE_TIME_REQUEST,
         payload: monitorId,
     };
-}
+};
 
 export const calculateTimeSuccess = (payload: $TSFixMe) => {
     return {
         type: types.CALCULATE_TIME_SUCCESS,
         payload,
     };
-}
+};
 
 export const calculateTimeFailure = (error: $TSFixMe) => {
     return {
         type: types.CALCULATE_TIME_FAILURE,
         payload: error,
     };
-}
+};
 
 export function calculateTime(
     statuses: $TSFixMe,
@@ -1575,21 +1575,21 @@ export const fetchTweetsRequest = (monitorId: $TSFixMe) => {
         type: types.FETCH_TWEETS_REQUEST,
         payload: monitorId,
     };
-}
+};
 
 export const fetchTweetsSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_TWEETS_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchTweetsFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_TWEETS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchTweets = (handle: $TSFixMe, projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -1618,27 +1618,27 @@ export const fetchTweets = (handle: $TSFixMe, projectId: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const fetchExternalStatusPagesRequest = () => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_REQUEST,
     };
-}
+};
 
 export const fetchExternalStatusPagesSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchExternalStatusPagesFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
         payload: error,
     };
-}
+};
 
 export function fetchExternalStatusPages(
     projectId: $TSFixMe,
@@ -1676,4 +1676,4 @@ export const translateLanguage = (payload: $TSFixMe) => {
         type: types.TRANSLATE_LANGUAGE,
         payload,
     };
-}
+};

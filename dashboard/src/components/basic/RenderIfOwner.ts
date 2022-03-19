@@ -22,7 +22,7 @@ export const RenderIfOwner = (props: $TSFixMe) => {
     }
 
     return renderItems;
-}
+};
 
 function mapStateToProps(state: $TSFixMe) {
     return {

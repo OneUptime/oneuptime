@@ -8,39 +8,39 @@ export const getInvoiceRequest = (promise: $TSFixMe) => {
         type: types.GET_INVOICE_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const getInvoiceError = (error: $TSFixMe) => {
     return {
         type: types.GET_INVOICE_FAILED,
         payload: error,
     };
-}
+};
 
 export const getInvoiceSuccess = (invoices: $TSFixMe) => {
     return {
         type: types.GET_INVOICE_SUCCESS,
         payload: invoices,
     };
-}
+};
 
 export const getInvoiceReset = () => {
     return {
         type: types.GET_INVOICE_RESET,
     };
-}
+};
 
 export const incrementNextCount = () => {
     return {
         type: types.INCREMENT_NEXT_COUNT,
     };
-}
+};
 
 export const decrementNextCount = () => {
     return {
         type: types.DECREMENT_NEXT_COUNT,
     };
-}
+};
 
 // Get invoice from the backend
 export function getInvoice(

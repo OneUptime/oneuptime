@@ -15,55 +15,55 @@ export const signupError = (error: $TSFixMe) => {
         type: types.SIGNUP_FAILED,
         payload: error,
     };
-}
+};
 
 export const saveUserState = (values: $TSFixMe) => {
     return {
         type: types.SAVE_USER_STATE,
         payload: values,
     };
-}
+};
 
 export const savePlanId = (planId: $TSFixMe) => {
     return {
         type: types.SAVE_PLAN_ID,
         payload: planId,
     };
-}
+};
 
 export const saveCardState = (values: $TSFixMe) => {
     return {
         type: types.SAVE_CARD_STATE,
         payload: values,
     };
-}
+};
 
 export const saveCompanyState = (values: $TSFixMe) => {
     return {
         type: types.SAVE_COMPANY_STATE,
         payload: values,
     };
-}
+};
 
 export const signUpRequest = (promise: $TSFixMe) => {
     return {
         type: types.SIGNUP_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const signUpReset = () => {
     return {
         type: types.RESET_SIGNUP,
     };
-}
+};
 
 export const signupSuccess = (user: $TSFixMe) => {
     return {
         type: types.SIGNUP_SUCCESS,
         payload: user,
     };
-}
+};
 
 export const resetSignup = () => {
     return {
@@ -113,7 +113,7 @@ export const signupUser = (values: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 //np payload for inc and dec action creators.
 export const incrementStep = () => {
@@ -143,27 +143,27 @@ export const isUserInvitedRequest = (promise: $TSFixMe) => {
         type: types.IS_USER_INVITED_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const isUserInvitedReset = () => {
     return {
         type: types.IS_USER_INVITED_RESET,
     };
-}
+};
 
 export const isUserInvitedError = (error: $TSFixMe) => {
     return {
         type: types.IS_USER_INVITED_RESET,
         payload: error,
     };
-}
+};
 
 export const isUserInvitedSuccess = (data: $TSFixMe) => {
     return {
         type: types.IS_USER_INVITED_SUCCESS,
         payload: data,
     };
-}
+};
 
 export const resetIsUserInvited = () => {
     return {
@@ -197,28 +197,28 @@ export const isUserInvited = (values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const addCardRequest = (promise: $TSFixMe) => {
     return {
         type: types.ADD_CARD_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const addCardFailed = (error: $TSFixMe) => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
     };
-}
+};
 
 export const addCardSuccess = (card: $TSFixMe) => {
     return {
         type: types.ADD_CARD_SUCCESS,
         payload: card,
     };
-}
+};
 
 export const addCard = (data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -246,14 +246,14 @@ export const addCard = (data: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const getEmailSuccess = (email: $TSFixMe) => {
     return {
         type: types.GET_EMAIL_FROM_TOKEN,
         payload: email,
     };
-}
+};
 
 export const getEmailFromToken = (token: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -277,4 +277,4 @@ export const getEmailFromToken = (token: $TSFixMe) => {
             }
         );
     };
-}
+};

@@ -7,21 +7,21 @@ export const changePasswordRequest = (promise: $TSFixMe) => {
         type: types.CHANGEPASSWORD_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const changePasswordError = (error: $TSFixMe) => {
     return {
         type: types.CHANGEPASSWORD_FAILED,
         payload: error,
     };
-}
+};
 
 export const changePasswordSuccess = (values: $TSFixMe) => {
     return {
         type: types.CHANGEPASSWORD_SUCCESS,
         payload: values,
     };
-}
+};
 
 export const resetChangePassword = () => {
     return {
@@ -54,4 +54,4 @@ export const changePassword = (values: $TSFixMe) => {
             }
         );
     };
-}
+};

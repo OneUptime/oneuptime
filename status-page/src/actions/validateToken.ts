@@ -12,14 +12,14 @@ export const validateTokenRequest = (promise: $TSFixMe) => {
         type: types.VALIDATE_TOKEN_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const validateTokenError = (error: $TSFixMe) => {
     return {
         type: types.VALIDATE_TOKEN_FAILED,
         payload: error,
     };
-}
+};
 
 export const validateTokenSuccess = (accessToken: $TSFixMe) => {
     sessionStorage.setItem('accessToken', accessToken);
@@ -28,7 +28,7 @@ export const validateTokenSuccess = (accessToken: $TSFixMe) => {
         type: types.VALIDATE_TOKEN_SUCCESS,
         payload: accessToken,
     };
-}
+};
 
 export const resetvalidateToken = () => ({
     type: types.RESET_VALIDATE_TOKEN,
@@ -65,4 +65,4 @@ export const validateToken = (token: $TSFixMe) => {
 
         return promise;
     };
-}
+};

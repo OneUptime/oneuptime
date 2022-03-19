@@ -28,9 +28,9 @@ export const generateRandomBusinessEmail = () => {
     return `${Math.random().toString(36).substring(7)}@${Math.random()
         .toString(36)
         .substring(5)}.com`;
-}
+};
 export const generateSecondRandomBusinessEmail = () => {
     return `${Math.random().toString(26).substring(7)}@${Math.random()
         .toString(36)
         .substring(5)}.com`;
-}
+};

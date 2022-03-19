@@ -8,21 +8,21 @@ export const subProjectsRequest = (promise: $TSFixMe) => {
         type: types.SUBPROJECTS_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const subProjectsError = (error: $TSFixMe) => {
     return {
         type: types.SUBPROJECTS_FAILED,
         payload: error,
     };
-}
+};
 
 export const subProjectsSuccess = (subProjects: $TSFixMe) => {
     return {
         type: types.SUBPROJECTS_SUCCESS,
         payload: subProjects,
     };
-}
+};
 
 export const resetSubProjects = () => {
     return {
@@ -65,27 +65,27 @@ export const getSubProjects = (projectId: $TSFixMe, skip = 0, limit = 10) => {
 
         return promise;
     };
-}
+};
 
 export const createSubProjectRequest = () => {
     return {
         type: types.CREATE_SUBPROJECT_REQUEST,
     };
-}
+};
 
 export const createSubProjectError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_SUBPROJECT_FAILED,
         payload: error,
     };
-}
+};
 
 export const createSubProjectSuccess = (subProject: $TSFixMe) => {
     return {
         type: types.CREATE_SUBPROJECT_SUCCESS,
         payload: subProject,
     };
-}
+};
 
 export const resetCreateSubProject = () => {
     return {
@@ -103,7 +103,7 @@ export const createNewSubProjectReset = () => {
     return function (dispatch: $TSFixMe) {
         dispatch(resetCreateNewSubProject());
     };
-}
+};
 
 export function createSubProject(
     projectId: $TSFixMe,
@@ -144,33 +144,33 @@ export const resetSubProjectTokenReset = () => {
     return {
         type: types.RESET_SUBPROJECT_TOKEN_RESET,
     };
-}
+};
 
 export const resetSubProjectTokenRequest = () => {
     return {
         type: types.RESET_SUBPROJECT_TOKEN_REQUEST,
     };
-}
+};
 
 export const resetSubProjectTokenSuccess = (subProject: $TSFixMe) => {
     return {
         type: types.RESET_SUBPROJECT_TOKEN_SUCCESS,
         payload: subProject.data,
     };
-}
+};
 
 export const resetSubProjectTokenError = (error: $TSFixMe) => {
     return {
         type: types.RESET_SUBPROJECT_TOKEN_FAILED,
         payload: error,
     };
-}
+};
 
 export const resetSubProjectKeyReset = () => {
     return function (dispatch: $TSFixMe) {
         dispatch(resetSubProjectTokenReset());
     };
-}
+};
 
 export const resetSubProjectToken = (subProjectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -199,39 +199,39 @@ export const resetSubProjectToken = (subProjectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const renameSubProjectReset = () => {
     return {
         type: types.RENAME_SUBPROJECT_RESET,
     };
-}
+};
 
 export const renameSubProjectRequest = () => {
     return {
         type: types.RENAME_SUBPROJECT_REQUEST,
     };
-}
+};
 
 export const renameSubProjectSuccess = (project: $TSFixMe) => {
     return {
         type: types.RENAME_SUBPROJECT_SUCCESS,
         payload: project.data,
     };
-}
+};
 
 export const renameSubProjectError = (error: $TSFixMe) => {
     return {
         type: types.RENAME_SUBPROJECT_FAILED,
         payload: error,
     };
-}
+};
 
 export const resetRenameSubProject = () => {
     return function (dispatch: $TSFixMe) {
         dispatch(renameSubProjectReset());
     };
-}
+};
 
 export function renameSubProject(
     projectId: $TSFixMe,
@@ -273,35 +273,38 @@ export const deleteSubProjectRequest = () => {
     return {
         type: types.DELETE_SUBPROJECT_REQUEST,
     };
-}
+};
 
 export const deleteSubProjectSuccess = (subProjectId: $TSFixMe) => {
     return {
         type: types.DELETE_SUBPROJECT_SUCCESS,
         payload: subProjectId,
     };
-}
+};
 
 export const deleteSubProjectError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SUBPROJECT_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteSubProjectReset = () => {
     return {
         type: types.DELETE_SUBPROJECT_RESET,
     };
-}
+};
 
 export const resetDeleteSubProject = () => {
     return function (dispatch: $TSFixMe) {
         dispatch(deleteSubProjectReset());
     };
-}
+};
 
-export const deleteSubProject = (projectId: $TSFixMe, subProjectId: $TSFixMe) => {
+export const deleteSubProject = (
+    projectId: $TSFixMe,
+    subProjectId: $TSFixMe
+) => {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`project/${projectId}/${subProjectId}`, {
             subProjectId,
@@ -333,7 +336,7 @@ export const deleteSubProject = (projectId: $TSFixMe, subProjectId: $TSFixMe) =>
 
         return promise;
     };
-}
+};
 
 // Calls the API to delete team member.
 
@@ -341,21 +344,21 @@ export const exitSubProjectRequest = () => {
     return {
         type: types.EXIT_SUBPROJECT_REQUEST,
     };
-}
+};
 
 export const exitSubProjectSuccess = (userId: $TSFixMe) => {
     return {
         type: types.EXIT_SUBPROJECT_SUCCESS,
         payload: userId,
     };
-}
+};
 
 export const exitSubProjectError = (error: $TSFixMe) => {
     return {
         type: types.EXIT_SUBPROJECT_FAILED,
         payload: error,
     };
-}
+};
 
 export function exitSubProject(
     projectId: $TSFixMe,
@@ -397,28 +400,28 @@ export const changeSubProjectRoles = (team: $TSFixMe) => {
         type: types.CHANGE_SUBPROJECT_ROLES,
         payload: team,
     };
-}
+};
 
 // Calls API to mark project for removal
 export const markSubProjectForDeleteRequest = () => {
     return {
         type: types.MARK_SUBPROJECT_DELETE_REQUEST,
     };
-}
+};
 
 export const markSubProjectForDeleteSuccess = (subProjectId: $TSFixMe) => {
     return {
         type: types.MARK_SUBPROJECT_DELETE_SUCCESS,
         payload: subProjectId,
     };
-}
+};
 
 export const markSubProjectForDeleteError = (error: $TSFixMe) => {
     return {
         type: types.MARK_SUBPROJECT_DELETE_FAILED,
         payload: error,
     };
-}
+};
 
 export function markSubProjectForDelete(
     projectId: $TSFixMe,

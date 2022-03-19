@@ -51,7 +51,7 @@ export const postApi = (url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) => {
             deffered.reject(error);
         });
     return deffered.promise;
-}
+};
 
 export const getApi = (url: $TSFixMe, licensing: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -83,7 +83,7 @@ export const getApi = (url: $TSFixMe, licensing: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};
 
 export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -116,7 +116,7 @@ export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};
 
 export const deleteApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -149,7 +149,7 @@ export const deleteApi = (url: $TSFixMe, data: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};
 
 export const getApiDocs = (url: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -181,7 +181,7 @@ export const getApiDocs = (url: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};
 
 export const getApiHelm = (url: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -213,7 +213,7 @@ export const getApiHelm = (url: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};
 
 export const getApiDashboard = (url: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -245,4 +245,4 @@ export const getApiDashboard = (url: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};

@@ -39,7 +39,7 @@ export const postApi = (url: $TSFixMe, data: $TSFixMe) => {
             deffered.reject(error);
         });
     return deffered.promise;
-}
+};
 
 export const getApi = (url: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -67,7 +67,7 @@ export const getApi = (url: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};
 
 export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -96,7 +96,7 @@ export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};
 
 export const deleteApi = (url: $TSFixMe, data: $TSFixMe) => {
     if (User.isLoggedIn())
@@ -125,4 +125,4 @@ export const deleteApi = (url: $TSFixMe, data: $TSFixMe) => {
         });
 
     return deffered.promise;
-}
+};

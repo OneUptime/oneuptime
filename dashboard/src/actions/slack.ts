@@ -8,21 +8,21 @@ export const deleteSlackLinkRequest = () => {
     return {
         type: types.DELETE_SLACK_LINK_REQUEST,
     };
-}
+};
 
 export const deleteSlackLinkError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SLACK_LINK_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteSlackLinkSuccess = (deletedTeam: $TSFixMe) => {
     return {
         type: types.DELETE_SLACK_LINK_SUCCESS,
         payload: deletedTeam,
     };
-}
+};
 
 export const resetdeleteSlackLink = () => {
     return {
@@ -58,28 +58,28 @@ export const deleteSlackLink = (projectId: $TSFixMe, teamId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const getSlackTeamsRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_SLACK_TEAM_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const getSlackTeamsError = (error: $TSFixMe) => {
     return {
         type: types.GET_SLACK_TEAM_FAILED,
         payload: error,
     };
-}
+};
 
 export const getSlackTeamsSuccess = (teams: $TSFixMe) => {
     return {
         type: types.GET_SLACK_TEAM_SUCCESS,
         payload: teams,
     };
-}
+};
 
 export const resetGetSlackTeams = () => {
     return {
@@ -132,19 +132,19 @@ export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
-}
+};
 
 export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
-}
+};
 
 export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
-}
+};
 
 export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -152,4 +152,4 @@ export const paginate = (type: $TSFixMe) => {
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());
     };
-}
+};

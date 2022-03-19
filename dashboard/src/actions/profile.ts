@@ -9,41 +9,41 @@ export const updateProfileSettingRequest = () => {
     return {
         type: types.UPDATE_PROFILE_SETTING_REQUEST,
     };
-}
+};
 
 export const updateProfileSettingSuccess = (profileSetting: $TSFixMe) => {
     return {
         type: types.UPDATE_PROFILE_SETTING_SUCCESS,
         payload: profileSetting,
     };
-}
+};
 
 export const updateProfileSettingError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_PROFILE_SETTING_FAILURE,
         payload: error,
     };
-}
+};
 
 export const updatePushNotificationRequest = () => {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_REQUEST,
     };
-}
+};
 
 export const updatePushNotificationError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_ERROR,
         payload: error,
     };
-}
+};
 
 export const updatePushNotificationSuccess = (data: $TSFixMe) => {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_SUCCESS,
         payload: data,
     };
-}
+};
 
 // Calls the API to update setting.
 
@@ -100,7 +100,7 @@ export const updateProfileSetting = (values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 // Update push notification
 export const updatePushNotification = (data: $TSFixMe) => {
@@ -130,28 +130,28 @@ export const updatePushNotification = (data: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 // Update user's two factor authentication
 export const twoFactorAuthTokenRequest = () => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_REQUEST,
     };
-}
+};
 
 export const twoFactorAuthTokenSuccess = (payload: $TSFixMe) => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_SUCCESS,
         payload: payload,
     };
-}
+};
 
 export const twoFactorAuthTokenError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_FAILURE,
         payload: error,
     };
-}
+};
 
 export const verifyTwoFactorAuthToken = (values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -180,28 +180,28 @@ export const verifyTwoFactorAuthToken = (values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 // Generate user's QR code
 export const generateTwoFactorQRCodeRequest = () => {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_REQUEST,
     };
-}
+};
 
 export const generateTwoFactorQRCodeSuccess = (payload: $TSFixMe) => {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_SUCCESS,
         payload: payload,
     };
-}
+};
 
 export const generateTwoFactorQRCodeError = (error: $TSFixMe) => {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_FAILURE,
         payload: error,
     };
-}
+};
 
 export const generateTwoFactorQRCode = (userId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -230,7 +230,7 @@ export const generateTwoFactorQRCode = (userId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 // Update user twoFactorAuthToken
 
@@ -261,7 +261,7 @@ export const updateTwoFactorAuthToken = (data: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 //Update change password setting.
 
@@ -269,20 +269,20 @@ export const updateChangePasswordSettingRequest = () => {
     return {
         type: types.UPDATE_CHANGE_PASSWORD_SETTING_REQUEST,
     };
-}
+};
 
 export const updateChangePasswordSettingSuccess = () => {
     return {
         type: types.UPDATE_CHANGE_PASSWORD_SETTING_SUCCESS,
     };
-}
+};
 
 export const updateChangePasswordSettingError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_CHANGE_PASSWORD_SETTING_FAILURE,
         payload: error,
     };
-}
+};
 
 // Calls the API to update change password setting.
 export const updateChangePasswordSetting = (data: $TSFixMe) => {
@@ -311,21 +311,21 @@ export const updateChangePasswordSetting = (data: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const showProfileMenu = (position: $TSFixMe) => {
     return {
         type: types.SHOW_PROFILE_MENU,
         payload: position,
     };
-}
+};
 
 export const hideProfileMenu = (error: $TSFixMe) => {
     return {
         type: types.HIDE_PROFILE_MENU,
         payload: error,
     };
-}
+};
 
 // Get Previous User Settings.
 
@@ -333,21 +333,21 @@ export const userSettingsRequest = () => {
     return {
         type: types.USER_SETTINGS_REQUEST,
     };
-}
+};
 
 export const userSettingsSuccess = (settings: $TSFixMe) => {
     return {
         type: types.USER_SETTINGS_SUCCESS,
         payload: settings,
     };
-}
+};
 
 export const userSettingsError = (error: $TSFixMe) => {
     return {
         type: types.USER_SETTINGS_FAILURE,
         payload: error,
     };
-}
+};
 
 // Calls the API to update on cal alert setting.
 export const userSettings = () => {
@@ -378,65 +378,65 @@ export const userSettings = () => {
 
         return promise;
     };
-}
+};
 
 export const logFile = (file: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch({ type: 'LOG_FILE', payload: file });
     };
-}
+};
 
 export const resetFile = () => {
     return function (dispatch: $TSFixMe) {
         dispatch({ type: 'RESET_FILE' });
     };
-}
+};
 
 export const sendVerificationSMSRequest = () => {
     return {
         type: types.SEND_VERIFICATION_SMS_REQUEST,
     };
-}
+};
 
 export const sendVerificationSMSSuccess = (verificationAction: $TSFixMe) => {
     return {
         type: types.SEND_VERIFICATION_SMS_SUCCESS,
         payload: verificationAction,
     };
-}
+};
 
 export const sendVerificationSMSError = (error: $TSFixMe) => {
     return {
         type: types.SEND_VERIFICATION_SMS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const sendVerificationSMSReset = () => {
     return function (dispatch: $TSFixMe) {
         dispatch({ type: types.SEND_VERIFICATION_SMS_RESET });
     };
-}
+};
 
 export const sendEmailVerificationRequest = () => {
     return {
         type: types.SEND_EMAIL_VERIFICATION_REQUEST,
     };
-}
+};
 
 export const sendEmailVerificationSuccess = (payload: $TSFixMe) => {
     return {
         type: types.SEND_EMAIL_VERIFICATION_SUCCESS,
         payload,
     };
-}
+};
 
 export const sendEmailVerificationError = (error: $TSFixMe) => {
     return {
         type: types.SEND_EMAIL_VERIFICATION_FAILURE,
         payload: error,
     };
-}
+};
 
 export const sendEmailVerificationLink = (values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -463,7 +463,7 @@ export const sendEmailVerificationLink = (values: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const sendVerificationSMS = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -496,32 +496,32 @@ export const sendVerificationSMS = (projectId: $TSFixMe, values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 export const verifySMSCodeRequest = () => {
     return {
         type: types.VERIFY_SMS_CODE_REQUEST,
     };
-}
+};
 
 export const verifySMSCodeSuccess = (verificationResult: $TSFixMe) => {
     return {
         type: types.VERIFY_SMS_CODE_SUCCESS,
         payload: verificationResult,
     };
-}
+};
 
 export const verifySMSCodeError = (error: $TSFixMe) => {
     return {
         type: types.VERIFY_SMS_CODE_FAILURE,
         payload: error,
     };
-}
+};
 
 export const verifySMSCodeReset = () => {
     return function (dispatch: $TSFixMe) {
         dispatch({ type: types.VERIFY_SMS_CODE_RESET });
     };
-}
+};
 
 export const verifySMSCode = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -554,119 +554,119 @@ export const verifySMSCode = (projectId: $TSFixMe, values: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const setAlertPhoneNumber = (number: $TSFixMe) => {
     return {
         type: types.SET_ALERT_PHONE_NUMBER,
         payload: number,
     };
-}
+};
 
 export const setTwoFactorAuth = (enabled: $TSFixMe) => {
     return {
         type: types.SET_TWO_FACTOR_AUTH,
         payload: enabled,
     };
-}
+};
 
 export const setInitAlertEmail = (email: $TSFixMe) => {
     return {
         type: types.SET_INIT_ALERT_EMAIL,
         payload: email,
     };
-}
+};
 
 export const setVerified = (value: $TSFixMe) => {
     return {
         type: types.SET_VERIFIED,
         payload: value,
     };
-}
+};
 
 export const setInitPhoneVerificationNumber = (number: $TSFixMe) => {
     return {
         type: types.SET_INIT_PHONE_VERIFICATION_NUMBER,
         payload: number,
     };
-}
+};
 
 export const setInitPhoneVerification = (value: $TSFixMe) => {
     return {
         type: types.SET_INIT_PHONE_VERIFICATION,
         payload: value,
     };
-}
+};
 
 export const setProfilePic = (value: $TSFixMe) => {
     return {
         type: types.SET_PROFILE_PIC,
         payload: value,
     };
-}
+};
 
 export const setRemovedPic = (value: $TSFixMe) => {
     return {
         type: types.SET_REMOVED_PIC,
         payload: value,
     };
-}
+};
 
 export const setFileInputKey = (value: $TSFixMe) => {
     return {
         type: types.SET_FILE_INPUT_KEY,
         payload: value,
     };
-}
+};
 
 export const setIsVerified = (value: $TSFixMe) => {
     return {
         type: types.SET_IS_VERIFIED,
         payload: value,
     };
-}
+};
 
 export const setInitialAlertPhoneNumber = (value: $TSFixMe) => {
     return {
         type: types.SET_INITIAL_ALERT_PHONE_NUMBER,
         payload: value,
     };
-}
+};
 
 export const setUserEmail = (value: $TSFixMe) => {
     return {
         type: types.SET_USER_EMAIL,
         payload: value,
     };
-}
+};
 
 export const setResendTimer = (value: $TSFixMe) => {
     return {
         type: types.SET_RESEND_TIMER,
         payload: value,
     };
-}
+};
 
 // Delete user account
 export const deleteAccountRequest = () => {
     return {
         type: types.DELETE_ACCOUNT_REQUEST,
     };
-}
+};
 
 export const deleteAccountSuccess = (promise: $TSFixMe) => {
     return {
         type: types.USER_SETTINGS_SUCCESS,
         payload: promise,
     };
-}
+};
 
 export const deleteAccountFailure = (error: $TSFixMe) => {
     return {
         type: types.USER_SETTINGS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const deleteAccount = (userId: $TSFixMe, confirmation: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -695,7 +695,7 @@ export const deleteAccount = (userId: $TSFixMe, confirmation: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 // Generate backup codes
 const generateBackupCodesRequest = () => ({

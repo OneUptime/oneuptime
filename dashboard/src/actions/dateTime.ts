@@ -5,7 +5,7 @@ export const setStartDate = (date: $TSFixMe) => {
             payload: date,
         });
     };
-}
+};
 
 export const setEndDate = (date: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -14,4 +14,4 @@ export const setEndDate = (date: $TSFixMe) => {
             payload: date,
         });
     };
-}
+};

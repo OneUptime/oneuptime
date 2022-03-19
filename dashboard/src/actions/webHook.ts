@@ -5,21 +5,21 @@ export const deleteWebHookRequest = () => {
     return {
         type: types.DELETE_WEB_HOOK_REQUEST,
     };
-}
+};
 
 export const deleteWebHookError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_WEB_HOOK_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteWebHookSuccess = (deleteWebHook: $TSFixMe) => {
     return {
         type: types.DELETE_WEB_HOOK_SUCCESS,
         payload: deleteWebHook,
     };
-}
+};
 
 export const resetDeleteWebHook = () => {
     return {
@@ -58,28 +58,28 @@ export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const getWebHookRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_WEB_HOOK_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const getWebHookError = (error: $TSFixMe) => {
     return {
         type: types.GET_WEB_HOOK_FAILED,
         payload: error,
     };
-}
+};
 
 export const getWebHookSuccess = (webhooks: $TSFixMe) => {
     return {
         type: types.GET_WEB_HOOK_SUCCESS,
         payload: webhooks,
     };
-}
+};
 
 export const resetGetWebHook = () => {
     return {
@@ -131,7 +131,8 @@ export function getWebHookMonitor(
     return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
             }`
         );
         dispatch(getWebHookRequest(promise));
@@ -163,21 +164,21 @@ export const createWebHookRequest = () => {
     return {
         type: types.CREATE_WEB_HOOK_REQUEST,
     };
-}
+};
 
 export const createWebHookError = (error: $TSFixMe) => {
     return {
         type: types.CREATE_WEB_HOOK_FAILED,
         payload: error,
     };
-}
+};
 
 export const createWebHookSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.CREATE_WEB_HOOK_SUCCESS,
         payload: newWebHook,
     };
-}
+};
 
 export const resetCreateWebHook = () => {
     return {
@@ -213,27 +214,27 @@ export const createWebHook = (projectId: $TSFixMe, data: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const updateWebHookRequest = () => {
     return {
         type: types.UPDATE_WEB_HOOK_REQUEST,
     };
-}
+};
 
 export const updateWebHookError = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_WEB_HOOK_FAILED,
         payload: error,
     };
-}
+};
 
 export const updateWebHookSuccess = (newWebHook: $TSFixMe) => {
     return {
         type: types.UPDATE_WEB_HOOK_SUCCESS,
         payload: newWebHook,
     };
-}
+};
 
 export const resetUpdateWebHook = () => {
     return {
@@ -281,19 +282,19 @@ export const paginateNext = () => {
     return {
         type: types.PAGINATE_NEXT,
     };
-}
+};
 
 export const paginatePrev = () => {
     return {
         type: types.PAGINATE_PREV,
     };
-}
+};
 
 export const paginateReset = () => {
     return {
         type: types.PAGINATE_RESET,
     };
-}
+};
 
 export const paginate = (type: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -301,4 +302,4 @@ export const paginate = (type: $TSFixMe) => {
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());
     };
-}
+};

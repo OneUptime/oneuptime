@@ -29,7 +29,8 @@ export function fetchIncidentPriorities(
 ) {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(
-            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${limit || 10
+            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${
+                limit || 10
             }`
         );
         dispatch(fetchIncidentPrioritiesRequest());
@@ -80,7 +81,7 @@ export const createIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 function createIncidentPriorityRequest() {
     return {
@@ -126,7 +127,7 @@ export const updateIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 function updateIncidentPriorityRequest() {
     return {
@@ -172,7 +173,7 @@ export const deleteIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 function deleteIncidentPriorityRequest() {
     return {

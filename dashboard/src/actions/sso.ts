@@ -38,7 +38,7 @@ export const createSso = ({ data }: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const fetchSsosRequest = () => ({
     type: types.FETCH_SSOS_REQUEST,
@@ -81,7 +81,7 @@ export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const fetchSsoRequest = () => ({
     type: types.FETCH_SSO_REQUEST,
@@ -119,7 +119,7 @@ export const fetchSso = (ssoId: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const updateSsoRequest = () => ({
     type: types.UPDATE_SSO_REQUEST,
@@ -157,7 +157,7 @@ export const updateSso = ({ id, data }: $TSFixMe) => {
         );
         return promise;
     };
-}
+};
 
 export const deleteSsoRequest = () => ({
     type: types.DELETE_SSO_REQUEST,
@@ -195,4 +195,4 @@ export const deleteSso = (ssoId: $TSFixMe) => {
         );
         return promise;
     };
-}
+};

@@ -30,10 +30,10 @@ export const openSideNav = () => {
     return {
         type: 'OPEN_SIDENAV',
     };
-}
+};
 
 export const closeSideNav = () => {
     return {
         type: 'CLOSE_SIDENAV',
     };
-}
+};

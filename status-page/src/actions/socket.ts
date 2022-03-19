@@ -5,7 +5,7 @@ export const updatestatuspagebysocket = (statuspage: $TSFixMe) => {
             payload: statuspage,
         });
     };
-}
+};
 
 export const updatemonitorbysocket = (monitor: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -14,7 +14,7 @@ export const updatemonitorbysocket = (monitor: $TSFixMe) => {
             payload: monitor,
         });
     };
-}
+};
 
 export const deletemonitorbysocket = (monitor: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -23,7 +23,7 @@ export const deletemonitorbysocket = (monitor: $TSFixMe) => {
             payload: monitor._id,
         });
     };
-}
+};
 
 export function updatemonitorstatusbysocket(
     status: $TSFixMe,
@@ -44,7 +44,7 @@ export const addincidentnotebysocket = (note: $TSFixMe) => {
             payload: note,
         });
     };
-}
+};
 
 export const updateincidentnotebysocket = (note: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -53,7 +53,7 @@ export const updateincidentnotebysocket = (note: $TSFixMe) => {
             payload: note,
         });
     };
-}
+};
 
 export const addscheduledeventbysocket = (event: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -62,7 +62,7 @@ export const addscheduledeventbysocket = (event: $TSFixMe) => {
             payload: event,
         });
     };
-}
+};
 
 export const deletescheduledeventbysocket = (event: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -71,7 +71,7 @@ export const deletescheduledeventbysocket = (event: $TSFixMe) => {
             payload: event,
         });
     };
-}
+};
 
 export const updatescheduledeventbysocket = (event: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -80,7 +80,7 @@ export const updatescheduledeventbysocket = (event: $TSFixMe) => {
             payload: event,
         });
     };
-}
+};
 
 export const addeventnotebysocket = (note: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -89,7 +89,7 @@ export const addeventnotebysocket = (note: $TSFixMe) => {
             payload: note,
         });
     };
-}
+};
 
 export const deleteeventnotebysocket = (note: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -98,7 +98,7 @@ export const deleteeventnotebysocket = (note: $TSFixMe) => {
             payload: note,
         });
     };
-}
+};
 
 export const updateeventnotebysocket = (note: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -107,7 +107,7 @@ export const updateeventnotebysocket = (note: $TSFixMe) => {
             payload: note,
         });
     };
-}
+};
 
 export const updateprobebysocket = (probe: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -116,7 +116,7 @@ export const updateprobebysocket = (probe: $TSFixMe) => {
             payload: probe,
         });
     };
-}
+};
 
 export const incidentcreatedbysocket = (incident: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -125,7 +125,7 @@ export const incidentcreatedbysocket = (incident: $TSFixMe) => {
             payload: incident,
         });
     };
-}
+};
 
 export const deleteincidentbysocket = (incident: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -134,7 +134,7 @@ export const deleteincidentbysocket = (incident: $TSFixMe) => {
             payload: incident,
         });
     };
-}
+};
 
 export const updateincidentbysocket = (incident: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -143,7 +143,7 @@ export const updateincidentbysocket = (incident: $TSFixMe) => {
             payload: incident,
         });
     };
-}
+};
 
 export const addincidenttimelinebysocket = (timeline: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -152,7 +152,7 @@ export const addincidenttimelinebysocket = (timeline: $TSFixMe) => {
             payload: timeline,
         });
     };
-}
+};
 
 export const deleteincidentnotebysocket = (note: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -161,7 +161,7 @@ export const deleteincidentnotebysocket = (note: $TSFixMe) => {
             payload: note,
         });
     };
-}
+};
 
 export const resolvescheduledeventbysocket = (event: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -170,7 +170,7 @@ export const resolvescheduledeventbysocket = (event: $TSFixMe) => {
             payload: event,
         });
     };
-}
+};
 export const updatestweetsbysocket = (tweets: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
         dispatch({
@@ -178,4 +178,4 @@ export const updatestweetsbysocket = (tweets: $TSFixMe) => {
             payload: tweets,
         });
     };
-}
+};

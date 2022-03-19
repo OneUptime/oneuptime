@@ -9,21 +9,21 @@ export const emailTemplatesRequest = (promise: $TSFixMe) => {
         type: types.EMAIL_TEMPLATES_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const emailTemplatesError = (error: $TSFixMe) => {
     return {
         type: types.EMAIL_TEMPLATES_FAILED,
         payload: error,
     };
-}
+};
 
 export const emailTemplatesSuccess = (incidents: $TSFixMe) => {
     return {
         type: types.EMAIL_TEMPLATES_SUCCESS,
         payload: incidents,
     };
-}
+};
 
 export const emailTemplatesReset = () => {
     return {
@@ -56,35 +56,35 @@ export const getEmailTemplates = (projectId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 // Edit email templates
 export const editEmailTemplateReset = () => {
     return {
         type: types.EDIT_EMAIL_TEMPLATES_RESET,
     };
-}
+};
 
 export const editEmailTemplateRequest = () => {
     return {
         type: types.EDIT_EMAIL_TEMPLATES_REQUEST,
         payload: true,
     };
-}
+};
 
 export const editEmailTemplateSuccess = (emailTemplates: $TSFixMe) => {
     return {
         type: types.EDIT_EMAIL_TEMPLATES_SUCCESS,
         payload: emailTemplates,
     };
-}
+};
 
 export const editEmailTemplateError = (error: $TSFixMe) => {
     return {
         type: types.EDIT_EMAIL_TEMPLATES_FAILED,
         payload: error,
     };
-}
+};
 
 export const editEmailTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -110,7 +110,7 @@ export const editEmailTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 //Array of email templates
 
@@ -119,24 +119,27 @@ export const resetEmailTemplatesRequest = (promise: $TSFixMe) => {
         type: types.RESET_EMAIL_TEMPLATES_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const resetEmailTemplatesError = (error: $TSFixMe) => {
     return {
         type: types.RESET_EMAIL_TEMPLATES_FAILED,
         payload: error,
     };
-}
+};
 
 export const resetEmailTemplatesSuccess = (emailTemplates: $TSFixMe) => {
     return {
         type: types.RESET_EMAIL_TEMPLATES_SUCCESS,
         payload: emailTemplates,
     };
-}
+};
 
 // Calls the API to reset email templates
-export const resetEmailTemplates = (projectId: $TSFixMe, templateId: $TSFixMe) => {
+export const resetEmailTemplates = (
+    projectId: $TSFixMe,
+    templateId: $TSFixMe
+) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `emailTemplate/${projectId}/${templateId}/reset`
@@ -162,28 +165,28 @@ export const resetEmailTemplates = (projectId: $TSFixMe, templateId: $TSFixMe) =
             }
         );
     };
-}
+};
 
 export const smtpConfigRequest = (promise: $TSFixMe) => {
     return {
         type: types.SMTP_CONFIG_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const smtpConfigError = (error: $TSFixMe) => {
     return {
         type: types.SMTP_CONFIG_FAILED,
         payload: error,
     };
-}
+};
 
 export const smtpConfigSuccess = (config: $TSFixMe) => {
     return {
         type: types.SMTP_CONFIG_SUCCESS,
         payload: config,
     };
-}
+};
 
 // Calls the API to reset email templates
 export const getSmtpConfig = (projectId: $TSFixMe) => {
@@ -222,7 +225,7 @@ export const getSmtpConfig = (projectId: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -260,28 +263,28 @@ export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
             }
         );
     };
-}
+};
 
 export const deleteSmtpConfigRequest = (promise: $TSFixMe) => {
     return {
         type: types.DELETE_SMTP_CONFIG_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const deleteSmtpConfigError = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SMTP_CONFIG_FAILED,
         payload: error,
     };
-}
+};
 
 export const deleteSmtpConfigSuccess = (config: $TSFixMe) => {
     return {
         type: types.DELETE_SMTP_CONFIG_SUCCESS,
         payload: config,
     };
-}
+};
 
 export function deleteSmtpConfig(
     projectId: $TSFixMe,
@@ -374,7 +377,7 @@ export const changeShowingTemplate = (emailTemplate: $TSFixMe) => {
             payload: emailTemplate,
         });
     };
-}
+};
 
 export const setRevealVariable = (emailtype: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -383,7 +386,7 @@ export const setRevealVariable = (emailtype: $TSFixMe) => {
             payload: emailtype,
         });
     };
-}
+};
 
 export const setSmtpConfig = (val: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -392,4 +395,4 @@ export const setSmtpConfig = (val: $TSFixMe) => {
             payload: val,
         });
     };
-}
+};

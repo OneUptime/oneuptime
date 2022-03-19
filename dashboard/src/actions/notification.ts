@@ -22,21 +22,21 @@ export const fetchNotificationsRequest = () => {
     return {
         type: types.FETCH_NOTIFICATIONS_REQUEST,
     };
-}
+};
 
 export const fetchNotificationsError = (error: $TSFixMe) => {
     return {
         type: types.FETCH_NOTIFICATIONS_FAILED,
         payload: error,
     };
-}
+};
 
 export const fetchNotificationsSuccess = (notifications: $TSFixMe) => {
     return {
         type: types.FETCH_NOTIFICATIONS_SUCCESS,
         payload: notifications,
     };
-}
+};
 
 export const fetchNotificationsReset = () => {
     return {
@@ -49,21 +49,21 @@ export const notificationReadSuccess = (notificationId: $TSFixMe) => {
         type: types.NOTIFICATION_READ_SUCCESS,
         payload: notificationId,
     };
-}
+};
 
 export const notificationClosedSuccess = (notificationId: $TSFixMe) => {
     return {
         type: types.NOTIFICATION_CLOSED_SUCCESS,
         payload: notificationId,
     };
-}
+};
 
 export const allNotificationReadSuccess = (userId: $TSFixMe) => {
     return {
         type: types.ALL_NOTIFICATION_READ_SUCCESS,
         payload: userId,
     };
-}
+};
 
 // Calls the API to get all notifications.
 export const fetchNotifications = (projectId: $TSFixMe) => {
@@ -90,7 +90,7 @@ export const fetchNotifications = (projectId: $TSFixMe) => {
             dispatch(fetchNotificationsError(errors(payload)));
         }
     };
-}
+};
 
 export const markAsRead = (projectId: $TSFixMe, notificationIds: $TSFixMe) => {
     return async function (dispatch: $TSFixMe) {
@@ -131,7 +131,7 @@ export const markAsRead = (projectId: $TSFixMe, notificationIds: $TSFixMe) => {
             dispatch(fetchNotificationsError(errors(payload)));
         }
     };
-}
+};
 
 export function closeNotification(
     projectId: $TSFixMe,
@@ -191,7 +191,7 @@ export const markAllAsRead = (projectId: $TSFixMe) => {
             dispatch(fetchNotificationsError(errors(payload)));
         }
     };
-}
+};
 
 export function billingActionTaken(
     projectId: $TSFixMe,
@@ -229,4 +229,4 @@ export const resetProjectNotification = (projectId: $TSFixMe) => {
         type: types.RESET_PROJECT_NOTIFICATIONS,
         payload: projectId,
     };
-}
+};

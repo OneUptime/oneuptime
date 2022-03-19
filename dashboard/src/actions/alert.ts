@@ -6,28 +6,28 @@ export const resetAlert = () => {
     return {
         type: types.ALERT_FETCH_RESET,
     };
-}
+};
 
 export const alertRequest = (promise: $TSFixMe) => {
     return {
         type: types.ALERT_FETCH_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const alertError = (error: $TSFixMe) => {
     return {
         type: types.ALERT_FETCH_FAILED,
         payload: error,
     };
-}
+};
 
 export const alertSuccess = (alert: $TSFixMe) => {
     return {
         type: types.ALERT_FETCH_SUCCESS,
         payload: alert,
     };
-}
+};
 
 // Calls the API to fetch Alerts.
 
@@ -58,34 +58,34 @@ export const fetchAlert = (projectId: $TSFixMe) => {
 
         return promise;
     };
-}
+};
 
 export const resetProjectAlert = () => {
     return {
         type: types.PROJECT_ALERT_FETCH_RESET,
     };
-}
+};
 
 export const projectAlertRequest = (promise: $TSFixMe) => {
     return {
         type: types.PROJECT_ALERT_FETCH_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const projectAlertError = (error: $TSFixMe) => {
     return {
         type: types.PROJECT_ALERT_FETCH_FAILED,
         payload: error,
     };
-}
+};
 
 export const projectAlertSuccess = (alert: $TSFixMe) => {
     return {
         type: types.PROJECT_ALERT_FETCH_SUCCESS,
         payload: alert,
     };
-}
+};
 
 // Calls the API to fetch Alerts.
 
@@ -131,28 +131,28 @@ export const incidentResetAlert = () => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_RESET,
     };
-}
+};
 
 export const incidentAlertRequest = (promise: $TSFixMe) => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const incidentAlertError = (error: $TSFixMe) => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_FAILED,
         payload: error,
     };
-}
+};
 
 export const incidentAlertSuccess = (alert: $TSFixMe) => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_SUCCESS,
         payload: alert,
     };
-}
+};
 
 // Calls the API to fetch Alerts.
 
@@ -198,28 +198,28 @@ export const subscriberResetAlert = () => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_RESET,
     };
-}
+};
 
 export const subscriberAlertRequest = (promise: $TSFixMe) => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const subscriberAlertError = (error: $TSFixMe) => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_FAILED,
         payload: error,
     };
-}
+};
 
 export const subscriberAlertSuccess = (alert: $TSFixMe) => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_SUCCESS,
         payload: alert,
     };
-}
+};
 
 // Calls the API to fetch Subscriber Alerts.
 
@@ -275,21 +275,21 @@ export const fetchAlertChargesRequest = (promise: $TSFixMe) => {
         type: types.FETCH_ALERT_CHARGES_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const fetchAlertChargesFailed = (error: $TSFixMe) => {
     return {
         type: types.FETCH_ALERT_CHARGES_FAILED,
         payload: error,
     };
-}
+};
 
 export const fetchAlertChargesSuccess = (alertCharges: $TSFixMe) => {
     return {
         type: types.FETCH_ALERT_CHARGES_SUCCESS,
         payload: alertCharges,
     };
-}
+};
 
 export function fetchAlertCharges(
     projectId: $TSFixMe,
@@ -335,21 +335,21 @@ export const downloadAlertChargesRequest = (promise: $TSFixMe) => {
         type: types.DOWNLOAD_ALERT_CHARGES_REQUEST,
         payload: promise,
     };
-}
+};
 
 export const downloadAlertChargesFailed = (error: $TSFixMe) => {
     return {
         type: types.DOWNLOAD_ALERT_CHARGES_FAILED,
         payload: error,
     };
-}
+};
 
 export const downloadAlertChargesSuccess = (alertCharges: $TSFixMe) => {
     return {
         type: types.DOWNLOAD_ALERT_CHARGES_SUCCESS,
         payload: alertCharges,
     };
-}
+};
 
 export const downloadAlertCharges = (projectId: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -377,4 +377,4 @@ export const downloadAlertCharges = (projectId: $TSFixMe) => {
         );
         return promise;
     };
-}
+};

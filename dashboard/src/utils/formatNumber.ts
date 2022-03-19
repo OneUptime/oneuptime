@@ -62,6 +62,6 @@ const format = (number: $TSFixMe) => {
 export const numDecimal = (num: $TSFixMe, decimalPlace = 2) => {
     decimalPlace = Number(decimalPlace);
     return Number.parseFloat(num).toFixed(decimalPlace);
-}
+};
 
 export default format;

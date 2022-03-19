@@ -3,127 +3,127 @@ import * as types from '../constants/scheduledEvent';
 
 export const fetchscheduledEvent =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(fetchscheduledEventRequest());
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(fetchscheduledEventRequest());
 
-                const response = await getApi(
-                    `scheduledEvent/${projectId}/${scheduledEventId}`
-                );
+            const response = await getApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}`
+            );
 
-                dispatch(fetchscheduledEventSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(fetchscheduledEventFailure(errorMsg));
-            }
-        };
+            dispatch(fetchscheduledEventSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchscheduledEventFailure(errorMsg));
+        }
+    };
 
 export const fetchscheduledEventSuccess = (scheduledEvents: $TSFixMe) => {
     return {
         type: types.FETCH_SCHEDULED_EVENT_SUCCESS,
         payload: scheduledEvents,
     };
-}
+};
 
 export const fetchscheduledEventRequest = () => {
     return {
         type: types.FETCH_SCHEDULED_EVENT_REQUEST,
     };
-}
+};
 
 export const addScheduleEvent = (payload: $TSFixMe) => {
     return {
         type: types.ADD_SCHEDULE_EVENT,
         payload: payload,
     };
-}
+};
 export const fetchscheduledEventFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_SCHEDULED_EVENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchscheduledEvents =
     (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-        async (dispatch: $TSFixMe) => {
-            skip = Number(skip);
-            limit = Number(limit);
-            dispatch(fetchscheduledEventsRequest());
+    async (dispatch: $TSFixMe) => {
+        skip = Number(skip);
+        limit = Number(limit);
+        dispatch(fetchscheduledEventsRequest());
 
-            try {
-                let response = {};
-                if (!skip && !limit) {
-                    response = await getApi(
-                        `scheduledEvent/${projectId}?skip=${0}&limit=${10}`
-                    );
-                } else {
-                    response = await getApi(
-                        `scheduledEvent/${projectId}?skip=${skip}&limit=${limit}`
-                    );
-                }
-
-                const { data, count } = response.data;
-                dispatch(fetchscheduledEventsSuccess({ data, count, skip, limit }));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(fetchscheduledEventsFailure(errorMsg));
+        try {
+            let response = {};
+            if (!skip && !limit) {
+                response = await getApi(
+                    `scheduledEvent/${projectId}?skip=${0}&limit=${10}`
+                );
+            } else {
+                response = await getApi(
+                    `scheduledEvent/${projectId}?skip=${skip}&limit=${limit}`
+                );
             }
-        };
+
+            const { data, count } = response.data;
+            dispatch(fetchscheduledEventsSuccess({ data, count, skip, limit }));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchscheduledEventsFailure(errorMsg));
+        }
+    };
 
 export const fetchscheduledEventsSuccess = (scheduledEvents: $TSFixMe) => {
     return {
         type: types.FETCH_SCHEDULED_EVENTS_SUCCESS,
         payload: scheduledEvents,
     };
-}
+};
 
 export const fetchscheduledEventsRequest = () => {
     return {
         type: types.FETCH_SCHEDULED_EVENTS_REQUEST,
     };
-}
+};
 
 export const fetchscheduledEventsFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_SCHEDULED_EVENTS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchSubProjectScheduledEventsRequest = () => {
     return {
         type: types.FETCH_SUBPROJECT_SCHEDULED_EVENTS_REQUEST,
     };
-}
+};
 
 export const fetchSubProjectScheduledEventsSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_SUBPROJECT_SCHEDULED_EVENTS_SUCCESS,
         payload,
     };
-}
+};
 
 export const fetchSubProjectScheduledEventsFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_SUBPROJECT_SCHEDULED_EVENTS_FAILURE,
         payload: error,
     };
-}
+};
 
 export const fetchSubProjectScheduledEvents =
     (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
@@ -139,10 +139,10 @@ export const fetchSubProjectScheduledEvents =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchSubProjectScheduledEventsFailure(errorMsg));
         }
     };
@@ -176,10 +176,10 @@ export const fetchOngoingScheduledEvents =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchOngoingScheduledEventsFailure(errorMsg));
         }
     };
@@ -218,10 +218,10 @@ export const fetchSubProjectOngoingScheduledEvents =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(fetchSubProjectOngoingScheduledEventsFailure(errorMsg));
         }
     };
@@ -242,10 +242,10 @@ export const createScheduledEvent =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                        ? error.data
-                        : error.message
-                            ? error.message
-                            : 'Network Error';
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
             dispatch(createScheduledEventFailure(errorMsg));
         }
     };
@@ -255,64 +255,64 @@ export const createScheduledEventSuccess = (newScheduledEvent: $TSFixMe) => {
         type: types.CREATE_SCHEDULED_EVENT_SUCCESS,
         payload: newScheduledEvent,
     };
-}
+};
 
 export const createScheduledEventRequest = () => {
     return {
         type: types.CREATE_SCHEDULED_EVENT_REQUEST,
     };
-}
+};
 
 export const createScheduledEventFailure = (error: $TSFixMe) => {
     return {
         type: types.CREATE_SCHEDULED_EVENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const deleteScheduledEvent =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(deleteScheduledEventRequest());
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(deleteScheduledEventRequest());
 
-                const response = await deleteApi(
-                    `scheduledEvent/${projectId}/${scheduledEventId}`
-                );
+            const response = await deleteApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}`
+            );
 
-                dispatch(deleteScheduledEventSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(deleteScheduledEventFailure(errorMsg));
-            }
-        };
+            dispatch(deleteScheduledEventSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteScheduledEventFailure(errorMsg));
+        }
+    };
 
 export const deleteScheduledEventSuccess = (payload: $TSFixMe) => {
     return {
         type: types.DELETE_SCHEDULED_EVENT_SUCCESS,
         payload,
     };
-}
+};
 
 export const deleteScheduledEventRequest = () => {
     return {
         type: types.DELETE_SCHEDULED_EVENT_REQUEST,
     };
-}
+};
 
 export const deleteScheduledEventFailure = (error: $TSFixMe) => {
     return {
         type: types.DELETE_SCHEDULED_EVENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export const cancelScheduledEvent =
     (
@@ -323,49 +323,49 @@ export const cancelScheduledEvent =
         closeModal: $TSFixMe,
         modalId: $TSFixMe
     ) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(cancelScheduledEventRequest());
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(cancelScheduledEventRequest());
 
-                const response = await putApi(
-                    `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
-                );
+            const response = await putApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
+            );
 
-                dispatch(cancelScheduledEventSuccess(response.data));
-                closeModal({ id: modalId });
-                history.push(redirect);
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(cancelScheduledEventFailure(errorMsg));
-            }
-        };
+            dispatch(cancelScheduledEventSuccess(response.data));
+            closeModal({ id: modalId });
+            history.push(redirect);
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(cancelScheduledEventFailure(errorMsg));
+        }
+    };
 
 export const cancelScheduledEventSuccess = (payload: $TSFixMe) => {
     return {
         type: types.CANCEL_SCHEDULED_EVENT_SUCCESS,
         payload,
     };
-}
+};
 
 export const cancelScheduledEventRequest = () => {
     return {
         type: types.CANCEL_SCHEDULED_EVENT_REQUEST,
     };
-}
+};
 
 export const cancelScheduledEventFailure = (error: $TSFixMe) => {
     return {
         type: types.CANCEL_SCHEDULED_EVENT_FAILURE,
         payload: error,
     };
-}
+};
 
 export function updateScheduledEvent(
     projectId: $TSFixMe,
@@ -388,10 +388,10 @@ export function updateScheduledEvent(
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
                 dispatch(updateScheduledEventFailure(errorMsg));
             }
         );
@@ -399,25 +399,27 @@ export function updateScheduledEvent(
     };
 }
 
-export const updateScheduledEventSuccess = (updatedScheduledEvent: $TSFixMe) => {
+export const updateScheduledEventSuccess = (
+    updatedScheduledEvent: $TSFixMe
+) => {
     return {
         type: types.UPDATE_SCHEDULED_EVENT_SUCCESS,
         payload: updatedScheduledEvent,
     };
-}
+};
 
 export const updateScheduledEventRequest = () => {
     return {
         type: types.UPDATE_SCHEDULED_EVENT_REQUEST,
     };
-}
+};
 
 export const updateScheduledEventFailure = (error: $TSFixMe) => {
     return {
         type: types.UPDATE_SCHEDULED_EVENT_FAILURE,
         payload: error,
     };
-}
+};
 
 // Scheduled Event Note
 
@@ -443,44 +445,44 @@ export const fetchScheduledEventNotesInternal =
         skip: $TSFixMe,
         type: $TSFixMe
     ) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(fetchScheduledEventNotesInternalRequest());
-                skip = Number(skip);
-                limit = Number(limit);
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(fetchScheduledEventNotesInternalRequest());
+            skip = Number(skip);
+            limit = Number(limit);
 
-                let response = {};
-                if (skip >= 0 && limit >= 0) {
-                    response = await getApi(
-                        `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}&type=${type}`
-                    );
-                } else {
-                    response = await getApi(
-                        `scheduledEvent/${projectId}/${scheduledEventId}/notes?`
-                    );
-                }
-
-                const { data, count } = response.data;
-                dispatch(
-                    fetchScheduledEventNotesInternalSuccess({
-                        data,
-                        count,
-                        skip,
-                        limit,
-                    })
+            let response = {};
+            if (skip >= 0 && limit >= 0) {
+                response = await getApi(
+                    `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}&type=${type}`
                 );
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(fetchScheduledEventNotesInternalFailure(errorMsg));
+            } else {
+                response = await getApi(
+                    `scheduledEvent/${projectId}/${scheduledEventId}/notes?`
+                );
             }
-        };
+
+            const { data, count } = response.data;
+            dispatch(
+                fetchScheduledEventNotesInternalSuccess({
+                    data,
+                    count,
+                    skip,
+                    limit,
+                })
+            );
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchScheduledEventNotesInternalFailure(errorMsg));
+        }
+    };
 
 export const createScheduledEventNoteRequest = () => ({
     type: types.CREATE_SCHEDULED_EVENT_NOTE_REQUEST,
@@ -498,28 +500,28 @@ export const createScheduledEventNoteFailure = (error: $TSFixMe) => ({
 
 export const createScheduledEventNote =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe, data: $TSFixMe) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(createScheduledEventNoteRequest());
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(createScheduledEventNoteRequest());
 
-                const response = await postApi(
-                    `scheduledEvent/${projectId}/${scheduledEventId}/notes`,
-                    data
-                );
+            const response = await postApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes`,
+                data
+            );
 
-                dispatch(createScheduledEventNoteSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(createScheduledEventNoteFailure(errorMsg));
-            }
-        };
+            dispatch(createScheduledEventNoteSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(createScheduledEventNoteFailure(errorMsg));
+        }
+    };
 
 export const updateScheduledEventNoteInternalRequest = () => ({
     type: types.UPDATE_SCHEDULED_EVENT_NOTE_INTERNAL_REQUEST,
@@ -542,27 +544,27 @@ export const updateScheduledEventNoteInternal =
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
     ) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(updateScheduledEventNoteInternalRequest());
-                const response = await putApi(
-                    `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
-                    data
-                );
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(updateScheduledEventNoteInternalRequest());
+            const response = await putApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
+                data
+            );
 
-                dispatch(updateScheduledEventNoteInternalSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(updateScheduledEventNoteInternalFailure(errorMsg));
-            }
-        };
+            dispatch(updateScheduledEventNoteInternalSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateScheduledEventNoteInternalFailure(errorMsg));
+        }
+    };
 
 export const updateScheduledEventNoteInvestigationRequest = () => ({
     type: types.UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_REQUEST,
@@ -589,30 +591,30 @@ export const updateScheduledEventNoteInvestigation =
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
     ) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(updateScheduledEventNoteInvestigationRequest());
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(updateScheduledEventNoteInvestigationRequest());
 
-                const response = await putApi(
-                    `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
-                    data
-                );
+            const response = await putApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
+                data
+            );
 
-                dispatch(
-                    updateScheduledEventNoteInvestigationSuccess(response.data)
-                );
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(updateScheduledEventNoteInvestigationFailure(errorMsg));
-            }
-        };
+            dispatch(
+                updateScheduledEventNoteInvestigationSuccess(response.data)
+            );
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateScheduledEventNoteInvestigationFailure(errorMsg));
+        }
+    };
 
 export const deleteScheduledEventNoteRequest = () => ({
     type: types.DELETE_SCHEDULED_EVENT_NOTE_REQUEST,
@@ -634,27 +636,27 @@ export const deleteScheduledEventNote =
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe
     ) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(deleteScheduledEventNoteRequest());
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(deleteScheduledEventNoteRequest());
 
-                const response = await deleteApi(
-                    `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`
-                );
+            const response = await deleteApi(
+                `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`
+            );
 
-                dispatch(deleteScheduledEventNoteSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(deleteScheduledEventNoteFailure(errorMsg));
-            }
-        };
+            dispatch(deleteScheduledEventNoteSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteScheduledEventNoteFailure(errorMsg));
+        }
+    };
 
 export const resolveScheduledEventRequest = () => ({
     type: types.RESOLVE_SCHEDULED_EVENT_REQUEST,
@@ -672,27 +674,27 @@ export const resolveScheduledEventFailure = (error: $TSFixMe) => ({
 
 export const resolveScheduledEvent =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe) =>
-        async (dispatch: $TSFixMe) => {
-            try {
-                dispatch(resolveScheduledEventRequest());
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(resolveScheduledEventRequest());
 
-                const response = await putApi(
-                    `scheduledEvent/${projectId}/resolve/${scheduledEventId}`
-                );
+            const response = await putApi(
+                `scheduledEvent/${projectId}/resolve/${scheduledEventId}`
+            );
 
-                dispatch(resolveScheduledEventSuccess(response.data));
-            } catch (error) {
-                const errorMsg =
-                    error.response && error.response.data
-                        ? error.response.data
-                        : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
-                dispatch(resolveScheduledEventFailure(errorMsg));
-            }
-        };
+            dispatch(resolveScheduledEventSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(resolveScheduledEventFailure(errorMsg));
+        }
+    };
 export const nextPage = (projectId: $TSFixMe) => {
     return {
         type: types.NEXT_PAGE,
@@ -710,21 +712,21 @@ export const fetchScheduledEventRequest = () => {
     return {
         type: types.FETCH_SCHEDULED_EVENT_REQUEST_SLUG,
     };
-}
+};
 
 export const fetchScheduledEventSuccess = (payload: $TSFixMe) => {
     return {
         type: types.FETCH_SCHEDULED_EVENT_SUCCESS_SLUG,
         payload,
     };
-}
+};
 
 export const fetchScheduledEventFailure = (error: $TSFixMe) => {
     return {
         type: types.FETCH_SCHEDULED_EVENT_FAILURE_SLUG,
         payload: error,
     };
-}
+};
 
 export const fetchScheduledEvent = (projectId: $TSFixMe, slug: $TSFixMe) => {
     return function (dispatch: $TSFixMe) {
@@ -740,14 +742,14 @@ export const fetchScheduledEvent = (projectId: $TSFixMe, slug: $TSFixMe) => {
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                            ? error.data
-                            : error.message
-                                ? error.message
-                                : 'Network Error';
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
                 dispatch(fetchScheduledEventFailure(errorMsg));
             }
         );
 
         return promise;
     };
-}
+};
