@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';

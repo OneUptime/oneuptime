@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import ScheduleService from '../services/scheduleService';
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;

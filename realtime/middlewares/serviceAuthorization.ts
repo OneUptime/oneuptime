@@ -5,10 +5,10 @@ import { Request, Response } from 'common-server/utils/express';
 import { sendErrorResponse } from 'common-server/utils/response';
 
 export default {
-    isAuthorizedService: async function(
+    isAuthorizedService: async function (
         req: Request,
         res: Response,
-        next: Function
+        next: NextFunction
     ) {
         try {
             let clusterKey;

@@ -1,7 +1,7 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import logger from 'common-server/utils/logger';
 
 import expressRequestId from 'express-request-id';
@@ -63,7 +63,7 @@ global.io = io;
 
 app.use(cors());
 
-app.use(async function (req: Request, res: Response, next: Function) {
+app.use(async function (req: Request, res: Response, next: NextFunction) {
     const method = req.method;
     const url = req.url;
     const requestStartedAt = Date.now();
@@ -96,7 +96,7 @@ app.use(async function (req: Request, res: Response, next: Function) {
     next();
 });
 
-app.use(function (req: Request, res: Response, next: Function) {
+app.use(function (req: Request, res: Response, next: NextFunction) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }

@@ -17,7 +17,7 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import path from 'path';
 const app = express();
 
@@ -138,7 +138,7 @@ app.use(
 app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 // app.use(
 //     /^\/dashboard\/static\/js\/([0-9]|[1-9][0-9]|[1-9][0-9][0-9])\.(.+)\.chunk\.js$/,
-//     function(req:Request, res: Response, next: Function) {
+//     function(req:Request, res: Response, next: NextFunction) {
 //         let baseUrls = req.baseUrl;
 //         baseUrls = baseUrls.split('/');
 

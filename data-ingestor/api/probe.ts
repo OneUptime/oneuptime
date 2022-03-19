@@ -1,10 +1,9 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
 const router = express.getRouter();
-const isAuthorizedProbe = require('../middlewares/probeAuthorization')
-    .isAuthorizedProbe;
+import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import {
     sendErrorResponse,
     sendItemResponse,

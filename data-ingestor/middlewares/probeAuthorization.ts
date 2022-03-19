@@ -9,10 +9,10 @@ import { clusterKey as CLUSTER_KEY } from '../utils/config';
 global.probes = {};
 
 export default {
-    isAuthorizedProbe: async function(
+    isAuthorizedProbe: async function (
         req: Request,
         res: Response,
-        next: Function
+        next: NextFunction
     ) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;

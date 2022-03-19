@@ -1,8 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import MonitorService from '../services/monitorService';
 const router = express.getRouter();
-const isAuthorizedProbe = require('../middlewares/probeAuthorization')
-    .isAuthorizedProbe;
+import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import { sendErrorResponse } from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';

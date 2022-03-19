@@ -1,7 +1,7 @@
 const { NODE_ENV } = process.env;
 import 'common-server/utils/env';
 import 'common-server/utils/process';
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 const app = express();
 
 import http from 'http';

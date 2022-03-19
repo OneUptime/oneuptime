@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 const app = express();
 
 import 'common-server/utils/env';
@@ -16,7 +16,7 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: Function) {
+app.use(function (req: Request, res: Response, next: NextFunction) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }

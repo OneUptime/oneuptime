@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import ZapierService from '../services/zapierService';
 import MonitorService from '../services/monitorService';
 import ProjectService from '../services/projectService';

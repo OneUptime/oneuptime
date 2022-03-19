@@ -17,7 +17,7 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 const app = express();
 
 import bodyParser from 'body-parser';

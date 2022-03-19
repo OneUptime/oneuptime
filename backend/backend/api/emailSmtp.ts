@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import EmailSmtpService from '../services/emailSmtpService';
 import MailService from '../services/mailService';
 const router = express.getRouter();

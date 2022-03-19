@@ -1,7 +1,7 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import path from 'path';
 const app = express();
 
@@ -36,7 +36,7 @@ app.use(
 
 // app.use(
 //     /^\/accounts\/static\/js\/([0-9]|[1-9][0-9]|[1-9][0-9][0-9])\.(.+)\.chunk\.js$/,
-//     function(req:Request, res: Response, next: Function) {
+//     function(req:Request, res: Response, next: NextFunction) {
 //         let baseUrls = req.baseUrl;
 //         baseUrls = baseUrls.split('/');
 

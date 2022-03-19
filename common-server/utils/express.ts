@@ -4,6 +4,7 @@ import logger from './logger';
 
 export type Response = express.Response;
 export type RequestHandler = express.RequestHandler;
+export type NextFunction = express.NextFunction;
 
 type Probe = {
     id: String
@@ -25,7 +26,7 @@ class Express {
         this.app.set('port', process.env.PORT);
 
         this.app.use(cors());
-        this.app.use((req: Request, res: Response, next: Function) => {
+        this.app.use((req: Request, res: Response, next: NextFunction) => {
             if (typeof req.body === 'string') {
                 req.body = JSON.parse(req.body);
             }
@@ -48,7 +49,7 @@ class Express {
         this.app.use(express.urlencoded({ limit: '10mb', extended: true }));
         this.app.use(express.json({ limit: '10mb' }));
 
-        this.app.use((req: Request, res: Response, next: Function) => {
+        this.app.use((req: Request, res: Response, next: NextFunction) => {
             const current_datetime = new Date();
             const formatted_date =
                 current_datetime.getFullYear() +

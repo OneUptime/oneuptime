@@ -5,10 +5,10 @@ import ApplicationLogService from '../services/applicationLogService';
 import { sendErrorResponse } from 'common-server/utils/response';
 
 const _this = {
-    isApplicationLogValid: async function(
+    isApplicationLogValid: async function (
         req: Request,
         res: Response,
-        next: Function
+        next: NextFunction
     ) {
         try {
             const data = req.body;

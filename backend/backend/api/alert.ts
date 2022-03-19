@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, { Request, Response, NextFunction } from 'common-server/utils/express';
 import alertService from '../services/alertService';
 import IncidentService from '../services/incidentService';
 import alertChargeService from '../services/alertChargeService';
