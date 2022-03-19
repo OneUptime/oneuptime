@@ -6,10 +6,7 @@ export default class Database {
     static databaseConnected: boolean = false;
 
     static getClient(): MongoDB.MongoClient {
-        this.databaseClient = new MongoDB.MongoClient(databaseUrl, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        this.databaseClient = new MongoDB.MongoClient(databaseUrl);
 
         return this.databaseClient;
     }
@@ -21,7 +18,7 @@ export default class Database {
         await this.databaseClient.connect();
     }
 
-    static async getDatabase(): MongoDB.Db {
+    static async getDatabase(): Promise<MongoDB.Db> {
         if (!this.databaseConnected) {
             await this.connect();
             this.databaseConnected = true;
