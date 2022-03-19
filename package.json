@@ -22,6 +22,7 @@
         "eslint-plugin-prettier": "^4.0.0",
         "eslint-plugin-react": "^7.29.4",
         "eslint-plugin-react-hooks": "^4.3.0",
+        "eslint-plugin-unused-imports": "^2.0.0",
         "husky": "^7.0.4",
         "lint-staged": "^12.3.7",
         "prettier": "^2.6.0"
@@ -51,7 +52,8 @@
         "ci-docker-enterprise": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up -d",
         "ci-docker-saas": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up -d",
         "ci-docker-saas-init-script": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-saas-ci.env up -d init-script",
-        "ci-docker-enterprise-init-script": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-enterprise-ci.env up -d init-script"
+        "ci-docker-enterprise-init-script": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-enterprise-ci.env up -d init-script",
+        "prepare": "husky install"
     },
     "repository": {
         "type": "git",
@@ -63,20 +65,5 @@
     "bugs": {
         "url": "https://gitlab.com/oneuptime/app/issues"
     },
-    "homepage": "https://gitlab.com/oneuptime/app#readme",
-    "husky": {
-        "hooks": {
-            "pre-commit": "lint-staged"
-        }
-    },
-    "lint-staged": {
-        "./**/*.{json,yml,yaml,md}": [
-            "prettier --write --config .prettierrc.json",
-            "git add"
-        ],
-        "./**/*.{js}": [
-            "eslint -c .eslintrc.json --ignore-path .eslintignore --fix",
-            "git add"
-        ]
-    }
+    "homepage": "https://gitlab.com/oneuptime/app#readme"
 }

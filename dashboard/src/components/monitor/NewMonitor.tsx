@@ -13,7 +13,7 @@ import {
     change,
     isValid,
     FieldArray,
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+    // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
 } from 'redux-form';
 import {
     createMonitor,
@@ -71,7 +71,7 @@ import { fetchAutomatedScript } from '../../actions/automatedScript';
 const defaultScript =
     '// modules available - request, puppeteer, axios (We can add more later).' +
     ' e.g - const request = require("request")\n\n' +
-    '// To inspect your script or add comments, use console.log\n\n' +
+    '// To inspect your script or add comments, use logger.info\n\n' +
     'async function (done) {\n' +
     '   // write any javascript here \n' +
     '   done();\n' +
@@ -418,7 +418,7 @@ class NewMonitor extends Component {
                 return (
                     acc +
                     (criterion.id !== criterionItem.id &&
-                    criterion.type === criterionItem.type
+                        criterion.type === criterionItem.type
                         ? 1
                         : 0)
                 );
@@ -482,10 +482,10 @@ class NewMonitor extends Component {
             ? values[`type_${this.props.index}`]
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
             : this.props.edit
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
-            ? this.props.editMonitorProp.type
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-            : this.props.type;
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+                ? this.props.editMonitorProp.type
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                : this.props.type;
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
         postObj.resourceCategory =
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
@@ -622,10 +622,10 @@ class NewMonitor extends Component {
                     values[`criterion_${criterion.id}_schedules`];
                 const schedules = criterionSchedules
                     ? criterionSchedules
-                          .filter((scheduleObject: $TSFixMe) => {
-                              return Object.values(scheduleObject)[0] === true;
-                          })
-                          .map((scheduleObject: $TSFixMe) => Object.keys(scheduleObject)[0])
+                        .filter((scheduleObject: $TSFixMe) => {
+                            return Object.values(scheduleObject)[0] === true;
+                        })
+                        .map((scheduleObject: $TSFixMe) => Object.keys(scheduleObject)[0])
                     : [];
 
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleIds' does not exist on type '{}'... Remove this comment to see the full error message
@@ -1164,30 +1164,30 @@ class NewMonitor extends Component {
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{...Remove this comment to see the full error message
                                         <ShouldRender if={!this.props.edit}>
                                             <span>New Monitor</span>
                                         </ShouldRender>
 
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{...Remove this comment to see the full error message
                                         <ShouldRender if={this.props.edit}>
                                             <span>
                                                 Edit Monitor
                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
                                                 {this.props.editMonitorProp &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
-                                                this.props.editMonitorProp.name
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+                                                    this.props.editMonitorProp.name
                                                     ? ' - ' +
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
-                                                      this.props.editMonitorProp
-                                                          .name
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+                                                    this.props.editMonitorProp
+                                                        .name
                                                     : null}
                                             </span>
                                         </ShouldRender>
                                     </span>
                                 </span>
                                 <p>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{...Remove this comment to see the full error message
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
                                             Monitor any resources (Websites,
@@ -1196,14 +1196,14 @@ class NewMonitor extends Component {
                                             they do not behave the way you want.
                                         </span>
                                     </ShouldRender>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{...Remove this comment to see the full error message
                                     <ShouldRender if={this.props.edit}>
                                         <span>
                                             Edit Name and URL of
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
                                             {this.props.editMonitorProp &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
-                                            this.props.editMonitorProp.name
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+                                                this.props.editMonitorProp.name
                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
                                                 ? ` ${this.props.editMonitorProp.name}`
                                                 : ''}
@@ -1325,15 +1325,14 @@ class NewMonitor extends Component {
                                                                                     <div
                                                                                         className={`radio-field monitor-type-item Box-background--white`}
                                                                                         style={{
-                                                                                            border: `1px solid ${
-                                                                                                this
+                                                                                            border: `1px solid ${this
                                                                                                     .props
                                                                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                                                                     .type ===
-                                                                                                el.value
+                                                                                                    el.value
                                                                                                     ? 'black'
                                                                                                     : 'rgba(0,0,0,0.2)'
-                                                                                            }`,
+                                                                                                }`,
                                                                                         }}
                                                                                     >
                                                                                         <div className="radioButtonStyle">
@@ -1438,7 +1437,7 @@ class NewMonitor extends Component {
                                                 <ShouldRender
                                                     if={
                                                         type ===
-                                                            'server-monitor' &&
+                                                        'server-monitor' &&
                                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
                                                         !this.props.edit
                                                     }
@@ -2045,12 +2044,11 @@ class NewMonitor extends Component {
                                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                                 name={`url_${this.props.index}`}
                                                                 id="url"
-                                                                placeholder={`https://mywebsite.com${
-                                                                    type ===
-                                                                    'api'
+                                                                placeholder={`https://mywebsite.com${type ===
+                                                                        'api'
                                                                         ? '/api'
                                                                         : ''
-                                                                }`}
+                                                                    }`}
                                                                 disabled={
                                                                     requesting
                                                                 }
@@ -2086,12 +2084,11 @@ class NewMonitor extends Component {
                                                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
                                                                 name={`url_${this.props.index}`}
                                                                 id="url"
-                                                                placeholder={`https://mywebsite.com${
-                                                                    type ===
-                                                                    'api'
+                                                                placeholder={`https://mywebsite.com${type ===
+                                                                        'api'
                                                                         ? '/api'
                                                                         : ''
-                                                                }`}
+                                                                    }`}
                                                                 disabled={
                                                                     requesting
                                                                 }
@@ -2288,7 +2285,7 @@ class NewMonitor extends Component {
                                                         false &&
                                                         resourceCategoryList &&
                                                         resourceCategoryList.length >
-                                                            0
+                                                        0
                                                     }
                                                 >
                                                     <div className="bs-ContentSection-content Box-root  Flex-flex Flex-alignItems--center Padding-horizontal--29 Padding-vertical--16">
@@ -2343,21 +2340,21 @@ class NewMonitor extends Component {
                                                                                 'Select resource category',
                                                                         },
                                                                         ...(resourceCategoryList &&
-                                                                        resourceCategoryList.length >
+                                                                            resourceCategoryList.length >
                                                                             0
                                                                             ? resourceCategoryList.map(
-                                                                                  (category: $TSFixMe) => ({
-                                                                                      value:
-                                                                                          category._id,
+                                                                                (category: $TSFixMe) => ({
+                                                                                    value:
+                                                                                        category._id,
 
-                                                                                      label:
-                                                                                          category.name
-                                                                                  })
-                                                                              )
+                                                                                    label:
+                                                                                        category.name
+                                                                                })
+                                                                            )
                                                                             : []),
                                                                     ]}
                                                                 />
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
                                                                 <Tooltip title="Resource Category">
                                                                     <div>
                                                                         <p>
@@ -2402,7 +2399,7 @@ class NewMonitor extends Component {
                                                                     Call duties.
                                                                 </span>
 
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
                                                                 <Tooltip title="Call Schedule">
                                                                     <div>
                                                                         <p>
@@ -2588,7 +2585,7 @@ class NewMonitor extends Component {
                                                                     />
                                                                 )}
 
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
                                                                 <Tooltip title="Monitor SLA">
                                                                     <div>
                                                                         <p>
@@ -2706,7 +2703,7 @@ class NewMonitor extends Component {
                                                                     />
                                                                 )}
 
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
                                                                 <Tooltip title="Incident Communication SLA">
                                                                     <div>
                                                                         <p>
@@ -2773,12 +2770,12 @@ class NewMonitor extends Component {
                                                         (type === 'api' ||
                                                             type === 'url' ||
                                                             type ===
-                                                                'server-monitor' ||
+                                                            'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                                'incomingHttpRequest' ||
+                                                            'incomingHttpRequest' ||
                                                             type ===
-                                                                'kubernetes' ||
+                                                            'kubernetes' ||
                                                             type === 'ip') &&
                                                         // @ts-expect-error ts-migrate(2339) FIXME: Property 'advance' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                         !this.state.advance
@@ -2827,12 +2824,12 @@ class NewMonitor extends Component {
                                                         (type === 'api' ||
                                                             type === 'url' ||
                                                             type ===
-                                                                'server-monitor' ||
+                                                            'server-monitor' ||
                                                             type === 'script' ||
                                                             type ===
-                                                                'incomingHttpRequest' ||
+                                                            'incomingHttpRequest' ||
                                                             type ===
-                                                                'kubernetes' ||
+                                                            'kubernetes' ||
                                                             type === 'ip')
                                                     }
                                                 >
@@ -2861,11 +2858,11 @@ class NewMonitor extends Component {
                                                                 (criterion: $TSFixMe) => {
                                                                     if (
                                                                         criterionType.type ===
-                                                                            criterion.type &&
+                                                                        criterion.type &&
                                                                         type ===
-                                                                            'ip' &&
+                                                                        'ip' &&
                                                                         criterionType.type ===
-                                                                            'degraded'
+                                                                        'degraded'
                                                                     )
                                                                         return false;
                                                                     else {
@@ -2934,43 +2931,102 @@ class NewMonitor extends Component {
 
                                                                 {criteria.length ===
                                                                     0 && (
-                                                                    <div>
-                                                                        <div
-                                                                            className="bs-ContentSection Card-root Card-shadow--clear Padding-all--16 Margin-vertical--16"
-                                                                            style={{
-                                                                                borderRadius:
-                                                                                    '0',
-                                                                                boxShadow:
-                                                                                    'none',
-                                                                                display:
-                                                                                    'flex',
-                                                                                justifyContent:
-                                                                                    'space-between',
-                                                                                alignContent:
-                                                                                    'center',
-                                                                            }}
-                                                                        >
-                                                                            <div className="Margin-bottom--16">
-                                                                                <span
-                                                                                    style={{
-                                                                                        display:
-                                                                                            'inline-block',
-                                                                                        borderRadius:
-                                                                                            '2px',
-                                                                                        height:
-                                                                                            '8px',
-                                                                                        width:
-                                                                                            '8px',
-                                                                                        margin:
-                                                                                            '0 8px 1px 0',
-                                                                                        backgroundColor:
-                                                                                            criterionType.type ===
-                                                                                            'up'
-                                                                                                ? 'rgb(117, 211, 128)'
-                                                                                                : 'rgb(255, 222, 36)',
+                                                                        <div>
+                                                                            <div
+                                                                                className="bs-ContentSection Card-root Card-shadow--clear Padding-all--16 Margin-vertical--16"
+                                                                                style={{
+                                                                                    borderRadius:
+                                                                                        '0',
+                                                                                    boxShadow:
+                                                                                        'none',
+                                                                                    display:
+                                                                                        'flex',
+                                                                                    justifyContent:
+                                                                                        'space-between',
+                                                                                    alignContent:
+                                                                                        'center',
+                                                                                }}
+                                                                            >
+                                                                                <div className="Margin-bottom--16">
+                                                                                    <span
+                                                                                        style={{
+                                                                                            display:
+                                                                                                'inline-block',
+                                                                                            borderRadius:
+                                                                                                '2px',
+                                                                                            height:
+                                                                                                '8px',
+                                                                                            width:
+                                                                                                '8px',
+                                                                                            margin:
+                                                                                                '0 8px 1px 0',
+                                                                                            backgroundColor:
+                                                                                                criterionType.type ===
+                                                                                                    'up'
+                                                                                                    ? 'rgb(117, 211, 128)'
+                                                                                                    : 'rgb(255, 222, 36)',
+                                                                                        }}
+                                                                                    ></span>
+                                                                                    <span className="Text-fontSize--16 Text-fontWeight--medium">
+                                                                                        Monitor{' '}
+                                                                                        {`${criterionType.type
+                                                                                            .charAt(
+                                                                                                0
+                                                                                            )
+                                                                                            .toUpperCase() +
+                                                                                            criterionType.type.slice(
+                                                                                                1
+                                                                                            )}`}{' '}
+                                                                                        Criteria
+                                                                                    </span>
+                                                                                    <p>
+                                                                                        <span className="Margin-left--16">
+                                                                                            This
+                                                                                            is
+                                                                                            where
+                                                                                            you
+                                                                                            describe
+                                                                                            when
+                                                                                            your
+                                                                                            monitor
+                                                                                            is
+                                                                                            considered
+                                                                                            {` ${criterionType.type.toLowerCase()}`}
+                                                                                        </span>
+                                                                                    </p>
+                                                                                </div>
+                                                                                <button
+                                                                                    className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
+                                                                                    id="Add-Criteria-Button"
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        this.addCriterion(
+                                                                                            {
+                                                                                                type:
+                                                                                                    criterionType.type,
+                                                                                                id: uuidv4(),
+                                                                                            }
+                                                                                        );
                                                                                     }}
-                                                                                ></span>
-                                                                                <span className="Text-fontSize--16 Text-fontWeight--medium">
+                                                                                >
+                                                                                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                                                                        <span>
+                                                                                            {`Add ${criterionType.type[0].toUpperCase()}${criterionType.type
+                                                                                                .substr(
+                                                                                                    1
+                                                                                                )
+                                                                                                .toLocaleLowerCase()} Criteria`}
+                                                                                        </span>
+                                                                                    </span>
+                                                                                </button>
+                                                                            </div>
+                                                                            <div className="bs-ContentSection-content Box-root Box-background--offset  Padding-horizontal--8 Padding-vertical--16">
+                                                                                <p className="Flex-flex Flex-justifyContent--center Text-fontSize--15">
+                                                                                    You
+                                                                                    do
+                                                                                    not
+                                                                                    have
+                                                                                    any
                                                                                     Monitor{' '}
                                                                                     {`${criterionType.type
                                                                                         .charAt(
@@ -2980,75 +3036,16 @@ class NewMonitor extends Component {
                                                                                         criterionType.type.slice(
                                                                                             1
                                                                                         )}`}{' '}
-                                                                                    Criteria
-                                                                                </span>
-                                                                                <p>
-                                                                                    <span className="Margin-left--16">
-                                                                                        This
-                                                                                        is
-                                                                                        where
-                                                                                        you
-                                                                                        describe
-                                                                                        when
-                                                                                        your
-                                                                                        monitor
-                                                                                        is
-                                                                                        considered
-                                                                                        {` ${criterionType.type.toLowerCase()}`}
-                                                                                    </span>
+                                                                                    Criteria,
+                                                                                    feel
+                                                                                    free
+                                                                                    to
+                                                                                    add
+                                                                                    one
                                                                                 </p>
                                                                             </div>
-                                                                            <button
-                                                                                className="Button bs-ButtonLegacy ActionIconParent Margin-top--8"
-                                                                                id="Add-Criteria-Button"
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    this.addCriterion(
-                                                                                        {
-                                                                                            type:
-                                                                                                criterionType.type,
-                                                                                            id: uuidv4(),
-                                                                                        }
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                                                                                    <span>
-                                                                                        {`Add ${criterionType.type[0].toUpperCase()}${criterionType.type
-                                                                                            .substr(
-                                                                                                1
-                                                                                            )
-                                                                                            .toLocaleLowerCase()} Criteria`}
-                                                                                    </span>
-                                                                                </span>
-                                                                            </button>
                                                                         </div>
-                                                                        <div className="bs-ContentSection-content Box-root Box-background--offset  Padding-horizontal--8 Padding-vertical--16">
-                                                                            <p className="Flex-flex Flex-justifyContent--center Text-fontSize--15">
-                                                                                You
-                                                                                do
-                                                                                not
-                                                                                have
-                                                                                any
-                                                                                Monitor{' '}
-                                                                                {`${criterionType.type
-                                                                                    .charAt(
-                                                                                        0
-                                                                                    )
-                                                                                    .toUpperCase() +
-                                                                                    criterionType.type.slice(
-                                                                                        1
-                                                                                    )}`}{' '}
-                                                                                Criteria,
-                                                                                feel
-                                                                                free
-                                                                                to
-                                                                                add
-                                                                                one
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
+                                                                    )}
                                                             </div>
                                                         );
                                                     })}
@@ -3146,7 +3143,7 @@ class NewMonitor extends Component {
                                                     planCategory
                                                 ) ||
                                                 currentMonitorCount <
-                                                    monitorCount
+                                                monitorCount
                                             }
                                         >
                                             <ShouldRender
@@ -3264,8 +3261,8 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
 
     const currentPlanId =
         state.project &&
-        state.project.currentProject &&
-        state.project.currentProject.stripePlanId
+            state.project.currentProject &&
+            state.project.currentProject.stripePlanId
             ? state.project.currentProject.stripePlanId
             : '';
 

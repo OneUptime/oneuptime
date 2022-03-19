@@ -1,8 +1,4 @@
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { Request, Response } from 'common-server/utils/express';
 import IncidentService from '../services/incidentService';
 import UserService from '../services/userService';
 const {

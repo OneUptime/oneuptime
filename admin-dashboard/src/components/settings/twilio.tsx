@@ -42,7 +42,7 @@ const fields = [
     {
         key: 'call-enabled',
         label: 'Enable Call Alerts',
-        // eslint-disable-next-line react/display-name, react/prop-types
+
         component: ({
             input: { value, onChange }
         }: $TSFixMe) => (
@@ -62,7 +62,7 @@ const fields = [
     {
         key: 'sms-enabled',
         label: 'Enable SMS Alerts',
-        // eslint-disable-next-line react/display-name, react/prop-types
+
         component: ({
             input: { value, onChange }
         }: $TSFixMe) => (

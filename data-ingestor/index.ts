@@ -5,7 +5,8 @@ import express, {
     Response,
     NextFunction,
 } from 'common-server/utils/express';
-const app = express();
+import logger from 'common-server/utils/logger';
+const app = express.getExpressApp();
 
 import http from 'http';
 http.createServer(app);
@@ -26,11 +27,11 @@ function getMongoClient() {
 const client = getMongoClient();
 (async function () {
     try {
-        console.log('connecting to db');
+        logger.info('connecting to db');
         await client.connect();
-        console.log('connected to db');
+        logger.info('connected to db');
     } catch (error) {
-        console.log('connection error: ', error);
+        logger.error('connection error: ', error);
     }
 })();
 
@@ -40,7 +41,7 @@ global.db = client.db(databaseName);
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use((req: Request, res: Response, next: NextFunction) => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -69,7 +70,7 @@ const getActualRequestDurationInMilliseconds = start => {
     return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
 };
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use((req: Request, res: Response, next: NextFunction) => {
     const current_datetime = new Date();
     const formatted_date =
         current_datetime.getFullYear() +
@@ -90,7 +91,7 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
     const durationInMilliseconds =
         getActualRequestDurationInMilliseconds(start);
     const log = `[${formatted_date}] ${method}:${url} ${status} ${durationInMilliseconds.toLocaleString()} ms`;
-    console.log(log);
+    logger.info(log);
     return next();
 });
 
@@ -114,7 +115,7 @@ app.set('port', process.env.PORT || 3200);
 
 http.listen(app.get('port'), function () {
     // eslint-disable-next-line
-    console.log('data-ingestor server started on port ' + app.get('port'));
+    logger.info('data-ingestor server started on port ' + app.get('port'));
 });
 
 export default app;

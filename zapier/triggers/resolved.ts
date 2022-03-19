@@ -14,7 +14,7 @@ const fallbackHook = (z: $TSFixMe, bundle: $TSFixMe) => {
 };
 
 const subscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
-    z.console.log(bundle);
+    z.logger.info(bundle);
 
     // bundle.targetUrl has the Hook URL this app should call when an incident is resolved.
     const data = {

@@ -1,50 +1,11 @@
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Shutting Shutdown');
-});
+import 'common-server/utils/env';
+import 'common-server/utils/process';
 
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
+import express, { Request, Response } from 'common-server/utils/express';
 
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
 import path from 'path';
-const app = express();
 
-import cors from 'cors';
-
-app.use(cors());
-
-app.use(function (req: Request, res: Response, next: $TSFixMe) {
-    if (typeof req.body === 'string') {
-        req.body = JSON.parse(req.body);
-    }
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-    res.header(
-        'Access-Control-Allow-Headers',
-        'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
-    );
-    if (req.get('host').includes('cluster.local')) {
-        return next();
-    }
-    return next();
-});
+const app = express.getExpressApp();
 
 app.get(
     ['/env.js', '/dashboard/env.js'],
@@ -175,8 +136,3 @@ app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 app.get('/*', function (req: Request, res: Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
-
-const PORT = 3000;
-// eslint-disable-next-line no-console
-console.log(`This project is running on port ${PORT}`);
-app.listen(PORT);

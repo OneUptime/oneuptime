@@ -1,5 +1,5 @@
 const jwtSecretKey = process.env['JWT_SECRET'];
-
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 import jwt from 'jsonwebtoken';
 import url from 'url';
 import UserService from '../services/userService';
@@ -17,7 +17,7 @@ const _this = {
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
 
-    getUser: async function (req: Request, res: Response, next: $TSFixMe) {
+    getUser: async function (req: Request, res: Response, next: NextFunction) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
@@ -119,7 +119,7 @@ const _this = {
         }
     },
 
-    checkUser: function (req: Request, res: Response, next: $TSFixMe) {
+    checkUser: function (req: Request, res: Response, next: NextFunction) {
         try {
             const accessToken =
                 req.headers['authorization'] ||

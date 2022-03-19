@@ -44,7 +44,7 @@ let WeekSelector = ({
             : invalidLabel;
     };
 
-    // eslint-disable-next-line react/display-name
+
     const renderWrappedWeekDay = (date: $TSFixMe, selectedDate: $TSFixMe, dayInCurrentMonth: $TSFixMe) => {
         const start = startOfWeek(selectedDate);
         const end = endOfWeek(selectedDate);

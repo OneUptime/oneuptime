@@ -110,7 +110,7 @@ function registerValidSW(swUrl: $TSFixMe, config: $TSFixMe) {
             };
         })
         .catch(error => {
-            // eslint-disable-next-line no-console
+            //eslint-disable-next-line no-console
             console.error(
                 'response Error during service worker registration: ',
                 error
@@ -141,8 +141,8 @@ function checkValidServiceWorker(swUrl: $TSFixMe, config: $TSFixMe) {
             }
         })
         .catch(err => {
-            // eslint-disable-next-line no-console
-            console.log(
+            //eslint-disable-next-line no-console
+            console.info(
                 'No internet connection found. App is running in offline mode.',
                 err
             );

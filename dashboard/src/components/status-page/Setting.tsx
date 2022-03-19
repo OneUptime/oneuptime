@@ -19,7 +19,7 @@ import AddMoreDomainModal from './AddMoreDomainModal';
 import EditMoreDomainModal from './EditMoreDomainModal';
 
 //Client side validation
-// eslint-disable-next-line no-unused-vars
+
 function validate(_values: $TSFixMe) {
     const error = undefined;
     return error;
@@ -281,9 +281,9 @@ export class Setting extends Component {
                                                                 {IsAdminSubProject(
                                                                     subProject
                                                                 ) ||
-                                                                IsOwnerSubProject(
-                                                                    subProject
-                                                                ) ? (
+                                                                    IsOwnerSubProject(
+                                                                        subProject
+                                                                    ) ? (
                                                                     <div className="bs-Fieldset-row">
                                                                         <label
                                                                             className="bs-Fieldset-label"
@@ -456,7 +456,7 @@ export class Setting extends Component {
                                                                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                             .domains
                                                                                             .length >
-                                                                                            0
+                                                                                        0
                                                                                     }
                                                                                 >
                                                                                     <div
@@ -495,7 +495,7 @@ export class Setting extends Component {
                                                                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
                                                                                             .domains
                                                                                             .length >
-                                                                                            0
+                                                                                        0
                                                                                     }
                                                                                 >
                                                                                     <div
@@ -539,10 +539,10 @@ export class Setting extends Component {
                                                                                 }}
                                                                             >
                                                                                 {domain &&
-                                                                                domain.domainVerificationToken &&
-                                                                                !domain
-                                                                                    .domainVerificationToken
-                                                                                    .verified ? (
+                                                                                    domain.domainVerificationToken &&
+                                                                                    !domain
+                                                                                        .domainVerificationToken
+                                                                                        .verified ? (
                                                                                     <div
                                                                                         className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
                                                                                         style={{
@@ -575,7 +575,7 @@ export class Setting extends Component {
                                                                                     </div>
                                                                                 )}
                                                                                 {domain &&
-                                                                                domain.enableHttps ? (
+                                                                                    domain.enableHttps ? (
                                                                                     <div className="Badge Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--14 Text-fontWeight--bold Text-lineHeight--16 Text-wrap--noWrap">
                                                                                             HTTPS
@@ -712,8 +712,8 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
 function mapStateToProps(state: $TSFixMe) {
     const domainsContainer =
         state.statusPage &&
-        state.statusPage.status &&
-        state.statusPage.status.domains
+            state.statusPage.status &&
+            state.statusPage.status.domains
             ? state.statusPage.status.domains
             : [];
 
@@ -727,8 +727,8 @@ function mapStateToProps(state: $TSFixMe) {
         currentProject: state.project.currentProject,
         domains:
             state.statusPage &&
-            state.statusPage.status &&
-            state.statusPage.status.domains
+                state.statusPage.status &&
+                state.statusPage.status.domains
                 ? state.statusPage.status.domains
                 : [],
         initialValues: {

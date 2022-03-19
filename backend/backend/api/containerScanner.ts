@@ -1,8 +1,4 @@
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { Request, Response } from 'common-server/utils/express';
 const router = express.getRouter();
 import ContainerSecurityService from '../services/containerSecurityService';
 import ContainerSecurityLogService from '../services//containerSecurityLogService';

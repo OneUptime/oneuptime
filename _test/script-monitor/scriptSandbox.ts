@@ -1,5 +1,5 @@
 import { join } from "path"
-import {performance} from 'perf_hooks'
+import { performance } from 'perf_hooks'
 
 import {
     isMainThread,
@@ -22,11 +22,11 @@ class ScriptMonitorError extends Error {
         super();
         this.message = message;
         this.errors = Array.isArray(errors)
-        ? errors.reduce(
-              (allErr, err) => [...allErr, err.message].join(','),
-              []
-          )
-        : (errors.message ?? errors);
+            ? errors.reduce(
+                (allErr, err) => [...allErr, err.message].join(','),
+                []
+            )
+            : (errors.message ?? errors);
     }
 }
 
@@ -37,7 +37,7 @@ const {
 } = runConfig;
 
 const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = { maxScriptRunTime, maxSyncStatementDuration }) => {
-    
+
 
     if (isMainThread) {
         // modifiable option in development mode only
@@ -65,7 +65,7 @@ const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = {
                         lastMessage = Date.now();
                         break;
                     }
-                    case 'log':{
+                    case 'log': {
                         consoleLogs.push(payload);
                         break;
                     }
@@ -100,8 +100,8 @@ const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = {
                         const message = statementTimeExceeded
                             ? `Max. synchronous statement execution time exceeded (${maxSyncStatementDuration}ms)`
                             : scriptTimeExceeded
-                            ? `Max. script execution time exceeded (${maxScriptRunTime}ms)`
-                            : 'Script was terminated';
+                                ? `Max. script execution time exceeded (${maxScriptRunTime}ms)`
+                                : 'Script was terminated';
                         resolve({
                             success: false,
                             message,
@@ -176,7 +176,7 @@ const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = {
         });
     } else {
         // worker_threads code
-        
+
         import { NodeVM } from 'vm2'
         const vm = new NodeVM({
             eval: false,
@@ -189,16 +189,16 @@ const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = {
             console: 'redirect',
         });
 
-        vm.on('console.log', (log: $TSFixMe) => {
-            parentPort.postMessage({type: 'log', payload: `[log]: ${log}`});
+        vm.on('logger.info', (log: $TSFixMe) => {
+            parentPort.postMessage({ type: 'log', payload: `[log]: ${log}` });
         });
 
-        vm.on('console.error', (error: $TSFixMe) => {
-            parentPort.postMessage({type: 'log', payload: `[error]: ${error}`});
+        vm.on('logger.error', (error: $TSFixMe) => {
+            parentPort.postMessage({ type: 'log', payload: `[error]: ${error}` });
         });
 
         vm.on('console.warn', (error: $TSFixMe) => {
-            parentPort.postMessage({type: 'log', payload: `[warn]: ${error}`});
+            parentPort.postMessage({ type: 'log', payload: `[warn]: ${error}` });
         });
 
         const scriptCompletedCallback = (err: $TSFixMe) => {
@@ -208,7 +208,7 @@ const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = {
         };
 
         const code = workerData.functionCode;
-        setInterval(() => parentPort.postMessage({type: 'ping'}), 500);
+        setInterval(() => parentPort.postMessage({ type: 'ping' }), 500);
         const sandboxFunction = await vm.run(
             `export default ${code}`,
             join(process.cwd(), 'node_modules')

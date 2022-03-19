@@ -1,5 +1,5 @@
 import { sendErrorResponse } from 'common-server/utils/response';
-
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 import ErrorService from 'common-server/utils/error';
 export default {
     isAuthorizedLighthouse: async function (

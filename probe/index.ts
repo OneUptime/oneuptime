@@ -1,5 +1,3 @@
-const { NODE_ENV } = process.env;
-
 import asyncSleep from 'await-sleep';
 
 import 'common-server/utils/env';
@@ -14,7 +12,7 @@ const cronMinuteStartTime = Math.floor(Math.random() * 50);
 setTimeout(async () => {
     // keep monitoring in an infinate loop.
 
-    //eslint-disable-next-line
+    //eslint-disable-next-line no-constant-condition
     while (true) {
         try {
             await Main.runJob();
@@ -26,7 +24,6 @@ setTimeout(async () => {
     }
 }, cronMinuteStartTime * 1000);
 
-// eslint-disable-next-line no-console
-console.log(
+logger.info(
     `Probe with Probe Name ${config.probeName} and Probe Key ${config.probeKey}. OneUptime Probe API URL: ${config.probeApiUrl}`
 );

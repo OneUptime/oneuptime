@@ -1,11 +1,15 @@
 import StatusPageService from '../services/statusPageService';
 import { sendErrorResponse } from 'common-server/utils/response';
-
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 import apiMiddleware from './api';
 import ipaddr from 'ipaddr.js';
 
 const _this = {
-    ipWhitelist: async function (req: Request, res: Response, next: $TSFixMe) {
+    ipWhitelist: async function (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
         const statusPageSlug = apiMiddleware.getStatusPageSlug(req);
         const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
         let statusPage;

@@ -1,4 +1,5 @@
 import apiMiddleware from './api';
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 import { sendErrorResponse } from 'common-server/utils/response';
 
 const doesUserBelongToProject = require('./project').doesUserBelongToProject;
@@ -8,7 +9,7 @@ export default {
     // Params:
     // Param 1: req.headers -> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
-    isAuthorized: function (req: Request, res: Response, next: $TSFixMe) {
+    isAuthorized: function (req: Request, res: Response, next: NextFunction) {
         const projectId = apiMiddleware.getProjectId(req);
 
         if (projectId) {

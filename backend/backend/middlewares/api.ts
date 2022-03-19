@@ -1,7 +1,7 @@
 import mongoose from '../config/db';
 import ProjectService from '../services/projectService';
 import { sendErrorResponse } from 'common-server/utils/response';
-
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 const ObjectID = mongoose.Types.ObjectId;
 import MonitorService from '../services/monitorService';
 

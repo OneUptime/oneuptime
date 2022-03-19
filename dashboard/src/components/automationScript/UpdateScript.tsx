@@ -21,7 +21,7 @@ import 'ace-builds/src-noconflict/theme-github';
 import DropDownMenu from '../basic/DropDownMenu';
 
 const defaultScript =
-    '// To inspect your script or add comments, use console.log\n\n' +
+    '// To inspect your script or add comments, use logger.info\n\n' +
     'async function (done) {\n' +
     '   // write any javascript here \n' +
     '   done();\n' +
@@ -125,18 +125,18 @@ class UpdateScript extends Component {
         const scheduleOption =
             schedules && schedules.length > 0
                 ? schedules.map((schedule: $TSFixMe) => ({
-                value: schedule._id,
-                label: schedule.name
-            }))
+                    value: schedule._id,
+                    label: schedule.name
+                }))
                 : [];
         const scriptOption =
             script && script.length > 0
                 ? script
-                      .filter((s: $TSFixMe) => s._id !== currentScript)
-                      .map((s: $TSFixMe) => ({
-                value: s._id,
-                label: s.name
-            }))
+                    .filter((s: $TSFixMe) => s._id !== currentScript)
+                    .map((s: $TSFixMe) => ({
+                        value: s._id,
+                        label: s.name
+                    }))
                 : [];
         if (fields.length === 0) {
             fields.push();
@@ -145,15 +145,15 @@ class UpdateScript extends Component {
             {fields.map((field: $TSFixMe, index: $TSFixMe) => {
                 const optionObj =
                     successEventValues &&
-                    successEventValues[index] &&
-                    successEventValues[index].type === 'callSchedule'
+                        successEventValues[index] &&
+                        successEventValues[index].type === 'callSchedule'
                         ? scheduleOption
                         : successEventValues &&
-                          successEventValues[index] &&
-                          successEventValues[index].type ===
-                              'automatedScript'
-                        ? scriptOption
-                        : [];
+                            successEventValues[index] &&
+                            successEventValues[index].type ===
+                            'automatedScript'
+                            ? scriptOption
+                            : [];
 
                 return (
                     <div className="bs-a-script" key={index}>
@@ -281,18 +281,18 @@ class UpdateScript extends Component {
         const scheduleOption =
             schedules && schedules.length > 0
                 ? schedules.map((schedule: $TSFixMe) => ({
-                value: schedule._id,
-                label: schedule.name
-            }))
+                    value: schedule._id,
+                    label: schedule.name
+                }))
                 : [];
         const scriptOption =
             script && script.length > 0
                 ? script
-                      .filter((s: $TSFixMe) => s._id !== currentScript)
-                      .map((s: $TSFixMe) => ({
-                value: s._id,
-                label: s.name
-            }))
+                    .filter((s: $TSFixMe) => s._id !== currentScript)
+                    .map((s: $TSFixMe) => ({
+                        value: s._id,
+                        label: s.name
+                    }))
                 : [];
         if (fields.length === 0) {
             fields.push();
@@ -301,15 +301,15 @@ class UpdateScript extends Component {
             {fields.map((field: $TSFixMe, index: $TSFixMe) => {
                 const optionObj =
                     failureEventValues &&
-                    failureEventValues[index] &&
-                    failureEventValues[index].type === 'callSchedule'
+                        failureEventValues[index] &&
+                        failureEventValues[index].type === 'callSchedule'
                         ? scheduleOption
                         : failureEventValues &&
-                          failureEventValues[index] &&
-                          failureEventValues[index].type ===
-                              'automatedScript'
-                        ? scriptOption
-                        : [];
+                            failureEventValues[index] &&
+                            failureEventValues[index].type ===
+                            'automatedScript'
+                            ? scriptOption
+                            : [];
 
                 return (
                     <div className="bs-a-script" key={index}>
@@ -523,104 +523,104 @@ class UpdateScript extends Component {
                                                         Script
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                        {this.state.type ===
+                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{...Remove this comment to see the full error message
+                                                            {this.state.type ===
                                                             'JavaScript' && (
-                                                            <AceEditor
-                                                                placeholder="Enter script here"
-                                                                mode="javascript"
-                                                                theme="github"
-                                                                value={
-                                                                    this.state
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
-                                                                        .script
-                                                                }
-                                                                defaultValue={
-                                                                    defaultScript
-                                                                }
-                                                                style={{
-                                                                    backgroundColor:
-                                                                        '#fff',
-                                                                    borderRadius:
-                                                                        '4px',
-                                                                    boxShadow:
-                                                                        '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
-                                                                }}
-                                                                name={`automated-script`}
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
-                                                                id="automatedScript"
-                                                                editorProps={{
-                                                                    $blockScrolling: true,
-                                                                }}
-                                                                setOptions={{
-                                                                    enableBasicAutocompletion: true,
-                                                                    enableLiveAutocompletion: true,
-                                                                    enableSnippets: true,
-                                                                    showGutter: false,
-                                                                }}
-                                                                height="150px"
-                                                                highlightActiveLine={
-                                                                    true
-                                                                }
-                                                                onChange={
-                                                                    this
-                                                                        .setAutomatedScript
-                                                                }
-                                                                fontSize="14px"
-                                                                wrapEnabled={
-                                                                    true
-                                                                }
-                                                            />
-                                                        )}
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                        {this.state.type ===
+                                                                <AceEditor
+                                                                    placeholder="Enter script here"
+                                                                    mode="javascript"
+                                                                    theme="github"
+                                                                    value={
+                                                                        this.state
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
+                                                                            .script
+                                                                    }
+                                                                    defaultValue={
+                                                                        defaultScript
+                                                                    }
+                                                                    style={{
+                                                                        backgroundColor:
+                                                                            '#fff',
+                                                                        borderRadius:
+                                                                            '4px',
+                                                                        boxShadow:
+                                                                            '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
+                                                                    }}
+                                                                    name={`automated-script`}
+                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
+                                                                    id="automatedScript"
+                                                                    editorProps={{
+                                                                        $blockScrolling: true,
+                                                                    }}
+                                                                    setOptions={{
+                                                                        enableBasicAutocompletion: true,
+                                                                        enableLiveAutocompletion: true,
+                                                                        enableSnippets: true,
+                                                                        showGutter: false,
+                                                                    }}
+                                                                    height="150px"
+                                                                    highlightActiveLine={
+                                                                        true
+                                                                    }
+                                                                    onChange={
+                                                                        this
+                                                                            .setAutomatedScript
+                                                                    }
+                                                                    fontSize="14px"
+                                                                    wrapEnabled={
+                                                                        true
+                                                                    }
+                                                                />
+                                                            )}
+                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+                                                            {this.state.type ===
                                                             'Bash' && (
-                                                            <AceEditor
-                                                                placeholder="echo Hello World"
-                                                                mode="javascript"
-                                                                theme="github"
-                                                                value={
-                                                                    this.state
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
-                                                                        .script
-                                                                }
-                                                                defaultValue={
-                                                                    ''
-                                                                }
-                                                                style={{
-                                                                    backgroundColor:
-                                                                        '#fff',
-                                                                    borderRadius:
-                                                                        '4px',
-                                                                    boxShadow:
-                                                                        '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
-                                                                }}
-                                                                name={`automated-script`}
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
-                                                                id="automatedScript"
-                                                                editorProps={{
-                                                                    $blockScrolling: true,
-                                                                }}
-                                                                setOptions={{
-                                                                    enableBasicAutocompletion: true,
-                                                                    enableLiveAutocompletion: true,
-                                                                    enableSnippets: true,
-                                                                    showGutter: false,
-                                                                }}
-                                                                height="150px"
-                                                                highlightActiveLine={
-                                                                    true
-                                                                }
-                                                                onChange={
-                                                                    this
-                                                                        .setAutomatedScript
-                                                                }
-                                                                fontSize="14px"
-                                                                wrapEnabled={
-                                                                    true
-                                                                }
-                                                            />
-                                                        )}
+                                                                <AceEditor
+                                                                    placeholder="echo Hello World"
+                                                                    mode="javascript"
+                                                                    theme="github"
+                                                                    value={
+                                                                        this.state
+                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
+                                                                            .script
+                                                                    }
+                                                                    defaultValue={
+                                                                        ''
+                                                                    }
+                                                                    style={{
+                                                                        backgroundColor:
+                                                                            '#fff',
+                                                                        borderRadius:
+                                                                            '4px',
+                                                                        boxShadow:
+                                                                            '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
+                                                                    }}
+                                                                    name={`automated-script`}
+                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
+                                                                    id="automatedScript"
+                                                                    editorProps={{
+                                                                        $blockScrolling: true,
+                                                                    }}
+                                                                    setOptions={{
+                                                                        enableBasicAutocompletion: true,
+                                                                        enableLiveAutocompletion: true,
+                                                                        enableSnippets: true,
+                                                                        showGutter: false,
+                                                                    }}
+                                                                    height="150px"
+                                                                    highlightActiveLine={
+                                                                        true
+                                                                    }
+                                                                    onChange={
+                                                                        this
+                                                                            .setAutomatedScript
+                                                                    }
+                                                                    fontSize="14px"
+                                                                    wrapEnabled={
+                                                                        true
+                                                                    }
+                                                                />
+                                                            )}
                                                     </div>
                                                 </div>
                                             </div>

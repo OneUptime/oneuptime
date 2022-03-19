@@ -200,7 +200,6 @@ describe('Team API', function () {
     });
 });
 
-// eslint-disable-next-line no-unused-vars
 let subProjectId,
     newUserToken,
     subProjectTeamMemberId,

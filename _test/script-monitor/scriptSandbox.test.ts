@@ -15,7 +15,7 @@ describe('ScriptMonitor V2', function () {
     before(function () {
 
       import express from "express"
-      const app = express();
+      const app = express.getExpressApp();
       app.get("/test", (req: Request, res: Response) => res.send("yipee!"));
       server = app.listen(5050);
     });
@@ -54,7 +54,7 @@ describe('ScriptMonitor V2', function () {
     it("should return false for error thrown in script", async function () {
       const someFunction = async (done: $TSFixMe) => {
         console.log('Error log');
-        console.error('Bad Error');
+        logger.error('Bad Error');
         throw new Error("Bad error");
       }
       const result = await runScript(someFunction.toString(), true);

@@ -1,13 +1,9 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
-
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import logger from 'common-server/utils/logger';
+import express, { Request, Response } from 'common-server/utils/express';
 import path from 'path';
-const app = express();
+const app = express.getExpressApp();
 
 import compression from 'compression';
 
@@ -79,6 +75,6 @@ app.get('/*', function (req: Request, res: Response) {
 });
 
 const PORT = process.env.PORT || 3003;
-// eslint-disable-next-line no-console
-console.log(`This project is running on port ${PORT}`);
+
+logger.info(`This project is running on port ${PORT}`);
 app.listen(PORT);

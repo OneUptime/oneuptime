@@ -1,14 +1,15 @@
 /* eslint-disable no-console */
+import logger from './logger';
 process.on('exit', () => {
-    console.log('Server Shutting Shutdown');
+    logger.info('Server Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    console.error('Unhandled rejection in server process occurred');
-    console.error(err);
+    logger.error('Unhandled rejection in server process occurred');
+    logger.error(err);
 });
 
 process.on('uncaughtException', err => {
-    console.error('Uncaught exception in server process occurred');
-    console.error(err);
+    logger.error('Uncaught exception in server process occurred');
+    logger.error(err);
 });

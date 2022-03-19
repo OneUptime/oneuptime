@@ -2,7 +2,7 @@ import ProbeService from '../services/probeService';
 import { sendErrorResponse } from 'common-server/utils/response';
 
 import ErrorService from '../services/errorService';
-import { Request, Response } from 'common-server/utils/express';
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 

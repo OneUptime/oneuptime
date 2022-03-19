@@ -1,4 +1,3 @@
-//eslint-disable-next-line
 function openTab(evt: $TSFixMe, tabName: $TSFixMe) {
     // Declare all variables
     let i;
@@ -16,18 +15,17 @@ function openTab(evt: $TSFixMe, tabName: $TSFixMe) {
     }
 
     // Show the current tab, and add an "active" class to the link that opened the tab
-    
+
     document.getElementById(tabName).className += ' active';
     evt.currentTarget.className += ' active';
-    
+
     setTimeout(() => document.getElementById(tabName + '1').parentNode.click(), 200);
 }
-//eslint-disable-next-line
 function openTooltip(name: $TSFixMe) {
     // Declare all variables
     let i;
     const element = document.getElementById(name);
-    
+
     const elclass = element.className;
 
     const tooltip = document.getElementsByClassName('tooltiptext');
@@ -35,11 +33,11 @@ function openTooltip(name: $TSFixMe) {
         tooltip[i].className = tooltip[i].className.replace(' active', '');
     }
     if (elclass.indexOf('active') > -1) {
-        
+
         element.className = element.className.replace(' active', '');
     }
     else {
-        
+
         element.classList.add('active');
     }
 }
@@ -48,14 +46,14 @@ window.onload = function () {
     animateHTML().init();
     const tooltext = document.getElementsByClassName('tooltiptext');
     for (let i = 0; i < tooltext.length; i++) {
-        
+
         tooltext[i].onclick = function (e: $TSFixMe) {
             e.stopPropagation();
         }
     }
 
     document.getElementsByTagName('body')[0].onclick = function (e) {
-        
+
         if (e.target.className !== 'popover-dot' && e.target.className !== 'tooltiptext' && e.target.className !== 'tablinks active') {
             const tooltip = document.getElementsByClassName('tooltiptext');
             for (let i = 0; i < tooltip.length; i++) {
@@ -77,13 +75,13 @@ const animateHTML = function () {
         window.addEventListener('resize', init)
     }
     const _checkPosition = function () {
-        if(!elem){
+        if (!elem) {
             return;
         }
         const posFromTop = elem.getBoundingClientRect().top;
 
         if (posFromTop - windowHeight <= -400) {
-            
+
             document.getElementById('Statuspage1').parentNode.click();
             window.removeEventListener('scroll', _checkPosition);
             window.removeEventListener('resize', init);

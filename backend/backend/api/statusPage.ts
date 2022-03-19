@@ -1,8 +1,4 @@
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { Request, Response } from 'common-server/utils/express';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
@@ -1409,8 +1405,8 @@ router.get(
     checkUser,
     async function (req, res) {
         const { scheduledEventSlug } = req.params;
-        // eslint-disable-next-line no-unused-vars
-        const { skip, limit, type } = req.query;
+
+        const { skip, limit } = req.query;
 
         const scheduledEventId = await ScheduledEventService.findOneBy({
             query: { slug: scheduledEventSlug },

@@ -1,28 +1,12 @@
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Shutting Shutdown');
-});
-
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
+import 'common-server/utils/env';
+import 'common-server/utils/process';
+import logger from 'common-server/utils/logger';
 import express, {
     Request,
     Response,
     NextFunction,
 } from 'common-server/utils/express';
-const app = express();
+const app = express.getExpressApp();
 import path from 'path';
 import version from './api/version';
 
@@ -31,25 +15,22 @@ import cors from 'cors';
 app.use(cors());
 
 process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Server Shutting Shutdown');
+    logger.info('Server Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in server process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
+    logger.error('Unhandled rejection in server process occurred');
+
+    logger.error(err);
 });
 
 process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in server process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
+    logger.error('Uncaught exception in server process occurred');
+
+    logger.error(err);
 });
 
-app.use(function (req: Request, res: Response, next: $TSFixMe) {
+app.use((req: Request, res: Response, next: NextFunction) => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -90,8 +71,7 @@ app.get(['/', '/docs'], function (req: Request, res: Response) {
 });
 
 app.listen(app.get('port'), function () {
-    // eslint-disable-next-line no-console
-    console.log('API Reference started on PORT:' + app.get('port'));
+    logger.info('API Reference started on PORT:' + app.get('port'));
 });
 
 export default app;

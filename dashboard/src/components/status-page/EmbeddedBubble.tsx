@@ -100,7 +100,7 @@ const createScript = (url: $TSFixMe, css: $TSFixMe) => {
             placeholderTitleDiv.className = 'text';
             placeholderTitleDiv.innerHTML = statusMessage;
             })
-            .catch(err => console.error(err));
+            .catch(err => logger.error(err));
         };window.onload = function (){initializeBubble()};
         </script>`;
 };

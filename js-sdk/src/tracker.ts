@@ -1,6 +1,5 @@
 import OneUptimeListener from './listener';
 import Util from './util';
-
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
@@ -182,16 +181,15 @@ class ErrorTracker {
         process
             .on('uncaughtException', err => {
                 // display for the user
-                // eslint-disable-next-line no-console
-                console.log(`${err}`);
+                //eslint-disable-next-line no-console
+                console.info(`${err}`);
                 // any uncaught error
                 _this._manageErrorNode(err);
             })
             .on('unhandledRejection', err => {
                 // display this for the user
-
-                // eslint-disable-next-line no-console
-                console.log(`UnhandledPromiseRejectionWarning: ${err.stack}`);
+                //eslint-disable-next-line no-console
+                console.info(`UnhandledPromiseRejectionWarning: ${err.stack}`);
                 // any unhandled promise error
                 _this._manageErrorNode(err);
             });

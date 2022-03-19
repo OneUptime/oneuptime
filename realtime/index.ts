@@ -5,7 +5,7 @@ import express, {
     Response,
     NextFunction,
 } from 'common-server/utils/express';
-const app = express();
+const app = express.getExpressApp();
 
 import http from 'http';
 http.createServer(app);
@@ -74,7 +74,7 @@ io.sockets.on('connection', socket => {
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use((req: Request, res: Response, next: NextFunction) => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -114,7 +114,7 @@ app.set('port', process.env.PORT || 3300);
 
 http.listen(app.get('port'), function () {
     // eslint-disable-next-line
-    console.log('realtime server started on port ' + app.get('port'));
+    logger.info('realtime server started on port ' + app.get('port'));
 });
 
 export default app;

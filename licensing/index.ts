@@ -3,7 +3,7 @@ import express, {
     Response,
     NextFunction,
 } from 'common-server/utils/express';
-const app = express();
+const app = express.getExpressApp();
 
 import 'common-server/utils/env';
 import 'common-server/utils/process';
@@ -20,7 +20,7 @@ import cors from 'cors';
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use((req: Request, res: Response, next: NextFunction) => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -52,7 +52,7 @@ app.set('port', process.env.PORT || 3004);
 
 const server = http.listen(app.get('port'), function () {
     // eslint-disable-next-line
-    console.log('Server Started on port ' + app.get('port'));
+    logger.info('Server Started on port ' + app.get('port'));
 });
 
 app.get(['/', '/license'], function (req: Request, res: Response) {

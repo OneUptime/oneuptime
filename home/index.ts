@@ -1,28 +1,8 @@
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Shutting Shutdown');
-});
-
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
-const app = express();
+import 'common-server/utils/env';
+import 'common-server/utils/process';
+import logger from 'common-server/utils/logger';
+import express, { Request, Response } from 'common-server/utils/express';
+const app = express.getExpressApp();
 
 import bodyParser from 'body-parser';
 import path from 'path';
@@ -721,27 +701,37 @@ app.get('/compare/:product', function (req: Request, res: Response) {
 // minify default.js
 app.get('/js/default.js', async function (req: Request, res: Response) {
     res.setHeader('Content-Type', 'text/javascript');
-    //eslint-disable-next-line
     const [error, data] = await tryToCatch(minify, './public/js/default.js');
+
+    if (error) {
+        return res.status(500).send();
+    }
+
     res.send(data);
 });
 
 // minify
 app.get('/css/home.css', async function (req: Request, res: Response) {
     res.setHeader('Content-Type', 'text/css');
-    //eslint-disable-next-line
     const [error, data] = await tryToCatch(minify, './public/css/home.css');
+    if (error) {
+        return res.status(500).send();
+    }
     res.send(data);
 });
 
 // minify
 app.get('/css/comparision.css', async function (req: Request, res: Response) {
     res.setHeader('Content-Type', 'text/css');
-    //eslint-disable-next-line
     const [error, data] = await tryToCatch(
         minify,
         './public/css/comparision.css'
     );
+
+    if (error) {
+        return res.status(500).send();
+    }
+
     res.send(data);
 });
 
@@ -860,6 +850,5 @@ app.get('/*', function (req: Request, res: Response) {
 app.set('port', process.env.PORT || 1444);
 
 app.listen(app.get('port'), function () {
-    //eslint-disable-next-line
-    console.log('Server running on port : ' + app.get('port'));
+    logger.info('Server running on port : ' + app.get('port'));
 });

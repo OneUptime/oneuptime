@@ -1,4 +1,4 @@
-import { Request, Response } from 'common-server/utils/express';
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 
 import ErrorService from 'common-server/utils/error';
 import ApplicationLogService from '../services/applicationLogService';

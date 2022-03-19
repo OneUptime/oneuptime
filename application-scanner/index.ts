@@ -1,12 +1,8 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
-const app = express();
+import express, { Request, Response } from 'common-server/utils/express';
+const app = express.getExpressApp();
 
 import http from 'http';
 http.createServer(app);
@@ -57,7 +53,7 @@ cron.schedule('*/5 * * * *', () => {
 
 http.listen(app.get('port'), function () {
     // eslint-disable-next-line
-    console.log(
+    logger.info(
         `Application Scanner Started on port ${app.get(
             'port'
         )}. OneUptime API URL: ${config.serverUrl}`

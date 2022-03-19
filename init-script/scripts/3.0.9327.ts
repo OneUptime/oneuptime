@@ -1,6 +1,8 @@
 import { find } from '../util/db';
 import payment from '../util/payment';
 import Stripe from 'stripe';
+import logger from 'common-server/utils/logger';
+
 const stripe = Stripe(payment.paymentPrivateKey);
 
 import { deleteApi } from '../util/api';
@@ -30,8 +32,7 @@ async function run() {
                         `project/${project._id}/initScript/deleteProject`
                     );
                 } catch (error) {
-                    // eslint-disable-next-line no-console
-                    console.log('** Init error: ', error);
+                    logger.info('** Init error: ', error);
                 }
             }
         }

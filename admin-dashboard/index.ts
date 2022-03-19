@@ -1,29 +1,9 @@
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Shutting Shutdown');
-});
+import 'common-server/utils/env';
+import 'common-server/utils/process';
 
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { Request, Response } from 'common-server/utils/express';
 import path from 'path';
-const app = express();
+const app = express.getExpressApp();
 
 app.get(['/env.js', '/admin/env.js'], function (req: Request, res: Response) {
     const env = {

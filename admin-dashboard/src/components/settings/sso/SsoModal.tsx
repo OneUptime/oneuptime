@@ -43,7 +43,7 @@ const fields = [
         label: 'Enable SAML',
         description:
             'SAML is an industry standard SSO framework typically used by large enterprises for communicating identities across the internet.',
-        // eslint-disable-next-line react/display-name, react/prop-types
+
         component: ({
             input: { value, onChange }
         }: $TSFixMe) => (
@@ -328,7 +328,7 @@ class Component extends React.Component {
                                                                 }}
                                                                 autoFocus={
                                                                     field.key ===
-                                                                    'domain'
+                                                                        'domain'
                                                                         ? true
                                                                         : false
                                                                 }

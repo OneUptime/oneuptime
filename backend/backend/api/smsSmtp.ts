@@ -1,8 +1,4 @@
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { Request, Response } from 'common-server/utils/express';
 import SmsSmtpService from '../services/smsSmtpService';
 import TwilioService from '../services/twilioService';
 const router = express.getRouter();

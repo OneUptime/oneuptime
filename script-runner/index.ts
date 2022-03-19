@@ -1,4 +1,3 @@
-const { NODE_ENV } = process.env;
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 
@@ -7,7 +6,7 @@ import express, {
     Response,
     NextFunction,
 } from 'common-server/utils/express';
-const app = express();
+const app = express.getExpressApp();
 
 import http from 'http';
 http.createServer(app);
@@ -21,7 +20,7 @@ import main from './workers/main';
 
 app.use(cors());
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use((req: Request, res: Response, next: NextFunction) => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -56,7 +55,7 @@ app.use('/script', require('./api/script'));
 
 http.listen(app.get('port'), function () {
     // eslint-disable-next-line
-    console.log('Script runner started on port ' + app.get('port'));
+    logger.info('Script runner started on port ' + app.get('port'));
 });
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
 

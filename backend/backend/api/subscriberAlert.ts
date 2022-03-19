@@ -1,8 +1,4 @@
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { Request, Response } from 'common-server/utils/express';
 import SubscriberAlertService from '../services/subscriberAlertService';
 import path from 'path';
 import fs from 'fs';

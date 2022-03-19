@@ -861,7 +861,6 @@ export function fetchMonitorStatuses(
         dispatch(fetchMonitorStatusesRequest(monitorId));
 
         promise.then(
-            // eslint-disable-next-line no-unused-vars
             function (monitorStatuses) {
                 dispatch(
                     fetchMonitorStatusesSuccess({

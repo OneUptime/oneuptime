@@ -61,7 +61,7 @@ class DeleteCaution extends Component {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideOnDelete' does not exist on type 'Re... Remove this comment to see the full error message
             hideOnDelete,
         } = this.props;
-        // eslint-disable-next-line no-console
+
 
         return (
             <form

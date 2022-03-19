@@ -12,10 +12,10 @@ import ShouldRender from './ShouldRender';
 
 function debounce(this: $TSFixMe, fn: $TSFixMe, ms: $TSFixMe) {
     let timer: $TSFixMe;
-    // eslint-disable-next-line no-unused-vars
+
     return (_: $TSFixMe) => {
         clearTimeout(timer);
-        // eslint-disable-next-line no-unused-vars
+
         timer = setTimeout(_ => {
             timer = null;
             fn.apply(this, arguments);
@@ -91,15 +91,15 @@ class MonitorInfo extends Component {
         const prevProbe =
             prevProps.probes && prevProps.probes.length > 0
                 ? prevProps.probes[
-                      prevProps.probes.length < 2 ? 0 : activeProbe
-                  ]
+                prevProps.probes.length < 2 ? 0 : activeProbe
+                ]
                 : null;
 
         if (
             prevProbe?._id !== currentProbe?._id ||
             JSON.stringify(prevProps.monitorStatus) !==
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStatus' does not exist on type 'R... Remove this comment to see the full error message
-                JSON.stringify(this.props.monitorStatus) ||
+            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorStatus' does not exist on type 'R... Remove this comment to see the full error message
+            JSON.stringify(this.props.monitorStatus) ||
             prevProps.range !== range
         ) {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
@@ -116,9 +116,9 @@ class MonitorInfo extends Component {
                 currentProbe =
                     probes && probes.length > 0
                         ? probes.filter(
-                              (probe: $TSFixMe) => String(probe._id) ===
-                              String(monitorData.statuses[0]._id)
-                          )[0]
+                            (probe: $TSFixMe) => String(probe._id) ===
+                                String(monitorData.statuses[0]._id)
+                        )[0]
                         : null;
             }
 
@@ -190,8 +190,8 @@ class MonitorInfo extends Component {
         return status === 'online'
             ? onlineText
             : status === 'degraded'
-            ? degradedText
-            : offlineText;
+                ? degradedText
+                : offlineText;
     };
 
     checkOngoingEventMonitor = (events: $TSFixMe) => {
@@ -415,28 +415,28 @@ class MonitorInfo extends Component {
                                         (this.props.ongoing &&
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
                                             this.props.ongoing.length > 0) ||
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
-                                        status.font === 'rgba(255, 222, 36, 1)'
+                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
+                                            status.font === 'rgba(255, 222, 36, 1)'
                                             ? '#e39f48'
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
                                             : status.font ===
-                                              'rgba(108, 219, 86, 1)'
-                                            ? '#49c3b1'
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
-                                            : status.font ===
-                                              'rgba(250, 109, 70, 1)'
-                                            ? '#FA6D46'
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
-                                            : status.font,
+                                                'rgba(108, 219, 86, 1)'
+                                                ? '#49c3b1'
+                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
+                                                : status.font ===
+                                                    'rgba(250, 109, 70, 1)'
+                                                    ? '#FA6D46'
+                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'font' does not exist on type '{ display:... Remove this comment to see the full error message
+                                                    : status.font,
                                     textTransform: 'capitalize',
                                 }}
                             >
                                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
                                 {this.props.ongoing &&
-                                this.checkOngoingEventMonitor(
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                    this.props.ongoing
-                                )
+                                    this.checkOngoingEventMonitor(
+                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                        this.props.ongoing
+                                    )
                                     ? 'Ongoing Scheduled Event'
                                     : this.handleMonitorStatus(monitorStatus)}
                             </div>
@@ -489,7 +489,7 @@ class MonitorInfo extends Component {
                                         style={
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                             subheading.color ===
-                                            'rgba(76, 76, 76, 1)'
+                                                'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
@@ -500,7 +500,7 @@ class MonitorInfo extends Component {
                                         style={
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                             subheading.color ===
-                                            'rgba(76, 76, 76, 1)'
+                                                'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
@@ -518,10 +518,10 @@ class MonitorInfo extends Component {
                                                 style={
                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                                     subheading.color ===
-                                                    'rgba(76, 76, 76, 1)'
+                                                        'rgba(76, 76, 76, 1)'
                                                         ? {
-                                                              color: '#aaaaaa',
-                                                          }
+                                                            color: '#aaaaaa',
+                                                        }
                                                         : subheading
                                                 }
                                             >
@@ -532,10 +532,10 @@ class MonitorInfo extends Component {
                                                 style={
                                                     // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                                     subheading.color ===
-                                                    'rgba(76, 76, 76, 1)'
+                                                        'rgba(76, 76, 76, 1)'
                                                         ? {
-                                                              color: '#aaaaaa',
-                                                          }
+                                                            color: '#aaaaaa',
+                                                        }
                                                         : subheading
                                                 }
                                             >
@@ -548,7 +548,7 @@ class MonitorInfo extends Component {
                                         style={
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                             subheading.color ===
-                                            'rgba(76, 76, 76, 1)'
+                                                'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }
@@ -563,7 +563,7 @@ class MonitorInfo extends Component {
                                         style={
                                             // @ts-expect-error ts-migrate(2339) FIXME: Property 'color' does not exist on type '{}'.
                                             subheading.color ===
-                                            'rgba(76, 76, 76, 1)'
+                                                'rgba(76, 76, 76, 1)'
                                                 ? { color: '#aaaaaa' }
                                                 : subheading
                                         }

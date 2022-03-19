@@ -1,8 +1,4 @@
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { Request, Response } from 'common-server/utils/express';
 import moment from 'moment';
 import Handlebars from 'handlebars';
 import IncidentService from '../services/incidentService';

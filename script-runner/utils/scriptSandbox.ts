@@ -82,7 +82,7 @@ const run = async (
                 lastMessage = Date.now();
             });
             worker.on('exit', (exitCode: $TSFixMe) => {
-                // console.log('exitCode:::', exitCode);
+                // logger.info('exitCode:::', exitCode);
                 switch (exitCode) {
                     case 0:
                         resolve({
@@ -191,7 +191,7 @@ const run = async (
             console: 'redirect',
         });
 
-        vm.on('console.log', (log: $TSFixMe) => {
+        vm.on('logger.info', (log: $TSFixMe) => {
             parentPort.postMessage({
                 type: 'log',
                 payload: `[log]: ${
@@ -200,7 +200,7 @@ const run = async (
             });
         });
 
-        vm.on('console.error', (error: $TSFixMe) => {
+        vm.on('logger.error', (error: $TSFixMe) => {
             parentPort.postMessage({
                 type: 'log',
                 payload: `[error]: ${

@@ -1,7 +1,7 @@
 import ProbeService from '../services/probeService';
 const sendErrorResponse = require('./response').sendErrorResponse;
 import ErrorService from '../services/errorService';
-import { Request, Response } from 'common-server/utils/express';
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
 global.probes = {};

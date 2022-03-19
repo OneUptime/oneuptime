@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 
-import SMTP from '../components/settings/smtp';
+import Smtp from '../components/settings/smtp';
 import Twilio from '../components/settings/twilio';
 import Sso from '../components/settings/sso';
 import SsoDefaultRoles from '../components/settings/ssoDefaultRoles';
@@ -10,11 +10,11 @@ import EmailLog from '../components/settings/emailLog';
 import CallLog from '../components/settings/callLog';
 import SmsLog from '../components/settings/smsLog';
 
-// eslint-disable-next-line react/display-name
+
 const getChild = (key: $TSFixMe) => {
     switch (key) {
         case '/admin/settings/smtp':
-            return <SMTP />; // eslint-disable-line react/jsx-pascal-case
+            return <Smtp />;
         case '/admin/settings/twilio':
             return <Twilio />;
         case '/admin/settings/sso':

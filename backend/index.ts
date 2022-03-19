@@ -10,7 +10,7 @@ import logger from 'common-server/utils/logger';
 
 import expressRequestId from 'express-request-id';
 
-const app = express();
+const app = express.getExpressApp();
 
 app.use(expressRequestId);
 
@@ -59,8 +59,8 @@ import { getProjectId } from './backend/middlewares/api';
 //     });
 //     global.redisClient = redisClient;
 // } catch (err) {
-//     // eslint-disable-next-line no-console
-//     console.log('redis error: ', err);
+//
+//     logger.info('redis error: ', err);
 // }
 
 global.io = io;
@@ -102,7 +102,7 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
     next();
 });
 
-app.use(function (req: Request, res: Response, next: NextFunction) {
+app.use((req: Request, res: Response, next: NextFunction) => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -494,8 +494,8 @@ mongoose.connection.on('connected', async () => {
                 notify: function (event, details) {
                     if ('error' === event) {
                         // `details` is an error object in this case
-                        // eslint-disable-next-line no-console
-                        console.error('Greenlock Notify: ', details);
+
+                        logger.error('Greenlock Notify: ', details);
                     }
                 },
                 challenges: {
@@ -515,7 +515,6 @@ mongoose.connection.on('connected', async () => {
             global.greenlock = greenlock;
         }
     } catch (error) {
-        // eslint-disable-next-line no-console
         ErrorService.log('GREENLOCK INIT ERROR: ', error);
     }
 });

@@ -31,8 +31,8 @@ if (isLocalhost) {
     const address = window.location.host.includes('localhost:')
         ? 'localhost'
         : window.location.host.includes('0.0.0.0:')
-        ? '0.0.0.0'
-        : '127.0.0.1';
+            ? '0.0.0.0'
+            : '127.0.0.1';
     apiUrl = window.location.protocol + `//${address}:3002/api`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
@@ -197,13 +197,11 @@ export const Validate = {
         return false;
     },
 
-    //eslint-disable-next-line
     isValidBusinessEmail(email: $TSFixMe) {
         //return emaildomains.test(email);
         return true;
     },
 
-    //eslint-disable-next-line
     isValidBusinessEmails(emails: $TSFixMe) {
         // let valid = true;
         // if (emails && emails.length > 0) {
@@ -283,8 +281,8 @@ export const ValidateField = {
                 ? undefined
                 : 'Please select a value'
             : value.length && value.trim() !== ''
-            ? undefined
-            : 'Please select a value'
+                ? undefined
+                : 'Please select a value'
         : 'Please select a value',
 
     maxValue10000: (value: $TSFixMe) => value && value.length && value < 10000
@@ -653,8 +651,8 @@ export function makeCriteria(val: $TSFixMe) {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
             val3.field1 =
                 val[i].field1 &&
-                typeof val[i].field1 === 'string' &&
-                val[i].field1.indexOf(';')
+                    typeof val[i].field1 === 'string' &&
+                    val[i].field1.indexOf(';')
                     ? val[i].field1.replace(/;/g, '')
                     : val[i].field1;
         }
@@ -662,8 +660,8 @@ export function makeCriteria(val: $TSFixMe) {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
             val3.field2 =
                 val[i].field2 &&
-                typeof val[i].field2 === 'string' &&
-                val[i].field2.indexOf(';')
+                    typeof val[i].field2 === 'string' &&
+                    val[i].field2.indexOf(';')
                     ? val[i].field2.replace(/;/g, '')
                     : val[i].field2;
         }
@@ -709,8 +707,8 @@ function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
                 innerVal.field1 =
                     val.criteria[j].field1 &&
-                    typeof val.criteria[j].field1 === 'string' &&
-                    val.criteria[j].field1.indexOf(';')
+                        typeof val.criteria[j].field1 === 'string' &&
+                        val.criteria[j].field1.indexOf(';')
                         ? val.criteria[j].field1.replace(/;/g, '')
                         : val.criteria[j].field1;
             }
@@ -718,8 +716,8 @@ function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
                 // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
                 innerVal.field2 =
                     val.criteria[j].field2 &&
-                    typeof val.criteria[j].field2 === 'string' &&
-                    val.criteria[j].field2.indexOf(';')
+                        typeof val.criteria[j].field2 === 'string' &&
+                        val.criteria[j].field2.indexOf(';')
                         ? val.criteria[j].field2.replace(/;/g, '')
                         : val.criteria[j].field2;
             }
@@ -939,7 +937,7 @@ export function renderIfSubProjectAdmin(
         currentProject.users.length > 0 &&
         currentProject.users.filter(
             (user: $TSFixMe) => user.userId === userId &&
-            (user.role === 'Administrator' || user.role === 'Owner')
+                (user.role === 'Administrator' || user.role === 'Owner')
         ).length > 0
     ) {
         renderItems = true;
@@ -951,8 +949,8 @@ export function renderIfSubProjectAdmin(
                         subProject._id === subProjectId &&
                         subProject.users.filter(
                             (user: $TSFixMe) => user.userId === userId &&
-                            (user.role === 'Administrator' ||
-                                user.role === 'Owner')
+                                (user.role === 'Administrator' ||
+                                    user.role === 'Owner')
                         ).length > 0
                     ) {
                         renderItems = true;
@@ -965,8 +963,8 @@ export function renderIfSubProjectAdmin(
                         subProject.users.length > 0 &&
                         subProject.users.filter(
                             (user: $TSFixMe) => user.userId === userId &&
-                            (user.role === 'Administrator' ||
-                                user.role === 'Owner')
+                                (user.role === 'Administrator' ||
+                                    user.role === 'Owner')
                         ).length > 0
                     ) {
                         renderItems = true;
@@ -1044,10 +1042,10 @@ export const formatBytes = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, 
     return (
         formatDecimal(
             ((b = Math),
-            (c = b.log),
-            (d = 1e3),
-            (e = (c(value) / c(d)) | 0),
-            value / b.pow(d, e)),
+                (c = b.log),
+                (d = 1e3),
+                (e = (c(value) / c(d)) | 0),
+                value / b.pow(d, e)),
             decimalPlaces >= 0 ? decimalPlaces : 2,
             roundType
         ) +
@@ -1089,22 +1087,22 @@ export const getMonitorStatus = (incidents: $TSFixMe, logs: $TSFixMe, type: $TSF
         activeOfflineIncident && activeOfflineIncident.length > 0
             ? activeOfflineIncident[0]
             : activeDegradedIncident && activeDegradedIncident.length > 0
-            ? activeDegradedIncident[0]
-            : lastIncident;
+                ? activeDegradedIncident[0]
+                : lastIncident;
 
     const log = logs && logs.length > 0 ? logs[0] : null;
     const statusCompare =
         incident && log
             ? compareStatus(incident, log)
             : incident
-            ? !incident.resolved
-                ? incident.incidentType
-                : 'online'
-            : log
-            ? log.status
-            : type === 'server monitor'
-            ? 'No Data'
-            : 'online';
+                ? !incident.resolved
+                    ? incident.incidentType
+                    : 'online'
+                : log
+                    ? log.status
+                    : type === 'server monitor'
+                        ? 'No Data'
+                        : 'online';
 
     return statusCompare || 'online';
 };
@@ -1146,55 +1144,55 @@ export const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe, startDate: $
         monitorLogs && monitorLogs.length > 0
             ? probe
                 ? monitorLogs.filter((probeLogs: $TSFixMe) => {
-                      return (
-                          probeLogs._id === null || probeLogs._id === probe._id
-                      );
-                  })
+                    return (
+                        probeLogs._id === null || probeLogs._id === probe._id
+                    );
+                })
                 : monitorLogs
             : [];
     let logs =
         probesLog &&
-        probesLog[0] &&
-        probesLog[0].logs &&
-        probesLog[0].logs.length > 0
+            probesLog[0] &&
+            probesLog[0].logs &&
+            probesLog[0].logs.length > 0
             ? probesLog[0].logs
             : [];
     logs =
         logs && logs.length > 0
             ? logs.filter((log: $TSFixMe) => moment(new Date(log.createdAt)).isBetween(
-            start,
-            end,
-            'day',
-            '[]'
-        )
-              )
+                start,
+                end,
+                'day',
+                '[]'
+            )
+            )
             : [];
 
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
-                      return (
-                          probeStatuses._id === null ||
-                          probeStatuses._id === probe._id
-                      );
-                  })
+                    return (
+                        probeStatuses._id === null ||
+                        probeStatuses._id === probe._id
+                    );
+                })
                 : monitorStatuses
             : [];
     let statuses =
         probesStatus &&
-        probesStatus[0] &&
-        probesStatus[0].statuses &&
-        probesStatus[0].statuses.length > 0
+            probesStatus[0] &&
+            probesStatus[0].statuses &&
+            probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
     statuses =
         statuses && statuses.length > 0
             ? statuses.filter(
-                  (status: $TSFixMe) => moment(new Date(status.startTime)).isBefore(end) &&
-                  (status.endTime === null ||
-                      moment(new Date(status.endTime)).isAfter(start))
-              )
+                (status: $TSFixMe) => moment(new Date(status.startTime)).isBefore(end) &&
+                    (status.endTime === null ||
+                        moment(new Date(status.endTime)).isAfter(start))
+            )
             : [];
 
     return { logs, statuses };
@@ -1518,9 +1516,8 @@ import OneUptime from 'oneuptime'
 // constructor                    
 const logger = new OneUptime.Logger(
     '${apiUrl ? apiUrl : 'API_URL'}',
-    '${
-        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
-    }',                    
+    '${applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+                        }',                    
     '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'}'
 );
                 
@@ -1590,9 +1587,8 @@ use OneUptime\\OneUptimeLogger;
 // constructor
 $logger = new OneUptimeLogger(                    
     '${apiUrl ? apiUrl : 'API_URL'}',
-    '${
-        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
-    }',                    
+    '${applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+                        }',                    
     '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'}'
 );
                 
@@ -1666,12 +1662,10 @@ import java.io.IOException;
 // constructor                        
 OneUptimeLogger logger = new OneUptimeLogger(                        
     "${apiUrl ? apiUrl : 'API_URL'}",
-    "${
-        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
-    }",                    
-    "${
-        applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
-    }"                 
+    "${applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+                        }",                    
+    "${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
+                        }"                 
 );
                         
 // Logging any object of a class                        
@@ -1736,12 +1730,10 @@ from oneuptime_sdk import logger
 // constructor                        
 oneuptimeLogger = logger.OneUptimeLogger(                        
     "${apiUrl ? apiUrl : 'API_URL'}",
-    "${
-        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
-    }",                    
-    "${
-        applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
-    }"                 
+    "${applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+                        }",                    
+    "${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
+                        }"                 
 );
                             
 # Sending a string log to the server
@@ -1840,9 +1832,8 @@ require 'oneuptime'
 # constructor
 logger = OneUptimeLogger.new(                    
     '${apiUrl ? apiUrl : 'API_URL'}',
-    '${
-        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
-    }',                    
+    '${applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+                        }',                    
     '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'}'
 );
                 
@@ -1917,12 +1908,10 @@ import (
 // constructor
 option = LoggerOptions{                    
     ApiUrl: '${apiUrl ? apiUrl : 'API_URL'}',
-    ApplicationLogId: '${
-        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
-    }',                    
-    ApplicationLogKey: '${
-        applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
-    }'
+    ApplicationLogId: '${applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+                        }',                    
+    ApplicationLogKey: '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
+                        }'
 }
 //initialization
 Init(option)

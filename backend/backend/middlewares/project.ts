@@ -2,7 +2,7 @@ import ProjectService from '../services/projectService';
 import ErrorService from 'common-server/utils/error';
 import url from 'url';
 import { sendErrorResponse } from 'common-server/utils/response';
-
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 import apiMiddleware from '../middlewares/api';
 
 export default {
@@ -104,7 +104,11 @@ export default {
     // Params:
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: You are not authorized to add member to project. Only admin can add.; 500: Server Error
-    isUserAdmin: async function (req: Request, res: Response, next: $TSFixMe) {
+    isUserAdmin: async function (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
@@ -172,7 +176,11 @@ export default {
         }
     },
 
-    isUserOwner: async function (req: Request, res: Response, next: $TSFixMe) {
+    isUserOwner: async function (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
         try {
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
@@ -220,7 +228,11 @@ export default {
         }
     },
 
-    getUserRole: async function (req: Request, res: Response, next: $TSFixMe) {
+    getUserRole: async function (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
         try {
             const UserId = req.user ? req.user.id : null;
 

@@ -24,8 +24,8 @@ if (
     const address = window.location.host.includes('localhost:')
         ? 'localhost'
         : window.location.host.includes('0.0.0.0:')
-        ? '0.0.0.0'
-        : '127.0.0.1';
+            ? '0.0.0.0'
+            : '127.0.0.1';
     apiUrl = window.location.protocol + `//${address}:3002/api`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     adminDashboardUrl = window.location.protocol + `//${address}:3100/admin`;
@@ -178,7 +178,6 @@ export const Validate = {
         return false;
     },
 
-    //eslint-disable-next-line
     isValidBusinessEmail(email: $TSFixMe) {
         //return emaildomains.test(email);
         return true;

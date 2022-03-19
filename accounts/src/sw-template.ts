@@ -19,7 +19,7 @@ if ('function' === typeof importScripts) {
 
         precacheAndRoute(self.__WB_MANIFEST, { cleanUrls: false });
     } else {
-        // eslint-disable-next-line no-console
+        //eslint-disable-next-line no-console
         console.log('Workbox could not be loaded. No Offline support');
     }
 }

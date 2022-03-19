@@ -1,10 +1,9 @@
 import winston from 'winston';
-
+import logger from 'common-server/utils/logger';
 export default {
     log: (functionName: $TSFixMe, error: $TSFixMe) => {
         error = error && error.message ? error.message : error;
-        //eslint-disable-next-line
-        console.error(error);
+        logger.error(error);
         winston.error(
             JSON.stringify(
                 {

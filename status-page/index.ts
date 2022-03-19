@@ -3,8 +3,9 @@ import express, {
     Response,
     NextFunction,
 } from 'common-server/utils/express';
+import logger from 'common-server/utils/logger';
 import path from 'path';
-const app = express();
+const app = express.getExpressApp();
 
 import https from 'https';
 import http from 'http';
@@ -35,14 +36,12 @@ function getMongoClient() {
 const client = getMongoClient();
 (async function () {
     try {
-        // eslint-disable-next-line no-console
-        console.log('connecting to db');
+        logger.info('connecting to db');
         await client.connect();
-        // eslint-disable-next-line no-console
-        console.log('connected to db');
+
+        logger.info('connected to db');
     } catch (error) {
-        // eslint-disable-next-line no-console
-        console.log('connection error: ', error);
+        logger.info('connection error: ', error);
     }
 })();
 
@@ -178,7 +177,7 @@ async function handleCertificate(
     return certificate;
 }
 
-app.use('/', async function (req: Request, res: Response, next: $TSFixMe) {
+app.use('/', async function (req: Request, res: Response, next: NextFunction) {
     const host = req.hostname;
     if (
         host &&
@@ -213,8 +212,7 @@ app.use('/', async function (req: Request, res: Response, next: $TSFixMe) {
             return next();
         }
     } catch (error) {
-        // eslint-disable-next-line no-console
-        console.log('Error with fetch', error);
+        logger.info('Error with fetch', error);
         return next();
     }
 });
@@ -329,8 +327,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe) {
 (async function () {
     // create http server
     http.createServer(app).listen(3006, () =>
-        // eslint-disable-next-line no-console
-        console.log('Server running on port 3006')
+        logger.info('Server running on port 3006')
     );
 
     try {
@@ -500,13 +497,11 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe) {
         };
 
         https.createServer(options, app).listen(3007, () => {
-            // eslint-disable-next-line no-console
-            console.log('Server running on port 3007');
+            logger.info('Server running on port 3007');
         });
     } catch (e) {
-        // eslint-disable-next-line no-console
-        console.log('Unable to create HTTPS Server');
-        // eslint-disable-next-line no-console
-        console.log(e);
+        logger.info('Unable to create HTTPS Server');
+
+        logger.info(e);
     }
 })();

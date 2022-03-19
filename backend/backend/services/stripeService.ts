@@ -3,8 +3,7 @@ const Services = {
         customerId: $TSFixMe,
         subscriptionId: $TSFixMe
     ) {
-        // eslint-disable-next-line no-unused-vars
-        const [user, project] = await Promise.all([
+        const [, project] = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
                 select: 'email name _id',

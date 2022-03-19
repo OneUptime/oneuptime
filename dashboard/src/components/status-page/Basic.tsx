@@ -92,16 +92,16 @@ export class Branding extends Component {
                 resetFaviconCache();
                 reset();
             },
-            function() {}
+            function () { }
         );
     };
 
     render() {
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
         const { handleSubmit } = this.props;
-        // eslint-disable-next-line no-unused-vars
+
         let faviconImage = <span />;
-        // eslint-disable-next-line no-unused-vars
+
         let logoImage = <span />;
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'logourl' does not exist on type 'Readonl... Remove this comment to see the full error message
         const logoUrl = this.props.logourl
@@ -109,22 +109,22 @@ export class Branding extends Component {
             ? this.props.logourl
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             : this.props.statusPage.status &&
-              // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
-              this.props.statusPage.status.logoPath
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
-            ? `${API_URL}/file/${this.props.statusPage.status.logoPath}`
-            : '';
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+                this.props.statusPage.status.logoPath
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+                ? `${API_URL}/file/${this.props.statusPage.status.logoPath}`
+                : '';
         // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconurl' does not exist on type 'Read... Remove this comment to see the full error message
         const faviconUrl = this.props.faviconurl
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconurl' does not exist on type 'Read... Remove this comment to see the full error message
             ? this.props.faviconurl
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             : this.props.statusPage.status &&
-              // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
-              this.props.statusPage.status.faviconPath
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
-            ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}`
-            : '';
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+                this.props.statusPage.status.faviconPath
+                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+                ? `${API_URL}/file/${this.props.statusPage.status.faviconPath}`
+                : '';
         if (
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
             (this.props.statusPage &&
@@ -135,7 +135,7 @@ export class Branding extends Component {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconurl' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.faviconurl
         ) {
-            // eslint-disable-next-line no-unused-vars
+
             faviconImage = (
                 <img src={faviconUrl} alt="" className="image-small-circle" />
             );
@@ -150,7 +150,7 @@ export class Branding extends Component {
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'faviconurl' does not exist on type 'Read... Remove this comment to see the full error message
             this.props.faviconurl
         ) {
-            // eslint-disable-next-line no-unused-vars
+
             logoImage = (
                 <img src={logoUrl} alt="" className="image-small-circle" />
             );
@@ -311,8 +311,8 @@ function mapStateToProps(state: $TSFixMe) {
         initialValues: {
             name:
                 state.statusPage &&
-                state.statusPage.status &&
-                state.statusPage.status.name
+                    state.statusPage.status &&
+                    state.statusPage.status.name
                     ? state.statusPage.status.name
                     : '',
         },

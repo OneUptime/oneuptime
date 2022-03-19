@@ -211,7 +211,7 @@ export default {
     //Param 2: user: User details
     //Returns: promise
 
-    createCustomer: async function (email, companyName) {
+    createCustomer: async function (email: string, companyName: string) {
         const customer = await stripe.customers.create({
             email: email,
             description: companyName,
@@ -219,8 +219,7 @@ export default {
         return customer.id;
     },
 
-    // eslint-disable-next-line no-unused-vars
-    addPayment: async function (customerId, stripeToken) {
+    addPayment: async function (customerId: string) {
         const card = await stripe.customers.createSource(customerId);
         return card;
     },
@@ -231,7 +230,11 @@ export default {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
 
-    subscribePlan: async function (stripePlanId, stripeCustomerId, coupon) {
+    subscribePlan: async function (
+        stripePlanId: string,
+        stripeCustomerId: string,
+        coupon: string
+    ) {
         const items = [];
         items.push({
             plan: stripePlanId,

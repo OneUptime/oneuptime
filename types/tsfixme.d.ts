@@ -1,3 +1,3 @@
-/*eslint-disable no-unused-vars*/
-type $TSFixMe = any;
-type $TSFixMeFunction = (...args: any[]) => any;
+export type $TSFixMe = any;
+//eslint-disable-next-line unused-imports/no-unused-vars
+export type $TSFixMeFunction = (...args: any[]) => any;

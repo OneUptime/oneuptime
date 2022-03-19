@@ -5,12 +5,8 @@ import fs from 'fs';
 import util from './util/db';
 import scripts from './scripts';
 
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
-const app = express();
+import express, { Request, Response } from 'common-server/utils/express';
+const app = express.getExpressApp();
 
 import { find, save, update, removeMany } from './util/db';
 

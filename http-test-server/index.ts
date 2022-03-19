@@ -1,28 +1,14 @@
-process.on('exit', () => {
-    // eslint-disable-next-line no-console
-    console.log('Shutting Shutdown');
-});
+import logger from 'common-server/utils/logger';
 
-process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled rejection in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
-
-process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught exception in process occurred');
-    // eslint-disable-next-line no-console
-    console.error(err);
-});
+import 'common-server/utils/env';
+import 'common-server/utils/process';
 
 import express, {
     Request,
     Response,
     NextFunction,
 } from 'common-server/utils/express';
-const app = express();
+const app = express.getExpressApp();
 import path from 'path';
 
 import bodyParser from 'body-parser';
@@ -41,7 +27,7 @@ global.httpServerResponse = {
     body: { status: 'ok' },
 };
 
-app.use('*', function (req: Request, res: Response, next: $TSFixMe) {
+app.use('*', function (req: Request, res: Response, next: NextFunction) {
     if (process.env && process.env.PRODUCTION) {
         res.set('Cache-Control', 'public, max-age=86400');
     } else res.set('Cache-Control', 'no-cache');
@@ -121,6 +107,5 @@ app.use('/*', function (req: Request, res: Response) {
 app.set('port', process.env.PORT || 3010);
 
 app.listen(app.get('port'), function () {
-    //eslint-disable-next-line
-    console.log('Server running on port : ' + app.get('port'));
+    logger.info('Server running on port : ' + app.get('port'));
 });

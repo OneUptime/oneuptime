@@ -15,7 +15,7 @@ const buildSW = () => {
             return `${count} files will be precached, totaling ${size} bytes.`;
         })
         .catch((e: $TSFixMe) => {
-            // eslint-disable-next-line no-console
+            //eslint-disable-next-line no-console
             console.error(e);
         });
 };

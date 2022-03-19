@@ -18,7 +18,7 @@ import {
     resetUpdateProjectDomain,
 } from '../../actions/project';
 
-// eslint-disable-next-line no-unused-vars
+
 function validate(_values: $TSFixMe) {
     const error = undefined;
     return error;

@@ -381,7 +381,6 @@ describe('Component API', function () {
     });
 });
 
-// eslint-disable-next-line no-unused-vars
 let subProjectId: $TSFixMe,
     newUserToken: $TSFixMe,
     newUserId,

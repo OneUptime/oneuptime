@@ -130,10 +130,10 @@
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js', { scope: '.' })
             .then(function (registration) {
-                console.log('Service Worker Registered');
+                logger.info('Service Worker Registered');
             })
             .catch(function (err) {
-                console.log('Error: Service Worker because Registered: ', err);
+                logger.info('Error: Service Worker because Registered: ', err);
             })
     }
 </script>

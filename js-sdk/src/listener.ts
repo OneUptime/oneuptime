@@ -370,8 +370,8 @@ class OneUptimeListener {
         const attributes = [];
         const elementAtrributes = elem.attributes; // get all the attritubtes related to the element
         const excludedAttributes = ['class', 'value']; // exclude items that are nnot needed
-        // eslint-disable-next-line no-unused-vars
-        for (const [key, value] of Object.entries(elementAtrributes)) {
+
+        for (const [, value] of Object.entries(elementAtrributes)) {
             if (!excludedAttributes.includes(value.name)) {
                 // if each attribute doesnt exist in the excluded one, we get the value and make an object
 

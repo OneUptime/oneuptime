@@ -311,7 +311,7 @@ export default {
             }
             const projectUsers = await TeamService.getTeamMembersBy({
                 parentProjectId: project._id,
-            }); // eslint-disable-next-line no-console
+            });
             const seats = await TeamService.getSeats(projectUsers);
             // check if project seats are more based on users in project or by count of components
             if (

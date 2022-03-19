@@ -104,8 +104,8 @@ process.on('message', function (data) {
             return scores;
         })
         .catch(err => {
-            // eslint-disable-next-line no-console
-            console.log(err);
+            //eslint-disable-next-line no-console
+            console.error(err);
             process.exit(1);
         });
 });

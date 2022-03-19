@@ -1,8 +1,4 @@
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { Request, Response } from 'common-server/utils/express';
 const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -785,8 +781,8 @@ router.get(
     async function (req, res) {
         try {
             const { eventId } = req.params;
-            // eslint-disable-next-line no-unused-vars
-            const { limit, skip, type } = req.query;
+
+            const { limit, skip } = req.query;
 
             const populate = [
                 { path: 'createdById', select: 'name' },

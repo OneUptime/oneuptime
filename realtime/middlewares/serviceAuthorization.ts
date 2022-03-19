@@ -1,6 +1,6 @@
 import ErrorService from '../services/errorService';
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
-import { Request, Response } from 'common-server/utils/express';
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 
 import { sendErrorResponse } from 'common-server/utils/response';
 

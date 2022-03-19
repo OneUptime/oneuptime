@@ -1,4 +1,5 @@
 import lighthouse from 'lighthouse';
+import logger from 'common-server/utils/logger';
 import chromeLauncher from 'chrome-launcher';
 import ora from 'ora';
 
@@ -104,8 +105,7 @@ process.on('message', function (data) {
             return scores;
         })
         .catch(err => {
-            // eslint-disable-next-line no-console
-            console.log(err);
+            logger.info(err);
             process.exit(1);
         });
 });

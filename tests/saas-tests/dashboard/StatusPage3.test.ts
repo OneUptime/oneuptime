@@ -112,7 +112,7 @@ describe('Status Page', () => {
     test(
         'should create custom Javascript',
         async (done: $TSFixMe) => {
-            const javascript = `console.log('this is a js code');`;
+            const javascript = `logger.info('this is a js code');`;
             await gotoTheFirstStatusPage(page);
             await page.waitForNavigation({ waitUntil: 'load' });
 

@@ -99,7 +99,7 @@ const fields = [
     {
         key: 'smtp-secure',
         label: 'SMTP Secure',
-        // eslint-disable-next-line react/display-name, react/prop-types
+
         component: ({
             input: { value, onChange }
         }: $TSFixMe) => (
@@ -123,7 +123,7 @@ const emailEnableField = [
     {
         key: 'email-enabled',
         label: 'Enable Emails',
-        // eslint-disable-next-line react/display-name, react/prop-types
+
         component: ({
             input: { value, onChange }
         }: $TSFixMe) => (
@@ -145,7 +145,7 @@ const smtpOptions = [
     {
         key: 'internalSmtp',
         label: 'Enable internal SMTP server',
-        // eslint-disable-next-line react/display-name, react/prop-types
+
         component: ({
             input: { value, onChange }
         }: $TSFixMe) => (
@@ -167,7 +167,7 @@ const smtpOptions = [
     {
         key: 'customSmtp',
         label: 'Enable custom SMTP server',
-        // eslint-disable-next-line react/display-name, react/prop-types
+
         component: ({
             input: { value, onChange }
         }: $TSFixMe) => (

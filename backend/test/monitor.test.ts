@@ -975,7 +975,6 @@ describe('Monitor API with resource Category', function () {
     });
 });
 
-// eslint-disable-next-line no-unused-vars
 let subProjectId: $TSFixMe,
     newUserToken: $TSFixMe,
     subProjectMonitorId: $TSFixMe;

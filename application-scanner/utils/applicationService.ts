@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import logger from 'common-server/utils/logger';
 import EncryptionKeys from './encryptionKeys';
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
@@ -87,8 +88,7 @@ export default {
             )[1];
 
             conn.on('ready', () => {
-                // eslint-disable-next-line no-console
-                console.log('SSH Client :: ready');
+                logger.info('SSH Client :: ready');
                 return new Promise((resolve, reject) => {
                     git(securityDir)
                         .silent(true)

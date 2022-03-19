@@ -2,7 +2,8 @@ import axios from 'axios';
 const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
 
 const Manager = module.exports;
-// eslint-disable-next-line no-unused-vars
+
+//eslint-disable-next-line unused-imports/no-unused-vars
 Manager.create = function (opts: $TSFixMe) {
     const manager = {};
 

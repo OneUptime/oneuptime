@@ -41,5 +41,5 @@ app.post('/post', async function (req: Request, res: Response) {
 })
 
 app.listen(4050, function () {
-    console.log("Server running on PORT: " + 4050)
+    logger.info("Server running on PORT: " + 4050)
 });

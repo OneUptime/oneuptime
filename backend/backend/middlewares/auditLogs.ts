@@ -1,5 +1,5 @@
 import url from 'url';
-import { Request, Response } from 'common-server/utils/express';
+import { Request, Response, NextFunction } from 'common-server/utils/express';
 import _ from 'lodash';
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
@@ -14,7 +14,7 @@ import GlobalConfigService from '../services/globalConfigService';
 let shouldStoreLogs: $TSFixMe = null;
 
 export default {
-    log: async function (req: Request, res: Response, next: $TSFixMe) {
+    log: async function (req: Request, res: Response, next: NextFunction) {
         try {
             const blackListedRoutes = ['/audit-logs/'];
             const blackListedReqObjectPaths = ['body.password'];

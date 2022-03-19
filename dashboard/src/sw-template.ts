@@ -31,7 +31,7 @@ if ('function' === typeof importScripts) {
             });
         });
     } else {
-        // eslint-disable-next-line no-console
+        //eslint-disable-next-line no-console
         console.log('Workbox could not be loaded. No Offline support');
     }
 }
