@@ -31,10 +31,10 @@ export function postApi(url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) {
         headers,
         data,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -62,10 +62,10 @@ export function getApi(url: $TSFixMe, licensing: $TSFixMe) {
         url: `${licensing ? licensingURL : baseURL}/${url}`,
         headers,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -95,10 +95,10 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
         headers,
         data,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -128,10 +128,10 @@ export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
         headers,
         data,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -160,10 +160,10 @@ export function getApiDocs(url: $TSFixMe) {
         url: `${API_DOCS_URL}/${url}`,
         headers,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -192,10 +192,10 @@ export function getApiHelm(url: $TSFixMe) {
         url: `${HELM_CHART_URL}/${url}`,
         headers,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });
@@ -224,10 +224,10 @@ export function getApiDashboard(url: $TSFixMe) {
         url: `${DASHBOARD_URL}/api/${url}`,
         headers,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 const cookies = new Cookies();
                 cookies.remove('admin-data', { path: '/' });

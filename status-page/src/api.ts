@@ -19,10 +19,10 @@ export function postApi(url: $TSFixMe, data: $TSFixMe) {
             headers,
             data,
         })
-            .then(function (response) {
+            .then((response) => {
                 resolve(response);
             })
-            .catch(function (error) {
+            .then((error) => {
                 reject(error);
             });
     });
@@ -40,10 +40,10 @@ export function getApi(url: $TSFixMe) {
             url: `${API_URL}/${url}`,
             headers,
         })
-            .then(function (response) {
+            .then((response) => {
                 resolve(response);
             })
-            .catch(function (error) {
+            .then((error) => {
                 reject(error);
             });
     });
@@ -62,10 +62,10 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
             headers,
             data,
         })
-            .then(function (response) {
+            .then((response) => {
                 resolve(response);
             })
-            .catch(function (error) {
+            .then((error) => {
                 reject(error);
             });
     });

@@ -20,10 +20,10 @@ const _this = {
                 headers,
                 data,
             })
-                .then(function (response) {
+                .then((response) => {
                     resolve(response.data);
                 })
-                .catch(function (error) {
+                .then((error) => {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {

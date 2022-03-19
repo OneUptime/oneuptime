@@ -23,10 +23,10 @@ export function postApi(url: $TSFixMe, data: $TSFixMe) {
         headers,
         data,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 User.clear();
                 history.push('/login');
@@ -50,10 +50,10 @@ export function getApi(url: $TSFixMe) {
         url: `${baseURL}/${url}`,
         headers,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 User.clear();
                 history.push('/login');
@@ -79,10 +79,10 @@ export function putApi(url: $TSFixMe, data: $TSFixMe) {
         headers,
         data,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 User.clear();
                 history.push('/login');
@@ -108,10 +108,10 @@ export function deleteApi(url: $TSFixMe, data: $TSFixMe) {
         headers,
         data,
     })
-        .then(function (response) {
+        .then((response) => {
             deffered.resolve(response);
         })
-        .catch(function (error) {
+        .then((error) => {
             if (error && error.response && error.response.status === 401) {
                 User.clear();
                 history.push('/login');

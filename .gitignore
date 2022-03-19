@@ -5,7 +5,7 @@ node_modules
 /node_modules
 
 # Build Dist
-/build/dist
+*/build/dist/*
 
 .idea
 # testing
