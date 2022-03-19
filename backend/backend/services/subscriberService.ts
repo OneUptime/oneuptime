@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
         const subscriberModel = new SubscriberModel();
 
@@ -37,7 +37,7 @@ export default {
         });
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -55,7 +55,7 @@ export default {
         return updatedSubscriber;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -76,7 +76,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const subscriber = await SubscriberModel.findOneAndUpdate(
             query,
             {
@@ -93,7 +93,13 @@ export default {
         return subscriber;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 10;
         if (typeof skip === 'string') {
@@ -160,7 +166,7 @@ export default {
         return subscribersArr;
     },
 
-    subscribersForAlert: async function(query: $TSFixMe) {
+    subscribersForAlert: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -215,7 +221,7 @@ export default {
         return subscribersArr;
     },
 
-    subscribe: async function(data: $TSFixMe, monitors: $TSFixMe) {
+    subscribe: async function (data: $TSFixMe, monitors: $TSFixMe) {
         const _this = this;
         const populateStatusPage = [
             { path: 'monitors.monitor', select: '_id' },
@@ -275,7 +281,7 @@ export default {
         return subscriber;
     },
 
-    subscribeFromCSVFile: async function(subscribers: $TSFixMe) {
+    subscribeFromCSVFile: async function (subscribers: $TSFixMe) {
         const _this = this;
         const { data, projectId, monitorId } = subscribers;
         const success = data.map(async (subscriber: $TSFixMe) => {
@@ -292,7 +298,7 @@ export default {
         return await Promise.all(success);
     },
 
-    subscriberCheck: async function(subscriber: $TSFixMe) {
+    subscriberCheck: async function (subscriber: $TSFixMe) {
         const _this = this;
         const existingSubscriber = await _this.findByOne({
             query: {
@@ -318,7 +324,7 @@ export default {
         return existingSubscriber !== null;
     },
 
-    findByOne: async function({ query, select, populate }: $TSFixMe) {
+    findByOne: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -335,7 +341,7 @@ export default {
         return subscriber;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -345,17 +351,17 @@ export default {
         return count;
     },
 
-    removeBy: async function(query: $TSFixMe) {
+    removeBy: async function (query: $TSFixMe) {
         await SubscriberModel.deleteMany(query);
         return 'Subscriber(s) removed successfully';
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await SubscriberModel.deleteMany(query);
         return 'Subscriber(s) removed successfully';
     },
 
-    restoreBy: async function(query: $TSFixMe) {
+    restoreBy: async function (query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         let subscriber = await _this.findBy({ query, select: '_id' });

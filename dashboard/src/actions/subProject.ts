@@ -31,14 +31,14 @@ export const resetSubProjects = () => {
 };
 
 export function getSubProjects(projectId: $TSFixMe, skip = 0, limit = 10) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `project/${projectId}/subProjects?skip=${skip}&limit=${limit}`
         );
         dispatch(subProjectsRequest(promise));
 
         promise.then(
-            function(subProjects) {
+            function (subProjects) {
                 const subData = {
                     subProjects: subProjects.data.data,
 
@@ -48,7 +48,7 @@ export function getSubProjects(projectId: $TSFixMe, skip = 0, limit = 10) {
                 };
                 dispatch(subProjectsSuccess(subData));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -100,7 +100,7 @@ export const resetCreateNewSubProject = () => {
 };
 
 export function createNewSubProjectReset() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(resetCreateNewSubProject());
     };
 }
@@ -109,7 +109,7 @@ export function createSubProject(
     projectId: $TSFixMe,
     subProjectName: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`project/${projectId}/subProject`, {
             subProjectName,
         });
@@ -117,12 +117,12 @@ export function createSubProject(
         dispatch(createSubProjectRequest());
 
         return promise.then(
-            function(subProject) {
+            function (subProject) {
                 dispatch(createSubProjectSuccess(subProject.data));
 
                 return subProject.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -167,22 +167,22 @@ export function resetSubProjectTokenError(error: $TSFixMe) {
 }
 
 export function resetSubProjectKeyReset() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(resetSubProjectTokenReset());
     };
 }
 
 export function resetSubProjectToken(subProjectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`project/${subProjectId}/resetToken`);
 
         dispatch(resetSubProjectTokenRequest());
 
         promise.then(
-            function(subProject) {
+            function (subProject) {
                 dispatch(resetSubProjectTokenSuccess(subProject));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -228,7 +228,7 @@ export function renameSubProjectError(error: $TSFixMe) {
 }
 
 export function resetRenameSubProject() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(renameSubProjectReset());
     };
 }
@@ -238,7 +238,7 @@ export function renameSubProject(
     subProjectId: $TSFixMe,
     subProjectName: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`project/${projectId}/${subProjectId}`, {
             subProjectName,
         });
@@ -246,11 +246,11 @@ export function renameSubProject(
         dispatch(renameSubProjectRequest());
 
         promise.then(
-            function(project) {
+            function (project) {
                 dispatch(renameSubProjectSuccess(project));
                 return project;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -296,13 +296,13 @@ export function deleteSubProjectReset() {
 }
 
 export function resetDeleteSubProject() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(deleteSubProjectReset());
     };
 }
 
 export function deleteSubProject(projectId: $TSFixMe, subProjectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`project/${projectId}/${subProjectId}`, {
             subProjectId,
         });
@@ -310,12 +310,12 @@ export function deleteSubProject(projectId: $TSFixMe, subProjectId: $TSFixMe) {
         dispatch(deleteSubProjectRequest());
 
         promise.then(
-            function() {
+            function () {
                 dispatch(setActiveSubProject(projectId, true));
                 dispatch(deleteSubProjectSuccess(subProjectId));
                 return subProjectId;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -362,7 +362,7 @@ export function exitSubProject(
     subProjectId: $TSFixMe,
     userId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`,
             null
@@ -370,10 +370,10 @@ export function exitSubProject(
         dispatch(exitSubProjectRequest());
 
         promise.then(
-            function() {
+            function () {
                 dispatch(exitSubProjectSuccess({ projectId, userId }));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -425,7 +425,7 @@ export function markSubProjectForDelete(
     subProjectId: $TSFixMe,
     feedback: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subProject/${projectId}/${subProjectId}/deleteProject`,
             { subProjectId, feedback }
@@ -434,10 +434,10 @@ export function markSubProjectForDelete(
         dispatch(markSubProjectForDeleteRequest());
 
         promise.then(
-            function() {
+            function () {
                 dispatch(markSubProjectForDeleteSuccess(projectId));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

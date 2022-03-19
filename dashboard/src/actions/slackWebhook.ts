@@ -29,7 +29,7 @@ export const resetDeleteSlack = () => {
 
 // Calls the API to link webhook team to project
 export function deleteSlack(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${msTeamsId}`,
             null
@@ -38,12 +38,12 @@ export function deleteSlack(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
         dispatch(deleteSlackRequest());
 
         return promise.then(
-            function(msTeams) {
+            function (msTeams) {
                 dispatch(deleteSlackSuccess(msTeams.data));
 
                 return msTeams.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -88,19 +88,20 @@ export const resetGetSlack = () => {
 };
 
 export function getSlack(projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit ||
-                10}&type=slack`
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
+                limit || 10
+            }&type=slack`
         );
         dispatch(getSlackRequest(promise));
 
         promise.then(
-            function(webhooks) {
+            function (webhooks) {
                 dispatch(getSlackSuccess(webhooks.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -125,19 +126,20 @@ export function getSlackMonitor(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip ||
-                0}&limit=${limit || 10}&type=slack`
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
+            }&type=slack`
         );
         dispatch(getSlackRequest(promise));
 
         promise.then(
-            function(webhooks) {
+            function (webhooks) {
                 dispatch(getSlackSuccess(webhooks.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -184,17 +186,17 @@ export const resetCreateSlack = () => {
 
 // Calls the API to add webhook to project
 export function createSlack(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
         dispatch(createSlackRequest());
         return promise.then(
-            function(webhook) {
+            function (webhook) {
                 dispatch(createSlackSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -243,18 +245,18 @@ export function updateSlack(
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 
         dispatch(updateSlackRequest());
 
         return promise.then(
-            function(webhook) {
+            function (webhook) {
                 dispatch(updateSlackSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -292,7 +294,7 @@ export function paginateReset() {
 }
 
 export function paginate(type: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

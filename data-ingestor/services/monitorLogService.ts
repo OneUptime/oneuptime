@@ -16,7 +16,7 @@ import ProjectService from './projectService';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         try {
             const Log = {};
             let responseBody = '';
@@ -95,7 +95,7 @@ export default {
         }
     },
 
-    updateAggregateLogs: async function(data: $TSFixMe) {
+    updateAggregateLogs: async function (data: $TSFixMe) {
         try {
             const now = new Date();
             const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
@@ -228,7 +228,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         try {
             if (!query) {
                 query = {};

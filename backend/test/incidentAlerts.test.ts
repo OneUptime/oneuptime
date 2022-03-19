@@ -77,10 +77,10 @@ let authorization: $TSFixMe,
     monitorId: $TSFixMe,
     scheduleId;
 
-describe('SMS/Calls Incident Alerts', function() {
+describe('SMS/Calls Incident Alerts', function () {
     this.timeout(30000);
 
-    before(async function() {
+    before(async function () {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
         const user = await createUser(request, userData.user);
@@ -198,7 +198,7 @@ describe('SMS/Calls Incident Alerts', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
@@ -233,7 +233,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * The project's balance is zero.
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscribers if project balance is 0, and custom twilio settings are not set.', async function() {
+        it('should send SMS/Call alerts to on-call teams and subscribers if project balance is 0, and custom twilio settings are not set.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -354,7 +354,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * The US numbers are disabled
          */
 
-        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from US, the US numbers are disabled, and the custom twilio settings are not set.', async function() {
+        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from US, the US numbers are disabled, and the custom twilio settings are not set.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -480,7 +480,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * The High risks countries are disabled
          */
 
-        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from high risk countries, the high risk countries numbers are disabled, and the custom twilio settings are not set.', async function() {
+        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from high risk countries, the high risk countries numbers are disabled, and the custom twilio settings are not set.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -628,7 +628,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * The Non-US countries are disabled
          */
 
-        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are outside US, the outside US numbers are disabled, and the custom twilio settings are not set.', async function() {
+        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are outside US, the outside US numbers are disabled, and the custom twilio settings are not set.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -775,7 +775,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally and for the project.', async function() {
+        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally and for the project.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -890,7 +890,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should notify the team set for a schedule, which is associated with a monitor criteriad', async function() {
+        it('should notify the team set for a schedule, which is associated with a monitor criteriad', async function () {
             /*
              * run the probe server for this test
              */
@@ -1041,7 +1041,7 @@ describe('SMS/Calls Incident Alerts', function() {
                 .is.true;
         });
 
-        it('should notify the team set for a schedule, which is associated with a monitor criteria (incomingHttp monitor)', async function() {
+        it('should notify the team set for a schedule, which is associated with a monitor criteria (incomingHttp monitor)', async function () {
             /*
              * run the probe server for this test
              */
@@ -1128,8 +1128,9 @@ describe('SMS/Calls Incident Alerts', function() {
 
             const randomId = uuid.v4();
 
-            const link = `http://localhost:${process.env.PORT ||
-                3002}/api/incomingHttpRequest/${randomId}`;
+            const link = `http://localhost:${
+                process.env.PORT || 3002
+            }/api/incomingHttpRequest/${randomId}`;
 
             // create a new incomingHttp monitor, with a resource that will fail
             const newMonitor = await createMonitor({
@@ -1212,7 +1213,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should use default criterion if no criterion is matched for an incident', async function() {
+        it('should use default criterion if no criterion is matched for an incident', async function () {
             /*
              * run the probe server for this test
              */
@@ -1366,7 +1367,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should create billing details of subscriber  when sms is sent on the chargeAlert', async function() {
+        it('should create billing details of subscriber  when sms is sent on the chargeAlert', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1452,7 +1453,7 @@ describe('SMS/Calls Incident Alerts', function() {
             ).to.equal(4);
         });
 
-        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function() {
+        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1575,7 +1576,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function() {
+        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1699,7 +1700,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): false
          */
 
-        it('should not send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async function() {
+        it('should not send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1819,7 +1820,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should not send statusPageNote(investigation note) SMS notification when disabled', async function() {
+        it('should not send statusPageNote(investigation note) SMS notification when disabled', async function () {
             // update global setting to enable SMS
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -1849,14 +1850,13 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(billingEndpointResponse).to.have.status(200);
 
             // disable status page note (investigation note) on the project
-            const {
-                enableInvestigationNoteNotificationSMS,
-            } = await ProjectService.updateOneBy(
-                { _id: projectId },
-                {
-                    enableInvestigationNoteNotificationSMS: false,
-                }
-            );
+            const { enableInvestigationNoteNotificationSMS } =
+                await ProjectService.updateOneBy(
+                    { _id: projectId },
+                    {
+                        enableInvestigationNoteNotificationSMS: false,
+                    }
+                );
 
             expect(enableInvestigationNoteNotificationSMS).to.be.false;
 
@@ -1912,12 +1912,13 @@ describe('SMS/Calls Incident Alerts', function() {
 
             expect(subscriberAlerts.body.data).to.be.an('array');
 
-            const statusPageNoteNotificationAlert = subscriberAlerts.body.data.find(
-                (subscriberAlert: $TSFixMe) =>
-                    subscriberAlert.alertVia === 'sms' &&
-                    subscriberAlert.errorMessage ===
-                        'Investigation Note SMS Notification Disabled'
-            );
+            const statusPageNoteNotificationAlert =
+                subscriberAlerts.body.data.find(
+                    (subscriberAlert: $TSFixMe) =>
+                        subscriberAlert.alertVia === 'sms' &&
+                        subscriberAlert.errorMessage ===
+                            'Investigation Note SMS Notification Disabled'
+                );
             expect(statusPageNoteNotificationAlert).to.be.an('object');
         });
 
@@ -1929,7 +1930,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should not cut project balance for invalid twilio settings', async function() {
+        it('should not cut project balance for invalid twilio settings', async function () {
             // update global setting to enable call and sms
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -1962,12 +1963,11 @@ describe('SMS/Calls Incident Alerts', function() {
             expect(billingEndpointResponse).to.have.status(200);
 
             // get the project balance before an alert is sent
-            const {
-                balance: originalProjectBalance,
-            } = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'balance',
-            });
+            const { balance: originalProjectBalance } =
+                await ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'balance',
+                });
 
             const newIncident = await createIncident({
                 request,
@@ -1995,22 +1995,22 @@ describe('SMS/Calls Incident Alerts', function() {
 
             await sleep(10 * 1000);
 
-            const {
-                balance: newProjectBalance,
-            } = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'balance',
-            });
+            const { balance: newProjectBalance } =
+                await ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'balance',
+                });
 
             expect(newProjectBalance).to.equal(originalProjectBalance);
 
             // revert twilio settings
             value.phone = originalPhone;
-            const revertedTwilioSettings = await GlobalConfigModel.findOneAndUpdate(
-                { name: 'twilio' },
-                { value },
-                { new: true }
-            );
+            const revertedTwilioSettings =
+                await GlobalConfigModel.findOneAndUpdate(
+                    { name: 'twilio' },
+                    { value },
+                    { new: true }
+                );
             expect(revertedTwilioSettings.value)
                 .to.have.property('phone')
                 .to.equal(originalPhone);
@@ -2024,7 +2024,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should recharge project balance when low', async function() {
+        it('should recharge project balance when low', async function () {
             // update global setting to enable call and sms
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -2106,7 +2106,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should correctly register closing balance for alert charges', async function() {
+        it('should correctly register closing balance for alert charges', async function () {
             this.timeout(60 * 1000);
 
             // update global setting to enable call and sms
@@ -2159,12 +2159,11 @@ describe('SMS/Calls Incident Alerts', function() {
             // clean up alert charges
             await AlertChargeService.hardDeleteBy({});
             // get original project balance
-            const {
-                balance: originalProjectBalance,
-            } = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'balance',
-            });
+            const { balance: originalProjectBalance } =
+                await ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'balance',
+                });
 
             // send notification
             const newIncident = await createIncident({
@@ -2241,7 +2240,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): false
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async function() {
+        it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -2366,7 +2365,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * SMS/Call alerts enabled for the project (billing): false
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled in the global twilio settings.', async function() {
+        it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled in the global twilio settings.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -2495,7 +2494,7 @@ describe('SMS/Calls Incident Alerts', function() {
          * Custom twilio settings: not set
          */
 
-        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function() {
+        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function () {
             await GlobalConfigModel.deleteMany({ name: 'twilio' });
             const billingEndpointResponse = await request
                 .put(`/project/${projectId}/alertOptions`)
@@ -2614,8 +2613,8 @@ describe('SMS/Calls Incident Alerts', function() {
     });
 });
 
-describe('Email Incident Alerts', function() {
-    before(async function() {
+describe('Email Incident Alerts', function () {
+    before(async function () {
         this.timeout(30000);
         const createdUser = await createUser(request, userData.user);
         const project = createdUser.body.project;
@@ -2714,7 +2713,7 @@ describe('Email Incident Alerts', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         this.timeout(30000);
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
@@ -2744,7 +2743,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : not set.
      */
 
-    it('should not send Email alerts if no SMTP configurations are set.', async function() {
+    it('should not send Email alerts if no SMTP configurations are set.', async function () {
         this.timeout(30000);
         const newIncident = await createIncident({
             request,
@@ -2781,13 +2780,8 @@ describe('Email Incident Alerts', function() {
         expect(subscribersAlerts.body.data.length).to.equal(2);
         const eventTypesSent = [];
         for (const event of subscribersAlerts.body.data) {
-            const {
-                alertStatus,
-                alertVia,
-                eventType,
-                error,
-                errorMessage,
-            } = event;
+            const { alertStatus, alertVia, eventType, error, errorMessage } =
+                event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal(null);
             expect(alertVia).to.equal('email');
@@ -2813,13 +2807,8 @@ describe('Email Incident Alerts', function() {
 
         const eventTypesSentToTeamMembers = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const {
-                alertVia,
-                eventType,
-                alertStatus,
-                error,
-                errorMessage,
-            } = onCallAlert;
+            const { alertVia, eventType, alertStatus, error, errorMessage } =
+                onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal(null);
@@ -2841,7 +2830,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : not set.
      */
 
-    it('should not send Email alerts if global SMTP configurations are set and email are disabled in global configurations.', async function() {
+    it('should not send Email alerts if global SMTP configurations are set and email are disabled in global configurations.', async function () {
         this.timeout(30000);
         await GlobalConfigService.create({
             name: 'smtp',
@@ -2891,13 +2880,8 @@ describe('Email Incident Alerts', function() {
         expect(subscribersAlerts.body.data.length).to.equal(2);
         const eventTypesSent = [];
         for (const event of subscribersAlerts.body.data) {
-            const {
-                alertStatus,
-                alertVia,
-                eventType,
-                error,
-                errorMessage,
-            } = event;
+            const { alertStatus, alertVia, eventType, error, errorMessage } =
+                event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal(null);
             expect(alertVia).to.equal('email');
@@ -2920,13 +2904,8 @@ describe('Email Incident Alerts', function() {
 
         const eventTypesSentToTeamMembers = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const {
-                alertVia,
-                eventType,
-                alertStatus,
-                error,
-                errorMessage,
-            } = onCallAlert;
+            const { alertVia, eventType, alertStatus, error, errorMessage } =
+                onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal(null);
@@ -2947,7 +2926,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : not set.
      */
 
-    it('should send Email alerts if global SMTP configurations are set and email are enabled in global configurations.', async function() {
+    it('should send Email alerts if global SMTP configurations are set and email are enabled in global configurations.', async function () {
         this.timeout(30000);
         await GlobalConfigService.create({
             name: 'smtp',
@@ -3019,13 +2998,8 @@ describe('Email Incident Alerts', function() {
 
         const eventTypesSentToTeamMembers = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const {
-                alertVia,
-                eventType,
-                alertStatus,
-                error,
-                errorMessage,
-            } = onCallAlert;
+            const { alertVia, eventType, alertStatus, error, errorMessage } =
+                onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -3047,7 +3021,7 @@ describe('Email Incident Alerts', function() {
      * investigation note email notification : not set
      */
 
-    it('should not send statusPageNote(investigation note) Email notification when disabled', async function() {
+    it('should not send statusPageNote(investigation note) Email notification when disabled', async function () {
         this.timeout(30 * 1000);
         // update global smtp settings
         await GlobalConfigService.create({
@@ -3065,14 +3039,13 @@ describe('Email Incident Alerts', function() {
         });
 
         // disable status page note (investigation note) Email notification on the project
-        const {
-            enableInvestigationNoteNotificationEmail,
-        } = await ProjectService.updateOneBy(
-            { _id: projectId },
-            {
-                enableInvestigationNoteNotificationEmail: false,
-            }
-        );
+        const { enableInvestigationNoteNotificationEmail } =
+            await ProjectService.updateOneBy(
+                { _id: projectId },
+                {
+                    enableInvestigationNoteNotificationEmail: false,
+                }
+            );
 
         expect(enableInvestigationNoteNotificationEmail).to.be.false;
 
@@ -3143,7 +3116,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : set.
      */
 
-    it('should send Email alerts if global SMTP configurations are set, email alerts disabled in global configurations, and custom SMTP settings are set.', async function() {
+    it('should send Email alerts if global SMTP configurations are set, email alerts disabled in global configurations, and custom SMTP settings are set.', async function () {
         this.timeout(30000);
         await GlobalConfigService.create({
             name: 'smtp',
@@ -3225,13 +3198,8 @@ describe('Email Incident Alerts', function() {
 
         const eventTypesSentToTeamMembers = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const {
-                alertVia,
-                eventType,
-                alertStatus,
-                error,
-                errorMessage,
-            } = onCallAlert;
+            const { alertVia, eventType, alertStatus, error, errorMessage } =
+                onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -3253,7 +3221,7 @@ describe('Email Incident Alerts', function() {
      * Custom SMTP congigurations : set.
      */
 
-    it('should send Email alerts if global SMTP configurations are not set, and custom SMTP settings are set.', async function() {
+    it('should send Email alerts if global SMTP configurations are not set, and custom SMTP settings are set.', async function () {
         this.timeout(30000);
         await GlobalConfigService.hardDeleteBy({ name: 'smtp' });
         await EmailSmtpService.create({
@@ -3323,13 +3291,8 @@ describe('Email Incident Alerts', function() {
 
         const eventTypesSentToTeamMembers = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const {
-                alertVia,
-                eventType,
-                alertStatus,
-                error,
-                errorMessage,
-            } = onCallAlert;
+            const { alertVia, eventType, alertStatus, error, errorMessage } =
+                onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -3345,10 +3308,10 @@ describe('Email Incident Alerts', function() {
     });
 });
 
-describe('Webhook Incident Alerts', function() {
+describe('Webhook Incident Alerts', function () {
     this.timeout(30 * 1000);
 
-    before(async function() {
+    before(async function () {
         this.timeout(30000);
         const createdUser = await createUser(request, userData.user);
         const project = createdUser.body.project;
@@ -3451,7 +3414,7 @@ describe('Webhook Incident Alerts', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         this.timeout(30000);
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
@@ -3478,14 +3441,13 @@ describe('Webhook Incident Alerts', function() {
 
     it('should not send statusPageNote(investigation note) Webhook notification when disabled', async () => {
         // disable status page note (investigation note) notification for webhooks
-        const {
-            enableInvestigationNoteNotificationWebhook,
-        } = await ProjectService.updateOneBy(
-            { _id: projectId },
-            {
-                enableInvestigationNoteNotificationWebhook: false,
-            }
-        );
+        const { enableInvestigationNoteNotificationWebhook } =
+            await ProjectService.updateOneBy(
+                { _id: projectId },
+                {
+                    enableInvestigationNoteNotificationWebhook: false,
+                }
+            );
 
         expect(enableInvestigationNoteNotificationWebhook).to.be.false;
 

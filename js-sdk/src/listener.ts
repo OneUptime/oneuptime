@@ -50,27 +50,27 @@ class OneUptimeListener {
     _setUpConsoleListener() {
         const _this = this;
         // set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
-        const console = (function(oldCons) {
+        const console = (function (oldCons) {
             return {
-                log: function(text: $TSFixMe) {
+                log: function (text: $TSFixMe) {
                     oldCons.log(text);
                     // _this._logConsoleEvent(text, _this.utilObj.getErrorType().INFO);
                 },
-                info: function(text: $TSFixMe) {
+                info: function (text: $TSFixMe) {
                     oldCons.info(text);
                     _this._logConsoleEvent(
                         text,
                         _this.utilObj.getErrorType().INFO
                     );
                 },
-                warn: function(text: $TSFixMe) {
+                warn: function (text: $TSFixMe) {
                     oldCons.warn(text);
                     _this._logConsoleEvent(
                         text,
                         _this.utilObj.getErrorType().WARNING
                     );
                 },
-                error: function(text: $TSFixMe) {
+                error: function (text: $TSFixMe) {
                     oldCons.error(text);
                     _this._logConsoleEvent(
                         text,
@@ -126,14 +126,14 @@ class OneUptimeListener {
                 url,
                 status_code: '',
             };
-            this.addEventListener('load', function(thisObj: $TSFixMe) {
+            this.addEventListener('load', function (thisObj: $TSFixMe) {
                 // check if it is not a request to OneUptime servers
                 if (!url.startsWith(_this.BASE_URL)) {
                     obj.status_code = thisObj.status;
                     _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
                 }
             });
-            this.addEventListener('error', function(thisObj: $TSFixMe) {
+            this.addEventListener('error', function (thisObj: $TSFixMe) {
                 // check if it is not a request to OneUptime servers
                 if (!url.startsWith(_this.BASE_URL)) {
                     obj.status_code = thisObj.status;
@@ -152,7 +152,7 @@ class OneUptimeListener {
     _setUpFetchListener() {
         const currentFetch = global.fetch;
         const _this = this;
-        global.fetch = function(url, options) {
+        global.fetch = function (url, options) {
             const obj = {
                 url,
                 method: options ? options.method : 'GET', // get request doesnt have a method on fetch, so its set as default
@@ -188,7 +188,7 @@ class OneUptimeListener {
                 const req = original.apply(this, arguments);
                 const log = requestDetails(outgoing);
                 const emit = req.emit;
-                req.emit = function(eventName: $TSFixMe, response: $TSFixMe) {
+                req.emit = function (eventName: $TSFixMe, response: $TSFixMe) {
                     switch (eventName) {
                         case 'response': {
                             response.on('end', () => {

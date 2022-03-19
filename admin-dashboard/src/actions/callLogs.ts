@@ -23,37 +23,38 @@ export const fetchCallLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const fetchCallLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
+export const fetchCallLogs =
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
 
-    dispatch(fetchCallLogsRequest());
+        dispatch(fetchCallLogsRequest());
 
-    try {
-        const response = await getApi(`call-logs?skip=${skip}&limit=${limit}`);
+        try {
+            const response = await getApi(
+                `call-logs?skip=${skip}&limit=${limit}`
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(fetchCallLogsSuccess(data));
+            dispatch(fetchCallLogsSuccess(data));
 
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchCallLogsError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchCallLogsError(errors(errorMsg)));
-    }
-};
+    };
 
 // Search Call Logs.
 export const searchCallLogsRequest = () => {
@@ -76,42 +77,40 @@ export const searchCallLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const searchCallLogs = (
-    filter: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    const values = {
-        filter,
+export const searchCallLogs =
+    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        const values = {
+            filter,
+        };
+
+        dispatch(searchCallLogsRequest());
+
+        try {
+            const response = await postApi(
+                `call-logs/search?skip=${skip}&limit=${limit}`,
+                values
+            );
+
+            const data = response.data;
+
+            dispatch(searchCallLogsSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(searchCallLogsError(errors(errorMsg)));
+        }
     };
-
-    dispatch(searchCallLogsRequest());
-
-    try {
-        const response = await postApi(
-            `call-logs/search?skip=${skip}&limit=${limit}`,
-            values
-        );
-
-        const data = response.data;
-
-        dispatch(searchCallLogsSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
-        }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(searchCallLogsError(errors(errorMsg)));
-    }
-};
 
 // Delete All Call Logs
 export const deleteCallLogsRequest = () => {
@@ -244,32 +243,31 @@ export const resetConfirmCallLogStatus = () => {
 };
 
 // Calls the API to change callLogStatus
-export const callLogStatusChange = (values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(changeCallLogStatusRequest());
+export const callLogStatusChange =
+    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(changeCallLogStatusRequest());
 
-    try {
-        const response = await postApi('globalConfig/', [
-            { name: 'callLogMonitoringStatus', value: values.status },
-        ]);
+        try {
+            const response = await postApi('globalConfig/', [
+                { name: 'callLogMonitoringStatus', value: values.status },
+            ]);
 
-        const data = response.data;
-        dispatch(changeCallLogStatusSuccess(data));
-        return data;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const data = response.data;
+            dispatch(changeCallLogStatusSuccess(data));
+            return data;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(changeCallLogStatusError(errors(errorMsg)));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(changeCallLogStatusError(errors(errorMsg)));
-        return 'error';
-    }
-};
+    };

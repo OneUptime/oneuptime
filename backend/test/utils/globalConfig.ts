@@ -1,7 +1,7 @@
 import GlobalConfigService from '../../backend/services/globalConfigService';
 
 export default {
-    initTestConfig: async function() {
+    initTestConfig: async function () {
         await GlobalConfigService.create({
             name: 'smtp',
             value: {
@@ -31,14 +31,14 @@ export default {
         });
     },
 
-    enableEmailLog: async function() {
+    enableEmailLog: async function () {
         await GlobalConfigService.create({
             name: 'emailLogMonitoringStatus',
             value: true,
         });
     },
 
-    removeTestConfig: async function() {
+    removeTestConfig: async function () {
         await GlobalConfigService.hardDeleteBy({});
     },
 };

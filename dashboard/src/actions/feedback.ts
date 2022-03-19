@@ -2,12 +2,12 @@ import { postApi } from '../api';
 import * as types from '../constants/feedback';
 import errors from '../errors';
 
-export const openFeedbackModal = function() {
+export const openFeedbackModal = function () {
     return {
         type: types.OPEN_FEEDBACK_MODAL,
     };
 };
-export const closeFeedbackModal = function() {
+export const closeFeedbackModal = function () {
     return {
         type: types.CLOSE_FEEDBACK_MODAL,
     };
@@ -47,17 +47,17 @@ export function createFeedback(
     feedback: $TSFixMe,
     page: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`feedback/${projectId}`, { feedback, page });
 
         dispatch(createFeedbackRequest());
 
         return promise.then(
-            function(feedback) {
+            function (feedback) {
                 dispatch(createFeedbackSuccess(feedback));
                 return feedback;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

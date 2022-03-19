@@ -22,208 +22,213 @@ import moment from 'moment';
 import MonitorService from '../services/monitorService';
 import ErrorService from 'common-server/utils/error';
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const projectId = req.params.projectId;
-        const data = req.body;
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const projectId = req.params.projectId;
+            const data = req.body;
 
-        data.createdById = req.user ? req.user.id : null;
+            data.createdById = req.user ? req.user.id : null;
 
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "Values can't be null",
-            });
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event name is required.',
+                });
+            }
+
+            if (typeof data.name !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event name is not of string type.',
+                });
+            }
+
+            // data.monitors should be an array containing id of monitor(s)
+            if (data.monitors && !Array.isArray(data.monitors)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitors is not of type array',
+                });
+            }
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+
+            if (typeof projectId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID  is not of string type.',
+                });
+            }
+
+            if (!data.startDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Start timestamp is required.',
+                });
+            }
+
+            if (!data.endDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'End timestamp is required.',
+                });
+            }
+
+            if (data.startDate > data.endDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Start date should always be less than End date',
+                });
+            }
+
+            const scheduledEvent = await ScheduledEventService.create(
+                { projectId },
+                data
+            );
+
+            return sendItemResponse(req, res, scheduledEvent);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (!data.name || !data.name.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event name is required.',
-            });
-        }
-
-        if (typeof data.name !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event name is not of string type.',
-            });
-        }
-
-        // data.monitors should be an array containing id of monitor(s)
-        if (data.monitors && !Array.isArray(data.monitors)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitors is not of type array',
-            });
-        }
-
-        if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is required.',
-            });
-        }
-
-        if (typeof projectId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID  is not of string type.',
-            });
-        }
-
-        if (!data.startDate) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Start timestamp is required.',
-            });
-        }
-
-        if (!data.endDate) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'End timestamp is required.',
-            });
-        }
-
-        if (data.startDate > data.endDate) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Start date should always be less than End date',
-            });
-        }
-
-        const scheduledEvent = await ScheduledEventService.create(
-            { projectId },
-            data
-        );
-
-        return sendItemResponse(req, res, scheduledEvent);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const data = req.body;
-        const { eventId, projectId } = req.params;
+router.put(
+    '/:projectId/:eventId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const data = req.body;
+            const { eventId, projectId } = req.params;
 
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "Values can't be null",
-            });
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event name is required.',
+                });
+            }
+
+            if (typeof data.name !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event name is not of string type.',
+                });
+            }
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+
+            if (typeof projectId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID  is not of string type.',
+                });
+            }
+
+            if (!eventId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event ID is required',
+                });
+            }
+
+            if (typeof eventId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event ID is not of string type',
+                });
+            }
+
+            if (data.monitors && !Array.isArray(data.monitors)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitors is not of type array',
+                });
+            }
+
+            if (!data.startDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Start timestamp is required.',
+                });
+            }
+
+            if (!data.endDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'End timestamp is required.',
+                });
+            }
+
+            if (data.startDate > data.endDate) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Start date should always be less than End date',
+                });
+            }
+
+            const existingScheduledEvent =
+                await ScheduledEventService.findOneBy({
+                    query: { name: data.name, projectId },
+                    select: '_id createdById',
+                });
+
+            if (
+                existingScheduledEvent &&
+                String(existingScheduledEvent._id) !== String(eventId)
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled event name already exists',
+                });
+            }
+
+            const scheduledEvent = await ScheduledEventService.updateOneBy(
+                { _id: eventId, projectId },
+                data
+            );
+
+            return sendItemResponse(req, res, scheduledEvent);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (!data.name || !data.name.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event name is required.',
-            });
-        }
-
-        if (typeof data.name !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event name is not of string type.',
-            });
-        }
-
-        if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is required.',
-            });
-        }
-
-        if (typeof projectId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID  is not of string type.',
-            });
-        }
-
-        if (!eventId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event ID is required',
-            });
-        }
-
-        if (typeof eventId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event ID is not of string type',
-            });
-        }
-
-        if (data.monitors && !Array.isArray(data.monitors)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitors is not of type array',
-            });
-        }
-
-        if (!data.startDate) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Start timestamp is required.',
-            });
-        }
-
-        if (!data.endDate) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'End timestamp is required.',
-            });
-        }
-
-        if (data.startDate > data.endDate) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Start date should always be less than End date',
-            });
-        }
-
-        const existingScheduledEvent = await ScheduledEventService.findOneBy({
-            query: { name: data.name, projectId },
-            select: '_id createdById',
-        });
-
-        if (
-            existingScheduledEvent &&
-            String(existingScheduledEvent._id) !== String(eventId)
-        ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled event name already exists',
-            });
-        }
-
-        const scheduledEvent = await ScheduledEventService.updateOneBy(
-            { _id: eventId, projectId },
-            data
-        );
-
-        return sendItemResponse(req, res, scheduledEvent);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // resolve scheduled event
 router.put(
     '/:projectId/resolve/:eventId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = {};
 
@@ -265,155 +270,161 @@ router.put(
     }
 );
 
-router.delete('/:projectId/:eventId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const userId = req.user ? req.user.id : null;
-        const { eventId } = req.params;
+router.delete(
+    '/:projectId/:eventId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const userId = req.user ? req.user.id : null;
+            const { eventId } = req.params;
 
-        const event = await ScheduledEventService.deleteBy(
-            { _id: eventId },
-            userId
-        );
+            const event = await ScheduledEventService.deleteBy(
+                { _id: eventId },
+                userId
+            );
 
-        return sendItemResponse(req, res, event);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, event);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // cancel a scheduled event
-router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const userId = req.user ? req.user.id : null;
-        const { eventId } = req.params;
+router.put(
+    '/:projectId/:eventId/cancel',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const userId = req.user ? req.user.id : null;
+            const { eventId } = req.params;
 
-        const fetchEvent = await ScheduledEventService.findOneBy({
-            query: { _id: eventId },
-            select: 'resolved cancelled monitorDuringEvent monitors',
-        });
-
-        if (fetchEvent.resolved) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event has already been resolved',
+            const fetchEvent = await ScheduledEventService.findOneBy({
+                query: { _id: eventId },
+                select: 'resolved cancelled monitorDuringEvent monitors',
             });
-        }
 
-        if (fetchEvent.cancelled) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event has already been cancelled',
-            });
-        }
-
-        if (fetchEvent && !fetchEvent.monitorDuringEvent) {
-            await MonitorService.markMonitorsAsShouldMonitor(
-                fetchEvent.monitors.map((monitor: $TSFixMe) => {
-                    return monitor.monitorId._id || monitor.monitorId;
-                })
-            );
-        }
-
-        const event = await ScheduledEventService.updateBy(
-            { _id: eventId },
-            {
-                cancelled: true,
-                cancelledAt: Date.now(),
-                cancelledById: userId,
-            }
-        );
-
-        const scheduledEvent = event[0];
-
-        if (scheduledEvent) {
-            if (scheduledEvent.alertSubscriber) {
-                // handle this asynchronous operation in the background
-                AlertService.sendCancelledScheduledEventToSubscribers(
-                    scheduledEvent
-                ).catch(error => {
-                    ErrorService.log(
-                        'AlertService.sendCancelledScheduledEventToSubscribers',
-                        error
-                    );
+            if (fetchEvent.resolved) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event has already been resolved',
                 });
             }
 
-            await ScheduledEventNoteService.create({
-                content: 'THIS SCHEDULED EVENT HAS BEEN CANCELLED',
-                scheduledEventId: scheduledEvent._id,
-                createdById: scheduledEvent.createdById._id,
-                type: 'investigation',
-                event_state: 'Cancelled',
-            });
-        }
+            if (fetchEvent.cancelled) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Event has already been cancelled',
+                });
+            }
 
-        return sendItemResponse(req, res, scheduledEvent);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            if (fetchEvent && !fetchEvent.monitorDuringEvent) {
+                await MonitorService.markMonitorsAsShouldMonitor(
+                    fetchEvent.monitors.map((monitor: $TSFixMe) => {
+                        return monitor.monitorId._id || monitor.monitorId;
+                    })
+                );
+            }
+
+            const event = await ScheduledEventService.updateBy(
+                { _id: eventId },
+                {
+                    cancelled: true,
+                    cancelledAt: Date.now(),
+                    cancelledById: userId,
+                }
+            );
+
+            const scheduledEvent = event[0];
+
+            if (scheduledEvent) {
+                if (scheduledEvent.alertSubscriber) {
+                    // handle this asynchronous operation in the background
+                    AlertService.sendCancelledScheduledEventToSubscribers(
+                        scheduledEvent
+                    ).catch(error => {
+                        ErrorService.log(
+                            'AlertService.sendCancelledScheduledEventToSubscribers',
+                            error
+                        );
+                    });
+                }
+
+                await ScheduledEventNoteService.create({
+                    content: 'THIS SCHEDULED EVENT HAS BEEN CANCELLED',
+                    scheduledEventId: scheduledEvent._id,
+                    createdById: scheduledEvent.createdById._id,
+                    type: 'investigation',
+                    event_state: 'Cancelled',
+                });
+            }
+
+            return sendItemResponse(req, res, scheduledEvent);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // get ongoing scheduled events
-router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { projectId } = req.params;
-        const currentDate = moment();
+router.get(
+    '/:projectId/ongoingEvent',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { projectId } = req.params;
+            const currentDate = moment();
 
-        if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is required.',
-            });
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+
+            if (typeof projectId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is not of string type.',
+                });
+            }
+
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            const query = {
+                projectId,
+                startDate: { $lte: currentDate },
+                endDate: { $gt: currentDate },
+                resolved: false,
+            };
+            const [events, count] = await Promise.all([
+                ScheduledEventService.findBy({
+                    query,
+                    select,
+                    populate,
+                }),
+                ScheduledEventService.countBy(query),
+            ]);
+            return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (typeof projectId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is not of string type.',
-            });
-        }
-
-        const populate = [
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'monitors.monitorId',
-                select: 'name',
-                populate: { path: 'componentId', select: 'name slug' },
-            },
-        ];
-        const select =
-            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
-
-        const query = {
-            projectId,
-            startDate: { $lte: currentDate },
-            endDate: { $gt: currentDate },
-            resolved: false,
-        };
-        const [events, count] = await Promise.all([
-            ScheduledEventService.findBy({
-                query,
-                select,
-                populate,
-            }),
-            ScheduledEventService.countBy(query),
-        ]);
-        return sendListResponse(req, res, events, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // this will handle getting for both projects and subProjects
 router.get(
@@ -421,7 +432,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const currentDate = moment();
             // this contains both projectIds and subProjectIds
@@ -430,15 +441,16 @@ router.get(
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const ongoingScheduledEvents = await ScheduledEventService.getSubProjectOngoingScheduledEvents(
-                subProjectIds,
-                {
-                    startDate: { $lte: currentDate },
-                    endDate: { $gt: currentDate },
-                    resolved: false,
-                    cancelled: false,
-                }
-            );
+            const ongoingScheduledEvents =
+                await ScheduledEventService.getSubProjectOngoingScheduledEvents(
+                    subProjectIds,
+                    {
+                        startDate: { $lte: currentDate },
+                        endDate: { $gt: currentDate },
+                        resolved: false,
+                        cancelled: false,
+                    }
+                );
             return sendItemResponse(req, res, ongoingScheduledEvents);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -446,128 +458,132 @@ router.get(
     }
 );
 
-router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { projectId, eventId } = req.params;
+router.get(
+    '/:projectId/:eventId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { projectId, eventId } = req.params;
 
-        if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is required.',
-            });
-        }
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
 
-        if (typeof projectId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is not of string type.',
-            });
-        }
+            if (typeof projectId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is not of string type.',
+                });
+            }
 
-        if (!eventId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event ID is required.',
-            });
-        }
+            if (!eventId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event ID is required.',
+                });
+            }
 
-        if (typeof eventId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event ID is not of string type.',
-            });
-        }
+            if (typeof eventId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event ID is not of string type.',
+                });
+            }
 
-        const populate = [
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'monitors.monitorId',
-                select: 'name',
-                populate: {
-                    path: 'componentId',
-                    select: 'name slug',
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
                 },
-            },
-        ];
-        const select =
-            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const scheduledEvent = await ScheduledEventService.findOneBy({
-            query: { _id: eventId },
-            select,
-            populate,
-        });
-        return sendItemResponse(req, res, scheduledEvent);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId } = req.params;
-
-        const query = req.query;
-
-        if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is required.',
-            });
-        }
-
-        if (typeof projectId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is not of string type.',
-            });
-        }
-
-        const populate = [
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'monitors.monitorId',
-                select: 'name',
-                populate: { path: 'componentId', select: 'name slug' },
-            },
-        ];
-        const select =
-            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
-
-        const [events, count] = await Promise.all([
-            ScheduledEventService.findBy({
-                query: { projectId },
-                limit: query.limit,
-                skip: query.skip,
-                populate,
+            const scheduledEvent = await ScheduledEventService.findOneBy({
+                query: { _id: eventId },
                 select,
-            }),
-            ScheduledEventService.countBy({
-                projectId,
-            }),
-        ]);
-        return sendListResponse(req, res, events, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+                populate,
+            });
+            return sendItemResponse(req, res, scheduledEvent);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
+
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId } = req.params;
+
+            const query = req.query;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+
+            if (typeof projectId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is not of string type.',
+                });
+            }
+
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            const [events, count] = await Promise.all([
+                ScheduledEventService.findBy({
+                    query: { projectId },
+                    limit: query.limit,
+                    skip: query.skip,
+                    populate,
+                    select,
+                }),
+                ScheduledEventService.countBy({
+                    projectId,
+                }),
+            ]);
+            return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.get(
     '/:projectId/scheduledEvents/all',
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             // this contains both projectIds and subProjectIds
 
@@ -575,9 +591,10 @@ router.get(
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
-            const scheduledEvents = await ScheduledEventService.getSubProjectScheduledEvents(
-                subProjectIds
-            );
+            const scheduledEvents =
+                await ScheduledEventService.getSubProjectScheduledEvents(
+                    subProjectIds
+                );
             return sendItemResponse(req, res, scheduledEvents);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -588,7 +605,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/statusPage',
     checkUserBelongToProject,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const monitorId = req.params.monitorId;
@@ -664,150 +681,153 @@ router.get(
 // Scheduled Event Note
 
 // Create a Scheduled Event note of type investigation or internal
-router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { eventId, projectId } = req.params;
+router.post(
+    '/:projectId/:eventId/notes',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { eventId, projectId } = req.params;
 
-        const userId = req.user ? req.user.id : null;
-        const data = req.body;
-        data.scheduledEventId = eventId;
-        data.createdById = userId;
-        if (
-            !data.scheduledEventId ||
-            !data.scheduledEventId.trim() ||
-            data.scheduledEventId === undefined ||
-            data.scheduledEventId === 'undefined'
-        ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event ID is required.',
-            });
+            const userId = req.user ? req.user.id : null;
+            const data = req.body;
+            data.scheduledEventId = eventId;
+            data.createdById = userId;
+            if (
+                !data.scheduledEventId ||
+                !data.scheduledEventId.trim() ||
+                data.scheduledEventId === undefined ||
+                data.scheduledEventId === 'undefined'
+            ) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event ID is required.',
+                });
+            }
+
+            if (typeof data.scheduledEventId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event ID is not of type string.',
+                });
+            }
+
+            if (!data.content || !data.content.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event Message is required.',
+                });
+            }
+
+            if (typeof data.content !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event Message is not in string type.',
+                });
+            }
+
+            if (!data.event_state || !data.event_state.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event State is required.',
+                });
+            }
+
+            if (typeof data.event_state !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event State is not in string type.',
+                });
+            }
+
+            if (!data.type || !data.type.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Scheduled Event Message type is required.',
+                });
+            }
+
+            if (typeof data.type !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Scheduled Event Message type is not in string type.',
+                });
+            }
+
+            if (!['investigation', 'internal'].includes(data.type)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Scheduled Event Message type should be of type investigation or internal.',
+                });
+            }
+
+            if (data.external_note === true) {
+                data.type = 'investigation';
+            }
+
+            const scheduledEventMessage =
+                await ScheduledEventNoteService.create(data, projectId);
+
+            return sendItemResponse(req, res, scheduledEventMessage);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (typeof data.scheduledEventId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event ID is not of type string.',
-            });
-        }
-
-        if (!data.content || !data.content.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event Message is required.',
-            });
-        }
-
-        if (typeof data.content !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event Message is not in string type.',
-            });
-        }
-
-        if (!data.event_state || !data.event_state.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event State is required.',
-            });
-        }
-
-        if (typeof data.event_state !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event State is not in string type.',
-            });
-        }
-
-        if (!data.type || !data.type.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event Message type is required.',
-            });
-        }
-
-        if (typeof data.type !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Scheduled Event Message type is not in string type.',
-            });
-        }
-
-        if (!['investigation', 'internal'].includes(data.type)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message:
-                    'Scheduled Event Message type should be of type investigation or internal.',
-            });
-        }
-
-        if (data.external_note === true) {
-            data.type = 'investigation';
-        }
-
-        const scheduledEventMessage = await ScheduledEventNoteService.create(
-            data,
-            projectId
-        );
-
-        return sendItemResponse(req, res, scheduledEventMessage);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Get all notes in a Scheduled Event (Used to fetch for investigation and internal types)
-router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { eventId } = req.params;
-        // eslint-disable-next-line no-unused-vars
-        const { limit, skip, type } = req.query;
+router.get(
+    '/:projectId/:eventId/notes',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { eventId } = req.params;
+            // eslint-disable-next-line no-unused-vars
+            const { limit, skip, type } = req.query;
 
-        const populate = [
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'scheduledEventId',
-                select: 'name monitors alertSubscriber projectId',
-                populate: {
-                    path: 'projectId',
-                    select: 'name replyAddress',
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
                 },
-            },
-        ];
-        const selectFields =
-            'updated content type event_state createdAt updatedAt createdById scheduledEventId';
+            ];
+            const selectFields =
+                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
-        const [eventNotes, count] = await Promise.all([
-            ScheduledEventNoteService.findBy({
-                query: { scheduledEventId: eventId },
-                limit,
-                skip,
-                populate,
-                select: selectFields,
-            }),
-            ScheduledEventNoteService.countBy({
-                scheduledEventId: eventId,
-            }),
-        ]);
+            const [eventNotes, count] = await Promise.all([
+                ScheduledEventNoteService.findBy({
+                    query: { scheduledEventId: eventId },
+                    limit,
+                    skip,
+                    populate,
+                    select: selectFields,
+                }),
+                ScheduledEventNoteService.countBy({
+                    scheduledEventId: eventId,
+                }),
+            ]);
 
-        return sendListResponse(req, res, eventNotes, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendListResponse(req, res, eventNotes, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Update a particular note in Scheduled Event
 router.put(
     '/:projectId/:eventId/notes/:noteId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { eventId, noteId, projectId } = req.params;
             const data = req.body;
@@ -870,14 +890,15 @@ router.put(
                 });
             }
 
-            const scheduledEventMessage = await ScheduledEventNoteService.updateOneBy(
-                {
-                    _id: noteId,
-                    scheduledEventId: eventId,
-                },
-                data,
-                projectId
-            );
+            const scheduledEventMessage =
+                await ScheduledEventNoteService.updateOneBy(
+                    {
+                        _id: noteId,
+                        scheduledEventId: eventId,
+                    },
+                    data,
+                    projectId
+                );
 
             return sendItemResponse(req, res, scheduledEventMessage);
         } catch (error) {
@@ -891,20 +912,21 @@ router.delete(
     '/:projectId/:eventId/notes/:noteId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { eventId, noteId, projectId } = req.params;
 
             const userId = req.user ? req.user.id : null;
 
-            const deletedEventMessage = await ScheduledEventNoteService.deleteBy(
-                {
-                    _id: noteId,
-                    scheduledEventId: eventId,
-                },
-                userId,
-                projectId
-            );
+            const deletedEventMessage =
+                await ScheduledEventNoteService.deleteBy(
+                    {
+                        _id: noteId,
+                        scheduledEventId: eventId,
+                    },
+                    userId,
+                    projectId
+                );
             return sendItemResponse(req, res, deletedEventMessage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -912,38 +934,40 @@ router.delete(
     }
 );
 
-router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { slug } = req.params;
-        const populate = [
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'monitors.monitorId',
-                select: 'name',
-                populate: {
-                    path: 'componentId',
-                    select: 'name slug',
+router.get(
+    '/:projectId/slug/:slug',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { slug } = req.params;
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
                 },
-            },
-        ];
-        const select =
-            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-        const scheduledEvent = await ScheduledEventService.findOneBy({
-            query: { slug },
-            populate,
-            select,
-        });
+            const scheduledEvent = await ScheduledEventService.findOneBy({
+                query: { slug },
+                populate,
+                select,
+            });
 
-        return sendItemResponse(req, res, scheduledEvent);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, scheduledEvent);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 export default router;

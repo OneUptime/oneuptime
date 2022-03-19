@@ -32,16 +32,16 @@ export function alertSuccess(alert: $TSFixMe) {
 // Calls the API to fetch Alerts.
 
 export function fetchAlert(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`alert/${projectId}`);
 
         dispatch(alertRequest());
 
         promise.then(
-            function(payload) {
+            function (payload) {
                 dispatch(alertSuccess(payload.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -94,7 +94,7 @@ export function fetchProjectAlert(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `alert/${projectId}/alert?skip=${skip}&limit=${limit}`
         );
@@ -102,12 +102,12 @@ export function fetchProjectAlert(
         dispatch(projectAlertRequest());
 
         promise.then(
-            function(payload) {
+            function (payload) {
                 const data = payload.data;
                 data.projectId = projectId;
                 dispatch(projectAlertSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -162,7 +162,7 @@ export function fetchIncidentAlert(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `alert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
         );
@@ -170,10 +170,10 @@ export function fetchIncidentAlert(
         dispatch(incidentAlertRequest());
 
         promise.then(
-            function(alerts) {
+            function (alerts) {
                 dispatch(incidentAlertSuccess(alerts.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -231,7 +231,7 @@ export function fetchSubscriberAlert(
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         skip = skip < 0 ? 0 : skip;
         limit = limit < 0 ? 0 : limit;
         let promise = null;
@@ -248,10 +248,10 @@ export function fetchSubscriberAlert(
         dispatch(subscriberAlertRequest());
 
         promise.then(
-            function(alerts) {
+            function (alerts) {
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -297,7 +297,7 @@ export function fetchAlertCharges(
     limit: $TSFixMe
 ) {
     let promise;
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         if (skip >= 0 && limit > 0) {
             promise = getApi(
                 `alert/${projectId}/alert/charges?skip=${skip}&limit=${limit}`
@@ -309,10 +309,10 @@ export function fetchAlertCharges(
         dispatch(fetchAlertChargesRequest(promise));
 
         promise.then(
-            function(alertCharges) {
+            function (alertCharges) {
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -352,16 +352,16 @@ export function downloadAlertChargesSuccess(alertCharges: $TSFixMe) {
 }
 
 export function downloadAlertCharges(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`alert/${projectId}/alert/charges`);
 
         dispatch(downloadAlertChargesRequest(promise));
 
         promise.then(
-            function(alertCharges) {
+            function (alertCharges) {
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

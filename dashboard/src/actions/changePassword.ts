@@ -31,15 +31,15 @@ export const resetChangePassword = () => {
 
 // Calls the API to register a user.
 export function changePassword(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/reset-password', values);
         dispatch(changePasswordRequest(promise));
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(changePasswordSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

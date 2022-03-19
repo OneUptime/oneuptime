@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -24,7 +30,7 @@ export default {
         return callRoutingLog;
     },
 
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const callRoutingLogModel = new CallRoutingLogModel();
 
         callRoutingLogModel.callRoutingId = data.callRoutingId;
@@ -41,7 +47,7 @@ export default {
         return logs;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -51,7 +57,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -73,7 +79,7 @@ export default {
         return logs;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -89,26 +95,27 @@ export default {
         return log;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
         if (!query.deleted) query.deleted = false;
 
-        const updatedCallRoutingLog = await CallRoutingLogModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        );
+        const updatedCallRoutingLog =
+            await CallRoutingLogModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
         return updatedCallRoutingLog;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -123,7 +130,7 @@ export default {
         return updatedData;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await CallRoutingLogModel.deleteMany(query);
         return 'Call routing Log(s) Removed Successfully!';
     },

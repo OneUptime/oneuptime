@@ -24,57 +24,58 @@ let token: $TSFixMe,
     incidentId: $TSFixMe,
     alertId: $TSFixMe;
 
-describe('Enterprise Alert API', function() {
+describe('Enterprise Alert API', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createEnterpriseUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
+        GlobalConfig.initTestConfig().then(function () {
+            createEnterpriseUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
 
-                ComponentModel.create({ name: 'New Component' }).then(
-                    component => {
-                        request
-                            .post('/user/login')
-                            .send({
-                                email: userData.user.email,
-                                password: userData.user.password,
-                            })
-                            .end(function(err: $TSFixMe, res: Response) {
-                                token = res.body.tokens.jwtAccessToken;
-                                const authorization = `Basic ${token}`;
-                                request
-                                    .post(`/monitor/${projectId}`)
-                                    .set('Authorization', authorization)
-                                    .send({
-                                        name: 'New Monitor',
-                                        type: 'url',
-                                        data: {
-                                            url: 'http://www.tests.org',
-                                        },
-                                        componentId: component._id,
-                                    })
-                                    .end(function(
-                                        err: $TSFixMe,
-                                        res: Response
-                                    ) {
-                                        monitorId = res.body._id;
-                                        incidentData.monitors = [monitorId];
-                                        done();
-                                    });
-                            });
-                    }
-                );
-            });
+                    ComponentModel.create({ name: 'New Component' }).then(
+                        component => {
+                            request
+                                .post('/user/login')
+                                .send({
+                                    email: userData.user.email,
+                                    password: userData.user.password,
+                                })
+                                .end(function (err: $TSFixMe, res: Response) {
+                                    token = res.body.tokens.jwtAccessToken;
+                                    const authorization = `Basic ${token}`;
+                                    request
+                                        .post(`/monitor/${projectId}`)
+                                        .set('Authorization', authorization)
+                                        .send({
+                                            name: 'New Monitor',
+                                            type: 'url',
+                                            data: {
+                                                url: 'http://www.tests.org',
+                                            },
+                                            componentId: component._id,
+                                        })
+                                        .end(function (
+                                            err: $TSFixMe,
+                                            res: Response
+                                        ) {
+                                            monitorId = res.body._id;
+                                            incidentData.monitors = [monitorId];
+                                            done();
+                                        });
+                                });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
@@ -85,13 +86,13 @@ describe('Enterprise Alert API', function() {
         await AlertService.hardDeleteBy({ _id: alertId });
     });
 
-    it('should create alert with valid details for project with no billing plan', function(done: $TSFixMe) {
+    it('should create alert with valid details for project with no billing plan', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 incidentId = res.body._id;
                 request
                     .post(`/alert/${projectId}`)
@@ -102,7 +103,7 @@ describe('Enterprise Alert API', function() {
                         incidentId,
                         eventType: 'identified',
                     })
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         alertId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');

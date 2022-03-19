@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
 
         // prepare issue member model
@@ -56,7 +56,7 @@ export default {
 
         return issueMember;
     },
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData = null

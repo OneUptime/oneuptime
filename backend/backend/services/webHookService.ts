@@ -1,6 +1,6 @@
 export default {
     // process external subscriber webhook
-    sendSubscriberNotification: async function(
+    sendSubscriberNotification: async function (
         subscriber: $TSFixMe,
         projectId: $TSFixMe,
         incident: $TSFixMe,
@@ -36,7 +36,7 @@ export default {
         );
     },
     // process messages to be sent to slack workspace channels
-    sendIntegrationNotification: async function(
+    sendIntegrationNotification: async function (
         projectId: $TSFixMe,
         incident: $TSFixMe,
         monitor: $TSFixMe,

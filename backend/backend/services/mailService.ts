@@ -34,7 +34,7 @@ const options = {
 
 // handlebars helper function
 // checks for equality
-Handlebars.registerHelper('if_eq', function(this: $TSFixMe, a, b, opts) {
+Handlebars.registerHelper('if_eq', function (this: $TSFixMe, a, b, opts) {
     if (a == b) {
         return opts.fn(this);
     } else {
@@ -107,7 +107,7 @@ const _this = {
         };
     },
 
-    getEmailBody: async function(mailOptions: $TSFixMe) {
+    getEmailBody: async function (mailOptions: $TSFixMe) {
         const data = await fsp.readFile(
             Path.resolve(
                 process.cwd(),
@@ -123,7 +123,7 @@ const _this = {
         return emailBody;
     },
 
-    createMailer: async function({
+    createMailer: async function ({
         host,
         port,
         user,
@@ -280,7 +280,7 @@ const _this = {
     // Params:
     // Param 1: userEmail: Email of user
     // Returns: promise
-    sendSignupMail: async function(userEmail: $TSFixMe, name: $TSFixMe) {
+    sendSignupMail: async function (userEmail: $TSFixMe, name: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -433,7 +433,7 @@ const _this = {
             throw error;
         }
     },
-    sendLoginEmail: async function(
+    sendLoginEmail: async function (
         userEmail: $TSFixMe,
         location: $TSFixMe,
         deviceObj: $TSFixMe,
@@ -632,7 +632,7 @@ const _this = {
         }
     },
     // Automated email sent when a user deletes a project
-    sendDeleteProjectEmail: async function({
+    sendDeleteProjectEmail: async function ({
         userEmail,
         name,
         projectName,
@@ -797,7 +797,7 @@ const _this = {
             throw error;
         }
     },
-    sendVerifyEmail: async function(
+    sendVerifyEmail: async function (
         tokenVerifyURL: $TSFixMe,
         name: $TSFixMe,
         email: $TSFixMe
@@ -952,7 +952,7 @@ const _this = {
             throw error;
         }
     },
-    sendLeadEmailToOneUptimeTeam: async function(lead: $TSFixMe) {
+    sendLeadEmailToOneUptimeTeam: async function (lead: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
@@ -1151,7 +1151,7 @@ const _this = {
         }
     },
 
-    sendUserFeedbackResponse: async function(
+    sendUserFeedbackResponse: async function (
         userEmail: $TSFixMe,
         name: $TSFixMe
     ) {
@@ -1302,7 +1302,7 @@ const _this = {
         }
     },
 
-    sendRequestDemoEmail: async function(to: $TSFixMe) {
+    sendRequestDemoEmail: async function (to: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -1451,7 +1451,7 @@ const _this = {
         }
     },
 
-    sendWhitepaperEmail: async function(
+    sendWhitepaperEmail: async function (
         to: $TSFixMe,
         whitepaperName: $TSFixMe
     ) {
@@ -1562,13 +1562,11 @@ const _this = {
                                         },
                                     };
 
-                                    const [
-                                        mailer,
-                                        emailBody,
-                                    ] = await Promise.all([
-                                        _this.createMailer(accountMail),
-                                        _this.getEmailBody(mailOptions),
-                                    ]);
+                                    const [mailer, emailBody] =
+                                        await Promise.all([
+                                            _this.createMailer(accountMail),
+                                            _this.getEmailBody(mailOptions),
+                                        ]);
                                     EmailBody = emailBody;
 
                                     if (!mailer) {
@@ -1641,7 +1639,7 @@ const _this = {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    sendForgotPasswordMail: async function(
+    sendForgotPasswordMail: async function (
         forgotPasswordURL: $TSFixMe,
         email: $TSFixMe
     ) {
@@ -1792,7 +1790,7 @@ const _this = {
     // Params:
     // Param 1: email: Email of user
     // Returns: promise
-    sendResetPasswordConfirmMail: async function(email: $TSFixMe) {
+    sendResetPasswordConfirmMail: async function (email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -1942,7 +1940,7 @@ const _this = {
     // Params:
     // Param 1: userEmail: Email of users
     // Returns: promise
-    sendNewUserAddedToProjectMail: async function(
+    sendNewUserAddedToProjectMail: async function (
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe,
@@ -2099,7 +2097,7 @@ const _this = {
         }
     },
 
-    sendExistingUserAddedToProjectMail: async function(
+    sendExistingUserAddedToProjectMail: async function (
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe
@@ -2256,7 +2254,7 @@ const _this = {
             throw error;
         }
     },
-    sendLighthouseEmail: async function(project: $TSFixMe, user: $TSFixMe) {
+    sendLighthouseEmail: async function (project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
@@ -2412,7 +2410,7 @@ const _this = {
             throw error;
         }
     },
-    sendApplicationEmail: async function(project: $TSFixMe, user: $TSFixMe) {
+    sendApplicationEmail: async function (project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
@@ -2561,7 +2559,7 @@ const _this = {
         }
     },
 
-    sendContainerEmail: async function(project: $TSFixMe, user: $TSFixMe) {
+    sendContainerEmail: async function (project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
@@ -2702,7 +2700,7 @@ const _this = {
         }
     },
 
-    sendExistingStatusPageViewerMail: async function(
+    sendExistingStatusPageViewerMail: async function (
         subProject: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe
@@ -2857,7 +2855,7 @@ const _this = {
         }
     },
 
-    sendExistingUserAddedToSubProjectMail: async function(
+    sendExistingUserAddedToSubProjectMail: async function (
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe
@@ -3016,7 +3014,7 @@ const _this = {
         }
     },
 
-    sendNewStatusPageViewerMail: async function(
+    sendNewStatusPageViewerMail: async function (
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe
@@ -3171,7 +3169,7 @@ const _this = {
         }
     },
 
-    sendChangeRoleEmailToUser: async function(
+    sendChangeRoleEmailToUser: async function (
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe,
@@ -3330,7 +3328,7 @@ const _this = {
         }
     },
 
-    sendRemoveFromProjectEmailToUser: async function(
+    sendRemoveFromProjectEmailToUser: async function (
         project: $TSFixMe,
         removedByUser: $TSFixMe,
         email: $TSFixMe
@@ -3490,7 +3488,7 @@ const _this = {
         }
     },
 
-    sendRemoveFromSubProjectEmailToUser: async function(
+    sendRemoveFromSubProjectEmailToUser: async function (
         subProject: $TSFixMe,
         removedByUser: $TSFixMe,
         email: $TSFixMe
@@ -3661,7 +3659,7 @@ const _this = {
      * @param {string} resolveUrl API link that has requirements for resolving incident.
      * @param {string} accessToken An access token to be used used to access API from email.
      */
-    sendIncidentCreatedMail: async function({
+    sendIncidentCreatedMail: async function ({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -3894,7 +3892,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentCreatedMailToSubscriber: async function(
+    sendIncidentCreatedMailToSubscriber: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -4118,7 +4116,7 @@ const _this = {
         }
     },
 
-    sendIncidentAcknowledgedMail: async function({
+    sendIncidentAcknowledgedMail: async function ({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -4320,7 +4318,7 @@ const _this = {
         }
     },
 
-    sendIncidentResolvedMail: async function({
+    sendIncidentResolvedMail: async function ({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -4527,7 +4525,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentAcknowledgedMailToSubscriber: async function(
+    sendIncidentAcknowledgedMailToSubscriber: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -4762,7 +4760,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
 
-    sendInvestigationNoteToSubscribers: async function(
+    sendInvestigationNoteToSubscribers: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -4974,7 +4972,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      *
      */
-    sendScheduledEventMailToSubscriber: async function(
+    sendScheduledEventMailToSubscriber: async function (
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -5214,7 +5212,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      *
      */
-    sendResolvedScheduledEventMailToSubscriber: async function(
+    sendResolvedScheduledEventMailToSubscriber: async function (
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -5452,7 +5450,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
 
-    sendCancelledScheduledEventMailToSubscriber: async function(
+    sendCancelledScheduledEventMailToSubscriber: async function (
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -5689,7 +5687,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      *
      */
-    sendScheduledEventNoteMailToSubscriber: async function(
+    sendScheduledEventNoteMailToSubscriber: async function (
         eventName: $TSFixMe,
         status: $TSFixMe,
         content: $TSFixMe,
@@ -5922,7 +5920,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      *
      */
-    sendAnnouncementToSubscriber: async function(
+    sendAnnouncementToSubscriber: async function (
         announcementTitle: $TSFixMe,
         announcementDescription: $TSFixMe,
         email: $TSFixMe,
@@ -6141,7 +6139,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentResolvedMailToSubscriber: async function(
+    sendIncidentResolvedMailToSubscriber: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -6371,7 +6369,7 @@ const _this = {
         }
     },
 
-    testSmtpConfig: async function(data: $TSFixMe) {
+    testSmtpConfig: async function (data: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
@@ -6497,7 +6495,7 @@ const _this = {
         }
     },
 
-    sendChangePlanMail: async function(
+    sendChangePlanMail: async function (
         projectName: $TSFixMe,
         oldPlan: $TSFixMe,
         newPlan: $TSFixMe,
@@ -6656,7 +6654,7 @@ const _this = {
         }
     },
 
-    sendCreateProjectMail: async function(
+    sendCreateProjectMail: async function (
         projectName: $TSFixMe,
         email: $TSFixMe
     ) {
@@ -6810,7 +6808,7 @@ const _this = {
         }
     },
 
-    sendCreateSubProjectMail: async function(
+    sendCreateSubProjectMail: async function (
         subProjectName: $TSFixMe,
         email: $TSFixMe
     ) {
@@ -6961,7 +6959,7 @@ const _this = {
         }
     },
 
-    sendUpgradeToEnterpriseMail: async function(
+    sendUpgradeToEnterpriseMail: async function (
         projectName: $TSFixMe,
         projectId: $TSFixMe,
         oldPlan: $TSFixMe,
@@ -7118,7 +7116,7 @@ const _this = {
         }
     },
 
-    sendPaymentFailedEmail: async function(
+    sendPaymentFailedEmail: async function (
         projectName: $TSFixMe,
         email: $TSFixMe,
         name: $TSFixMe,
@@ -7289,7 +7287,7 @@ const _this = {
             : false;
     },
 
-    sendSlaNotification: async function({
+    sendSlaNotification: async function ({
         userEmail,
         name,
         projectId,
@@ -7464,7 +7462,7 @@ const _this = {
             throw error;
         }
     },
-    sendSlaBreachNotification: async function({
+    sendSlaBreachNotification: async function ({
         userEmail,
         name,
         projectId,
@@ -7635,7 +7633,7 @@ const _this = {
             throw error;
         }
     },
-    sendUnpaidSubscriptionReminder: async function({
+    sendUnpaidSubscriptionReminder: async function ({
         projectName,
         projectPlan,
         name,
@@ -7805,7 +7803,7 @@ const _this = {
             throw error;
         }
     },
-    sendUnpaidSubscriptionProjectDelete: async function({
+    sendUnpaidSubscriptionProjectDelete: async function ({
         projectName,
         projectPlan,
         name,

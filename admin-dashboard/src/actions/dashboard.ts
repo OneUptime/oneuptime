@@ -2,23 +2,23 @@ import { getApi } from '../api';
 import * as types from '../constants/dashboard';
 import errors from '../errors';
 
-export const dashboardLoadRequest = function() {
+export const dashboardLoadRequest = function () {
     return {
         type: types.DASHBOARD_LOAD_REQUEST,
     };
 };
-export const dashboardLoadSuccess = function() {
+export const dashboardLoadSuccess = function () {
     return {
         type: types.DASHBOARD_LOAD_SUCCESS,
     };
 };
-export const resetDashboardLoad = function() {
+export const resetDashboardLoad = function () {
     return {
         type: types.DASHBOARD_LOAD_RESET,
     };
 };
 
-export const dashboardLoadFailed = function(payload: $TSFixMe) {
+export const dashboardLoadFailed = function (payload: $TSFixMe) {
     return {
         type: types.DASHBOARD_LOAD_FAILED,
         payload,

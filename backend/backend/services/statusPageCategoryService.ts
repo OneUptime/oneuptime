@@ -4,7 +4,7 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const existingStatusPageCategory = await this.countBy({
             name: data.name,
             statusPageId: data.statusPageId,
@@ -22,18 +22,19 @@ export default {
         return statusPageCategory;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
-        const statusPageCategory = await StatusPageCategoryModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId,
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+        const statusPageCategory =
+            await StatusPageCategoryModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
                 },
-            },
-            { new: true }
-        );
+                { new: true }
+            );
 
         await MonitorModel.updateMany(
             { statusPageResourceCategory: query._id },
@@ -47,7 +48,13 @@ export default {
         return statusPageCategory;
     },
 
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -86,7 +93,7 @@ export default {
         return statusCategories;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         const existingStatusPageCategory = await this.countBy({
             name: data.name,
             _id: { $not: { $eq: query._id } },
@@ -103,19 +110,20 @@ export default {
             query = {};
         }
         if (!query.deleted) query.deleted = false;
-        const statusPageCategory = await StatusPageCategoryModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        );
+        const statusPageCategory =
+            await StatusPageCategoryModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
         return statusPageCategory;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -129,7 +137,7 @@ export default {
         return updatedData;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -141,7 +149,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await StatusPageCategoryModel.deleteMany(query);
         return 'Status Page Categories(s) removed successfully!';
     },

@@ -220,10 +220,12 @@ export default function resourceCategory(
                 },
                 fetchStatusPageCategories: {
                     ...state.fetchStatusPageCategories,
-                    categories: state.fetchStatusPageCategories.categories.filter(
-                        category =>
-                            String(category._id) !== String(action.payload._id)
-                    ),
+                    categories:
+                        state.fetchStatusPageCategories.categories.filter(
+                            category =>
+                                String(category._id) !==
+                                String(action.payload._id)
+                        ),
                     count: state.fetchStatusPageCategories.count - 1,
                 },
             };

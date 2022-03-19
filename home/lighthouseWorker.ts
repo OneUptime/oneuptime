@@ -52,7 +52,7 @@ const flags = {
     emulatedFormFactor: 'desktop',
 };
 
-process.on('message', function(data) {
+process.on('message', function (data) {
     if (data.mobile) flags.emulatedFormFactor = 'mobile';
     const scores = {};
     const spinner = ora(`Running lighthouse on ${data.url}`).start();

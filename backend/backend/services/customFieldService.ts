@@ -4,7 +4,7 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -19,7 +19,7 @@ export default {
         return customField;
     },
 
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         let customField = await CustomFieldModel.create({
             ...data,
         });
@@ -35,7 +35,7 @@ export default {
         return customField;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
 
         if (!query) {
@@ -109,7 +109,13 @@ export default {
         return customField;
     },
 
-    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -141,7 +147,7 @@ export default {
         return customFields;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -150,7 +156,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         // when a custom field is deleted
         // it should be removed from the corresponding incoming request
         const select =
@@ -208,7 +214,7 @@ export default {
         return customField;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -228,7 +234,7 @@ export default {
         return updatedCustomField;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await CustomFieldModel.deleteMany(query);
         return 'Custom field(s) removed successfully!';
     },

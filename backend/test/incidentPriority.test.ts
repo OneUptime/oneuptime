@@ -22,44 +22,51 @@ let token: $TSFixMe,
     defaultIncidentPriorityId: $TSFixMe,
     newIncidentPriorityId: $TSFixMe;
 
-describe('Incident Priority API', function() {
+describe('Incident Priority API', function () {
     this.timeout(500000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                projectId = res.body.project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    projectId = res.body.project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
+                                            err: $TSFixMe,
+                                            res: Response
+                                        ) {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            done();
+                                        });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await IncidentSettings.hardDeleteBy({ projectId: projectId });
         await UserService.hardDeleteBy({ _id: userId });

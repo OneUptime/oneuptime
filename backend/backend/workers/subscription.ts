@@ -69,8 +69,7 @@ const _this = {
 
                         ProjectService.findOneBy({
                             query: { stripeSubscriptionId },
-                            select:
-                                'unpaidSubscriptionNotifications stripePlanId name slug',
+                            select: 'unpaidSubscriptionNotifications stripePlanId name slug',
                         }),
                     ]);
 
@@ -122,9 +121,11 @@ const _this = {
                             ProjectService.updateOneBy(
                                 { stripeSubscriptionId },
                                 {
-                                    unpaidSubscriptionNotifications: `${Number(
-                                        project.unpaidSubscriptionNotifications
-                                    ) + 1}`,
+                                    unpaidSubscriptionNotifications: `${
+                                        Number(
+                                            project.unpaidSubscriptionNotifications
+                                        ) + 1
+                                    }`,
                                 }
                             );
 

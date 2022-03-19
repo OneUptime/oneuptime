@@ -15,28 +15,26 @@ export const createCommunicationSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const createCommunicationSla = (
-    projectId: $TSFixMe,
-    data: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(createCommunicationSlaRequest());
+export const createCommunicationSla =
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(createCommunicationSlaRequest());
 
-        const response = await postApi(`incidentSla/${projectId}`, data);
+            const response = await postApi(`incidentSla/${projectId}`, data);
 
-        dispatch(createCommunicationSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(createCommunicationSlaFailure(errorMsg));
-    }
-};
+            dispatch(createCommunicationSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(createCommunicationSlaFailure(errorMsg));
+        }
+    };
 
 export const updateCommunicationSlaRequest = () => ({
     type: types.UPDATE_COMMUNICATION_SLA_REQUEST,
@@ -52,34 +50,36 @@ export const updateCommunicationSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const updateCommunicationSla = (
-    projectId: $TSFixMe,
-    incidentSlaId: $TSFixMe,
-    data: $TSFixMe,
-    handleDefault = false
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(updateCommunicationSlaRequest());
+export const updateCommunicationSla =
+    (
+        projectId: $TSFixMe,
+        incidentSlaId: $TSFixMe,
+        data: $TSFixMe,
+        handleDefault = false
+    ) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(updateCommunicationSlaRequest());
 
-        data.handleDefault = handleDefault;
-        const response = await putApi(
-            `incidentSla/${projectId}/${incidentSlaId}`,
-            data
-        );
+            data.handleDefault = handleDefault;
+            const response = await putApi(
+                `incidentSla/${projectId}/${incidentSlaId}`,
+                data
+            );
 
-        dispatch(updateCommunicationSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(updateCommunicationSlaFailure(errorMsg));
-    }
-};
+            dispatch(updateCommunicationSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateCommunicationSlaFailure(errorMsg));
+        }
+    };
 
 export const fetchCommunicationSlasRequest = () => ({
     type: types.FETCH_COMMUNICATION_SLAS_REQUEST,
@@ -95,36 +95,34 @@ export const fetchCommunicationSlasFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchCommunicationSlas = (
-    projectId: $TSFixMe,
-    skip = 0,
-    limit = 0
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(fetchCommunicationSlasRequest());
+export const fetchCommunicationSlas =
+    (projectId: $TSFixMe, skip = 0, limit = 0) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(fetchCommunicationSlasRequest());
 
-        let response;
-        if (skip === 0 && limit === 0) {
-            response = await getApi(`incidentSla/${projectId}`);
-        } else {
-            response = await getApi(
-                `incidentSla/${projectId}?skip=${skip}&limit=${limit}`
-            );
+            let response;
+            if (skip === 0 && limit === 0) {
+                response = await getApi(`incidentSla/${projectId}`);
+            } else {
+                response = await getApi(
+                    `incidentSla/${projectId}?skip=${skip}&limit=${limit}`
+                );
+            }
+
+            dispatch(fetchCommunicationSlasSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchCommunicationSlasFailure(errorMsg));
         }
-
-        dispatch(fetchCommunicationSlasSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(fetchCommunicationSlasFailure(errorMsg));
-    }
-};
+    };
 
 export const deleteCommunicationSlaRequest = () => ({
     type: types.DELETE_COMMUNICATION_SLA_REQUEST,
@@ -140,30 +138,29 @@ export const deleteCommunicationSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteCommunicationSla = (
-    projectId: $TSFixMe,
-    incidentSlaId: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(deleteCommunicationSlaRequest());
+export const deleteCommunicationSla =
+    (projectId: $TSFixMe, incidentSlaId: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(deleteCommunicationSlaRequest());
 
-        const response = await deleteApi(
-            `incidentSla/${projectId}/${incidentSlaId}`
-        );
+            const response = await deleteApi(
+                `incidentSla/${projectId}/${incidentSlaId}`
+            );
 
-        dispatch(deleteCommunicationSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(deleteCommunicationSlaFailure(errorMsg));
-    }
-};
+            dispatch(deleteCommunicationSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteCommunicationSlaFailure(errorMsg));
+        }
+    };
 
 // set active sla
 export const setActiveSla = (incidentSlaId: $TSFixMe) => ({
@@ -185,26 +182,25 @@ export const fetchDefaultCommunicationSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchDefaultCommunicationSla = (projectId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    try {
-        dispatch(fetchDefaultCommunicationSlaRequest());
+export const fetchDefaultCommunicationSla =
+    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(fetchDefaultCommunicationSlaRequest());
 
-        const response = await getApi(
-            `incidentSla/${projectId}/defaultCommunicationSla`
-        );
+            const response = await getApi(
+                `incidentSla/${projectId}/defaultCommunicationSla`
+            );
 
-        dispatch(fetchDefaultCommunicationSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(fetchDefaultCommunicationSlaFailure(errorMsg));
-    }
-};
+            dispatch(fetchDefaultCommunicationSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchDefaultCommunicationSlaFailure(errorMsg));
+        }
+    };

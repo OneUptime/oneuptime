@@ -13,7 +13,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.get('/', getUser, async function(req: Request, res: Response) {
+router.get('/', getUser, async function (req: Request, res: Response) {
     try {
         const userId = req.user ? req.user.id : null;
         const user = await UserService.findOneBy({
@@ -31,7 +31,7 @@ router.get('/', getUser, async function(req: Request, res: Response) {
     }
 });
 
-router.put('/', getUser, async function(req: Request, res: Response) {
+router.put('/', getUser, async function (req: Request, res: Response) {
     try {
         const userId = req.user ? req.user.id : null;
         let user = await UserService.findOneBy({

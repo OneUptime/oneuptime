@@ -150,9 +150,10 @@ export default function applicationLog(
                     requesting: false,
                     error: null,
                     success: true,
-                    applicationLogs: state.applicationLogsList.applicationLogs.filter(
-                        ({ _id }) => _id !== action.payload
-                    ),
+                    applicationLogs:
+                        state.applicationLogsList.applicationLogs.filter(
+                            ({ _id }) => _id !== action.payload
+                        ),
                 },
                 deleteApplicationLog: false,
             });

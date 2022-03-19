@@ -21,10 +21,10 @@ import smtpCredential from './data/smtpCredential';
 
 let projectId: $TSFixMe, jwtToken: $TSFixMe, emailSmtpId: $TSFixMe;
 
-describe('Email SMTP Api Test', function() {
+describe('Email SMTP Api Test', function () {
     this.timeout(200000);
 
-    before(async function() {
+    before(async function () {
         this.timeout(400000);
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, data.user);

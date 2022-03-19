@@ -44,7 +44,7 @@ export function removeCertFile() {
 }
 
 export function uploadCertFile(projectId: $TSFixMe, file: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const data = new FormData();
         if (file) {
             data.append('cert', file);
@@ -52,12 +52,12 @@ export function uploadCertFile(projectId: $TSFixMe, file: $TSFixMe) {
             const promise = postApi(`status-page/${projectId}/certFile`, data);
             dispatch(uploadCertFileRequest());
             promise.then(
-                function(response) {
+                function (response) {
                     const data = response.data;
                     dispatch(uploadCertFileSuccess(data.cert));
                     return data;
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -105,7 +105,7 @@ export function removePrivateKeyFile() {
 }
 
 export function uploadPrivateKey(projectId: $TSFixMe, file: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const data = new FormData();
         if (file) {
             data.append('privateKey', file);
@@ -116,12 +116,12 @@ export function uploadPrivateKey(projectId: $TSFixMe, file: $TSFixMe) {
             );
             dispatch(uploadPrivateKeyRequest());
             promise.then(
-                function(response) {
+                function (response) {
                     const data = response.data;
                     dispatch(uploadPrivateKeySuccess(data.privateKey));
                     return data;
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -165,17 +165,17 @@ export function updateStatusPageSettingError(error: $TSFixMe) {
 
 // Calls the API to update setting.
 export function updateStatusPageSetting(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(updateStatusPageSettingRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageSettingSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -221,16 +221,16 @@ export function updateStatusPageMonitors(
     projectId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageMonitorsRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageMonitorsSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -272,17 +272,17 @@ export function updatePrivateStatusPageError(error: $TSFixMe) {
 
 // Calls the API to update private statuspages.
 export function updatePrivateStatusPage(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updatePrivateStatusPageRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updatePrivateStatusPageSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -325,17 +325,17 @@ export function updateStatusPageLanguage(
     projectId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLanguageRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageLanguageSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -375,16 +375,16 @@ export function updateStatusPageLanguageError(error: $TSFixMe) {
 
 // Calls the API to update private statuspages.
 export function updateSubscriberOption(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateSubscriberOptionRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateSubscriberOptionSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -476,7 +476,7 @@ export function updateStatusPageBranding(
     projectId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const data = new FormData();
         if (values.favicon && values.favicon[0]) {
             data.append('favicon', values.favicon[0], values.favicon[0].name);
@@ -504,11 +504,11 @@ export function updateStatusPageBranding(
         dispatch(updateStatusPageBrandingRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageBrandingSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -528,17 +528,17 @@ export function updateStatusPageBranding(
 
 // Calls the API to update the theme
 export function updateTheme(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}/theme`, data);
         dispatch(updateStatusPageThemeRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageThemeSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -558,16 +558,16 @@ export function updateTheme(projectId: $TSFixMe, data: $TSFixMe) {
 
 // Calls the API to update status page name.
 export function updateStatusPageName(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageNameRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageNameSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -609,16 +609,16 @@ export function updateStatusPageLinksError(error: $TSFixMe) {
 
 // Calls the API to update links.
 export function updateStatusPageLinks(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLinksRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageLinksSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -663,16 +663,16 @@ export function updateStatusPageCustomHTML(
     projectId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageCustomHTMLRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageCustomHTMLSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -725,19 +725,19 @@ export function fetchProjectStatusPage(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/statuspage?skip=${skip}&limit=${limit}`
         );
         if (!refresh) dispatch(fetchProjectStatusPageRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const data = response.data;
                 data.projectId = projectId;
                 dispatch(fetchProjectStatusPageSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -788,16 +788,16 @@ export function fetchSubProjectStatusPages(
     projectId: $TSFixMe,
     refresh: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`status-page/${projectId}/status-pages`);
         if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const data = response.data;
                 dispatch(fetchSubProjectStatusPagesSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -849,16 +849,16 @@ export function fetchIncidentStatusPages(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `incident/${projectId}/${incidentSlug}/statuspages?skip=${skip}&limit=${limit}`
         );
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchIncidentStatusPagesSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -902,18 +902,18 @@ export function resetStatusBubbleId(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `status-page/${projectId}/${statusPageId}/resetBubbleId`,
             {}
         );
         dispatch(resetStatusBubbleIdRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(resetStatusBubbleIdSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -963,18 +963,18 @@ export function deleteStatusPage(
     projectId: $TSFixMe,
     statusPageSlug: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `status-page/${projectId}/${statusPageSlug}`,
             null
         );
         dispatch(deleteStatusPageRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const data = response.data;
                 dispatch(deleteStatusPageSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1014,18 +1014,18 @@ export function duplicateStatusPageError(error: $TSFixMe) {
 }
 
 export function readStatusPage(statusPageSlug: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`status-page/${statusPageSlug}`, data);
         dispatch(duplicateStatusPageRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPageData = response.data;
                 delete statusPageData._id;
                 delete statusPageData.slug;
                 statusPageData.name = data.name;
                 return response;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1049,16 +1049,16 @@ export function createDuplicateStatusPage(
     statusPageSlug: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const url = subProjectId
             ? `status-page/${projectId}/${statusPageSlug}/duplicateStatusPage?subProjectId=${subProjectId}`
             : `status-page/${projectId}/${statusPageSlug}/duplicateStatusPage`;
         const promise = postApi(url, data);
         promise.then(
-            function(response) {
+            function (response) {
                 return response;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1077,17 +1077,17 @@ export function createDuplicateStatusPage(
 }
 
 export function fetchStatusPage(statusPageSlug: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`status-page/${statusPageSlug}`);
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPageData = response.data;
                 dispatch(duplicateStatusPageSuccess(statusPageData));
                 dispatch(
                     fetchProjectStatusPage(statusPageData.projectId._id, true)
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1138,18 +1138,18 @@ export function updateStatusPageEmbeddedCss(
     projectId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(updateStatusPageEmbeddedCssRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageEmbeddedCssSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1194,17 +1194,17 @@ export function resetBrandingColors(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `status-page/${projectId}/${statusPageId}/resetColors`
         );
         dispatch(resetBrandingColorsRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const colors = response.data;
                 dispatch(resetBrandingColorsSuccess(colors));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1250,17 +1250,17 @@ export function resetStatusPageEmbeddedCss(
     projectId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(resetStatusPageEmbeddedCssRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(resetStatusPageEmbeddedCssSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1300,18 +1300,18 @@ export function updateStatusPageLayoutError(error: $TSFixMe) {
 }
 
 export function updateStatusPageLayout(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(updateStatusPageLayoutRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageLayoutSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1356,16 +1356,16 @@ export function fetchStatusPageSubscribers(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/monitor/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchSubscriberRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchSubscriberSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1408,19 +1408,19 @@ export function createExternalStatusPage(
     statusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/createExternalstatus-page/${statusPageId}`,
             data
         );
         dispatch(createExternalStatusPageRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(createExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1465,19 +1465,19 @@ export function updateExternalStatusPage(
     externalStatusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/updateExternalstatus-page/${externalStatusPageId}`,
             data
         );
         dispatch(updateExternalStatusPageRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(updateExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1521,18 +1521,18 @@ export function fetchExternalStatusPages(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1576,18 +1576,18 @@ export function deleteExternalStatusPage(
     projectId: $TSFixMe,
     externalStatusPageId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/deleteExternalstatus-page/${externalStatusPageId}`
         );
         dispatch(deleteExternalStatusPageRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(deleteExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1632,19 +1632,19 @@ export function createAnnouncement(
     statusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `status-page/${projectId}/announcement/${statusPageId}`,
             data
         );
         dispatch(createAnnouncementRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(createAnnouncementSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1670,19 +1670,19 @@ export function updateAnnouncement(
     announcementId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `status-page/${projectId}/announcement/${statusPageId}/${announcementId}`,
             data
         );
         dispatch(createAnnouncementRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(createAnnouncementSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1728,16 +1728,16 @@ export function fetchAnnouncements(
     skip = 0,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchAnnouncementRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchAnnouncementSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1781,16 +1781,16 @@ export function fetchAnnouncementLogs(
     skip = 0,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1827,15 +1827,15 @@ export function fetchSingleAnnouncement(
     statusPageSlug: $TSFixMe,
     announcementSlug: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `status-page/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchSingleAnnouncementSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1903,16 +1903,16 @@ export function deleteAnnouncement(
     projectId: $TSFixMe,
     announcementId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `status-page/${projectId}/announcement/${announcementId}/delete`
         );
         dispatch(deleteAnnouncementRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1934,16 +1934,16 @@ export function deleteAnnouncementLog(
     projectId: $TSFixMe,
     announcementLogId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `status-page/${projectId}/announcementLog/${announcementLogId}/delete`
         );
         dispatch(deleteAnnouncementRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

@@ -1,5 +1,5 @@
 export default {
-    findBy: async function({ query, limit, skip, select, populate }) {
+    findBy: async function ({ query, limit, skip, select, populate }) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -25,7 +25,7 @@ export default {
         return projects;
     },
 
-    create: async function(data) {
+    create: async function (data) {
         const _this = this;
         const projectModel = new ProjectModel();
         const adminUser = await UserService.findOneBy({
@@ -127,7 +127,7 @@ export default {
         return project;
     },
 
-    countBy: async function(query) {
+    countBy: async function (query) {
         if (!query) {
             query = {};
         }
@@ -137,7 +137,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query, userId, cancelSub = true) {
+    deleteBy: async function (query, userId, cancelSub = true) {
         if (!query) {
             query = {};
         }
@@ -300,7 +300,7 @@ export default {
         return project;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function ({ query, select, populate }) {
         if (!query) {
             query = {};
         }
@@ -317,7 +317,7 @@ export default {
         return project;
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         const _this = this;
         if (!query) {
             query = {};
@@ -362,7 +362,7 @@ export default {
         return updatedProject;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -380,7 +380,7 @@ export default {
         return updatedData;
     },
 
-    updateAlertOptions: async function(data) {
+    updateAlertOptions: async function (data) {
         const projectId = data._id;
         const userId = data.userId;
         const project = await ProjectModel.findById(projectId).lean();
@@ -446,12 +446,12 @@ export default {
         }
     },
 
-    saveProject: async function(project) {
+    saveProject: async function (project) {
         project = await project.save();
         return project;
     },
 
-    getProjectIdsBy: async function(query) {
+    getProjectIdsBy: async function (query) {
         const _this = this;
 
         const projects = await _this.findBy({ query, select: '_id' });
@@ -463,12 +463,12 @@ export default {
         return projectsId;
     },
 
-    getBalance: async function(query) {
+    getBalance: async function (query) {
         const project = await ProjectModel.findOne(query).select('balance');
         return project;
     },
 
-    resetApiKey: async function(projectId) {
+    resetApiKey: async function (projectId) {
         const _this = this;
         const apiKey = uuidv1();
         const project = await _this.updateOneBy(
@@ -478,7 +478,7 @@ export default {
         return project;
     },
 
-    upgradeToEnterprise: async function(projectId) {
+    upgradeToEnterprise: async function (projectId) {
         const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
 
         const project = await this.findOneBy({
@@ -494,7 +494,7 @@ export default {
         return updatedProject;
     },
 
-    changePlan: async function(projectId, userId, planId) {
+    changePlan: async function (projectId, userId, planId) {
         const _this = this;
         let project = await _this.updateOneBy(
             { _id: projectId },
@@ -534,7 +534,7 @@ export default {
         }
     },
 
-    findSubprojectId: async function(projectId) {
+    findSubprojectId: async function (projectId) {
         const _this = this;
 
         const subProject = await _this.findBy({
@@ -547,7 +547,7 @@ export default {
         return projectIdArr;
     },
 
-    getUniqueMembersIndividualProject: async function({
+    getUniqueMembersIndividualProject: async function ({
         isFlatenArr,
 
         members,
@@ -578,7 +578,7 @@ export default {
         return result;
     },
 
-    exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
+    exitProject: async function (projectId, userId, deletedById, saveUserSeat) {
         const _this = this,
             returnVal = 'User successfully exited the project';
         let teamMember = {};
@@ -713,7 +713,7 @@ export default {
         return returnVal;
     },
 
-    updateSeatDetails: async function(project, projectSeats) {
+    updateSeatDetails: async function (project, projectSeats) {
         const _this = this;
         if (IS_SAAS_SERVICE) {
             await PaymentService.changeSeats(
@@ -727,12 +727,12 @@ export default {
         );
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         await ProjectModel.deleteMany(query);
         return 'Project(s) Removed Successfully!';
     },
 
-    getAllProjects: async function(skip, limit) {
+    getAllProjects: async function (skip, limit) {
         const _this = this;
         const populate = [{ path: 'parentProjectId', select: 'name' }];
         const select =
@@ -766,7 +766,7 @@ export default {
         return projects;
     },
 
-    getUserProjects: async function(userId, skip, limit) {
+    getUserProjects: async function (userId, skip, limit) {
         const _this = this;
         // find user subprojects and parent projects
 
@@ -857,7 +857,7 @@ export default {
         return { projects, count };
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
 
@@ -937,7 +937,7 @@ export default {
         return project;
     },
 
-    addNotes: async function(projectId, notes) {
+    addNotes: async function (projectId, notes) {
         const _this = this;
         const project = await _this.updateOneBy(
             { _id: projectId },
@@ -948,7 +948,7 @@ export default {
         return project;
     },
 
-    searchProjects: async function(query, skip, limit) {
+    searchProjects: async function (query, skip, limit) {
         const _this = this;
         const select = '_id slug name';
 

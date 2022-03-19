@@ -40,314 +40,320 @@ const httpsAgent = new https.Agent({
 // Params:
 // Param 1: req.params-> {projectId}; req.body -> {[_id], name, type, data, visibleOnStatusPage} <- Check MonitorMoal for description.
 // Returns: response status, error message
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const data = req.body;
-        const projectId = req.params.projectId;
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function (req, res) {
+        try {
+            const data = req.body;
+            const projectId = req.params.projectId;
 
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "values can't be null",
-            });
-        }
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "values can't be null",
+                });
+            }
 
-        data.createdById = req.user ? req.user.id : null;
+            data.createdById = req.user ? req.user.id : null;
 
-        /* if (!data.componentId) {
+            /* if (!data.componentId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Component ID is required.',
             });
         } */
 
-        if (
-            data.resourceCategory &&
-            typeof data.resourceCategory !== 'string'
-        ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Resource Category ID is not of string type.',
-            });
-        }
-        if (!data.name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor Name is required.',
-            });
-        }
-
-        if (typeof data.name !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor Name is not of type string.',
-            });
-        }
-
-        if (!data.type) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor Type is required.',
-            });
-        }
-
-        if (typeof data.type !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor type should be of type string.',
-            });
-        }
-
-        if (
-            data.type !== 'url' &&
-            data.type !== 'manual' &&
-            data.type !== 'api' &&
-            data.type !== 'server-monitor' &&
-            data.type !== 'script' &&
-            data.type !== 'incomingHttpRequest' &&
-            data.type !== 'kubernetes' &&
-            data.type !== 'ip'
-        ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message:
-                    'Monitor type should be url, manual, device, script, api, server-monitor, incomingHttpRequest, kubernetes or ip.',
-            });
-        }
-        if (!data.data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor data is required.',
-            });
-        }
-
-        if (typeof data.data !== 'object') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor Data should be of type object.',
-            });
-        }
-
-        if (data.type === 'url' || data.type === 'api') {
-            if (!data.data.url) {
+            if (
+                data.resourceCategory &&
+                typeof data.resourceCategory !== 'string'
+            ) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message:
-                        'Monitor data should have a `url` property of type string.',
+                    message: 'Resource Category ID is not of string type.',
+                });
+            }
+            if (!data.name) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor Name is required.',
+                });
+            }
+
+            if (typeof data.name !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor Name is not of type string.',
+                });
+            }
+
+            if (!data.type) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor Type is required.',
+                });
+            }
+
+            if (typeof data.type !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor type should be of type string.',
                 });
             }
 
             if (
-                (data.type === 'url' || data.type === 'manual') &&
-                typeof data.data.url !== 'string'
+                data.type !== 'url' &&
+                data.type !== 'manual' &&
+                data.type !== 'api' &&
+                data.type !== 'server-monitor' &&
+                data.type !== 'script' &&
+                data.type !== 'incomingHttpRequest' &&
+                data.type !== 'kubernetes' &&
+                data.type !== 'ip'
             ) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message:
-                        'Monitor data should have a `url` property of type string.',
+                        'Monitor type should be url, manual, device, script, api, server-monitor, incomingHttpRequest, kubernetes or ip.',
+                });
+            }
+            if (!data.data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor data is required.',
                 });
             }
 
-            if (data.type === 'api') {
-                try {
-                    const headers = await Api.headers(
-                        data.headers,
-                        data.bodyType
-                    );
+            if (typeof data.data !== 'object') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitor Data should be of type object.',
+                });
+            }
 
-                    const body = await Api.body(
-                        data.text && data.text.length
-                            ? data.text
-                            : data.formData,
-                        data.text && data.text.length ? 'text' : 'formData'
-                    );
-                    const payload = {
-                        method: data.method,
-                        url: data.data.url,
-                        httpsAgent,
-                    };
-                    if (headers && Object.keys(headers).length) {
-                        payload.headers = headers;
-                    }
-                    if (body && Object.keys(body).length) {
-                        payload.data = body;
-                    }
-                    const apiResponse = await axios(payload);
-                    const headerContentType =
-                        apiResponse.headers['content-type'];
-                    if (/text\/html/.test(headerContentType)) {
-                        return sendErrorResponse(req, res, {
-                            code: 400,
-                            message:
-                                'API Monitor URL should not be a HTML page.',
-                        });
-                    }
-                } catch (err) {
+            if (data.type === 'url' || data.type === 'api') {
+                if (!data.data.url) {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message:
-                            (err.response && err.response.statusText) ||
-                            err.message ||
-                            'Monitor url did not return a valid response.',
+                            'Monitor data should have a `url` property of type string.',
+                    });
+                }
+
+                if (
+                    (data.type === 'url' || data.type === 'manual') &&
+                    typeof data.data.url !== 'string'
+                ) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            'Monitor data should have a `url` property of type string.',
+                    });
+                }
+
+                if (data.type === 'api') {
+                    try {
+                        const headers = await Api.headers(
+                            data.headers,
+                            data.bodyType
+                        );
+
+                        const body = await Api.body(
+                            data.text && data.text.length
+                                ? data.text
+                                : data.formData,
+                            data.text && data.text.length ? 'text' : 'formData'
+                        );
+                        const payload = {
+                            method: data.method,
+                            url: data.data.url,
+                            httpsAgent,
+                        };
+                        if (headers && Object.keys(headers).length) {
+                            payload.headers = headers;
+                        }
+                        if (body && Object.keys(body).length) {
+                            payload.data = body;
+                        }
+                        const apiResponse = await axios(payload);
+                        const headerContentType =
+                            apiResponse.headers['content-type'];
+                        if (/text\/html/.test(headerContentType)) {
+                            return sendErrorResponse(req, res, {
+                                code: 400,
+                                message:
+                                    'API Monitor URL should not be a HTML page.',
+                            });
+                        }
+                    } catch (err) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message:
+                                (err.response && err.response.statusText) ||
+                                err.message ||
+                                'Monitor url did not return a valid response.',
+                        });
+                    }
+                }
+            }
+
+            if (data.type === 'server-monitor') {
+                if (
+                    data.agentlessConfig &&
+                    data.agentlessConfig.authentication === 'identityFile' &&
+                    !data.agentlessConfig.identityFile
+                ) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            'Monitor should have an `Identity File` property of type string.',
                     });
                 }
             }
-        }
 
-        if (data.type === 'server-monitor') {
             if (
-                data.agentlessConfig &&
-                data.agentlessConfig.authentication === 'identityFile' &&
-                !data.agentlessConfig.identityFile
+                data.type === 'kubernetes' &&
+                (!data.kubernetesConfig || !data.kubernetesConfig.trim())
             ) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message:
-                        'Monitor should have an `Identity File` property of type string.',
+                    message: 'Monitor should have a configuration file',
                 });
             }
-        }
 
-        if (
-            data.type === 'kubernetes' &&
-            (!data.kubernetesConfig || !data.kubernetesConfig.trim())
-        ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor should have a configuration file',
-            });
-        }
-
-        if (data.type === 'script') {
-            if (!data.data.script) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Monitor data should have a `script` property of type string.',
-                });
+            if (data.type === 'script') {
+                if (!data.data.script) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            'Monitor data should have a `script` property of type string.',
+                    });
+                }
             }
-        }
-        if (data.type === 'ip') {
-            if (!data.data.IPAddress) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Monitor data should have a `IPAddress` property of type string.',
-                });
+            if (data.type === 'ip') {
+                if (!data.data.IPAddress) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            'Monitor data should have a `IPAddress` property of type string.',
+                    });
+                }
             }
-        }
-        data.projectId = projectId;
+            data.projectId = projectId;
 
-        const [monitor, user] = await Promise.all([
-            MonitorService.create(data),
-            UserService.findOneBy({
-                query: { _id: req.user.id },
-                select: 'name _id',
-            }),
-        ]);
+            const [monitor, user] = await Promise.all([
+                MonitorService.create(data),
+                UserService.findOneBy({
+                    query: { _id: req.user.id },
+                    select: 'name _id',
+                }),
+            ]);
 
-        if (data.callScheduleIds && data.callScheduleIds.length) {
-            await ScheduleService.addMonitorToSchedules(
-                data.callScheduleIds,
-                monitor._id
-            );
-        }
-
-        if (monitor) {
-            try {
-                NotificationService.create(
-                    monitor.projectId._id || monitor.projectId,
-                    `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
-                    user._id,
-                    'monitoraddremove'
+            if (data.callScheduleIds && data.callScheduleIds.length) {
+                await ScheduleService.addMonitorToSchedules(
+                    data.callScheduleIds,
+                    monitor._id
                 );
-
-                // RUN REALTIME SERVICE IN THE BACKGROUND
-                RealTimeService.sendMonitorCreated(monitor);
-            } catch (error) {
-                ErrorService.log('realtimeService.sendMonitorCreated', error);
             }
+
+            if (monitor) {
+                try {
+                    NotificationService.create(
+                        monitor.projectId._id || monitor.projectId,
+                        `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
+                        user._id,
+                        'monitoraddremove'
+                    );
+
+                    // RUN REALTIME SERVICE IN THE BACKGROUND
+                    RealTimeService.sendMonitorCreated(monitor);
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.sendMonitorCreated',
+                        error
+                    );
+                }
+            }
+
+            return sendItemResponse(req, res, monitor);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        return sendItemResponse(req, res, monitor);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.post('/:projectId/identityFile', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const upload = multer({
-            storage,
-        }).fields([
-            {
-                name: 'identityFile',
-                maxCount: 1,
-            },
-        ]);
-        upload(req, res, async function(error: $TSFixMe) {
-            let identityFile;
-            if (error) {
-                return sendErrorResponse(req, res, error);
-            }
-            if (
-                req.files &&
-                req.files.identityFile &&
-                req.files.identityFile[0].filename
-            ) {
-                identityFile = req.files.identityFile[0].filename;
-            }
-            return sendItemResponse(req, res, { identityFile });
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.post(
+    '/:projectId/identityFile',
+    async function (req: Request, res: Response) {
+        try {
+            const upload = multer({
+                storage,
+            }).fields([
+                {
+                    name: 'identityFile',
+                    maxCount: 1,
+                },
+            ]);
+            upload(req, res, async function (error: $TSFixMe) {
+                let identityFile;
+                if (error) {
+                    return sendErrorResponse(req, res, error);
+                }
+                if (
+                    req.files &&
+                    req.files.identityFile &&
+                    req.files.identityFile[0].filename
+                ) {
+                    identityFile = req.files.identityFile[0].filename;
+                }
+                return sendItemResponse(req, res, { identityFile });
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/:projectId/configurationFile', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const upload = multer({
-            storage,
-        }).fields([
-            {
-                name: 'configurationFile',
-                maxCount: 1,
-            },
-        ]);
-        upload(req, res, async function(error: $TSFixMe) {
-            let configurationFile;
-            if (error) {
-                return sendErrorResponse(req, res, error);
-            }
-            if (
-                req.files &&
-                req.files.configurationFile &&
-                req.files.configurationFile[0].filename
-            ) {
-                configurationFile = req.files.configurationFile[0].filename;
-            }
-            return sendItemResponse(req, res, { configurationFile });
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.post(
+    '/:projectId/configurationFile',
+    async function (req: Request, res: Response) {
+        try {
+            const upload = multer({
+                storage,
+            }).fields([
+                {
+                    name: 'configurationFile',
+                    maxCount: 1,
+                },
+            ]);
+            upload(req, res, async function (error: $TSFixMe) {
+                let configurationFile;
+                if (error) {
+                    return sendErrorResponse(req, res, error);
+                }
+                if (
+                    req.files &&
+                    req.files.configurationFile &&
+                    req.files.configurationFile[0].filename
+                ) {
+                    configurationFile = req.files.configurationFile[0].filename;
+                }
+                return sendItemResponse(req, res, { configurationFile });
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.put(
     '/:projectId/:monitorId',
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const { monitorId } = req.params;
@@ -438,77 +444,83 @@ router.put(
 
 // Route
 // Description: Get all Monitors by projectId.
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
-    req,
-    res
-) {
-    try {
-        const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
-            : null;
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function (req, res) {
+        try {
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                : null;
 
-        const { limit, skip } = req.query;
-        // Call the MonitorService.
-        const monitors = await MonitorService.getMonitorsBySubprojects(
-            subProjectIds,
-            limit || 0,
-            skip || 0
-        );
-        return sendItemResponse(req, res, monitors);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const { limit, skip } = req.query;
+            // Call the MonitorService.
+            const monitors = await MonitorService.getMonitorsBySubprojects(
+                subProjectIds,
+                limit || 0,
+                skip || 0
+            );
+            return sendItemResponse(req, res, monitors);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/paginated', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        // const { projectId } = req.params;
-        const { skip, limit, componentSlug } = req.query;
-        let componentId = req.query.componentId;
+router.get(
+    '/:projectId/paginated',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            // const { projectId } = req.params;
+            const { skip, limit, componentSlug } = req.query;
+            let componentId = req.query.componentId;
 
-        let component;
-        if (!componentId) {
-            if (!componentSlug) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Provide either componentSlug or componentId as a query',
+            let component;
+            if (!componentId) {
+                if (!componentSlug) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            'Provide either componentSlug or componentId as a query',
+                    });
+                }
+
+                component = await ComponentService.findOneBy({
+                    query: { slug: componentSlug },
+                    select: '_id projectId',
+                });
+                componentId = component?._id;
+            } else {
+                component = await ComponentService.findOneBy({
+                    query: { _id: componentId },
+                    select: 'projectId',
                 });
             }
 
-            component = await ComponentService.findOneBy({
-                query: { slug: componentSlug },
-                select: '_id projectId',
-            });
-            componentId = component?._id;
-        } else {
-            component = await ComponentService.findOneBy({
-                query: { _id: componentId },
-                select: 'projectId',
-            });
+            const response =
+                await MonitorService.getMonitorsBySubprojectsPaginate(
+                    component.projectId,
+                    componentId,
+                    limit,
+                    skip
+                );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const response = await MonitorService.getMonitorsBySubprojectsPaginate(
-            component.projectId,
-            componentId,
-            limit,
-            skip
-        );
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.get(
     '/:projectId/monitor',
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const type = req.query.type;
 
@@ -553,7 +565,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const monitorId = req.params.monitorId;
             const type = req.query.type;
@@ -593,7 +605,7 @@ router.post(
     '/:projectId/monitorLogs/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const {
                 skip,
@@ -612,8 +624,7 @@ router.post(
             const populateMonitorLog = [
                 {
                     path: 'probeId',
-                    select:
-                        'createdAt lastAlive probeKey probeName version probeImage deleted',
+                    select: 'createdAt lastAlive probeKey probeName version probeImage deleted',
                 },
             ];
 
@@ -649,7 +660,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { monitorId, projectId } = req.params;
         try {
             const monitor = await MonitorService.deleteBy(
@@ -680,7 +691,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const monitorId = req.params.monitorId || req.body._id;
             const data = req.body;
@@ -696,38 +707,35 @@ router.post(
                 stat: validUp,
                 successReasons: upSuccessReasons,
                 failedReasons: upFailedReasons,
-            } =
-                monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          data
-                      )
-                    : { stat: false, failedReasons: [], successReasons: [] };
+            } = monitor && monitor.criteria && monitor.criteria.up
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.up,
+                      data
+                  )
+                : { stat: false, failedReasons: [], successReasons: [] };
             const {
                 stat: validDegraded,
                 successReasons: degradedSuccessReasons,
                 failedReasons: degradedFailedReasons,
-            } =
-                monitor && monitor.criteria && monitor.criteria.degraded
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.degraded,
-                          data
-                      )
-                    : { stat: false, failedReasons: [], successReasons: [] };
+            } = monitor && monitor.criteria && monitor.criteria.degraded
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.degraded,
+                      data
+                  )
+                : { stat: false, failedReasons: [], successReasons: [] };
             const {
                 stat: validDown,
                 successReasons: downSuccessReasons,
                 failedReasons: downFailedReasons,
-            } =
-                monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.down,
-                          data
-                      )
-                    : { stat: false, failedReasons: [], successReasons: [] };
+            } = monitor && monitor.criteria && monitor.criteria.down
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.down,
+                      data
+                  )
+                : { stat: false, failedReasons: [], successReasons: [] };
 
             if (validUp) {
                 data.status = 'online';
@@ -775,7 +783,7 @@ router.post(
     '/:projectId/monitorLog/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { startDate, endDate } = req.body;
             const monitorId = req.params.monitorId;
@@ -797,7 +805,7 @@ router.post(
     '/:projectId/monitorStatuses/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { startDate, endDate } = req.body;
             const monitorId = req.params.monitorId;
@@ -819,20 +827,18 @@ router.get(
     '/:projectId/lighthouseLog/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { skip, limit, url } = req.query;
             const monitorId = req.params.monitorId;
 
-            const {
-                lighthouseLogs,
-                count,
-            } = await LighthouseLogService.findLastestScan({
-                monitorId,
-                url,
-                limit: limit || 5,
-                skip: skip || 0,
-            });
+            const { lighthouseLogs, count } =
+                await LighthouseLogService.findLastestScan({
+                    monitorId,
+                    url,
+                    limit: limit || 5,
+                    skip: skip || 0,
+                });
 
             return sendListResponse(req, res, lighthouseLogs, count);
         } catch (error) {
@@ -845,7 +851,7 @@ router.get(
     '/:projectId/lighthouseIssue/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const selectLighthouseLogs =
                 'monitorId probeId data url performance accessibility bestPractices seo pwa createdAt scanning';
@@ -853,8 +859,7 @@ router.get(
             const populateLighthouseLogs = [
                 {
                     path: 'probeId',
-                    select:
-                        'probeName probeKey version lastAlive deleted probeImage',
+                    select: 'probeName probeKey version lastAlive deleted probeImage',
                 },
             ];
             const lighthouseIssue = await LighthouseLogService.findOneBy({
@@ -874,7 +879,7 @@ router.post(
     '/:projectId/inbound/:deviceId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         return await _updateDeviceMonitorPingTime(req, res);
     }
 );
@@ -883,12 +888,12 @@ router.get(
     '/:projectId/inbound/:deviceId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         return await _updateDeviceMonitorPingTime(req, res);
     }
 );
 
-const _updateDeviceMonitorPingTime = async function(
+const _updateDeviceMonitorPingTime = async function (
     req: Request,
     res: Response
 ) {
@@ -928,25 +933,27 @@ const _updateDeviceMonitorPingTime = async function(
     }
 };
 
-router.post('/:projectId/addseat', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const seatresponse = await MonitorService.addSeat({
-            _id: req.params.projectId,
-        });
-        return sendItemResponse(req, res, seatresponse);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.post(
+    '/:projectId/addseat',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const seatresponse = await MonitorService.addSeat({
+                _id: req.params.projectId,
+            });
+            return sendItemResponse(req, res, seatresponse);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/:projectId/siteUrl/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { siteUrl } = req.body;
             const monitor = await MonitorService.addSiteUrl(
@@ -966,7 +973,7 @@ router.delete(
     '/:projectId/siteUrl/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { siteUrl } = req.body;
             const monitor = await MonitorService.removeSiteUrl(
@@ -986,7 +993,7 @@ router.get(
     '/:projectId/monitorSlaBreaches',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const select =
@@ -1006,7 +1013,7 @@ router.post(
     '/:projectId/closeSla/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, monitorId } = req.params;
 
@@ -1028,7 +1035,7 @@ router.post(
     '/:projectId/disableMonitor/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { monitorId } = req.params;
             const select = 'disabled';
@@ -1063,7 +1070,7 @@ router.post(
     '/:projectId/changeComponent/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, monitorId } = req.params;
             const { newComponentId } = req.body;
@@ -1080,33 +1087,33 @@ router.post(
 );
 
 // api to calculate time for monitorInfo (status page)
-router.post('/:monitorId/calculate-time', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { monitorId } = req.params;
-        const { statuses, start, range } = req.body;
+router.post(
+    '/:monitorId/calculate-time',
+    async function (req: Request, res: Response) {
+        try {
+            const { monitorId } = req.params;
+            const { statuses, start, range } = req.body;
 
-        const select = '_id';
-        const [monitor, result] = await Promise.all([
-            MonitorService.findOneBy({ query: { _id: monitorId }, select }),
-            MonitorService.calcTime(statuses, start, range),
-        ]);
+            const select = '_id';
+            const [monitor, result] = await Promise.all([
+                MonitorService.findOneBy({ query: { _id: monitorId }, select }),
+                MonitorService.calcTime(statuses, start, range),
+            ]);
 
-        if (!monitor) {
-            const error = new Error('Monitor not found or does not exist');
+            if (!monitor) {
+                const error = new Error('Monitor not found or does not exist');
 
-            error.code = 400;
-            throw error;
+                error.code = 400;
+                throw error;
+            }
+
+            result.monitorId = monitor._id;
+
+            return sendItemResponse(req, res, result);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        result.monitorId = monitor._id;
-
-        return sendItemResponse(req, res, result);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 export default router;

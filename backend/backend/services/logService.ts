@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
 
         // prepare  log model
@@ -134,7 +134,7 @@ export default {
 
         return count;
     },
-    search: async function(
+    search: async function (
         query: $TSFixMe,
         filter: $TSFixMe,
         skip: $TSFixMe,
@@ -162,7 +162,7 @@ export default {
 
         return { searchedLogs, totalSearchCount };
     },
-    searchByDuration: async function(query: $TSFixMe) {
+    searchByDuration: async function (query: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};

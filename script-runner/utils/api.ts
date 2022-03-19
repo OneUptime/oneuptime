@@ -20,10 +20,10 @@ const _this = {
                 headers,
                 data,
             })
-                .then(function(response) {
+                .then(function (response) {
                     resolve(response.data);
                 })
-                .catch(function(error) {
+                .catch(function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -42,10 +42,10 @@ const _this = {
                 url: `${config.serverUrl}/${url}`,
                 headers,
             })
-                .then(function(response) {
+                .then(function (response) {
                     resolve(response.data);
                 })
-                .catch(function(error) {
+                .catch(function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -65,10 +65,10 @@ const _this = {
                 headers,
                 data,
             })
-                .then(function(response) {
+                .then(function (response) {
                     resolve(response.data);
                 })
-                .catch(function(error) {
+                .catch(function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -88,10 +88,10 @@ const _this = {
                 headers,
                 data,
             })
-                .then(function(response) {
+                .then(function (response) {
                     resolve(response.data);
                 })
-                .catch(function(error) {
+                .catch(function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {

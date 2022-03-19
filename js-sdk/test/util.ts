@@ -25,16 +25,12 @@ export const user = {
     reference: 'Github',
 };
 export function generateRandomBusinessEmail() {
-    return `${Math.random()
-        .toString(36)
-        .substring(7)}@${Math.random()
+    return `${Math.random().toString(36).substring(7)}@${Math.random()
         .toString(36)
         .substring(5)}.com`;
 }
 export function generateSecondRandomBusinessEmail() {
-    return `${Math.random()
-        .toString(26)
-        .substring(7)}@${Math.random()
+    return `${Math.random().toString(26).substring(7)}@${Math.random()
         .toString(36)
         .substring(5)}.com`;
 }

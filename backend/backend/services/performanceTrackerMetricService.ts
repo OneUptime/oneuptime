@@ -5,20 +5,19 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function(data: $TSFixMe) {
-        const performanceTrackerMetric = await PerformanceTrackerMetricModel.create(
-            data
-        );
+    create: async function (data: $TSFixMe) {
+        const performanceTrackerMetric =
+            await PerformanceTrackerMetricModel.create(data);
         return performanceTrackerMetric;
     },
-    createMany: async function(allData: $TSFixMe) {
+    createMany: async function (allData: $TSFixMe) {
         const allMetrics = await PerformanceTrackerMetricModel.insertMany(
             allData
         );
         return allMetrics;
     },
     //Description: Gets all performance metrics by component.
-    findBy: async function({
+    findBy: async function ({
         query,
         limit,
         skip,
@@ -64,7 +63,7 @@ export default {
         return performanceTrackerMetrics;
     },
 
-    mergeMetrics: async function({
+    mergeMetrics: async function ({
         query,
 
         // limit,
@@ -112,12 +111,8 @@ export default {
         for (const [, value] of Object.entries(ptm)) {
             const valueLength = value.length;
             if (valueLength > 0) {
-                const {
-                    type,
-                    callIdentifier,
-                    performanceTrackerId,
-                    method,
-                } = value[0];
+                const { type, callIdentifier, performanceTrackerId, method } =
+                    value[0];
                 const result = {
                     type,
                     callIdentifier,
@@ -158,15 +153,14 @@ export default {
         return trackerMetrics;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
         if (!query.deleted) query.deleted = false;
 
-        let performanceTrackerMetricQuery = PerformanceTrackerMetricModel.findOne(
-            query
-        ).lean();
+        let performanceTrackerMetricQuery =
+            PerformanceTrackerMetricModel.findOne(query).lean();
         performanceTrackerMetricQuery = handleSelect(
             select,
             performanceTrackerMetricQuery
@@ -180,49 +174,51 @@ export default {
         return performanceTrackerMetric;
     },
 
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
 
-        const performanceTrackerMetric = await PerformanceTrackerMetricModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
+        const performanceTrackerMetric =
+            await PerformanceTrackerMetricModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                    },
                 },
-            },
-            { new: true }
-        );
+                { new: true }
+            );
 
         return performanceTrackerMetric;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
         if (!query.deleted) query.deleted = false;
 
-        const performanceTrackerMetric = await PerformanceTrackerMetricModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            {
-                new: true,
-            }
-        );
+        const performanceTrackerMetric =
+            await PerformanceTrackerMetricModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
 
         return performanceTrackerMetric;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await PerformanceTrackerMetricModel.deleteMany(query);
         return 'Performance tracker metric(s) removed successfully!';
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -232,7 +228,7 @@ export default {
         return count;
     },
 
-    createMetricsData: async function(
+    createMetricsData: async function (
         appId: $TSFixMe,
         type: $TSFixMe,
         data: $TSFixMe,
@@ -278,7 +274,7 @@ export default {
         RealTimeService.sendErrorMetrics(appId, error);
     },
 
-    structureMetricsTime: async function(
+    structureMetricsTime: async function (
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -332,7 +328,7 @@ export default {
     },
 
     // setup the throughput data for frontend
-    structureMetricsCount: async function(
+    structureMetricsCount: async function (
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -383,7 +379,7 @@ export default {
         return finalOutput;
     },
 
-    structureMetricsError: async function(
+    structureMetricsError: async function (
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe

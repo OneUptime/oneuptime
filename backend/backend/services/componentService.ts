@@ -3,7 +3,7 @@ export default {
     //Params:
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
 
         const existingComponentCount = await _this.countBy({
@@ -122,7 +122,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData: $TSFixMe
@@ -172,7 +172,7 @@ export default {
         return component;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -256,7 +256,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -422,7 +422,7 @@ export default {
         return { components, count, _id: projectId, skip, limit };
     },
 
-    addSeat: async function(query: $TSFixMe) {
+    addSeat: async function (query: $TSFixMe) {
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -445,12 +445,12 @@ export default {
         return 'A new seat added. Now you can add a component';
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await ComponentModel.deleteMany(query);
         return 'Component(s) removed successfully!';
     },
 
-    restoreBy: async function(query: $TSFixMe) {
+    restoreBy: async function (query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         const populateComponent = [

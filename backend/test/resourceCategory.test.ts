@@ -25,44 +25,49 @@ import payment from '../backend/config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
 
-describe('Resource Category API', function() {
+describe('Resource Category API', function () {
     this.timeout(20000);
 
-    before(function(done) {
+    before(function (done) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (err, res) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
+                VerificationTokenModel.findOne(
+                    { userId },
+                    function (
+                        err,
 
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
+                        verificationToken
+                    ) {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function () {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.user.email,
+                                        password: userData.user.password,
+                                    })
 
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    done();
-                                });
-                        });
-                });
+                                    .end(function (err, res) {
+                                        token = res.body.tokens.jwtAccessToken;
+                                        done();
+                                    });
+                            });
+                    }
+                );
             });
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -80,7 +85,7 @@ describe('Resource Category API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should reject the request of an unauthenticated user', function(done) {
+    it('should reject the request of an unauthenticated user', function (done) {
         request
 
             .post(`/resourceCategory/${projectId}`)
@@ -88,13 +93,13 @@ describe('Resource Category API', function() {
                 resourceCategoryName: 'unauthenticated user',
             })
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not create a resource category when the `resourceCategoryName` field is null', function(done) {
+    it('should not create a resource category when the `resourceCategoryName` field is null', function (done) {
         const authorization = `Basic ${token}`;
         request
 
@@ -104,13 +109,13 @@ describe('Resource Category API', function() {
                 resourceCategoryName: null,
             })
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', function(done) {
+    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', function (done) {
         const authorization = `Basic ${token}`;
         request
 
@@ -118,7 +123,7 @@ describe('Resource Category API', function() {
             .set('Authorization', authorization)
             .send(resourceCategory)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 resourceCategoryId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(
@@ -128,14 +133,14 @@ describe('Resource Category API', function() {
             });
     });
 
-    it('should get all monitor Categories for an authenticated user by ProjectId', function(done) {
+    it('should get all monitor Categories for an authenticated user by ProjectId', function (done) {
         const authorization = `Basic ${token}`;
         request
 
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -147,62 +152,66 @@ describe('Resource Category API', function() {
             });
     });
 
-    it('should delete a resource category when resourceCategoryId is valid', function(done) {
+    it('should delete a resource category when resourceCategoryId is valid', function (done) {
         const authorization = `Basic ${token}`;
         request
 
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 });
 
-describe('User from other project have access to read / write and delete API.', function() {
+describe('User from other project have access to read / write and delete API.', function () {
     this.timeout(20000);
 
-    before(function(done) {
+    before(function (done) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (err, res) {
                 const project = res.body.project;
                 projectId = project._id;
 
-                createUser(request, userData.newUser, function(err, res) {
+                createUser(request, userData.newUser, function (err, res) {
                     userId = res.body.id;
-                    VerificationTokenModel.findOne({ userId }, function(
-                        err,
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (
+                            err,
 
-                        verificationToken
-                    ) {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end(function() {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.newUser.email,
-                                        password: userData.newUser.password,
-                                    })
+                            verificationToken
+                        ) {
+                            request
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.newUser.email,
+                                            password: userData.newUser.password,
+                                        })
 
-                                    .end(function(err, res) {
-                                        token = res.body.tokens.jwtAccessToken;
-                                        done();
-                                    });
-                            });
-                    });
+                                        .end(function (err, res) {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            done();
+                                        });
+                                });
+                        }
+                    );
                 });
             });
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -219,7 +228,7 @@ describe('User from other project have access to read / write and delete API.', 
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should not be able to create new resource category', function(done) {
+    it('should not be able to create new resource category', function (done) {
         const authorization = `Basic ${token}`;
         request
 
@@ -227,167 +236,177 @@ describe('User from other project have access to read / write and delete API.', 
             .set('Authorization', authorization)
             .send(resourceCategory)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not be able to delete a resource category', function(done) {
+    it('should not be able to delete a resource category', function (done) {
         const authorization = `Basic ${token}`;
         request
 
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not be able to get all resource categories', function(done) {
+    it('should not be able to get all resource categories', function (done) {
         const authorization = `Basic ${token}`;
         request
 
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 });
 
-describe('Non-admin user access to create, delete and access resource category.', function() {
+describe('Non-admin user access to create, delete and access resource category.', function () {
     this.timeout(60000);
 
     let projectIdSecondUser = '';
     let emailToBeInvited = '';
 
-    before(function(done) {
+    before(function (done) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (err, res) {
                 const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
-                VerificationTokenModel.findOne({ userId }, function(
-                    err,
+                VerificationTokenModel.findOne(
+                    { userId },
+                    function (
+                        err,
 
-                    verificationToken
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
-                            request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
+                        verificationToken
+                    ) {
+                        request
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function () {
+                                request
+                                    .post('/user/login')
+                                    .send({
+                                        email: userData.user.email,
+                                        password: userData.user.password,
+                                    })
 
-                                .end(function(err, res) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    request
+                                    .end(function (err, res) {
+                                        token = res.body.tokens.jwtAccessToken;
+                                        const authorization = `Basic ${token}`;
+                                        request
 
-                                        .post(`/resourceCategory/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(resourceCategory)
+                                            .post(
+                                                `/resourceCategory/${projectId}`
+                                            )
+                                            .set('Authorization', authorization)
+                                            .send(resourceCategory)
 
-                                        .end(function(err, res) {
-                                            resourceCategoryId = res.body._id;
-                                            createUser(
-                                                request,
-                                                userData.newUser,
+                                            .end(function (err, res) {
+                                                resourceCategoryId =
+                                                    res.body._id;
+                                                createUser(
+                                                    request,
+                                                    userData.newUser,
 
-                                                function(err, res) {
-                                                    projectIdSecondUser =
-                                                        res.body.project._id;
-                                                    emailToBeInvited =
-                                                        userData.newUser.email;
-                                                    userId = res.body.id;
-                                                    VerificationTokenModel.findOne(
-                                                        { userId },
-                                                        function(
-                                                            err,
+                                                    function (err, res) {
+                                                        projectIdSecondUser =
+                                                            res.body.project
+                                                                ._id;
+                                                        emailToBeInvited =
+                                                            userData.newUser
+                                                                .email;
+                                                        userId = res.body.id;
+                                                        VerificationTokenModel.findOne(
+                                                            { userId },
+                                                            function (
+                                                                err,
 
-                                                            verificationToken
-                                                        ) {
-                                                            request
-                                                                .get(
-                                                                    `/user/confirmation/${verificationToken.token}`
-                                                                )
-                                                                .redirects(0)
-                                                                .end(
-                                                                    function() {
-                                                                        request
-                                                                            .post(
-                                                                                `/team/${projectId}`
-                                                                            )
-                                                                            .set(
-                                                                                'Authorization',
-                                                                                authorization
-                                                                            )
-                                                                            .send(
-                                                                                {
-                                                                                    emails: emailToBeInvited,
-                                                                                    role:
-                                                                                        'Member',
-                                                                                }
-                                                                            )
-                                                                            .end(
-                                                                                function() {
-                                                                                    request
-                                                                                        .post(
-                                                                                            '/user/login'
-                                                                                        )
-                                                                                        .send(
-                                                                                            {
-                                                                                                email:
-                                                                                                    userData
+                                                                verificationToken
+                                                            ) {
+                                                                request
+                                                                    .get(
+                                                                        `/user/confirmation/${verificationToken.token}`
+                                                                    )
+                                                                    .redirects(
+                                                                        0
+                                                                    )
+                                                                    .end(
+                                                                        function () {
+                                                                            request
+                                                                                .post(
+                                                                                    `/team/${projectId}`
+                                                                                )
+                                                                                .set(
+                                                                                    'Authorization',
+                                                                                    authorization
+                                                                                )
+                                                                                .send(
+                                                                                    {
+                                                                                        emails: emailToBeInvited,
+                                                                                        role: 'Member',
+                                                                                    }
+                                                                                )
+                                                                                .end(
+                                                                                    function () {
+                                                                                        request
+                                                                                            .post(
+                                                                                                '/user/login'
+                                                                                            )
+                                                                                            .send(
+                                                                                                {
+                                                                                                    email: userData
                                                                                                         .newUser
                                                                                                         .email,
-                                                                                                password:
-                                                                                                    userData
-                                                                                                        .newUser
-                                                                                                        .password,
-                                                                                            }
-                                                                                        )
-                                                                                        .end(
-                                                                                            function(
-                                                                                                err,
+                                                                                                    password:
+                                                                                                        userData
+                                                                                                            .newUser
+                                                                                                            .password,
+                                                                                                }
+                                                                                            )
+                                                                                            .end(
+                                                                                                function (
+                                                                                                    err,
 
-                                                                                                res
-                                                                                            ) {
-                                                                                                token =
                                                                                                     res
-                                                                                                        .body
-                                                                                                        .tokens
-                                                                                                        .jwtAccessToken;
-                                                                                                done();
-                                                                                            }
-                                                                                        );
-                                                                                }
-                                                                            );
-                                                                    }
-                                                                );
-                                                        }
-                                                    );
-                                                }
-                                            );
-                                        });
-                                });
-                        });
-                });
+                                                                                                ) {
+                                                                                                    token =
+                                                                                                        res
+                                                                                                            .body
+                                                                                                            .tokens
+                                                                                                            .jwtAccessToken;
+                                                                                                    done();
+                                                                                                }
+                                                                                            );
+                                                                                    }
+                                                                                );
+                                                                        }
+                                                                    );
+                                                            }
+                                                        );
+                                                    }
+                                                );
+                                            });
+                                    });
+                            });
+                    }
+                );
             });
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -405,7 +424,7 @@ describe('Non-admin user access to create, delete and access resource category.'
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should not be able to create new resource category', function(done) {
+    it('should not be able to create new resource category', function (done) {
         const authorization = `Basic ${token}`;
         request
 
@@ -413,33 +432,33 @@ describe('Non-admin user access to create, delete and access resource category.'
             .set('Authorization', authorization)
             .send(resourceCategory)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not be able to delete a resource category', function(done) {
+    it('should not be able to delete a resource category', function (done) {
         const authorization = `Basic ${token}`;
         request
 
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
             .set('Authorization', authorization)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should be able to get all resource categories', function(done) {
+    it('should be able to get all resource categories', function (done) {
         const authorization = `Basic ${token}`;
         request
 
             .get(`/resourceCategory/${projectId}`)
             .set('Authorization', authorization)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -452,13 +471,13 @@ describe('Non-admin user access to create, delete and access resource category.'
     });
 });
 
-describe('Resource Category APIs accesible through API key', function() {
+describe('Resource Category APIs accesible through API key', function () {
     this.timeout(20000);
 
-    before(function(done) {
+    before(function (done) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(err, res) {
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(request, userData.user, function (err, res) {
                 const project = res.body.project;
                 projectId = project._id;
                 apiKey = project.apiKey;
@@ -467,7 +486,7 @@ describe('Resource Category APIs accesible through API key', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -484,7 +503,7 @@ describe('Resource Category APIs accesible through API key', function() {
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
     });
 
-    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', function(done) {
+    it('should create a new resource category when proper `resourceCategoryName` field is given by an authenticated user', function (done) {
         request
 
             .post(`/resourceCategory/${projectId}`)
@@ -492,7 +511,7 @@ describe('Resource Category APIs accesible through API key', function() {
             .set('apiKey', apiKey)
             .send(resourceCategory)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 resourceCategoryId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(
@@ -502,14 +521,14 @@ describe('Resource Category APIs accesible through API key', function() {
             });
     });
 
-    it('should get all monitor Categories for an authenticated user by ProjectId', function(done) {
+    it('should get all monitor Categories for an authenticated user by ProjectId', function (done) {
         request
 
             .get(`/resourceCategory/${projectId}`)
 
             .set('apiKey', apiKey)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -521,21 +540,21 @@ describe('Resource Category APIs accesible through API key', function() {
             });
     });
 
-    it('should delete a resource category when resourceCategoryId is valid', function(done) {
+    it('should delete a resource category when resourceCategoryId is valid', function (done) {
         request
 
             .delete(`/resourceCategory/${projectId}/${resourceCategoryId}`)
 
             .set('apiKey', apiKey)
 
-            .end(function(err, res) {
+            .end(function (err, res) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 });
 
-describe('Resource Category API - Check pagination for 12 resource categories', function() {
+describe('Resource Category API - Check pagination for 12 resource categories', function () {
     this.timeout(40000);
 
     const monitorCategories = [
@@ -553,7 +572,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         'testPagination12',
     ];
 
-    before(async function() {
+    before(async function () {
         this.timeout(60000);
         await GlobalConfig.initTestConfig();
         const checkCardData = await request.post('/stripe/checkCard').send({
@@ -609,7 +628,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         await Promise.all(createdMonitorCategories);
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
 
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -627,7 +646,7 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         await ResourceCategoryModel.deleteMany({ name: 'testPagination' });
     });
 
-    it('should get first 10 resource categories with data length 10, skip 0, limit 10 and count 12', async function() {
+    it('should get first 10 resource categories with data length 10, skip 0, limit 10 and count 12', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -639,20 +658,14 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         expect(res.body.data).to.be.an('array');
         expect(res.body.data).to.have.length(10);
         expect(res.body).to.have.property('count');
-        expect(res.body.count)
-            .to.be.an('number')
-            .to.be.equal(12);
+        expect(res.body.count).to.be.an('number').to.be.equal(12);
         expect(res.body).to.have.property('skip');
-        expect(parseInt(res.body.skip))
-            .to.be.an('number')
-            .to.be.equal(0);
+        expect(parseInt(res.body.skip)).to.be.an('number').to.be.equal(0);
         expect(res.body).to.have.property('limit');
-        expect(parseInt(res.body.limit))
-            .to.be.an('number')
-            .to.be.equal(10);
+        expect(parseInt(res.body.limit)).to.be.an('number').to.be.equal(10);
     });
 
-    it('should get 2 last resource categories with data length 2, skip 10, limit 10 and count 12', async function() {
+    it('should get 2 last resource categories with data length 2, skip 10, limit 10 and count 12', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -664,20 +677,14 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         expect(res.body.data).to.be.an('array');
         expect(res.body.data).to.have.length(2);
         expect(res.body).to.have.property('count');
-        expect(res.body.count)
-            .to.be.an('number')
-            .to.be.equal(12);
+        expect(res.body.count).to.be.an('number').to.be.equal(12);
         expect(res.body).to.have.property('skip');
-        expect(parseInt(res.body.skip))
-            .to.be.an('number')
-            .to.be.equal(10);
+        expect(parseInt(res.body.skip)).to.be.an('number').to.be.equal(10);
         expect(res.body).to.have.property('limit');
-        expect(parseInt(res.body.limit))
-            .to.be.an('number')
-            .to.be.equal(10);
+        expect(parseInt(res.body.limit)).to.be.an('number').to.be.equal(10);
     });
 
-    it('should get 0 resource categories with data length 0, skip 20, limit 10 and count 12', async function() {
+    it('should get 0 resource categories with data length 0, skip 20, limit 10 and count 12', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -689,16 +696,10 @@ describe('Resource Category API - Check pagination for 12 resource categories', 
         expect(res.body.data).to.be.an('array');
         expect(res.body.data).to.have.length(0);
         expect(res.body).to.have.property('count');
-        expect(res.body.count)
-            .to.be.an('number')
-            .to.be.equal(12);
+        expect(res.body.count).to.be.an('number').to.be.equal(12);
         expect(res.body).to.have.property('skip');
-        expect(parseInt(res.body.skip))
-            .to.be.an('number')
-            .to.be.equal(20);
+        expect(parseInt(res.body.skip)).to.be.an('number').to.be.equal(20);
         expect(res.body).to.have.property('limit');
-        expect(parseInt(res.body.limit))
-            .to.be.an('number')
-            .to.be.equal(10);
+        expect(parseInt(res.body.limit)).to.be.an('number').to.be.equal(10);
     });
 });

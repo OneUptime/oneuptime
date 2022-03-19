@@ -21,46 +21,53 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 let cardId: $TSFixMe, authorization: $TSFixMe;
 
-describe('Stripe payment API', function() {
+describe('Stripe payment API', function () {
     this.timeout(50000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    authorization = `Basic ${token}`;
-                                    done();
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
+                                            err: $TSFixMe,
+                                            res: Response
+                                        ) {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            authorization = `Basic ${token}`;
+                                            done();
+                                        });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -75,11 +82,11 @@ describe('Stripe payment API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should sign up and a transaction of 1 $ should be made', function(done: $TSFixMe) {
+    it('should sign up and a transaction of 1 $ should be made', function (done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/charges`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -93,11 +100,11 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should return payment intent when valid details are passed ', function(done: $TSFixMe) {
+    it('should return payment intent when valid details are passed ', function (done: $TSFixMe) {
         request
             .post(`/stripe/${userId}/creditCard/${'tok_amex'}/pi`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 cardId = res.body.source;
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
@@ -109,11 +116,11 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should return 2 cards attached to customer', function(done: $TSFixMe) {
+    it('should return 2 cards attached to customer', function (done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -122,11 +129,11 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should update default card for customer', function(done: $TSFixMe) {
+    it('should update default card for customer', function (done: $TSFixMe) {
         request
             .put(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('default_source');
@@ -135,11 +142,11 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should return 2 cards attached to customer', function(done: $TSFixMe) {
+    it('should return 2 cards attached to customer', function (done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -148,11 +155,11 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should fetch a single card', function(done: $TSFixMe) {
+    it('should fetch a single card', function (done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('id');
@@ -163,11 +170,11 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should delete a card', function(done: $TSFixMe) {
+    it('should delete a card', function (done: $TSFixMe) {
         request
             .delete(`/stripe/${userId}/creditCard/${cardId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('id');
@@ -176,16 +183,16 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should not delete a single left card', function(done: $TSFixMe) {
+    it('should not delete a single left card', function (done: $TSFixMe) {
         request
             .get(`/stripe/${userId}/creditCard`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 cardId = res.body.data[0].id;
                 request
                     .delete(`/stripe/${userId}/creditCard/${cardId}`)
                     .set('Authorization', authorization)
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(403);
                         expect(res.body.message).to.be.equal(
                             'Cannot delete the only card'
@@ -195,11 +202,11 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should not create a payment intent when token(generated from client) is invalid', function(done: $TSFixMe) {
+    it('should not create a payment intent when token(generated from client) is invalid', function (done: $TSFixMe) {
         request
             .post(`/stripe/${userId}/creditCard/${'tok_invalid'}/pi`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "No such token: 'tok_invalid'"
@@ -208,14 +215,14 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should not add balance to customer accounts if rechargeBalanceAmount is not a valid integer', function(done: $TSFixMe) {
+    it('should not add balance to customer accounts if rechargeBalanceAmount is not a valid integer', function (done: $TSFixMe) {
         request
             .post(`/stripe/${projectId}/addBalance`)
             .set('Authorization', authorization)
             .send({
                 rechargeBalanceAmount: '43_',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Amount should be present and it should be a valid number.'
@@ -224,14 +231,14 @@ describe('Stripe payment API', function() {
             });
     });
 
-    it('should return payment intent if rechargeBalanceAmount is a valid integer', function(done: $TSFixMe) {
+    it('should return payment intent if rechargeBalanceAmount is a valid integer', function (done: $TSFixMe) {
         request
             .post(`/stripe/${projectId}/addBalance`)
             .set('Authorization', authorization)
             .send({
                 rechargeBalanceAmount: '100',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('id');
                 expect(res.body).to.have.property('client_secret');

@@ -22,7 +22,7 @@ const {
 
 import { Client } from 'ssh2';
 export default {
-    scan: async function(security) {
+    scan: async function (security) {
         if (
             security.gitCredential.gitUsername &&
             security.gitCredential.gitPassword
@@ -38,7 +38,7 @@ export default {
         }
     },
 
-    decryptPassword: async function(security) {
+    decryptPassword: async function (security) {
         try {
             const values = [];
             for (let i = 0; i <= 15; i++) {
@@ -181,14 +181,15 @@ export default {
                                         advisories,
                                     };
 
-                                    const resolvedLog = await updateApplicationSecurityLogService(
-                                        {
-                                            securityId: security._id,
-                                            componentId:
-                                                security.componentId._id,
-                                            data: auditData,
-                                        }
-                                    );
+                                    const resolvedLog =
+                                        await updateApplicationSecurityLogService(
+                                            {
+                                                securityId: security._id,
+                                                componentId:
+                                                    security.componentId._id,
+                                                data: auditData,
+                                            }
+                                        );
                                     await updateApplicationSecurityScanTime({
                                         _id: security._id,
                                     });
@@ -329,13 +330,12 @@ export default {
                                     advisories,
                                 };
 
-                                const resolvedLog = await updateApplicationSecurityLogService(
-                                    {
+                                const resolvedLog =
+                                    await updateApplicationSecurityLogService({
                                         securityId: security._id,
                                         componentId: security.componentId._id,
                                         data: auditData,
-                                    }
-                                );
+                                    });
                                 await updateApplicationSecurityScanTime({
                                     _id: security._id,
                                 });

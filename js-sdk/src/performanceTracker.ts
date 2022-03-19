@@ -75,7 +75,7 @@ class PerformanceTracker {
         const load = Module._load;
         const _this = this;
 
-        Module._load = function(request: $TSFixMe) {
+        Module._load = function (request: $TSFixMe) {
             const res = load.apply(this, arguments);
             if (request === 'mongoose') {
                 const mongo = new MongooseListener(_this.start, _this.end);

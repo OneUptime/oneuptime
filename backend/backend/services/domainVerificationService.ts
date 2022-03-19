@@ -12,7 +12,7 @@ import handlePopulate from '../utils/populate';
 import errorService from 'common-server/utils/error';
 
 export default {
-    create: async function({ domain, projectId }: $TSFixMe) {
+    create: async function ({ domain, projectId }: $TSFixMe) {
         const parsed = psl.parse(domain);
         const token = 'oneuptime=' + randomChar();
 
@@ -42,7 +42,7 @@ export default {
 
         return await DomainVerificationTokenModel.create(creationData);
     },
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -61,7 +61,13 @@ export default {
         const domain = await domainQuery;
         return domain;
     },
-    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -107,7 +113,7 @@ export default {
         const domains = await domainsQuery;
         return domains;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (query && query.domain) {
             const parsed = psl.parse(query.domain);
             query.domain = parsed.domain;
@@ -118,17 +124,14 @@ export default {
         }
         if (!query.deleted) query.deleted = false;
 
-        const updatedDomain = await DomainVerificationTokenModel.findOneAndUpdate(
-            query,
-            data,
-            {
+        const updatedDomain =
+            await DomainVerificationTokenModel.findOneAndUpdate(query, data, {
                 new: true,
-            }
-        );
+            });
 
         return updatedDomain;
     },
-    resetDomain: async function(domain: $TSFixMe) {
+    resetDomain: async function (domain: $TSFixMe) {
         const _this = this;
         const updateObj = {
             verificationToken: 'oneuptime=' + randomChar(),
@@ -141,7 +144,7 @@ export default {
         );
         return updatedDomain;
     },
-    doesTxtRecordExist: async function(
+    doesTxtRecordExist: async function (
         subDomain: $TSFixMe,
         verificationToken: $TSFixMe
     ) {
@@ -195,7 +198,7 @@ export default {
             throw error;
         }
     },
-    doesDomainBelongToProject: async function(
+    doesDomainBelongToProject: async function (
         projectId: $TSFixMe,
         subDomain: $TSFixMe
     ) {
@@ -258,11 +261,11 @@ export default {
 
         return false;
     },
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await DomainVerificationTokenModel.deleteMany(query);
         return 'Domain verification token(s) Removed Successfully!';
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         const domainCount = await this.countBy(query);
 
         if (!domainCount || domainCount === 0) {
@@ -313,7 +316,7 @@ export default {
 
         return domain;
     },
-    findDomain: async function(domainId: $TSFixMe, projectArr = []) {
+    findDomain: async function (domainId: $TSFixMe, projectArr = []) {
         const _this = this;
         let projectId;
         for (const pId of projectArr) {
@@ -330,7 +333,7 @@ export default {
         return projectId;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }

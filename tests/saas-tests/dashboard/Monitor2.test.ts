@@ -60,10 +60,10 @@ describe('Monitor API', () => {
             `#lighthouse-performance-${monitorName}`,
             { visible: true, timeout: 600000 }
         );
-        lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
-            'innerText'
-        );
-        lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
+        lighthousePerformanceElement =
+            await lighthousePerformanceElement.getProperty('innerText');
+        lighthousePerformanceElement =
+            await lighthousePerformanceElement.jsonValue();
         lighthousePerformanceElement.should.endWith('%');
 
         let lighthouseAccessibilityElement = await init.pageWaitForSelector(
@@ -71,10 +71,10 @@ describe('Monitor API', () => {
             `#lighthouse-accessibility-${monitorName}`,
             { visible: true, timeout: operationTimeOut }
         );
-        lighthouseAccessibilityElement = await lighthouseAccessibilityElement.getProperty(
-            'innerText'
-        );
-        lighthouseAccessibilityElement = await lighthouseAccessibilityElement.jsonValue();
+        lighthouseAccessibilityElement =
+            await lighthouseAccessibilityElement.getProperty('innerText');
+        lighthouseAccessibilityElement =
+            await lighthouseAccessibilityElement.jsonValue();
         lighthouseAccessibilityElement.should.endWith('%');
 
         let lighthouseBestPracticesElement = await init.pageWaitForSelector(
@@ -82,10 +82,10 @@ describe('Monitor API', () => {
             `#lighthouse-bestPractices-${monitorName}`,
             { visible: true, timeout: operationTimeOut }
         );
-        lighthouseBestPracticesElement = await lighthouseBestPracticesElement.getProperty(
-            'innerText'
-        );
-        lighthouseBestPracticesElement = await lighthouseBestPracticesElement.jsonValue();
+        lighthouseBestPracticesElement =
+            await lighthouseBestPracticesElement.getProperty('innerText');
+        lighthouseBestPracticesElement =
+            await lighthouseBestPracticesElement.jsonValue();
         lighthouseBestPracticesElement.should.endWith('%');
 
         let lighthouseSeoElement = await init.pageWaitForSelector(

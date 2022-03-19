@@ -31,7 +31,7 @@ router.post(
     '/:projectId/:componentId/create',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const { componentId } = req.params;
@@ -79,39 +79,41 @@ router.post(
 );
 
 // Description: Get all Performance tracker by componentId.
-router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { componentId } = req.params;
-        const { limit, skip } = req.query;
-        if (!componentId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "Component ID can't be null",
-            });
+router.get(
+    '/:projectId/:componentId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { componentId } = req.params;
+            const { limit, skip } = req.query;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Component ID can't be null",
+                });
+            }
+            const [performanceTracker, count] = await Promise.all([
+                PerformanceTrackerService.getPerformanceTrackerByComponentId(
+                    componentId,
+                    limit || 0,
+                    skip || 0
+                ),
+                PerformanceTrackerService.countBy({ componentId }),
+            ]);
+            return sendListResponse(req, res, performanceTracker, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        const [performanceTracker, count] = await Promise.all([
-            PerformanceTrackerService.getPerformanceTrackerByComponentId(
-                componentId,
-                limit || 0,
-                skip || 0
-            ),
-            PerformanceTrackerService.countBy({ componentId }),
-        ]);
-        return sendListResponse(req, res, performanceTracker, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // GET a particular performance tracker by the id/slug
 router.get(
     '/:projectId/tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { performanceTrackerId } = req.params;
         const { slug } = req.query;
         try {
@@ -159,7 +161,7 @@ router.delete(
     '/:projectId/tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { performanceTrackerId } = req.params;
         try {
             const performanceTracker = await PerformanceTrackerService.deleteBy(
@@ -189,7 +191,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { performanceTrackerId } = req.params;
 
         const select = 'componentId name slug key showQuickStart createdById';
@@ -201,13 +203,12 @@ router.put(
                 populate: { path: 'projectId', select: 'name slug' },
             },
         ];
-        const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
-            {
+        const currentPerformanceTracker =
+            await PerformanceTrackerService.findOneBy({
                 query: { _id: performanceTrackerId },
                 select,
                 populate,
-            }
-        );
+            });
         if (!currentPerformanceTracker) {
             return sendErrorResponse(req, res, {
                 code: 404,
@@ -220,10 +221,11 @@ router.put(
         };
 
         try {
-            const performanceTracker = await PerformanceTrackerService.updateOneBy(
-                { _id: currentPerformanceTracker._id },
-                data
-            );
+            const performanceTracker =
+                await PerformanceTrackerService.updateOneBy(
+                    { _id: currentPerformanceTracker._id },
+                    data
+                );
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -236,15 +238,14 @@ router.put(
     '/:projectId/remove-quickstart/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { performanceTrackerId } = req.params;
 
-        const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
-            {
+        const currentPerformanceTracker =
+            await PerformanceTrackerService.findOneBy({
                 query: { _id: performanceTrackerId },
                 select: '_id',
-            }
-        );
+            });
         if (!currentPerformanceTracker) {
             return sendErrorResponse(req, res, {
                 code: 404,
@@ -257,10 +258,11 @@ router.put(
         };
 
         try {
-            const performanceTracker = await PerformanceTrackerService.updateOneBy(
-                { _id: currentPerformanceTracker._id },
-                data
-            );
+            const performanceTracker =
+                await PerformanceTrackerService.updateOneBy(
+                    { _id: currentPerformanceTracker._id },
+                    data
+                );
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -274,7 +276,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { performanceTrackerId, componentId } = req.params;
         const data = req.body;
 
@@ -292,12 +294,11 @@ router.put(
             });
         }
 
-        const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
-            {
+        const currentPerformanceTracker =
+            await PerformanceTrackerService.findOneBy({
                 query: { _id: performanceTrackerId },
                 select: '_id',
-            }
-        );
+            });
         if (!currentPerformanceTracker) {
             return sendErrorResponse(req, res, {
                 code: 404,
@@ -306,12 +307,11 @@ router.put(
         }
 
         // try to find in the performance tracker if the name already exist for that component
-        const existingPerformanceTracker = await PerformanceTrackerService.findBy(
-            {
+        const existingPerformanceTracker =
+            await PerformanceTrackerService.findBy({
                 query: { name: data.name, componentId: { $ne: componentId } },
                 select: '_id',
-            }
-        );
+            });
 
         if (
             existingPerformanceTracker &&
@@ -333,10 +333,11 @@ router.put(
         }
 
         try {
-            const performanceTracker = await PerformanceTrackerService.updateOneBy(
-                { _id: currentPerformanceTracker._id },
-                performanceTrackerData
-            );
+            const performanceTracker =
+                await PerformanceTrackerService.updateOneBy(
+                    { _id: currentPerformanceTracker._id },
+                    performanceTrackerData
+                );
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);

@@ -10,17 +10,17 @@ import { change, autofill } from 'redux-form';
 //Monitor list
 //props -> {name: '', type, data -> { data.url}}
 export function fetchMonitors(projectId: $TSFixMe, skip = 0, limit = 0) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `monitor/${projectId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchMonitorsRequest());
 
         promise.then(
-            function(monitors) {
+            function (monitors) {
                 dispatch(fetchMonitorsSuccess(monitors.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -75,7 +75,7 @@ export function fetchPaginatedMonitors({
     componentId,
     paginate = false,
 }: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let url = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentId=${componentId}`;
         if (componentSlug) {
             url = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentSlug=${componentSlug}`;
@@ -84,10 +84,10 @@ export function fetchPaginatedMonitors({
         dispatch(fetchPaginatedMonitorsRequest(paginate));
 
         promise.then(
-            function(monitors) {
+            function (monitors) {
                 dispatch(fetchPaginatedMonitorsSuccess(monitors.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -131,17 +131,17 @@ export function fetchPaginatedMonitorsFailure(error: $TSFixMe) {
 //props -> {name: '', type, data -> { data.url}}
 export function createMonitor(projectId: $TSFixMe, values: $TSFixMe) {
     values.projectId = values.projectId._id || values.projectId;
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(createMonitorRequest());
         const promise = postApi(`monitor/${projectId}`, values);
         promise.then(
-            function(monitor) {
+            function (monitor) {
                 dispatch(createMonitorSuccess(monitor.data));
                 dispatch(resetFile());
 
                 return monitor.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -162,7 +162,7 @@ export function createMonitor(projectId: $TSFixMe, values: $TSFixMe) {
 }
 
 export function uploadIdentityFile(projectId: $TSFixMe, file: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const data = new FormData();
         if (file) {
             data.append('identityFile', file);
@@ -170,12 +170,12 @@ export function uploadIdentityFile(projectId: $TSFixMe, file: $TSFixMe) {
             const promise = postApi(`monitor/${projectId}/identityFile`, data);
             dispatch(uploadIdentityFileRequest());
             promise.then(
-                function(response) {
+                function (response) {
                     const data = response.data;
                     dispatch(logFile(data.identityFile));
                     return data;
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -202,13 +202,13 @@ export function uploadIdentityFileRequest() {
 }
 
 export function logFile(file: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({ type: types.UPLOAD_IDENTITY_FILE_SUCCESS, payload: file });
     };
 }
 
 export function resetFile() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({ type: types.RESET_UPLOAD_IDENTITY_FILE });
     };
 }
@@ -242,7 +242,7 @@ export function setConfigInputKey(value: $TSFixMe) {
 }
 
 export function uploadConfigurationFile(projectId: $TSFixMe, file: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const data = new FormData();
         if (file) {
             data.append('configurationFile', file);
@@ -253,12 +253,12 @@ export function uploadConfigurationFile(projectId: $TSFixMe, file: $TSFixMe) {
             );
             dispatch(uploadConfigurationFileRequest());
             promise.then(
-                function(response) {
+                function (response) {
                     const data = response.data;
                     dispatch(logConfigFile(data.configurationFile));
                     return data;
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -322,7 +322,7 @@ export function resetCreateMonitor() {
 //props -> {name: '', type, data -> { data.url}}
 export function editMonitor(projectId: $TSFixMe, values: $TSFixMe) {
     values.projectId = values.projectId._id || values.projectId || projectId;
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`monitor/${projectId}/${values._id}`, values);
         if (
             !values.lighthouseScanStatus ||
@@ -332,10 +332,10 @@ export function editMonitor(projectId: $TSFixMe, values: $TSFixMe) {
             dispatch(editMonitorRequest());
         }
         promise.then(
-            function(monitor) {
+            function (monitor) {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -398,17 +398,17 @@ export function addSiteUrl(
     projectId: $TSFixMe,
     siteUrl: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
             siteUrl,
         });
         dispatch(editMonitorRequest());
 
         promise.then(
-            function(monitor) {
+            function (monitor) {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -433,17 +433,17 @@ export function deleteSiteUrl(
     projectId: $TSFixMe,
     siteUrl: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
             siteUrl,
         });
         dispatch(editMonitorRequest());
 
         promise.then(
-            function(monitor) {
+            function (monitor) {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -466,15 +466,15 @@ export function deleteSiteUrl(
 //Delete a monitor
 //props -> {name: '', type, data -> { data.url}}
 export function deleteMonitor(monitorId: $TSFixMe, projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`monitor/${projectId}/${monitorId}`);
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(
-            function(monitor) {
+            function (monitor) {
                 dispatch(deleteMonitorSuccess(monitor.data._id));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -525,7 +525,7 @@ export function deleteProjectMonitors(projectId: $TSFixMe) {
 
 //Disable a monitor
 export function disableMonitor(monitorId: $TSFixMe, projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `monitor/${projectId}/disableMonitor/${monitorId}`,
             {
@@ -535,7 +535,7 @@ export function disableMonitor(monitorId: $TSFixMe, projectId: $TSFixMe) {
         dispatch(disableMonitorRequest(monitorId));
 
         promise.then(
-            function(monitor) {
+            function (monitor) {
                 dispatch(
                     disableMonitorSuccess({
                         monitorId: monitor.data._id,
@@ -544,7 +544,7 @@ export function disableMonitor(monitorId: $TSFixMe, projectId: $TSFixMe) {
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -665,7 +665,7 @@ export function fetchMonitorsIncidents(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`incident/${projectId}/monitor/${monitorId}`, {
             limit,
             skip,
@@ -673,7 +673,7 @@ export function fetchMonitorsIncidents(
         dispatch(fetchMonitorsIncidentsRequest(monitorId));
 
         promise.then(
-            function(monitors) {
+            function (monitors) {
                 dispatch(
                     fetchMonitorsIncidentsSuccess({
                         projectId,
@@ -687,7 +687,7 @@ export function fetchMonitorsIncidents(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -734,14 +734,14 @@ export function fetchMonitorsSubscribers(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `subscriber/${projectId}/monitor/${monitorId}?limit=${limit}&skip=${skip}`
         );
         dispatch(fetchMonitorsSubscribersRequest(monitorId));
 
         promise.then(
-            function(subscribers) {
+            function (subscribers) {
                 dispatch(
                     fetchMonitorsSubscribersSuccess({
                         projectId,
@@ -755,7 +755,7 @@ export function fetchMonitorsSubscribers(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -802,7 +802,7 @@ export function fetchMonitorLogs(
     startDate: $TSFixMe,
     endDate: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `monitor/${projectId}/monitorLog/${monitorId}`,
             { startDate, endDate }
@@ -811,7 +811,7 @@ export function fetchMonitorLogs(
         dispatch(updateDateRange(startDate, endDate));
 
         promise.then(
-            function(monitorLogs) {
+            function (monitorLogs) {
                 dispatch(
                     fetchMonitorLogsSuccess({
                         projectId,
@@ -821,7 +821,7 @@ export function fetchMonitorLogs(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -876,7 +876,7 @@ export function fetchMonitorStatuses(
     startDate: $TSFixMe,
     endDate: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `monitor/${projectId}/monitorStatuses/${monitorId}`,
             { startDate, endDate }
@@ -884,7 +884,7 @@ export function fetchMonitorStatuses(
         dispatch(fetchMonitorStatusesRequest());
 
         promise.then(
-            function(monitorStatuses) {
+            function (monitorStatuses) {
                 dispatch(
                     fetchMonitorStatusesSuccess({
                         projectId,
@@ -894,7 +894,7 @@ export function fetchMonitorStatuses(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -936,15 +936,15 @@ export function fetchMonitorStatusesFailure(error: $TSFixMe) {
 
 // Fetch Monitor Criteria
 export function fetchMonitorCriteria() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi('monitorCriteria');
         dispatch(fetchMonitorCriteriaRequest());
 
         promise.then(
-            function(monitorCriteria) {
+            function (monitorCriteria) {
                 dispatch(fetchMonitorCriteriaSuccess(monitorCriteria));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -993,7 +993,7 @@ export function setMonitorCriteria(
     incidentCommunicationSla: $TSFixMe,
     monitorType: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({
             type: types.SET_MONITOR_CRITERIA,
             payload: {
@@ -1021,7 +1021,7 @@ export function getMonitorLogs(
     incidentId: $TSFixMe,
     type: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `monitor/${projectId}/monitorLogs/${monitorId}`,
             {
@@ -1037,7 +1037,7 @@ export function getMonitorLogs(
         dispatch(getMonitorLogsRequest({ monitorId }));
 
         promise.then(
-            function(monitors) {
+            function (monitors) {
                 dispatch(
                     getMonitorLogsSuccess({
                         monitorId,
@@ -1050,7 +1050,7 @@ export function getMonitorLogs(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1099,7 +1099,7 @@ export function fetchLighthouseLogs(
     limit: $TSFixMe,
     url: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             url
                 ? `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}&url=${url}`
@@ -1108,7 +1108,7 @@ export function fetchLighthouseLogs(
         dispatch(fetchLighthouseLogsRequest());
 
         promise.then(
-            function(lighthouseLogs) {
+            function (lighthouseLogs) {
                 dispatch(
                     fetchLighthouseLogsSuccess({
                         projectId,
@@ -1122,7 +1122,7 @@ export function fetchLighthouseLogs(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1163,17 +1163,17 @@ export function fetchLighthouseLogsFailure(error: $TSFixMe) {
 
 // Fetch Monitor Issue list
 export function fetchMonitorIssue(projectId: $TSFixMe, issueId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `monitor/${projectId}/lighthouseIssue/${issueId}`
         );
         dispatch(fetchMonitorIssueRequest());
 
         promise.then(
-            function(monitorIssue) {
+            function (monitorIssue) {
                 dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1213,17 +1213,17 @@ export function fetchMonitorIssueFailure(error: $TSFixMe) {
 }
 
 export function addSeat(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`monitor/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
 
         promise.then(
-            function(monitor) {
+            function (monitor) {
                 dispatch(createMonitorFailure(monitor.data));
 
                 dispatch(addSeatSuccess(monitor.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -1270,14 +1270,14 @@ export function addSeatReset() {
 }
 
 export function addArrayField(val: $TSFixMe, insert: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(change('NewMonitor', `${val}.field3`, true));
         dispatch(change('NewMonitor', `${val}.criteria`, insert));
     };
 }
 
 export function removeArrayField(val: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(change('NewMonitor', `${val}.field3`, false));
         dispatch(autofill('NewMonitor', `${val}.criteria`, undefined));
     };
@@ -1289,17 +1289,17 @@ export function updateCriteriaField(
     noCriteria: $TSFixMe
 ) {
     if (noCriteria) {
-        return function(dispatch: $TSFixMe) {
+        return function (dispatch: $TSFixMe) {
             dispatch(change('NewMonitor', field, val));
         };
     }
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(change('NewMonitor', `${field}.criteria`, val));
     };
 }
 
 export function selectedProbe(val: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({
             type: types.SELECT_PROBE,
             payload: val,
@@ -1321,30 +1321,29 @@ export const closeBreachedMonitorSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const closeBreachedMonitorSla = (
-    projectId: $TSFixMe,
-    monitorId: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(closeBreachedMonitorSlaRequest());
+export const closeBreachedMonitorSla =
+    (projectId: $TSFixMe, monitorId: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(closeBreachedMonitorSlaRequest());
 
-        const response = await postApi(
-            `monitor/${projectId}/closeSla/${monitorId}`
-        );
+            const response = await postApi(
+                `monitor/${projectId}/closeSla/${monitorId}`
+            );
 
-        dispatch(closeBreachedMonitorSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(closeBreachedMonitorSlaFailure(errorMsg));
-    }
-};
+            dispatch(closeBreachedMonitorSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(closeBreachedMonitorSlaFailure(errorMsg));
+        }
+    };
 
 export const fetchBreachedMonitorSlaRequest = () => ({
     type: types.FETCH_BREACHED_MONITOR_SLA_REQUEST,
@@ -1360,26 +1359,25 @@ export const fetchBreachedMonitorSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchBreachedMonitorSla = (projectId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    try {
-        dispatch(fetchBreachedMonitorSlaRequest());
+export const fetchBreachedMonitorSla =
+    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(fetchBreachedMonitorSlaRequest());
 
-        const response = await getApi(
-            `monitor/${projectId}/monitorSlaBreaches`
-        );
+            const response = await getApi(
+                `monitor/${projectId}/monitorSlaBreaches`
+            );
 
-        dispatch(fetchBreachedMonitorSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(fetchBreachedMonitorSlaFailure(errorMsg));
-    }
-};
+            dispatch(fetchBreachedMonitorSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchBreachedMonitorSlaFailure(errorMsg));
+        }
+    };

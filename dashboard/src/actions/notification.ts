@@ -4,13 +4,13 @@ import errors from '../errors';
 
 import { User } from '../config';
 
-export const openNotificationMenu = function(position: $TSFixMe) {
+export const openNotificationMenu = function (position: $TSFixMe) {
     return {
         type: types.OPEN_NOTIFICATION_MENU,
         payload: position,
     };
 };
-export const closeNotificationMenu = function(error: $TSFixMe) {
+export const closeNotificationMenu = function (error: $TSFixMe) {
     return {
         type: types.CLOSE_NOTIFICATION_MENU,
         payload: error,
@@ -67,7 +67,7 @@ export function allNotificationReadSuccess(userId: $TSFixMe) {
 
 // Calls the API to get all notifications.
 export function fetchNotifications(projectId: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         try {
             const notifications = await getApi(`notification/${projectId}`);
 
@@ -93,7 +93,7 @@ export function fetchNotifications(projectId: $TSFixMe) {
 }
 
 export function markAsRead(projectId: $TSFixMe, notificationIds: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         try {
             const userId = User.getUserId();
             notificationIds = notificationIds.map(
@@ -137,7 +137,7 @@ export function closeNotification(
     projectId: $TSFixMe,
     notificationId: $TSFixMe
 ) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         try {
             const userId = User.getUserId();
 
@@ -168,7 +168,7 @@ export function closeNotification(
 }
 
 export function markAllAsRead(projectId: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         try {
             const userId = User.getUserId();
 
@@ -198,7 +198,7 @@ export function billingActionTaken(
     notificationId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         try {
             const notification = putApi(
                 `notification/${projectId}/${notificationId}`,

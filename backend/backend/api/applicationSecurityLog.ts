@@ -31,8 +31,7 @@ router.get(
                 { path: 'componentId', select: '_id slug name slug' },
                 {
                     path: 'securityId',
-                    select:
-                        '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                    select: '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
                 },
             ];
 
@@ -67,8 +66,7 @@ router.get(
                 { path: 'componentId', select: '_id slug name slug' },
                 {
                     path: 'securityId',
-                    select:
-                        '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                    select: '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
                 },
             ];
 
@@ -102,8 +100,7 @@ router.get(
                 { path: 'componentId', select: '_id slug name slug' },
                 {
                     path: 'securityId',
-                    select:
-                        '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                    select: '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
                 },
             ];
 

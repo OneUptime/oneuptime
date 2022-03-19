@@ -90,32 +90,32 @@ class BaseAction {
 
         const actions = {};
 
-        actions[this.actionKeys.request] = function() {
+        actions[this.actionKeys.request] = function () {
             return {
                 type: constants[this.constantKeys.request],
             };
         };
 
-        actions[this.actionKeys.success] = function(data: $TSFixMe) {
+        actions[this.actionKeys.success] = function (data: $TSFixMe) {
             return {
                 type: constants[this.constantKeys.success],
                 payload: data,
             };
         };
 
-        actions[this.actionKeys.failure] = function(error: $TSFixMe) {
+        actions[this.actionKeys.failure] = function (error: $TSFixMe) {
             return {
                 type: constants[this.constantKeys.failure],
                 payload: error,
             };
         };
 
-        actions[this.actionKeys.apiCall] = async function(data: $TSFixMe) {
+        actions[this.actionKeys.apiCall] = async function (data: $TSFixMe) {
             if (this.isRequestAllowed) {
                 throw 'This request is not allowed';
             }
 
-            return async function(this: $TSFixMe, dispatch: $TSFixMe) {
+            return async function (this: $TSFixMe, dispatch: $TSFixMe) {
                 let path = `${this.apiName}`;
 
                 if (this.isResourceInProject) {

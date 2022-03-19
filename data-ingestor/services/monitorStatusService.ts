@@ -12,7 +12,7 @@ import { realtimeUrl } from '../utils/config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         try {
             const query = {};
 
@@ -84,7 +84,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -107,7 +107,7 @@ export default {
         }
     },
 
-    findOneBy: async function(query: $TSFixMe) {
+    findOneBy: async function (query: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -127,7 +127,7 @@ export default {
         }
     },
 
-    findBy: async function({ query, limit, skip }: $TSFixMe) {
+    findBy: async function ({ query, limit, skip }: $TSFixMe) {
         try {
             if (!skip) skip = 0;
 

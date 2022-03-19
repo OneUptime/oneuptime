@@ -11,7 +11,7 @@ class MongooseListener {
 
     wrapAsync(orig, name) {
         const _this = this;
-        return async function() {
+        return async function () {
             const uuid = uuidv4();
 
             const operation = this.op;

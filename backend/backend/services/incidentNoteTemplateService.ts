@@ -1,7 +1,7 @@
 import IncidentNoteTemplateModel from '../models/incidentNoteTemplate';
 
 export default {
-    findBy: async function({ query = {}, limit, skip }: $TSFixMe) {
+    findBy: async function ({ query = {}, limit, skip }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -18,12 +18,12 @@ export default {
             .limit(limit)
             .skip(skip);
     },
-    countBy: async function(query = {}) {
+    countBy: async function (query = {}) {
         if (!query.deleted) query.deleted = false;
 
         return await IncidentNoteTemplateModel.countDocuments(query);
     },
-    findOneBy: async function(query = {}) {
+    findOneBy: async function (query = {}) {
         if (!query.deleted) query.deleted = false;
 
         const incidentNoteTemplate = await IncidentNoteTemplateModel.findOne(
@@ -31,7 +31,7 @@ export default {
         ).lean();
         return incidentNoteTemplate;
     },
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const { projectId, name } = data;
         let incidentNoteTemplate = await this.findOneBy({
             projectId,
@@ -49,7 +49,7 @@ export default {
         incidentNoteTemplate = await IncidentNoteTemplateModel.create(data);
         return incidentNoteTemplate;
     },
-    updateOneBy: async function({ query = {}, data }: $TSFixMe) {
+    updateOneBy: async function ({ query = {}, data }: $TSFixMe) {
         if (!query.deleted) query.deleted = false;
 
         const { projectId, _id } = query;
@@ -77,7 +77,7 @@ export default {
         );
         return incidentNoteTemplate;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         if (!query) return null;
 
         const data = {
@@ -87,7 +87,7 @@ export default {
 
         return await this.updateOneBy({ query, data });
     },
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         if (!query) return null;
 
         await IncidentNoteTemplateModel.deleteMany(query);

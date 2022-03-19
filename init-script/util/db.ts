@@ -17,11 +17,7 @@ async function find(collection: $TSFixMe, query = {}, sort = null, limit = 0) {
             .toArray();
     }
 
-    return global.db
-        .collection(collection)
-        .find(query)
-        .limit(limit)
-        .toArray();
+    return global.db.collection(collection).find(query).limit(limit).toArray();
 }
 
 async function findOne(collection: $TSFixMe, query = {}) {
@@ -80,7 +76,7 @@ async function rename(
 ) {
     return global.db
         .listCollections({ name: oldCollectionName })
-        .next(function(err: $TSFixMe, collinfo: $TSFixMe) {
+        .next(function (err: $TSFixMe, collinfo: $TSFixMe) {
             if (collinfo) {
                 // The collection exists
 

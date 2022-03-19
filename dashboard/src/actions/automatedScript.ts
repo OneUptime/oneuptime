@@ -30,18 +30,18 @@ export function createAutomatedScriptFailure(error: $TSFixMe) {
 }
 
 export function createAutomatedScript(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`automated-scripts/${projectId}`, data);
 
         dispatch(createAutomatedScriptRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(createAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -88,7 +88,7 @@ export function updateAutomatedScript(
     automatedScriptId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `automated-scripts/${projectId}/${automatedScriptId}`,
             data
@@ -97,12 +97,12 @@ export function updateAutomatedScript(
         dispatch(updateAutomatedScriptRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(updateAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -150,7 +150,7 @@ export function fetchSingleAutomatedScript(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `automated-scripts/${projectId}/${automatedSlug}?skip=${skip}&limit=${limit}`
         );
@@ -158,10 +158,10 @@ export function fetchSingleAutomatedScript(
         dispatch(fetchSingleAutomatedScriptRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchSingleAutomatedScriptSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -200,16 +200,16 @@ export function fetchAutomatedScript(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `automated-scripts/${projectId}?skip=${skip}&limit=${limit}`
         );
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchAutomatedScriptSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -247,19 +247,19 @@ export function runAutomatedScriptSuccess(data: $TSFixMe) {
 }
 
 export function runScript(projectId: $TSFixMe, automatedScriptId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `automated-scripts/${projectId}/${automatedScriptId}/run`
         );
         dispatch(runAutomatedScriptRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(runAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -302,18 +302,18 @@ export function deleteAutomatedScript(
     projectId: $TSFixMe,
     automatedSlug: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `automated-scripts/${projectId}/${automatedSlug}`
         );
         dispatch(deleteAutomatedScriptRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(deleteAutomatedScriptSuccess(response.data));
                 return true;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

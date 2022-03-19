@@ -41,7 +41,7 @@ import ErrorService from 'common-server/utils/error';
 router.post(
     '/data-ingestor/create-incident',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
 
@@ -59,7 +59,7 @@ router.post(
 router.post(
     '/data-ingestor/acknowledge-incident',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { incidentId, name, probeId } = req.body;
 
@@ -81,7 +81,7 @@ router.post(
 router.post(
     '/data-ingestor/resolve-incident',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { incidentId, name, probeId } = req.body;
 
@@ -103,7 +103,7 @@ router.post(
 router.post(
     '/data-ingestor/update-incident',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { data, query } = req.body;
             const incident = await IncidentService.updateOneBy(query, data);
@@ -125,7 +125,7 @@ router.post(
     '/:projectId/create-incident',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const incidentType = req.body.incidentType;
@@ -245,7 +245,7 @@ router.post(
     '/:projectId/monitor/:monitorId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { monitorId } = req.params;
         // include date range
         try {
@@ -307,23 +307,26 @@ router.post(
 );
 
 // Fetch incidents by projectId
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
-    req,
-    res
-) {
-    try {
-        // const subProjectIds = req.user.subProjects
-        //     ? req.user.subProjects.map(project => project._id)
-        //     : null;
-        const { projectId } = req.params;
-        const incidents = await IncidentService.getSubProjectIncidents(
-            projectId
-        );
-        return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function (req, res) {
+        try {
+            // const subProjectIds = req.user.subProjects
+            //     ? req.user.subProjects.map(project => project._id)
+            //     : null;
+            const { projectId } = req.params;
+            const incidents = await IncidentService.getSubProjectIncidents(
+                projectId
+            );
+            return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 //Fetch incidents by component Id
 router.get(
@@ -331,7 +334,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { componentId, projectId } = req.params;
             const incidents = await IncidentService.getComponentIncidents(
@@ -354,7 +357,7 @@ router.get(
     '/:projectId/incidents/:componentId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, componentId } = req.params;
 
@@ -371,62 +374,64 @@ router.get(
     }
 );
 
-router.get('/:projectId/incident', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const projectId = req.params.projectId;
-        const populate = [
-            {
-                path: 'monitors.monitorId',
-                select: 'name slug componentId projectId type',
-                populate: [
-                    { path: 'componentId', select: 'name slug' },
-                    { path: 'projectId', select: 'name slug' },
-                ],
-            },
-            { path: 'createdById', select: 'name' },
-            { path: 'projectId', select: 'name slug' },
-            { path: 'resolvedBy', select: 'name' },
-            { path: 'acknowledgedBy', select: 'name' },
-            { path: 'incidentPriority', select: 'name color' },
-            {
-                path: 'acknowledgedByIncomingHttpRequest',
-                select: 'name',
-            },
-            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-            { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'probeName _id' },
-        ];
-        const select =
-            'slug createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+router.get(
+    '/:projectId/incident',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const projectId = req.params.projectId;
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'probeName _id' },
+            ];
+            const select =
+                'slug createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-        const monitors = await MonitorService.findBy({
-            query: { projectId },
-            select: '_id',
-        });
-        const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
+            const monitors = await MonitorService.findBy({
+                query: { projectId },
+                select: '_id',
+            });
+            const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
-        const query = {
-            'monitors.monitorId': { $in: monitorIds },
-        };
+            const query = {
+                'monitors.monitorId': { $in: monitorIds },
+            };
 
-        const [incident, count] = await Promise.all([
-            IncidentService.findBy({
-                query,
-                limit: req.query.limit || 10,
-                skip: req.query.skip || 0,
-                select,
-                populate,
-            }),
-            IncidentService.countBy(query),
-        ]);
-        return sendListResponse(req, res, incident, count); // frontend expects sendListResponse
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const [incident, count] = await Promise.all([
+                IncidentService.findBy({
+                    query,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
+                    select,
+                    populate,
+                }),
+                IncidentService.countBy(query),
+            ]);
+            return sendListResponse(req, res, incident, count); // frontend expects sendListResponse
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: Getting incident.
@@ -437,7 +442,7 @@ router.get(
     '/:projectId/incident/:incidentSlug',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         // Call the IncidentService.
 
         try {
@@ -483,7 +488,7 @@ router.get(
     '/:projectId/timeline/:incidentId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { incidentId } = req.params;
 
@@ -518,7 +523,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -544,7 +549,7 @@ router.post(
     '/:projectId/acknowledge/:incidentId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const userId = req.user
                 ? req.user.id === 'API'
@@ -595,8 +600,7 @@ router.post(
                 { path: 'projectId', select: 'name' },
                 {
                     path: 'subscriberId',
-                    select:
-                        'name contactEmail contactPhone contactWebhook countryCode',
+                    select: 'name contactEmail contactPhone contactWebhook countryCode',
                 },
             ];
             const select =
@@ -711,7 +715,7 @@ router.post(
     '/:projectId/resolve/:incidentId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const userId = req.user
                 ? req.user.id === 'API'
@@ -761,8 +765,7 @@ router.post(
                 { path: 'projectId', select: 'name' },
                 {
                     path: 'subscriberId',
-                    select:
-                        'name contactEmail contactPhone contactWebhook countryCode',
+                    select: 'name contactEmail contactPhone contactWebhook countryCode',
                 },
             ];
             const select =
@@ -874,7 +877,7 @@ router.post(
     '/:projectId/close/:incidentId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const userId = req.user ? req.user.id : null;
             const { incidentId } = req.params;
@@ -893,7 +896,7 @@ router.put(
     '/:projectId/incident/:incidentId/details',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const projectId = req.params.projectId;
         const incidentId = req.params.incidentId;
         const { title, description, incidentPriority } = req.body;
@@ -928,7 +931,7 @@ router.post(
     '/:projectId/incident/:incidentId/message',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const incidentId = req.params.incidentId;
@@ -1163,8 +1166,7 @@ router.post(
                     { path: 'projectId', select: 'name' },
                     {
                         path: 'subscriberId',
-                        select:
-                            'name contactEmail contactPhone contactWebhook countryCode',
+                        select: 'name contactEmail contactPhone contactWebhook countryCode',
                     },
                 ];
                 const select =
@@ -1309,7 +1311,7 @@ router.get(
     '/:projectId/:incidentSlug/statuspages',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { incidentSlug } = req.params;
 
@@ -1318,16 +1320,14 @@ router.get(
                 select: '_id',
             });
             if (incident) {
-                const {
-                    statusPages,
-                    count,
-                } = await StatusPageService.getStatusPagesForIncident(
-                    incident._id,
+                const { statusPages, count } =
+                    await StatusPageService.getStatusPagesForIncident(
+                        incident._id,
 
-                    parseInt(req.query.skip) || 0,
+                        parseInt(req.query.skip) || 0,
 
-                    parseInt(req.query.limit) || 10
-                );
+                        parseInt(req.query.limit) || 10
+                    );
                 return sendListResponse(req, res, statusPages, count);
             } else {
                 return sendListResponse(req, res, [], 0);
@@ -1342,7 +1342,7 @@ router.delete(
     '/:projectId/incident/:incidentId/message/:incidentMessageId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
             const populateIncidentMessage = [
@@ -1402,8 +1402,7 @@ router.delete(
                     { path: 'projectId', select: 'name' },
                     {
                         path: 'subscriberId',
-                        select:
-                            'name contactEmail contactPhone contactWebhook countryCode',
+                        select: 'name contactEmail contactPhone contactWebhook countryCode',
                     },
                 ];
                 const select =
@@ -1435,33 +1434,30 @@ router.delete(
                 ];
                 const selectIncTimeline =
                     'incidentId createdById probeId createdByZapier createdAt status incident_state';
-                let [
-                    alerts,
-                    subscriberAlerts,
-                    callScheduleStatus,
-                ] = await Promise.all([
-                    AlertService.findBy({
-                        query: { incidentId: incidentId },
-                        select: selectAlert,
-                        populate: populateAlert,
-                    }),
-                    subscriberAlertService.findBy({
-                        query: { incidentId: incidentId, projectId },
-                        select,
-                        populate,
-                    }),
-                    onCallScheduleStatusService.findBy({
-                        query: { incident: incidentId },
-                        select: selectOnCallScheduleStatus,
-                        populate: populateOnCallScheduleStatus,
-                    }),
-                    IncidentTimelineService.create({
-                        incidentId,
+                let [alerts, subscriberAlerts, callScheduleStatus] =
+                    await Promise.all([
+                        AlertService.findBy({
+                            query: { incidentId: incidentId },
+                            select: selectAlert,
+                            populate: populateAlert,
+                        }),
+                        subscriberAlertService.findBy({
+                            query: { incidentId: incidentId, projectId },
+                            select,
+                            populate,
+                        }),
+                        onCallScheduleStatusService.findBy({
+                            query: { incident: incidentId },
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
+                        }),
+                        IncidentTimelineService.create({
+                            incidentId,
 
-                        createdById: req.user.id,
-                        status,
-                    }),
-                ]);
+                            createdById: req.user.id,
+                            status,
+                        }),
+                    ]);
 
                 callScheduleStatus = await Services.checkCallSchedule(
                     callScheduleStatus
@@ -1469,23 +1465,20 @@ router.delete(
                 if (checkMsg.type === 'investigation') {
                     result = incidentMessage;
                 } else {
-                    let [
-                        incidentMessages,
-                        timeline,
-                        subAlerts,
-                    ] = await Promise.all([
-                        IncidentMessageService.findBy({
-                            query: { incidentId, type: checkMsg.type },
-                            populate: populateIncidentMessage,
-                            select: selectIncidentMessage,
-                        }),
-                        IncidentTimelineService.findBy({
-                            query: { incidentId },
-                            select: selectIncTimeline,
-                            populate: populateIncTimeline,
-                        }),
-                        Services.deduplicate(subscriberAlerts),
-                    ]);
+                    let [incidentMessages, timeline, subAlerts] =
+                        await Promise.all([
+                            IncidentMessageService.findBy({
+                                query: { incidentId, type: checkMsg.type },
+                                populate: populateIncidentMessage,
+                                select: selectIncidentMessage,
+                            }),
+                            IncidentTimelineService.findBy({
+                                query: { incidentId },
+                                select: selectIncTimeline,
+                                populate: populateIncTimeline,
+                            }),
+                            Services.deduplicate(subscriberAlerts),
+                        ]);
                     const timelineAlerts = [
                         ...timeline,
                         ...alerts,
@@ -1532,7 +1525,7 @@ router.get(
     '/:projectId/incident/:incidentSlug/message',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         let type = 'investigation';
         if (req.query.type && req.query.type === 'internal') {
             type = 'internal';
@@ -1581,8 +1574,7 @@ router.get(
                     { path: 'projectId', select: 'name' },
                     {
                         path: 'subscriberId',
-                        select:
-                            'name contactEmail contactPhone contactWebhook countryCode',
+                        select: 'name contactEmail contactPhone contactWebhook countryCode',
                     },
                 ];
                 const select =
@@ -1700,57 +1692,60 @@ router.get(
     }
 );
 
-router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const { projectId, incidentId } = req.params;
-        const incident = await IncidentService.deleteBy(
-            { _id: incidentId, projectId },
+router.delete(
+    '/:projectId/:incidentId',
+    getUser,
+    isUserAdmin,
+    async function (req, res) {
+        try {
+            const { projectId, incidentId } = req.params;
+            const incident = await IncidentService.deleteBy(
+                { _id: incidentId, projectId },
 
-            req.user.id
-        );
-        if (incident) {
-            try {
-                // RUN IN THE BACKGROUND
-                RealTimeService.deleteIncident(incident);
-            } catch (error) {
-                ErrorService.log('realtimeService.deleteIncident', error);
+                req.user.id
+            );
+            if (incident) {
+                try {
+                    // RUN IN THE BACKGROUND
+                    RealTimeService.deleteIncident(incident);
+                } catch (error) {
+                    ErrorService.log('realtimeService.deleteIncident', error);
+                }
+                return sendItemResponse(req, res, incident);
+            } else {
+                return sendErrorResponse(req, res, {
+                    message: 'Incident not found',
+                });
             }
-            return sendItemResponse(req, res, incident);
-        } else {
-            return sendErrorResponse(req, res, {
-                message: 'Incident not found',
-            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.put('/:projectId/:incidentId', getUser, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, incidentId } = req.params;
-        const { hideIncident } = req.body;
-        const result = await IncidentService.updateOneBy(
-            {
-                projectId,
-                _id: incidentId,
-            },
-            { hideIncident }
-        );
-        const incident = {
-            hideIncident: result.hideIncident,
-        };
-        return sendItemResponse(req, res, incident);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.put(
+    '/:projectId/:incidentId',
+    getUser,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, incidentId } = req.params;
+            const { hideIncident } = req.body;
+            const result = await IncidentService.updateOneBy(
+                {
+                    projectId,
+                    _id: incidentId,
+                },
+                { hideIncident }
+            );
+            const incident = {
+                hideIncident: result.hideIncident,
+            };
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // IMPORTANT: THIS API IS USED IN AN EMAIL.
@@ -1762,7 +1757,7 @@ router.get(
     '/:projectId/resolve/:incidentId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const userId = req.user ? req.user.id : null;
 
@@ -1807,7 +1802,7 @@ router.get(
     '/:projectId/acknowledge/:incidentId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const userId = req.user ? req.user.id : null;
 

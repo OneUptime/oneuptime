@@ -247,10 +247,11 @@ router.put(
         }
 
         try {
-            const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
-                projectId,
-                subDomain
-            );
+            const doesDomainBelongToProject =
+                await DomainVerificationService.doesDomainBelongToProject(
+                    projectId,
+                    subDomain
+                );
 
             if (doesDomainBelongToProject) {
                 return sendErrorResponse(req, res, {
@@ -363,70 +364,70 @@ router.put(
     }
 );
 
-router.post('/:projectId/certFile', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const upload = multer({
-            storage,
-        }).fields([
-            {
-                name: 'cert',
-                maxCount: 1,
-            },
-        ]);
-        upload(req, res, async function(error: $TSFixMe) {
-            let cert;
-            if (error) {
-                return sendErrorResponse(req, res, error);
-            }
+router.post(
+    '/:projectId/certFile',
+    async function (req: Request, res: Response) {
+        try {
+            const upload = multer({
+                storage,
+            }).fields([
+                {
+                    name: 'cert',
+                    maxCount: 1,
+                },
+            ]);
+            upload(req, res, async function (error: $TSFixMe) {
+                let cert;
+                if (error) {
+                    return sendErrorResponse(req, res, error);
+                }
 
-            if (req.files && req.files.cert && req.files.cert[0].filename) {
-                cert = req.files.cert[0].filename;
-            }
-            return sendItemResponse(req, res, { cert });
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+                if (req.files && req.files.cert && req.files.cert[0].filename) {
+                    cert = req.files.cert[0].filename;
+                }
+                return sendItemResponse(req, res, { cert });
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/:projectId/privateKeyFile', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const upload = multer({
-            storage,
-        }).fields([
-            {
-                name: 'privateKey',
-                maxCount: 1,
-            },
-        ]);
-        upload(req, res, async function(error: $TSFixMe) {
-            let privateKey;
-            if (error) {
-                return sendErrorResponse(req, res, error);
-            }
-            if (
-                req.files &&
-                req.files.privateKey &&
-                req.files.privateKey[0].filename
-            ) {
-                privateKey = req.files.privateKey[0].filename;
-            }
-            return sendItemResponse(req, res, { privateKey });
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.post(
+    '/:projectId/privateKeyFile',
+    async function (req: Request, res: Response) {
+        try {
+            const upload = multer({
+                storage,
+            }).fields([
+                {
+                    name: 'privateKey',
+                    maxCount: 1,
+                },
+            ]);
+            upload(req, res, async function (error: $TSFixMe) {
+                let privateKey;
+                if (error) {
+                    return sendErrorResponse(req, res, error);
+                }
+                if (
+                    req.files &&
+                    req.files.privateKey &&
+                    req.files.privateKey[0].filename
+                ) {
+                    privateKey = req.files.privateKey[0].filename;
+                }
+                return sendItemResponse(req, res, { privateKey });
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // fetch details about a custom domain
 // to be consumed by the status page
-router.get('/tlsCredential', async function(req: Request, res: Response) {
+router.get('/tlsCredential', async function (req: Request, res: Response) {
     try {
         const { domain } = req.query;
 
@@ -506,203 +507,208 @@ router.delete(
 // Params:
 // Param1:
 // Returns: response status, error message
-router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
-    req,
-    res
-) {
-    const data = req.body;
-    const upload = multer({
-        storage,
-    }).fields([
-        {
-            name: 'favicon',
-            maxCount: 1,
-        },
-        {
-            name: 'logo',
-            maxCount: 1,
-        },
-        {
-            name: 'banner',
-            maxCount: 1,
-        },
-    ]);
-
-    if (data.links) {
-        if (typeof data.links !== 'object') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'links are not of type object.',
-            });
-        }
-
-        if (data.links.length > 5) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'You can have up to five links.',
-            });
-        }
-
-        for (let i = 0; i < data.links.length; i++) {
-            if (!data.links[i].name) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Link name is required',
-                });
-            }
-
-            if (typeof data.links[i].name !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Link name is not of type text.',
-                });
-            }
-            if (!data.links[i].url) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'URL is required.',
-                });
-            }
-
-            if (typeof data.links[i].url !== 'string') {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'URL is not of type text.',
-                });
-            }
-            if (!validUrl.isUri(data.links[i].url)) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Please enter a valid URL.',
-                });
-            }
-        }
-    }
-
-    upload(req, res, async function(error: $TSFixMe) {
-        const files = req.files || {};
+router.put(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function (req, res) {
         const data = req.body;
-        data.projectId = req.params.projectId;
+        const upload = multer({
+            storage,
+        }).fields([
+            {
+                name: 'favicon',
+                maxCount: 1,
+            },
+            {
+                name: 'logo',
+                maxCount: 1,
+            },
+            {
+                name: 'banner',
+                maxCount: 1,
+            },
+        ]);
 
-        data.subProjectId = req.params.subProjectId;
-        if (error) {
-            ErrorService.log(error);
-            return sendErrorResponse(req, res, error);
-        }
+        if (data.links) {
+            if (typeof data.links !== 'object') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'links are not of type object.',
+                });
+            }
 
-        let statusPage;
-        if (data._id) {
-            statusPage = await StatusPageService.findOneBy({
-                query: { _id: data._id },
-                select: 'faviconPath logoPath bannerPath',
-            });
-            const imagesPath = {
-                faviconPath: statusPage.faviconPath,
+            if (data.links.length > 5) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You can have up to five links.',
+                });
+            }
 
-                logoPath: statusPage.logoPath,
-
-                bannerPath: statusPage.bannerPath,
-            };
-            if (
-                Object.keys(files).length === 0 &&
-                Object.keys(imagesPath).length !== 0
-            ) {
-                data.faviconPath = imagesPath.faviconPath;
-                data.logoPath = imagesPath.logoPath;
-                data.bannerPath = imagesPath.bannerPath;
-                if (data.favicon === '') {
-                    data.faviconPath = null;
-                }
-                if (data.logo === '') {
-                    data.logoPath = null;
-                }
-                if (data.banner === '') {
-                    data.bannerPath = null;
-                }
-            } else {
-                if (files && files.favicon && files.favicon[0].filename) {
-                    data.faviconPath = files.favicon[0].filename;
+            for (let i = 0; i < data.links.length; i++) {
+                if (!data.links[i].name) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Link name is required',
+                    });
                 }
 
-                if (files && files.logo && files.logo[0].filename) {
-                    data.logoPath = files.logo[0].filename;
+                if (typeof data.links[i].name !== 'string') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Link name is not of type text.',
+                    });
+                }
+                if (!data.links[i].url) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'URL is required.',
+                    });
                 }
 
-                if (files && files.banner && files.banner[0].filename) {
-                    data.bannerPath = files.banner[0].filename;
+                if (typeof data.links[i].url !== 'string') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'URL is not of type text.',
+                    });
+                }
+                if (!validUrl.isUri(data.links[i].url)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Please enter a valid URL.',
+                    });
                 }
             }
         }
-        if (data.colors) {
-            data.colors = JSON.parse(data.colors);
-        }
 
-        try {
-            const statusPage = await StatusPageService.updateOneBy(
-                { projectId: data.projectId, _id: data._id },
-                data
-            );
+        upload(req, res, async function (error: $TSFixMe) {
+            const files = req.files || {};
+            const data = req.body;
+            data.projectId = req.params.projectId;
 
-            const populateStatusPage = [
-                {
-                    path: 'projectId',
-                    select: 'name parentProjectId',
-                    populate: { path: 'parentProjectId', select: '_id' },
-                },
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain verificationToken verified ',
-                },
-                {
-                    path: 'monitors.monitor',
-                    select: 'name',
-                },
-                {
-                    path: 'monitors.statusPageCategory',
-                    select: 'name',
-                },
-            ];
+            data.subProjectId = req.params.subProjectId;
+            if (error) {
+                ErrorService.log(error);
+                return sendErrorResponse(req, res, error);
+            }
 
-            const selectStatusPage =
-                'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+            let statusPage;
+            if (data._id) {
+                statusPage = await StatusPageService.findOneBy({
+                    query: { _id: data._id },
+                    select: 'faviconPath logoPath bannerPath',
+                });
+                const imagesPath = {
+                    faviconPath: statusPage.faviconPath,
 
-            const updatedStatusPage = await StatusPageService.getStatusPage({
-                query: { _id: statusPage._id },
+                    logoPath: statusPage.logoPath,
 
-                userId: req.user.id,
-                populate: populateStatusPage,
-                select: selectStatusPage,
-            });
+                    bannerPath: statusPage.bannerPath,
+                };
+                if (
+                    Object.keys(files).length === 0 &&
+                    Object.keys(imagesPath).length !== 0
+                ) {
+                    data.faviconPath = imagesPath.faviconPath;
+                    data.logoPath = imagesPath.logoPath;
+                    data.bannerPath = imagesPath.bannerPath;
+                    if (data.favicon === '') {
+                        data.faviconPath = null;
+                    }
+                    if (data.logo === '') {
+                        data.logoPath = null;
+                    }
+                    if (data.banner === '') {
+                        data.bannerPath = null;
+                    }
+                } else {
+                    if (files && files.favicon && files.favicon[0].filename) {
+                        data.faviconPath = files.favicon[0].filename;
+                    }
+
+                    if (files && files.logo && files.logo[0].filename) {
+                        data.logoPath = files.logo[0].filename;
+                    }
+
+                    if (files && files.banner && files.banner[0].filename) {
+                        data.bannerPath = files.banner[0].filename;
+                    }
+                }
+            }
+            if (data.colors) {
+                data.colors = JSON.parse(data.colors);
+            }
 
             try {
-                RealTimeService.statusPageEdit(updatedStatusPage);
-            } catch (error) {
-                ErrorService.log('realtimeService.statusPageEdit', error);
-            }
-
-            if (updatedStatusPage?.twitterHandle) {
-                const tweets = await StatusPageService.fetchTweets(
-                    updatedStatusPage.twitterHandle
+                const statusPage = await StatusPageService.updateOneBy(
+                    { projectId: data.projectId, _id: data._id },
+                    data
                 );
+
+                const populateStatusPage = [
+                    {
+                        path: 'projectId',
+                        select: 'name parentProjectId',
+                        populate: { path: 'parentProjectId', select: '_id' },
+                    },
+                    {
+                        path: 'domains.domainVerificationToken',
+                        select: 'domain verificationToken verified ',
+                    },
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                    {
+                        path: 'monitors.statusPageCategory',
+                        select: 'name',
+                    },
+                ];
+
+                const selectStatusPage =
+                    'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
+                const updatedStatusPage = await StatusPageService.getStatusPage(
+                    {
+                        query: { _id: statusPage._id },
+
+                        userId: req.user.id,
+                        populate: populateStatusPage,
+                        select: selectStatusPage,
+                    }
+                );
+
                 try {
-                    RealTimeService.updateTweets(
-                        tweets,
-                        updatedStatusPage._id,
-                        updatedStatusPage.projectId
-                    );
+                    RealTimeService.statusPageEdit(updatedStatusPage);
                 } catch (error) {
-                    ErrorService.log('realtimeService.updateTweets', error);
+                    ErrorService.log('realtimeService.statusPageEdit', error);
                 }
+
+                if (updatedStatusPage?.twitterHandle) {
+                    const tweets = await StatusPageService.fetchTweets(
+                        updatedStatusPage.twitterHandle
+                    );
+                    try {
+                        RealTimeService.updateTweets(
+                            tweets,
+                            updatedStatusPage._id,
+                            updatedStatusPage.projectId
+                        );
+                    } catch (error) {
+                        ErrorService.log('realtimeService.updateTweets', error);
+                    }
+                }
+
+                return sendItemResponse(req, res, statusPage);
+            } catch (error) {
+                return sendErrorResponse(req, res, error);
             }
+        });
+    }
+);
 
-            return sendItemResponse(req, res, statusPage);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
-    });
-});
-
-router.get('/statusBubble', async function(req: Request, res: Response) {
+router.get('/statusBubble', async function (req: Request, res: Response) {
     const statusPageId = req.query.statusPageId;
     const statusBubbleId = req.query.statusBubbleId;
     try {
@@ -780,193 +786,199 @@ router.get('/statusBubble', async function(req: Request, res: Response) {
 // Param1: req.params-> {projectId};
 // Returns: response status, error message
 
-router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    const projectId = req.params.projectId;
-    try {
-        // Call the StatusPageService.
-        const populateStatusPage = [
-            {
-                path: 'projectId',
-                select: 'name parentProjectId',
-                populate: { path: 'parentProjectId', select: '_id' },
-            },
-            {
-                path: 'domains.domainVerificationToken',
-                select: 'domain verificationToken verified ',
-            },
-            {
-                path: 'monitors.monitor',
-                select: 'name',
-            },
-            {
-                path: 'monitors.statusPageCategory',
-                select: 'name',
-            },
-        ];
+router.get(
+    '/:projectId/dashboard',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        const projectId = req.params.projectId;
+        try {
+            // Call the StatusPageService.
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+                {
+                    path: 'monitors.statusPageCategory',
+                    select: 'name',
+                },
+            ];
 
-        const selectStatusPage =
-            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage';
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage';
 
-        const [statusPages, count] = await Promise.all([
-            StatusPageService.findBy({
-                query: { projectId: projectId },
-                skip: req.query.skip || 0,
-                limit: req.query.limit || 10,
-                select: selectStatusPage,
-                populate: populateStatusPage,
-            }),
-            StatusPageService.countBy({
-                query: { projectId: projectId },
-            }),
-        ]);
-        return sendListResponse(req, res, statusPages, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const [statusPages, count] = await Promise.all([
+                StatusPageService.findBy({
+                    query: { projectId: projectId },
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
+                    select: selectStatusPage,
+                    populate: populateStatusPage,
+                }),
+                StatusPageService.countBy({
+                    query: { projectId: projectId },
+                }),
+            ]);
+            return sendListResponse(req, res, statusPages, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/status-pages', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const {
-            data,
-            count,
-        } = await StatusPageService.getStatusPagesByProjectId({
-            projectId: req.params.projectId,
-            skip: req.query.skip,
-            limit: req.query.limit,
-        });
-        return sendListResponse(req, res, data, count); // frontend expects sendItemResponse
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId/status-pages',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { data, count } =
+                await StatusPageService.getStatusPagesByProjectId({
+                    projectId: req.params.projectId,
+                    skip: req.query.skip,
+                    limit: req.query.limit,
+                });
+            return sendListResponse(req, res, data, count); // frontend expects sendItemResponse
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    const projectId = req.params.projectId;
+router.get(
+    '/:projectId/statuspage',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        const projectId = req.params.projectId;
 
-    try {
-        const populateStatusPage = [
-            {
-                path: 'projectId',
-                select: 'name parentProjectId',
-                populate: { path: 'parentProjectId', select: '_id' },
-            },
-            {
-                path: 'domains.domainVerificationToken',
-                select: 'domain verificationToken verified ',
-            },
-            {
-                path: 'monitors.monitor',
-                select: 'name',
-            },
-            {
-                path: 'monitors.statusPageCategory',
-                select: 'name',
-            },
-        ];
+        try {
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+                {
+                    path: 'monitors.statusPageCategory',
+                    select: 'name',
+                },
+            ];
 
-        const selectStatusPage =
-            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle multipleNotificationTypes';
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle multipleNotificationTypes';
 
-        const [statusPage, count] = await Promise.all([
-            StatusPageService.findBy({
-                query: { projectId },
-                skip: req.query.skip || 0,
-                limit: req.query.limit || 10,
-                select: selectStatusPage,
-                populate: populateStatusPage,
-            }),
-            StatusPageService.countBy({ query: { projectId } }),
-        ]);
-        return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const [statusPage, count] = await Promise.all([
+                StatusPageService.findBy({
+                    query: { projectId },
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
+                    select: selectStatusPage,
+                    populate: populateStatusPage,
+                }),
+                StatusPageService.countBy({ query: { projectId } }),
+            ]);
+            return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // External status page api - get the data to show on status page using Slug
-router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
-    req,
-    res
-) {
-    const statusPageSlug = req.params.statusPageSlug;
-    const url = req.query.url;
+router.get(
+    '/:statusPageSlug',
+    checkUser,
+    ipWhitelist,
+    async function (req, res) {
+        const statusPageSlug = req.params.statusPageSlug;
+        const url = req.query.url;
 
-    const user = req.user;
-    let statusPage = {};
-    const populateStatusPage = [
-        {
-            path: 'projectId',
-            select: 'name parentProjectId',
-            populate: { path: 'parentProjectId', select: '_id' },
-        },
-        {
-            path: 'domains.domainVerificationToken',
-            select: 'domain verificationToken verified ',
-        },
-        {
-            path: 'monitors.monitor',
-            select: 'name',
-        },
-        {
-            path: 'monitors.statusPageCategory',
-            select: 'name',
-        },
-    ];
+        const user = req.user;
+        let statusPage = {};
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+            {
+                path: 'monitors.statusPageCategory',
+                select: 'name',
+            },
+        ];
 
-    const selectStatusPage =
-        'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+        const selectStatusPage =
+            'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
-    try {
-        // Call the StatusPageService.
-        if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatusPage({
-                query: { domains: { $elemMatch: { domain: url } } },
-                userId: user,
-                populate: populateStatusPage,
-                select: selectStatusPage,
-            });
-        } else if ((!url || url === 'null') && statusPageSlug) {
-            statusPage = await StatusPageService.getStatusPage({
-                query: { slug: statusPageSlug },
-                userId: user,
-                populate: populateStatusPage,
-                select: selectStatusPage,
-            });
-        } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'StatusPage Slug or Url required',
-            });
+        try {
+            // Call the StatusPageService.
+            if (url && url !== 'null') {
+                statusPage = await StatusPageService.getStatusPage({
+                    query: { domains: { $elemMatch: { domain: url } } },
+                    userId: user,
+                    populate: populateStatusPage,
+                    select: selectStatusPage,
+                });
+            } else if ((!url || url === 'null') && statusPageSlug) {
+                statusPage = await StatusPageService.getStatusPage({
+                    query: { slug: statusPageSlug },
+                    userId: user,
+                    populate: populateStatusPage,
+                    select: selectStatusPage,
+                });
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'StatusPage Slug or Url required',
+                });
+            }
+
+            if (statusPage.isPrivate && !req.user) {
+                return sendErrorResponse(req, res, {
+                    code: 401,
+                    message: 'You are unauthorized to access the page.',
+                });
+            } else {
+                return sendItemResponse(req, res, statusPage);
+            }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (statusPage.isPrivate && !req.user) {
-            return sendErrorResponse(req, res, {
-                code: 401,
-                message: 'You are unauthorized to access the page.',
-            });
-        } else {
-            return sendItemResponse(req, res, statusPage);
-        }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.post(
     '/:projectId/:statusPageSlug/duplicateStatusPage',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, statusPageSlug } = req.params;
             const { subProjectId } = req.query;
@@ -1000,115 +1012,117 @@ router.post(
     }
 );
 
-router.get('/:statusPageId/rss', checkUser, async function(
-    req: Request,
-    res: Response
-) {
-    const statusPageId = req.params.statusPageId;
-    const url = req.query.url;
+router.get(
+    '/:statusPageId/rss',
+    checkUser,
+    async function (req: Request, res: Response) {
+        const statusPageId = req.params.statusPageId;
+        const url = req.query.url;
 
-    const user = req.user;
-    let statusPage = {};
+        const user = req.user;
+        let statusPage = {};
 
-    try {
-        // Call the StatusPageService.
-        if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatusPage({
-                query: { domains: { $elemMatch: { domain: url } } },
-                userId: user,
-                select: 'name isPrivate monitors projectId',
-            });
-        } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatusPage({
-                query: { _id: statusPageId },
-                userId: user,
-                select: 'name isPrivate monitors projectId',
-            });
-        } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'StatusPage Id or Url required',
-            });
-        }
-
-        if (statusPage.isPrivate && !req.user) {
-            return sendErrorResponse(req, res, {
-                code: 401,
-                message: 'You are unauthorized to access the page.',
-            });
-        } else {
-            const { incidents } = await StatusPageService.getIncidents({
-                _id: statusPageId,
-            });
-            const refinedIncidents = [];
-            for (const incident of incidents) {
-                refinedIncidents.push({
-                    item: {
-                        title: incident.title,
-
-                        guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
-                        pubDate: new Date(incident.createdAt).toUTCString(),
-                        description: `<![CDATA[Description: ${
-                            incident.description
-                        }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
-                            incident.monitors
-                        )}<br>Acknowledge Time: ${
-                            incident.acknowledgedAt
-                        }<br>Resolve Time: ${incident.resolvedAt}<br>${
-                            incident.investigationNote
-                                ? `Investigation Note: ${incident.investigationNote}`
-                                : ''
-                        }]]>`,
-                    },
+        try {
+            // Call the StatusPageService.
+            if (url && url !== 'null') {
+                statusPage = await StatusPageService.getStatusPage({
+                    query: { domains: { $elemMatch: { domain: url } } },
+                    userId: user,
+                    select: 'name isPrivate monitors projectId',
+                });
+            } else if ((!url || url === 'null') && statusPageId) {
+                statusPage = await StatusPageService.getStatusPage({
+                    query: { _id: statusPageId },
+                    userId: user,
+                    select: 'name isPrivate monitors projectId',
+                });
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'StatusPage Id or Url required',
                 });
             }
-            const xmlOptions = {
-                indent: '  ',
-                header: true,
-            };
 
-            const feedObj = {
-                _name: 'rss',
-                _attrs: {
-                    version: '2.0',
-                    'xmlns:content': 'http://purl.org/rss/1.0/modules/content/',
-                    'xmlns:wfw': 'http://wellformedweb.org/CommentAPI/',
-                },
-                _content: {
-                    channel: [
-                        {
-                            title: `Incidents for status page ${statusPage.name}`,
+            if (statusPage.isPrivate && !req.user) {
+                return sendErrorResponse(req, res, {
+                    code: 401,
+                    message: 'You are unauthorized to access the page.',
+                });
+            } else {
+                const { incidents } = await StatusPageService.getIncidents({
+                    _id: statusPageId,
+                });
+                const refinedIncidents = [];
+                for (const incident of incidents) {
+                    refinedIncidents.push({
+                        item: {
+                            title: incident.title,
+
+                            guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
+                            pubDate: new Date(incident.createdAt).toUTCString(),
+                            description: `<![CDATA[Description: ${
+                                incident.description
+                            }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
+                                incident.monitors
+                            )}<br>Acknowledge Time: ${
+                                incident.acknowledgedAt
+                            }<br>Resolve Time: ${incident.resolvedAt}<br>${
+                                incident.investigationNote
+                                    ? `Investigation Note: ${incident.investigationNote}`
+                                    : ''
+                            }]]>`,
                         },
-                        {
-                            description:
-                                'RSS feed for all incidents related to monitors attached to status page',
-                        },
-                        {
-                            link: `${global.apiHost}/status-page/${statusPageId}/rss`,
-                        },
-                        {
-                            lastBuildDate: () => new Date().toUTCString(),
-                        },
-                        {
-                            language: 'en',
-                        },
-                        ...refinedIncidents,
-                    ],
-                },
-            };
-            const finalFeed = toXML(feedObj, xmlOptions);
-            res.contentType('application/rss+xml');
-            return sendItemResponse(req, res, finalFeed);
+                    });
+                }
+                const xmlOptions = {
+                    indent: '  ',
+                    header: true,
+                };
+
+                const feedObj = {
+                    _name: 'rss',
+                    _attrs: {
+                        version: '2.0',
+                        'xmlns:content':
+                            'http://purl.org/rss/1.0/modules/content/',
+                        'xmlns:wfw': 'http://wellformedweb.org/CommentAPI/',
+                    },
+                    _content: {
+                        channel: [
+                            {
+                                title: `Incidents for status page ${statusPage.name}`,
+                            },
+                            {
+                                description:
+                                    'RSS feed for all incidents related to monitors attached to status page',
+                            },
+                            {
+                                link: `${global.apiHost}/status-page/${statusPageId}/rss`,
+                            },
+                            {
+                                lastBuildDate: () => new Date().toUTCString(),
+                            },
+                            {
+                                language: 'en',
+                            },
+                            ...refinedIncidents,
+                        ],
+                    },
+                };
+                const finalFeed = toXML(feedObj, xmlOptions);
+                res.contentType('application/rss+xml');
+                return sendItemResponse(req, res, finalFeed);
+            }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 router.get(
     '/:projectId/:statusPageSlug/notes',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         let result;
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
@@ -1129,11 +1143,15 @@ router.get(
             if (newTheme) {
                 if (notes.length > 0) {
                     for (const note of notes) {
-                        const statusPageNote = await StatusPageService.getIncidentNotes(
-                            { incidentId: note._id, postOnStatusPage: true },
-                            skip,
-                            limit
-                        );
+                        const statusPageNote =
+                            await StatusPageService.getIncidentNotes(
+                                {
+                                    incidentId: note._id,
+                                    postOnStatusPage: true,
+                                },
+                                skip,
+                                limit
+                            );
 
                         const sortMsg = statusPageNote.message.reverse();
 
@@ -1156,130 +1174,137 @@ router.get(
     }
 );
 
-router.get('/:projectId/incident/:incidentSlug', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { incidentSlug } = req.params;
+router.get(
+    '/:projectId/incident/:incidentSlug',
+    checkUser,
+    async function (req, res) {
+        try {
+            const { incidentSlug } = req.params;
 
-        const incidentData = await IncidentService.findOneBy({
-            query: { slug: incidentSlug },
-            select: '_id',
-        });
+            const incidentData = await IncidentService.findOneBy({
+                query: { slug: incidentSlug },
+                select: '_id',
+            });
 
-        const incident = await StatusPageService.getIncident({
-            _id: incidentData._id,
-        });
-        return sendItemResponse(req, res, incident);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/:projectId/:incidentSlug/incidentNotes', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { incidentSlug } = req.params;
-
-        const incident = await IncidentService.findOneBy({
-            query: { slug: incidentSlug },
-            select: '_id',
-        });
-        const { skip, limit, postOnStatusPage } = req.query;
-
-        const response = await StatusPageService.getIncidentNotes(
-            { incidentId: incident._id, postOnStatusPage },
-            skip,
-            limit
-        );
-        const { message, count } = response;
-        return sendListResponse(req, res, message, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
-    req,
-    res
-) {
-    let date = req.query.date;
-
-    date = new Date(date);
-    const theme = req.query.theme;
-    const start = new Date(
-        date.getFullYear(),
-
-        date.getMonth(),
-
-        date.getDate(),
-        0,
-        0,
-        0
-    );
-    const end = new Date(
-        date.getFullYear(),
-
-        date.getMonth(),
-
-        date.getDate(),
-        23,
-        59,
-        59
-    );
-
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 5;
-    const query = {
-        'monitors.monitorId': req.params.monitorId,
-        deleted: false,
-        createdAt: { $gte: start, $lt: end },
-    };
-
-    try {
-        // Call the StatusPageService.
-        const response = await StatusPageService.getNotesByDate(
-            query,
-            skip,
-            limit
-        );
-        let notes = response.investigationNotes;
-        if ((theme && typeof theme === 'boolean') || theme === 'true') {
-            const updatedNotes = [];
-            if (notes.length > 0) {
-                for (const note of notes) {
-                    const statusPageNote = await StatusPageService.getIncidentNotes(
-                        { incidentId: note._id, postOnStatusPage: true },
-                        skip,
-                        0
-                    );
-
-                    const sortMsg = statusPageNote.message.reverse();
-
-                    updatedNotes.push({
-                        ...note,
-                        message: sortMsg,
-                    });
-                }
-                notes = updatedNotes;
-            }
-            notes = checkDuplicateDates(notes);
+            const incident = await StatusPageService.getIncident({
+                _id: incidentData._id,
+            });
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        const count = response.count;
-        return sendListResponse(req, res, notes, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
+
+router.get(
+    '/:projectId/:incidentSlug/incidentNotes',
+    checkUser,
+    async function (req, res) {
+        try {
+            const { incidentSlug } = req.params;
+
+            const incident = await IncidentService.findOneBy({
+                query: { slug: incidentSlug },
+                select: '_id',
+            });
+            const { skip, limit, postOnStatusPage } = req.query;
+
+            const response = await StatusPageService.getIncidentNotes(
+                { incidentId: incident._id, postOnStatusPage },
+                skip,
+                limit
+            );
+            const { message, count } = response;
+            return sendListResponse(req, res, message, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
+    '/:projectId/:monitorId/individualnotes',
+    checkUser,
+    async function (req, res) {
+        let date = req.query.date;
+
+        date = new Date(date);
+        const theme = req.query.theme;
+        const start = new Date(
+            date.getFullYear(),
+
+            date.getMonth(),
+
+            date.getDate(),
+            0,
+            0,
+            0
+        );
+        const end = new Date(
+            date.getFullYear(),
+
+            date.getMonth(),
+
+            date.getDate(),
+            23,
+            59,
+            59
+        );
+
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 5;
+        const query = {
+            'monitors.monitorId': req.params.monitorId,
+            deleted: false,
+            createdAt: { $gte: start, $lt: end },
+        };
+
+        try {
+            // Call the StatusPageService.
+            const response = await StatusPageService.getNotesByDate(
+                query,
+                skip,
+                limit
+            );
+            let notes = response.investigationNotes;
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const updatedNotes = [];
+                if (notes.length > 0) {
+                    for (const note of notes) {
+                        const statusPageNote =
+                            await StatusPageService.getIncidentNotes(
+                                {
+                                    incidentId: note._id,
+                                    postOnStatusPage: true,
+                                },
+                                skip,
+                                0
+                            );
+
+                        const sortMsg = statusPageNote.message.reverse();
+
+                        updatedNotes.push({
+                            ...note,
+                            message: sortMsg,
+                        });
+                    }
+                    notes = updatedNotes;
+                }
+                notes = checkDuplicateDates(notes);
+            }
+            const count = response.count;
+            return sendListResponse(req, res, notes, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.get(
     '/:projectId/:statusPageSlug/events',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
@@ -1311,7 +1336,7 @@ router.get(
     '/:projectId/:statusPageSlug/futureEvents',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
             const { skip = 0, limit = 5, theme } = req.query;
@@ -1336,7 +1361,7 @@ router.get(
     '/:projectId/:statusPageSlug/pastEvents',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
             const { skip = 0, limit = 5, theme } = req.query;
@@ -1379,92 +1404,94 @@ const fetchNotes = async (events: $TSFixMe, limit: $TSFixMe) => {
     }
 };
 
-router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
-    req,
-    res
-) {
-    const { scheduledEventSlug } = req.params;
-    // eslint-disable-next-line no-unused-vars
-    const { skip, limit, type } = req.query;
+router.get(
+    '/:projectId/notes/:scheduledEventSlug',
+    checkUser,
+    async function (req, res) {
+        const { scheduledEventSlug } = req.params;
+        // eslint-disable-next-line no-unused-vars
+        const { skip, limit, type } = req.query;
 
-    const scheduledEventId = await ScheduledEventService.findOneBy({
-        query: { slug: scheduledEventSlug },
-        select: '_id createdById',
-    });
+        const scheduledEventId = await ScheduledEventService.findOneBy({
+            query: { slug: scheduledEventSlug },
+            select: '_id createdById',
+        });
 
-    try {
-        const response = await StatusPageService.getEventNotes(
-            { scheduledEventId },
-            skip,
-            limit
-        );
-        const { notes, count } = response;
-        return sendListResponse(req, res, notes, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/:projectId/:monitorId/individualevents', checkUser, async function(
-    req,
-    res
-) {
-    let date = req.query.date;
-
-    date = moment(date)
-        .endOf('day')
-        .format();
-
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 5;
-    const theme = req.query.theme;
-
-    const currentDate = moment().format();
-    const query = {
-        'monitors.monitorId': req.params.monitorId,
-        showEventOnStatusPage: true,
-        deleted: false,
-        startDate: { $lte: date },
-        endDate: {
-            $gte: currentDate,
-        },
-    };
-
-    try {
-        // Call the StatusPageService.
-        const response = await StatusPageService.getEventsByDate(
-            query,
-            skip,
-            limit
-        );
-        let events = response.scheduledEvents;
-        const count = response.count;
-        if ((theme && typeof theme === 'boolean') || theme === 'true') {
-            const updatedEvents = [];
-            if (events.length > 0) {
-                for (const event of events) {
-                    const statusPageEvent = await StatusPageService.getEventNotes(
-                        { scheduledEventId: event._id, type: 'investigation' }
-                    );
-                    updatedEvents.push({
-                        ...event,
-                        notes: statusPageEvent.notes,
-                    });
-                }
-                events = updatedEvents;
-            }
+        try {
+            const response = await StatusPageService.getEventNotes(
+                { scheduledEventId },
+                skip,
+                limit
+            );
+            const { notes, count } = response;
+            return sendListResponse(req, res, notes, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        return sendListResponse(req, res, events, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
+
+router.get(
+    '/:projectId/:monitorId/individualevents',
+    checkUser,
+    async function (req, res) {
+        let date = req.query.date;
+
+        date = moment(date).endOf('day').format();
+
+        const skip = req.query.skip || 0;
+        const limit = req.query.limit || 5;
+        const theme = req.query.theme;
+
+        const currentDate = moment().format();
+        const query = {
+            'monitors.monitorId': req.params.monitorId,
+            showEventOnStatusPage: true,
+            deleted: false,
+            startDate: { $lte: date },
+            endDate: {
+                $gte: currentDate,
+            },
+        };
+
+        try {
+            // Call the StatusPageService.
+            const response = await StatusPageService.getEventsByDate(
+                query,
+                skip,
+                limit
+            );
+            let events = response.scheduledEvents;
+            const count = response.count;
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const updatedEvents = [];
+                if (events.length > 0) {
+                    for (const event of events) {
+                        const statusPageEvent =
+                            await StatusPageService.getEventNotes({
+                                scheduledEventId: event._id,
+                                type: 'investigation',
+                            });
+                        updatedEvents.push({
+                            ...event,
+                            notes: statusPageEvent.notes,
+                        });
+                    }
+                    events = updatedEvents;
+                }
+            }
+            return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // get a particular scheduled event
 router.get(
     '/:projectId/scheduledEvent/:scheduledEventId',
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { scheduledEventId } = req.params;
 
         try {
@@ -1479,98 +1506,102 @@ router.get(
 );
 // Route
 // Description: Get all Monitor Statuses by monitorId
-router.post('/:projectId/:monitorId/monitorStatuses', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { startDate, endDate } = req.body;
-        const monitorId = req.params.monitorId;
-        const monitorStatuses = await MonitorService.getMonitorStatuses(
-            monitorId,
-            startDate,
-            endDate
-        );
-        return sendListResponse(req, res, monitorStatuses);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.post(
+    '/:projectId/:monitorId/monitorStatuses',
+    checkUser,
+    async function (req, res) {
+        try {
+            const { startDate, endDate } = req.body;
+            const monitorId = req.params.monitorId;
+            const monitorStatuses = await MonitorService.getMonitorStatuses(
+                monitorId,
+                startDate,
+                endDate
+            );
+            return sendListResponse(req, res, monitorStatuses);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/:projectId/:monitorId/monitorLogs', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { monitorId } = req.params;
-        const endDate = moment(Date.now());
-        const startDate = moment(endDate).subtract(90, 'days');
-        const { memory, cpu, storage, responseTime, temperature } = req.body;
-        const filter = {
-            ...(!memory && {
-                maxMemoryUsed: 0,
-                memoryUsed: 0,
-            }),
-            ...(!cpu && {
-                maxCpuLoad: 0,
-                cpuLoad: 0,
-            }),
-            ...(!storage && {
-                maxStorageUsed: 0,
-                storageUsed: 0,
-            }),
-            ...(!responseTime && {
-                maxResponseTime: 0,
-                responseTime: 0,
-            }),
-            ...(!temperature && {
-                maxMainTemp: 0,
-                mainTemp: 0,
-            }),
-        };
+router.post(
+    '/:projectId/:monitorId/monitorLogs',
+    checkUser,
+    async function (req, res) {
+        try {
+            const { monitorId } = req.params;
+            const endDate = moment(Date.now());
+            const startDate = moment(endDate).subtract(90, 'days');
+            const { memory, cpu, storage, responseTime, temperature } =
+                req.body;
+            const filter = {
+                ...(!memory && {
+                    maxMemoryUsed: 0,
+                    memoryUsed: 0,
+                }),
+                ...(!cpu && {
+                    maxCpuLoad: 0,
+                    cpuLoad: 0,
+                }),
+                ...(!storage && {
+                    maxStorageUsed: 0,
+                    storageUsed: 0,
+                }),
+                ...(!responseTime && {
+                    maxResponseTime: 0,
+                    responseTime: 0,
+                }),
+                ...(!temperature && {
+                    maxMainTemp: 0,
+                    mainTemp: 0,
+                }),
+            };
 
-        const monitorLogs = await MonitorService.getMonitorLogsByDay(
-            monitorId,
-            startDate,
-            endDate,
-            filter
-        );
-        return sendListResponse(req, res, monitorLogs);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const monitorLogs = await MonitorService.getMonitorLogsByDay(
+                monitorId,
+                startDate,
+                endDate,
+                filter
+            );
+            return sendListResponse(req, res, monitorLogs);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/probes', checkUser, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 0;
-        const selectProbe =
-            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-        const [probes, count] = await Promise.all([
-            ProbeService.findBy({
-                query: {},
-                limit,
-                skip,
-                select: selectProbe,
-            }),
-            ProbeService.countBy({}),
-        ]);
-        return sendListResponse(req, res, probes, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId/probes',
+    checkUser,
+    async function (req: Request, res: Response) {
+        try {
+            const skip = req.query.skip || 0;
+            const limit = req.query.limit || 0;
+            const selectProbe =
+                'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+            const [probes, count] = await Promise.all([
+                ProbeService.findBy({
+                    query: {},
+                    limit,
+                    skip,
+                    select: selectProbe,
+                }),
+                ProbeService.countBy({}),
+            ]);
+            return sendListResponse(req, res, probes, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.delete(
     '/:projectId/:statusPageSlug',
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const statusPageSlug = req.params.statusPageSlug;
 
         const userId = req.user ? req.user.id : null;
@@ -1587,57 +1618,59 @@ router.delete(
     }
 );
 
-router.get('/:projectId/timeline/:incidentSlug', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { incidentSlug } = req.params;
+router.get(
+    '/:projectId/timeline/:incidentSlug',
+    checkUser,
+    async function (req, res) {
+        try {
+            const { incidentSlug } = req.params;
 
-        const incidentData = await IncidentService.findOneBy({
-            query: { slug: incidentSlug },
-            select: '_id',
-        });
-        // setting limit to one
-        // since the frontend only need the last content (current content)
-        // of incident timeline
-        const { skip = 0, limit = 1 } = req.query;
-        const populateIncTimeline = [
-            { path: 'createdById', select: 'name' },
-            {
-                path: 'probeId',
-                select: 'probeName probeImage',
-            },
-        ];
-        const selectIncTimeline =
-            'incidentId createdById probeId createdByZapier createdAt status incident_state';
-        const timeline = await IncidentTimelineService.findBy({
-            query: { incidentId: incidentData._id },
-            skip,
-            limit,
-            populate: populateIncTimeline,
-            select: selectIncTimeline,
-        });
-        return sendItemResponse(req, res, timeline);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const incidentData = await IncidentService.findOneBy({
+                query: { slug: incidentSlug },
+                select: '_id',
+            });
+            // setting limit to one
+            // since the frontend only need the last content (current content)
+            // of incident timeline
+            const { skip = 0, limit = 1 } = req.query;
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
+            const timeline = await IncidentTimelineService.findBy({
+                query: { incidentId: incidentData._id },
+                skip,
+                limit,
+                populate: populateIncTimeline,
+                select: selectIncTimeline,
+            });
+            return sendItemResponse(req, res, timeline);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/:projectId/:statusPageSlug/timelines',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
             const incidents = await StatusPageService.getNotes({
                 slug: statusPageSlug,
             });
-            const response = await IncidentTimelineService.getIncidentLastTimelines(
-                incidents.notes
-            );
+            const response =
+                await IncidentTimelineService.getIncidentLastTimelines(
+                    incidents.notes
+                );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -1648,59 +1681,65 @@ router.get(
 //get subscribers by monitorId in a statuspage
 // req.params-> {projectId, monitorId, statusPageId};
 // Returns: response subscribers, error message
-router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageId } = req.params;
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 10;
-        const populateStatusPage = [
-            { path: 'monitors.monitor', select: '_id' },
-        ];
+router.get(
+    '/:projectId/monitor/:statusPageId',
+    checkUser,
+    async function (req, res) {
+        try {
+            const { statusPageId } = req.params;
+            const skip = req.query.skip || 0;
+            const limit = req.query.limit || 10;
+            const populateStatusPage = [
+                { path: 'monitors.monitor', select: '_id' },
+            ];
 
-        const statusPage = await StatusPageService.findOneBy({
-            query: { _id: statusPageId },
-            select: 'monitors',
-            populate: populateStatusPage,
-        });
+            const statusPage = await StatusPageService.findOneBy({
+                query: { _id: statusPageId },
+                select: 'monitors',
+                populate: populateStatusPage,
+            });
 
-        const monitors = statusPage.monitors.map(
-            (mon: $TSFixMe) => mon.monitor._id
-        );
-        const populate = [
-            { path: 'projectId', select: 'name _id' },
-            { path: 'monitorId', select: 'name _id' },
-            { path: 'statusPageId', select: 'name _id' },
-        ];
-        const select =
-            '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
+            const monitors = statusPage.monitors.map(
+                (mon: $TSFixMe) => mon.monitor._id
+            );
+            const populate = [
+                { path: 'projectId', select: 'name _id' },
+                { path: 'monitorId', select: 'name _id' },
+                { path: 'statusPageId', select: 'name _id' },
+            ];
+            const select =
+                '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
 
-        const [subscribers, count] = await Promise.all([
-            SubscriberService.findBy({
-                query: {
+            const [subscribers, count] = await Promise.all([
+                SubscriberService.findBy({
+                    query: {
+                        monitorId: monitors,
+                    },
+                    skip,
+                    limit,
+                    select,
+                    populate,
+                }),
+                SubscriberService.countBy({
                     monitorId: monitors,
-                },
+                }),
+            ]);
+            return sendItemResponse(req, res, {
+                subscribers,
                 skip,
                 limit,
-                select,
-                populate,
-            }),
-            SubscriberService.countBy({
-                monitorId: monitors,
-            }),
-        ]);
-        return sendItemResponse(req, res, { subscribers, skip, limit, count });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+                count,
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/:projectId/createExternalstatus-page/:statusPageId',
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, statusPageId } = req.params;
             const { name, url } = req.body;
@@ -1741,13 +1780,11 @@ router.post(
             const nameQuery = { name };
             const urlQuery = { url };
 
-            const existingExternalStatusPageId = await StatusPageService.getExternalStatusPage(
-                nameQuery
-            );
+            const existingExternalStatusPageId =
+                await StatusPageService.getExternalStatusPage(nameQuery);
 
-            const existingExternalStatusPageUrl = await StatusPageService.getExternalStatusPage(
-                urlQuery
-            );
+            const existingExternalStatusPageUrl =
+                await StatusPageService.getExternalStatusPage(urlQuery);
             if (existingExternalStatusPageId.length > 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -1815,7 +1852,7 @@ router.post(
 router.post(
     '/:projectId/updateExternalstatus-page/:externalStatusPageId',
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, externalStatusPageId } = req.params;
             const { name, url } = req.body;
@@ -1909,7 +1946,7 @@ router.post(
 router.get(
     '/:projectId/fetchExternalStatusPages/:statusPageId',
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, statusPageId } = req.params;
 
@@ -1943,7 +1980,7 @@ router.get(
 router.post(
     '/:projectId/deleteExternalstatus-page/:externalStatusPageId',
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, externalStatusPageId } = req.params;
 
@@ -1977,59 +2014,60 @@ router.post(
     }
 );
 
-router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { projectId, statusPageId } = req.params;
-        const { data } = req.body;
+router.post(
+    '/:projectId/announcement/:statusPageId',
+    checkUser,
+    async function (req, res) {
+        try {
+            const { projectId, statusPageId } = req.params;
+            const { data } = req.body;
 
-        data.createdById = req.user ? req.user.id : null;
+            data.createdById = req.user ? req.user.id : null;
 
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "Values can't be null",
-            });
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Announcement name is required.',
+                });
+            }
+
+            // data.monitors should be an array containing id of monitor(s)
+            if (data.monitors && !Array.isArray(data.monitors)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Monitors is not of type array',
+                });
+            }
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+
+            data.projectId = projectId;
+            data.statusPageId = statusPageId;
+            const response = await StatusPageService.createAnnouncement(data);
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (!data.name || !data.name.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Announcement name is required.',
-            });
-        }
-
-        // data.monitors should be an array containing id of monitor(s)
-        if (data.monitors && !Array.isArray(data.monitors)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitors is not of type array',
-            });
-        }
-
-        if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID is required.',
-            });
-        }
-
-        data.projectId = projectId;
-        data.statusPageId = statusPageId;
-        const response = await StatusPageService.createAnnouncement(data);
-
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.put(
     '/:projectId/announcement/:statusPageId/:announcementId',
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, statusPageId, announcementId } = req.params;
             const { data } = req.body;
@@ -2115,7 +2153,7 @@ router.put(
 router.get(
     '/:projectId/announcementLogs/:statusPageId',
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageId } = req.params;
             const { skip, limit, theme } = req.query;
@@ -2155,37 +2193,38 @@ router.get(
     }
 );
 
-router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
-    req,
-    res
-) {
-    try {
-        const { projectId, statusPageId } = req.params;
-        const { skip, limit, show } = req.query;
-        const query = { projectId, statusPageId };
+router.get(
+    '/:projectId/announcement/:statusPageId',
+    checkUser,
+    async function (req, res) {
+        try {
+            const { projectId, statusPageId } = req.params;
+            const { skip, limit, show } = req.query;
+            const query = { projectId, statusPageId };
 
-        if (show) query.hideAnnouncement = false;
+            if (show) query.hideAnnouncement = false;
 
-        const [allAnnouncements, count] = await Promise.all([
-            StatusPageService.getAnnouncements(query, skip, limit),
-            StatusPageService.countAnnouncements(query),
-        ]);
+            const [allAnnouncements, count] = await Promise.all([
+                StatusPageService.getAnnouncements(query, skip, limit),
+                StatusPageService.countAnnouncements(query),
+            ]);
 
-        return sendItemResponse(req, res, {
-            allAnnouncements,
-            skip,
-            limit,
-            count,
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, {
+                allAnnouncements,
+                skip,
+                limit,
+                count,
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/:projectId/announcement/:statusPageSlug/single/:announcementSlug',
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, statusPageSlug, announcementSlug } = req.params;
 
@@ -2208,7 +2247,7 @@ router.get(
 router.delete(
     `/:projectId/announcement/:announcementId/delete`,
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, announcementId } = req.params;
 
@@ -2230,7 +2269,7 @@ router.delete(
 router.delete(
     `/:projectId/announcementLog/:announcementLogId/delete`,
     checkUser,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { announcementLogId } = req.params;
 
@@ -2321,7 +2360,7 @@ router.get(
     '/resources/:statusPageSlug/ongoing-events',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2349,7 +2388,7 @@ router.get(
     '/resources/:statusPageSlug/future-events',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2373,7 +2412,7 @@ router.get(
     '/resources/:statusPageSlug/past-events',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2397,7 +2436,7 @@ router.get(
     '/resources/:statusPageSlug/probes',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2421,7 +2460,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-logs',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2445,7 +2484,7 @@ router.get(
     '/resources/:statusPageSlug/announcements',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2475,7 +2514,7 @@ router.get(
     '/resources/:statusPageSlug/announcement-logs',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2499,7 +2538,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-timelines',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2523,7 +2562,7 @@ router.get(
     '/resources/:statusPageSlug/statuspage-notes',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2553,7 +2592,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-statuses',
     checkUser,
     ipWhitelist,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageSlug } = req.params;
             const { range } = req.query;

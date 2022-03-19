@@ -33,15 +33,15 @@ export const resetResetPassword = () => {
 };
 
 export function resetPassword(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/forgot-password', values);
         dispatch(resetPasswordRequest(promise));
 
         promise.then(
-            function(data) {
+            function (data) {
                 dispatch(resetPasswordSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

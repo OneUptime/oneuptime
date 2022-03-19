@@ -4,7 +4,7 @@ export default {
     SMS: 'sms',
     Push: 'push',
     Webhook: 'webhook',
-    getAlertChargeAmount: function(type: $TSFixMe, country: $TSFixMe) {
+    getAlertChargeAmount: function (type: $TSFixMe, country: $TSFixMe) {
         if (type === 'sms') {
             if (country === 'us') {
                 return {
@@ -102,7 +102,7 @@ export default {
             } else return {};
         } else return {};
     },
-    getCountryType: function(phoneNumber: $TSFixMe) {
+    getCountryType: function (phoneNumber: $TSFixMe) {
         if (phoneNumber.startsWith('+1') || phoneNumber.startsWith('+44')) {
             //return us for canadian,us and uk numbers
             return 'us';

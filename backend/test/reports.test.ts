@@ -29,68 +29,80 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 const endDate = moment().format('YYYY-MM-DD');
-const startDate = moment()
-    .subtract(7, 'd')
-    .format('YYYY-MM-DD');
+const startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
 const filter = 'month';
 
-describe('Reports API', function() {
+describe('Reports API', function () {
     this.timeout(20000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    ComponentModel.create({
-                                        name: 'Test Component',
-                                    }).then(component => {
-                                        request
-                                            .post(`/monitor/${projectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({
-                                                ...monitor,
-                                                componentId: component._id,
-                                            })
-                                            .end(function(
-                                                err: $TSFixMe,
-                                                res: Response
-                                            ) {
-                                                monitorId = res.body._id;
-                                                done();
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
+                                            err: $TSFixMe,
+                                            res: Response
+                                        ) {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            const authorization = `Basic ${token}`;
+                                            ComponentModel.create({
+                                                name: 'Test Component',
+                                            }).then(component => {
+                                                request
+                                                    .post(
+                                                        `/monitor/${projectId}`
+                                                    )
+                                                    .set(
+                                                        'Authorization',
+                                                        authorization
+                                                    )
+                                                    .send({
+                                                        ...monitor,
+                                                        componentId:
+                                                            component._id,
+                                                    })
+                                                    .end(function (
+                                                        err: $TSFixMe,
+                                                        res: Response
+                                                    ) {
+                                                        monitorId =
+                                                            res.body._id;
+                                                        done();
+                                                    });
                                             });
-                                    });
+                                        });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({

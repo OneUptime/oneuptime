@@ -93,39 +93,38 @@ export const resetConfirmLicense = () => {
 };
 
 // Calls the API to confirm license
-export const confirmLicense = (values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(confirmLicenseRequest());
+export const confirmLicense =
+    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(confirmLicenseRequest());
 
-    try {
-        const response = await postApi('license/validate/', values, true);
+        try {
+            const response = await postApi('license/validate/', values, true);
 
-        let data = response.data;
-        if (data.token) {
-            const response = await postApi('globalConfig/', [
-                { name: 'licenseKey', value: values.license },
-                { name: 'licenseEmail', value: values.email },
-                { name: 'licenseToken', value: data.token },
-            ]);
+            let data = response.data;
+            if (data.token) {
+                const response = await postApi('globalConfig/', [
+                    { name: 'licenseKey', value: values.license },
+                    { name: 'licenseEmail', value: values.email },
+                    { name: 'licenseToken', value: data.token },
+                ]);
 
-            data = response.data;
+                data = response.data;
+            }
+            dispatch(confirmLicenseSuccess(data));
+            return data;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(confirmLicenseError(errors(errorMsg)));
+            return 'error';
         }
-        dispatch(confirmLicenseSuccess(data));
-        return data;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
-        }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(confirmLicenseError(errors(errorMsg)));
-        return 'error';
-    }
-};
+    };

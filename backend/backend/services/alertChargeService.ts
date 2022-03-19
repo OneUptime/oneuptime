@@ -1,5 +1,5 @@
 export default {
-    create: async function(
+    create: async function (
         projectId: $TSFixMe,
         chargeAmount: $TSFixMe,
         balanceAfterAlertSent: $TSFixMe,
@@ -29,7 +29,7 @@ export default {
         alertCharge.save();
         return alertCharge;
     },
-    findBy: async function({
+    findBy: async function ({
         query,
         skip,
         limit,

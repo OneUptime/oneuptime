@@ -46,35 +46,35 @@ router.post(
 );
 
 // Mark alert as viewed
-router.get('/:projectId/:alertId/viewed', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const alertId = req.params.alertId;
-        const projectId = req.params.projectId;
+router.get(
+    '/:projectId/:alertId/viewed',
+    async function (req: Request, res: Response) {
+        try {
+            const alertId = req.params.alertId;
+            const projectId = req.params.projectId;
 
-        await SubscriberAlertService.updateOneBy(
-            { _id: alertId, projectId: projectId },
-            { alertStatus: 'Viewed' }
-        );
-        const filePath = path.join(
-            __dirname,
-            '..',
-            '..',
-            'views',
-            'img',
-            'vou-wb.png'
-        );
-        const img = fs.readFileSync(filePath);
+            await SubscriberAlertService.updateOneBy(
+                { _id: alertId, projectId: projectId },
+                { alertStatus: 'Viewed' }
+            );
+            const filePath = path.join(
+                __dirname,
+                '..',
+                '..',
+                'views',
+                'img',
+                'vou-wb.png'
+            );
+            const img = fs.readFileSync(filePath);
 
-        res.set('Content-Type', 'image/png');
-        res.status(200);
-        res.end(img, 'binary');
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            res.set('Content-Type', 'image/png');
+            res.status(200);
+            res.end(img, 'binary');
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // get subscribers alerts by projectId
 // req.params-> {projectId};
@@ -89,8 +89,7 @@ router.get('/:projectId', async (req: Request, res: Response) => {
             { path: 'projectId', select: 'name' },
             {
                 path: 'subscriberId',
-                select:
-                    'name contactEmail contactPhone contactWebhook countryCode',
+                select: 'name contactEmail contactPhone contactWebhook countryCode',
             },
         ];
         const select =
@@ -138,8 +137,7 @@ router.get(
                     { path: 'projectId', select: 'name' },
                     {
                         path: 'subscriberId',
-                        select:
-                            'name contactEmail contactPhone contactWebhook countryCode',
+                        select: 'name contactEmail contactPhone contactWebhook countryCode',
                     },
                 ];
                 const select =

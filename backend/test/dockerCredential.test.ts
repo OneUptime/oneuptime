@@ -19,7 +19,7 @@ import ProjectService from '../backend/services/projectService';
 import DockerCredentialService from '../backend/services/dockerCredentialService';
 import AirtableService from '../backend/services/airtableService';
 
-describe('Docker Credential API', function() {
+describe('Docker Credential API', function () {
     const timeout = 30000;
     let projectId: $TSFixMe, userId, token: $TSFixMe, credentialId: $TSFixMe;
     const dockerRegistryUrl = dockerCredential.dockerRegistryUrl;
@@ -28,7 +28,7 @@ describe('Docker Credential API', function() {
 
     this.timeout(timeout);
 
-    before(async function() {
+    before(async function () {
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
         const project = res.body.project;
@@ -47,7 +47,7 @@ describe('Docker Credential API', function() {
         token = res1.body.tokens.jwtAccessToken;
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -59,7 +59,7 @@ describe('Docker Credential API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should add docker credential', async function() {
+    it('should add docker credential', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -74,7 +74,7 @@ describe('Docker Credential API', function() {
         expect(res.body.dockerRegistryUrl).to.be.equal(dockerRegistryUrl);
     });
 
-    it('should update a docker credential', async function() {
+    it('should update a docker credential', async function () {
         const authorization = `Basic ${token}`;
         const dockerUsername = 'username';
         const dockerPassword = 'hello1234567890';
@@ -91,7 +91,7 @@ describe('Docker Credential API', function() {
         expect(res.body.dockerUsername).to.be.equal(dockerUsername);
     });
 
-    it('should not update docker credential with invalid username or password', async function() {
+    it('should not update docker credential with invalid username or password', async function () {
         const authorization = `Basic ${token}`;
         const dockerUsername = 'randomUsername';
         const dockerPassword = 'randomPassword';
@@ -103,7 +103,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Invalid docker credential');
     });
 
-    it('should not add docker credential if username or password is invalid', async function() {
+    it('should not add docker credential if username or password is invalid', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -117,7 +117,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Invalid docker credential');
     });
 
-    it('should remove a docker credential', async function() {
+    it('should remove a docker credential', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
             .delete(`/credential/${projectId}/dockerCredential/${credentialId}`)
@@ -127,7 +127,7 @@ describe('Docker Credential API', function() {
         expect(res.body.deleted).to.be.true;
     });
 
-    it('should get all the docker credentials in a project', async function() {
+    it('should get all the docker credentials in a project', async function () {
         const authorization = `Basic ${token}`;
         await request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -144,7 +144,7 @@ describe('Docker Credential API', function() {
         expect(res.body).to.be.an('array');
     });
 
-    it('should not create docker credential with an existing docker registry url and docker username in a project', async function() {
+    it('should not create docker credential with an existing docker registry url and docker username in a project', async function () {
         const authorization = `Basic ${token}`;
 
         const res = await request
@@ -161,7 +161,7 @@ describe('Docker Credential API', function() {
         );
     });
 
-    it('should not create docker credential if docker registry url is missing', async function() {
+    it('should not create docker credential if docker registry url is missing', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -175,7 +175,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Docker Registry URL is required');
     });
 
-    it('should not create docker credential if docker username is missing', async function() {
+    it('should not create docker credential if docker username is missing', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -189,7 +189,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Docker Username is required');
     });
 
-    it('should not create docker credential if docker password is missing', async function() {
+    it('should not create docker credential if docker password is missing', async function () {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/credential/${projectId}/dockerCredential`)
@@ -202,7 +202,7 @@ describe('Docker Credential API', function() {
         expect(res.body.message).to.be.equal('Docker Password is required');
     });
 
-    it('should not remove a non-existing docker credential', async function() {
+    it('should not remove a non-existing docker credential', async function () {
         const authorization = `Basic ${token}`;
         const newCredentialId = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
         const res = await request

@@ -22,31 +22,30 @@ export const fetchSsosError = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchSsos = (skip: $TSFixMe, limit: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
-    dispatch(fetchSsosRequest());
-    try {
-        const response = await getApi(`sso/?skip=${skip}&limit=${limit}`);
+export const fetchSsos =
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
+        dispatch(fetchSsosRequest());
+        try {
+            const response = await getApi(`sso/?skip=${skip}&limit=${limit}`);
 
-        dispatch(fetchSsosSuccess(response.data));
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchSsosSuccess(response.data));
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchSsosError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchSsosError(errors(errorMsg)));
-    }
-};
+    };
 
 export const fetchSsoRequest = () => {
     return {
@@ -149,26 +148,28 @@ export const addSsoError = (payload: $TSFixMe) => {
     };
 };
 
-export const addSso = ({ data }: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(addSsoRequest());
-    try {
-        await postApi(`sso/`, data);
-        dispatch(addSsoSuccess());
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+export const addSso =
+    ({ data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(addSsoRequest());
+        try {
+            await postApi(`sso/`, data);
+            dispatch(addSsoSuccess());
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(addSsoError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(addSsoError(errorMsg));
-    }
-};
+    };
 
 export const updateSsoRequest = () => {
     return {
@@ -189,25 +190,25 @@ export const updateSsoError = (payload: $TSFixMe) => {
     };
 };
 
-export const updateSso = ({ id, data }: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(updateSsoRequest());
-    try {
-        await putApi(`sso/${id}`, data);
-        dispatch(updateSsoSuccess());
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+export const updateSso =
+    ({ id, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(updateSsoRequest());
+        try {
+            await putApi(`sso/${id}`, data);
+            dispatch(updateSsoSuccess());
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(updateSsoError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(updateSsoError(errorMsg));
-    }
-};
+    };

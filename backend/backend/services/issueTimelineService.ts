@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
 
         // prepare issue timeline model

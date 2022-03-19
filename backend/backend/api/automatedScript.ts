@@ -16,29 +16,31 @@ import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId } = req.params;
-        const { skip, limit } = req.query;
-        const selectScript =
-            'name script scriptType slug projectId successEvent failureEvent';
-        const [scripts, count] = await Promise.all([
-            AutomatedScriptService.findBy({
-                query: { projectId },
-                skip,
-                limit,
-                select: selectScript,
-            }),
-            AutomatedScriptService.countBy({ projectId }),
-        ]);
-        return sendListResponse(req, res, scripts, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId } = req.params;
+            const { skip, limit } = req.query;
+            const selectScript =
+                'name script scriptType slug projectId successEvent failureEvent';
+            const [scripts, count] = await Promise.all([
+                AutomatedScriptService.findBy({
+                    query: { projectId },
+                    skip,
+                    limit,
+                    select: selectScript,
+                }),
+                AutomatedScriptService.countBy({ projectId }),
+            ]);
+            return sendListResponse(req, res, scripts, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/:projectId/:automatedSlug',
@@ -250,7 +252,7 @@ router.delete(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, automatedSlug } = req.params;
             const query = {

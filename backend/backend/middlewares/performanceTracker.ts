@@ -3,7 +3,7 @@ import PerformanceTrackerService from '../services/performanceTrackerService';
 import { sendErrorResponse } from 'common-server/utils/response';
 
 const _this = {
-    isValidAPIKey: async function(
+    isValidAPIKey: async function (
         req: Request,
         res: Response,
         next: NextFunction
@@ -18,11 +18,10 @@ const _this = {
             }
 
             // check if there's a performance tracker with the key
-            const performanceTrackerCount = await PerformanceTrackerService.countBy(
-                {
+            const performanceTrackerCount =
+                await PerformanceTrackerService.countBy({
                     key,
-                }
-            );
+                });
             if (performanceTrackerCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,

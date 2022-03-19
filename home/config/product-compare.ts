@@ -12,20 +12,17 @@ export default (product: $TSFixMe) => {
             faq: [
                 {
                     question: 'How does OneUptime compare with PagerDuty?',
-                    answer:
-                        'PagerDuty is an incident management and on call tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that PagerDuty offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                    answer: 'PagerDuty is an incident management and on call tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that PagerDuty offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:
                         'Do I need to buy a monitoring solution to monitor my resources?',
-                    answer:
-                        'PagerDuty needs a seperate monitoring solution that you need to buy which then sends data to PagerDuty for on call and incident management. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
+                    answer: 'PagerDuty needs a seperate monitoring solution that you need to buy which then sends data to PagerDuty for on call and incident management. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
                 },
                 {
                     question:
                         'I have already bought an external monitoring solution. Will OneUptime work with it?',
-                    answer:
-                        'Yes! We integrate with every single monitoring solution in the market - like Pingdom, UptimeRobot, DataDog, Site 24x7 and more.',
+                    answer: 'Yes! We integrate with every single monitoring solution in the market - like Pingdom, UptimeRobot, DataDog, Site 24x7 and more.',
                 },
             ],
             items: [
@@ -175,20 +172,17 @@ export default (product: $TSFixMe) => {
             faq: [
                 {
                     question: 'How does OneUptime compare with StatusPage.io?',
-                    answer:
-                        'StatusPage.io is a status page tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that StatusPage.io offers, but a lot more like monitoring, incident management, on-call scheduling, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                    answer: 'StatusPage.io is a status page tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that StatusPage.io offers, but a lot more like monitoring, incident management, on-call scheduling, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:
                         'Do I need to buy a monitoring solution to monitor my resources?',
-                    answer:
-                        'StatusPage.io needs a seperate monitoring solution that you need to buy which then sends data to StatusPage.io. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
+                    answer: 'StatusPage.io needs a seperate monitoring solution that you need to buy which then sends data to StatusPage.io. OneUptime has a built in monitoring solution as well. You use one product, your team has one dashboard, save time, simplify ops.',
                 },
                 {
                     question:
                         'I have already bought an external monitoring solution. Will OneUptime work with it?',
-                    answer:
-                        'Yes! We integrate with every single monitoring solution in the market - like Pingdom, UptimeRobot, DataDog, Site 24x7 and more.',
+                    answer: 'Yes! We integrate with every single monitoring solution in the market - like Pingdom, UptimeRobot, DataDog, Site 24x7 and more.',
                 },
             ],
             items: [
@@ -338,20 +332,17 @@ export default (product: $TSFixMe) => {
             faq: [
                 {
                     question: 'How does OneUptime compare with Pingdom?',
-                    answer:
-                        'Pingdom is an monitoring tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that Pingdom offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                    answer: 'Pingdom is an monitoring tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that Pingdom offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:
                         'Do I need to buy an incident managemnrt and on-call solution for alerts?',
-                    answer:
-                        'Pingdom is a monitoring solution and you need to buy an on-call solution and incident management solution which Pingdom sends data to. OneUptime has a built in monitoring, on-cal and incident management. You use one product, your team has one dashboard, save time, simplify ops.',
+                    answer: 'Pingdom is a monitoring solution and you need to buy an on-call solution and incident management solution which Pingdom sends data to. OneUptime has a built in monitoring, on-cal and incident management. You use one product, your team has one dashboard, save time, simplify ops.',
                 },
                 {
                     question:
                         'I have already bought an external on-call and incident management solution. Will OneUptime work with it?',
-                    answer:
-                        'Yes! We integrate with every single on-call and incident management solution in the market - like PagerDuty, OpsGenie and more.',
+                    answer: 'Yes! We integrate with every single on-call and incident management solution in the market - like PagerDuty, OpsGenie and more.',
                 },
             ],
             items: [

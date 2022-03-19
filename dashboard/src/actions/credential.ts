@@ -16,30 +16,30 @@ export const addGitCredentialFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const addGitCredential = ({ projectId, data }: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(addGitCredentialRequest());
+export const addGitCredential =
+    ({ projectId, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(addGitCredentialRequest());
 
-    try {
-        const response = await postApi(
-            `credential/${projectId}/gitCredential`,
-            data
-        );
+        try {
+            const response = await postApi(
+                `credential/${projectId}/gitCredential`,
+                data
+            );
 
-        dispatch(addGitCredentialSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(addGitCredentialFailure(errorMsg));
-    }
-};
+            dispatch(addGitCredentialSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(addGitCredentialFailure(errorMsg));
+        }
+    };
 
 // Edit and update Git Credential
 export const updateGitCredentialRequest = () => ({
@@ -56,32 +56,30 @@ export const updateGitCredentialFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const updateGitCredential = ({
-    projectId,
-    credentialId,
-    data,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(updateGitCredentialRequest());
+export const updateGitCredential =
+    ({ projectId, credentialId, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(updateGitCredentialRequest());
 
-    try {
-        const response = await putApi(
-            `credential/${projectId}/gitCredential/${credentialId}`,
-            data
-        );
+        try {
+            const response = await putApi(
+                `credential/${projectId}/gitCredential/${credentialId}`,
+                data
+            );
 
-        dispatch(updateGitCredentialSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(updateGitCredentialFailure(errorMsg));
-    }
-};
+            dispatch(updateGitCredentialSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateGitCredentialFailure(errorMsg));
+        }
+    };
 
 // Get Git Credential
 export const getGitCredentialsRequest = () => ({
@@ -98,27 +96,29 @@ export const getGitCredentialsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getGitCredentials = ({ projectId }: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(getGitCredentialsRequest());
+export const getGitCredentials =
+    ({ projectId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getGitCredentialsRequest());
 
-    try {
-        const response = await getApi(`credential/${projectId}/gitCredential`);
+        try {
+            const response = await getApi(
+                `credential/${projectId}/gitCredential`
+            );
 
-        dispatch(getGitCredentialsSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getGitCredentialsFailure(errorMsg));
-    }
-};
+            dispatch(getGitCredentialsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getGitCredentialsFailure(errorMsg));
+        }
+    };
 
 // Delete Git Credential
 export const deleteGitCredentialRequest = () => ({
@@ -135,31 +135,30 @@ export const deleteGitCredentialFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteGitCredential = ({
-    projectId,
-    credentialId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(deleteGitCredentialRequest());
+export const deleteGitCredential =
+    ({ projectId, credentialId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(deleteGitCredentialRequest());
 
-    try {
-        const response = await deleteApi(
-            `credential/${projectId}/gitCredential/${credentialId}`
-        );
+        try {
+            const response = await deleteApi(
+                `credential/${projectId}/gitCredential/${credentialId}`
+            );
 
-        dispatch(deleteGitCredentialSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+            dispatch(deleteGitCredentialSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
 
-        dispatch(deleteGitCredentialFailure(errorMsg));
-    }
-};
+            dispatch(deleteGitCredentialFailure(errorMsg));
+        }
+    };
 
 // Get securities based on git credential
 export const getGitSecuritiesRequest = () => ({
@@ -176,31 +175,30 @@ export const getGitSecuritiesFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getGitSecurities = ({
-    projectId,
-    credentialId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getGitSecuritiesRequest());
+export const getGitSecurities =
+    ({ projectId, credentialId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getGitSecuritiesRequest());
 
-    try {
-        const response = await getApi(
-            `security/${projectId}/application/${credentialId}`
-        );
+        try {
+            const response = await getApi(
+                `security/${projectId}/application/${credentialId}`
+            );
 
-        dispatch(getGitSecuritiesSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+            dispatch(getGitSecuritiesSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
 
-        dispatch(getGitSecuritiesFailure(errorMsg));
-    }
-};
+            dispatch(getGitSecuritiesFailure(errorMsg));
+        }
+    };
 
 // Add Docker Credential
 export const addDockerCredentialRequest = () => ({
@@ -217,30 +215,30 @@ export const addDockerCredentialFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const addDockerCredential = ({ projectId, data }: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(addDockerCredentialRequest());
+export const addDockerCredential =
+    ({ projectId, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(addDockerCredentialRequest());
 
-    try {
-        const response = await postApi(
-            `credential/${projectId}/dockerCredential`,
-            data
-        );
+        try {
+            const response = await postApi(
+                `credential/${projectId}/dockerCredential`,
+                data
+            );
 
-        dispatch(addDockerCredentialSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(addDockerCredentialFailure(errorMsg));
-    }
-};
+            dispatch(addDockerCredentialSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(addDockerCredentialFailure(errorMsg));
+        }
+    };
 
 // Edit and update Docker Credential
 export const updateDockerCredentialRequest = () => ({
@@ -257,32 +255,30 @@ export const updateDockerCredentialFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const updateDockerCredential = ({
-    projectId,
-    credentialId,
-    data,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(updateDockerCredentialRequest());
+export const updateDockerCredential =
+    ({ projectId, credentialId, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(updateDockerCredentialRequest());
 
-    try {
-        const response = await putApi(
-            `credential/${projectId}/dockerCredential/${credentialId}`,
-            data
-        );
+        try {
+            const response = await putApi(
+                `credential/${projectId}/dockerCredential/${credentialId}`,
+                data
+            );
 
-        dispatch(updateDockerCredentialSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(updateDockerCredentialFailure(errorMsg));
-    }
-};
+            dispatch(updateDockerCredentialSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateDockerCredentialFailure(errorMsg));
+        }
+    };
 
 // Get Docker Credential
 export const getDockerCredentialsRequest = () => ({
@@ -299,29 +295,29 @@ export const getDockerCredentialsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getDockerCredentials = ({ projectId }: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(getDockerCredentialsRequest());
+export const getDockerCredentials =
+    ({ projectId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getDockerCredentialsRequest());
 
-    try {
-        const response = await getApi(
-            `credential/${projectId}/dockerCredential`
-        );
+        try {
+            const response = await getApi(
+                `credential/${projectId}/dockerCredential`
+            );
 
-        dispatch(getDockerCredentialsSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getDockerCredentialsFailure(errorMsg));
-    }
-};
+            dispatch(getDockerCredentialsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getDockerCredentialsFailure(errorMsg));
+        }
+    };
 
 // Delete Docker Credential
 export const deleteDockerCredentialRequest = () => ({
@@ -338,31 +334,30 @@ export const deleteDockerCredentialFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteDockerCredential = ({
-    projectId,
-    credentialId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(deleteDockerCredentialRequest());
+export const deleteDockerCredential =
+    ({ projectId, credentialId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(deleteDockerCredentialRequest());
 
-    try {
-        const response = await deleteApi(
-            `credential/${projectId}/dockerCredential/${credentialId}`
-        );
+        try {
+            const response = await deleteApi(
+                `credential/${projectId}/dockerCredential/${credentialId}`
+            );
 
-        dispatch(deleteDockerCredentialSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+            dispatch(deleteDockerCredentialSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
 
-        dispatch(deleteDockerCredentialFailure(errorMsg));
-    }
-};
+            dispatch(deleteDockerCredentialFailure(errorMsg));
+        }
+    };
 
 // Get securities based on docker credential
 export const getDockerSecuritiesRequest = () => ({
@@ -379,28 +374,27 @@ export const getDockerSecuritiesFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getDockerSecurities = ({
-    projectId,
-    credentialId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getDockerSecuritiesRequest());
+export const getDockerSecurities =
+    ({ projectId, credentialId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getDockerSecuritiesRequest());
 
-    try {
-        const response = await getApi(
-            `security/${projectId}/container/${credentialId}`
-        );
+        try {
+            const response = await getApi(
+                `security/${projectId}/container/${credentialId}`
+            );
 
-        dispatch(getDockerSecuritiesSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+            dispatch(getDockerSecuritiesSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
 
-        dispatch(getDockerSecuritiesFailure(errorMsg));
-    }
-};
+            dispatch(getDockerSecuritiesFailure(errorMsg));
+        }
+    };

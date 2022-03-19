@@ -171,10 +171,10 @@ describe('StatusPage API With SubProjects', () => {
                 `#cb${statuspageName}`,
                 { visible: true, timeout: init.timeout }
             );
-            statusPageNameOnStatusPage = await statusPageNameOnStatusPage.getProperty(
-                'innerText'
-            );
-            statusPageNameOnStatusPage = await statusPageNameOnStatusPage.jsonValue();
+            statusPageNameOnStatusPage =
+                await statusPageNameOnStatusPage.getProperty('innerText');
+            statusPageNameOnStatusPage =
+                await statusPageNameOnStatusPage.jsonValue();
             expect(statuspageName).toMatch(statusPageNameOnStatusPage);
 
             done();

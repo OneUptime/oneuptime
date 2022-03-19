@@ -36,8 +36,8 @@ export default {
                 },
             ];
 
-            const notAcknowledgedCallScheduleStatuses = await OnCallScheduleStatusService.findBy(
-                {
+            const notAcknowledgedCallScheduleStatuses =
+                await OnCallScheduleStatusService.findBy({
                     query: {
                         incidentAcknowledged: false,
                         alertedEveryone: false,
@@ -46,8 +46,7 @@ export default {
                     skip: 0,
                     select: selectOnCallScheduleStatus,
                     populate: populateOnCallScheduleStatus,
-                }
-            );
+                });
 
             for (const notAcknowledgedCallScheduleStatus of notAcknowledgedCallScheduleStatuses) {
                 if (!notAcknowledgedCallScheduleStatus) {

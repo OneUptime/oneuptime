@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const iv = Crypto.randomBytes(16);
         data.pass = await EncryptDecrypt.encrypt(data.pass, iv);
         const emailSmtpModel = new EmailSmtpModel();
@@ -40,7 +40,7 @@ export default {
         return emailSmtp;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -72,7 +72,7 @@ export default {
         return updatedEmailSmtp;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -101,7 +101,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const emailSmtp = await EmailSmtpModel.findOneAndUpdate(
             query,
             {
@@ -118,7 +118,13 @@ export default {
         return emailSmtp;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -160,7 +166,7 @@ export default {
         return emailSmtp;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -186,7 +192,7 @@ export default {
         return emailSmtp;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -196,7 +202,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await EmailSmtpModel.deleteMany(query);
         return 'Email Smtp(s) removed successfully';
     },

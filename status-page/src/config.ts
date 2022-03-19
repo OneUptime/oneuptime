@@ -136,7 +136,7 @@ export const bindRaf = (fn: $TSFixMe) => {
         fn(...args);
     };
 
-    return function(...invokingArguments: $TSFixMe[]) {
+    return function (...invokingArguments: $TSFixMe[]) {
         args = invokingArguments;
 
         if (isRunning) {

@@ -6,7 +6,7 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    findBy: async function({
+    findBy: async function ({
         query,
         limit,
         skip,
@@ -38,7 +38,7 @@ export default {
         return escalations;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -58,7 +58,7 @@ export default {
         return escalation;
     },
 
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const escalationModel = new EscalationModel({
             call: data.call,
             email: data.email,
@@ -83,7 +83,7 @@ export default {
         return escalation;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -93,7 +93,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const escalation = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -110,7 +110,7 @@ export default {
         return escalation;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -128,7 +128,7 @@ export default {
         return escalation;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -161,7 +161,7 @@ export default {
         return updatedData;
     },
 
-    deleteEscalationMember: async function(
+    deleteEscalationMember: async function (
         projectId: $TSFixMe,
         memberId: $TSFixMe,
         deletedById: $TSFixMe
@@ -244,12 +244,12 @@ export default {
         }
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await EscalationModel.deleteMany(query);
         return 'Escalation(s) removed successfully';
     },
 
-    restoreBy: async function(query: $TSFixMe) {
+    restoreBy: async function (query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         let escalation = await _this.findBy({ query, select: '_id' });
@@ -297,13 +297,8 @@ function computeActiveTeamIndex(
 }
 
 function computeActiveTeams(escalation: $TSFixMe) {
-    const {
-        teams,
-        rotationInterval,
-        rotateBy,
-        createdAt,
-        rotationTimezone,
-    } = escalation;
+    const { teams, rotationInterval, rotateBy, createdAt, rotationTimezone } =
+        escalation;
 
     let firstRotationOn = escalation.firstRotationOn;
 

@@ -12,196 +12,212 @@ import {
 import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 import RealtimeService from '../services/realtimeService';
 
-router.post('/send-created-incident', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, incident } = req.body;
+router.post(
+    '/send-created-incident',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, incident } = req.body;
 
-        RealtimeService.sendCreatedIncident({ projectId, incident });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendCreatedIncident({ projectId, incident });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-incident-timeline', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, data } = req.body;
+router.post(
+    '/send-incident-timeline',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, data } = req.body;
 
-        RealtimeService.sendIncidentTimeline({ projectId, data });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendIncidentTimeline({ projectId, data });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-sla-countdown', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, incident, countDown } = req.body;
+router.post(
+    '/send-sla-countdown',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, incident, countDown } = req.body;
 
-        RealtimeService.sendSlaCountDown({
-            projectId,
-            incident,
-            countDown,
-        });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendSlaCountDown({
+                projectId,
+                incident,
+                countDown,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/delete-incident', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, incident } = req.body;
+router.post(
+    '/delete-incident',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, incident } = req.body;
 
-        RealtimeService.deleteIncident({ projectId, incident });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.deleteIncident({ projectId, incident });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/add-incident-note', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, incidentNote } = req.body;
+router.post(
+    '/add-incident-note',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, incidentNote } = req.body;
 
-        RealtimeService.addIncidentNote({ projectId, incidentNote });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.addIncidentNote({ projectId, incidentNote });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-incident-note', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, incidentNote } = req.body;
+router.post(
+    '/update-incident-note',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, incidentNote } = req.body;
 
-        RealtimeService.updateIncidentNote({ projectId, incidentNote });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateIncidentNote({ projectId, incidentNote });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-incident-timeline', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { incidentTimeline, projectId } = req.body;
+router.post(
+    '/update-incident-timeline',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { incidentTimeline, projectId } = req.body;
 
-        RealtimeService.updateIncidentTimeline({ incidentTimeline, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateIncidentTimeline({
+                incidentTimeline,
+                projectId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-incident', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { incident, projectId } = req.body;
+router.post(
+    '/update-incident',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { incident, projectId } = req.body;
 
-        RealtimeService.updateIncident({ incident, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateIncident({ incident, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/delete-incident-note', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { incidentNote, projectId } = req.body;
+router.post(
+    '/delete-incident-note',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { incidentNote, projectId } = req.body;
 
-        RealtimeService.deleteIncidentNote({ incidentNote, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.deleteIncidentNote({ incidentNote, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/add-scheduled-event', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { event, projectId } = req.body;
+router.post(
+    '/add-scheduled-event',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { event, projectId } = req.body;
 
-        RealtimeService.addScheduledEvent({ event, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.addScheduledEvent({ event, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/delete-scheduled-event', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { event, projectId } = req.body;
+router.post(
+    '/delete-scheduled-event',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { event, projectId } = req.body;
 
-        RealtimeService.deleteScheduledEvent({ event, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.deleteScheduledEvent({ event, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-scheduled-event', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { event, projectId } = req.body;
+router.post(
+    '/update-scheduled-event',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { event, projectId } = req.body;
 
-        RealtimeService.updateScheduledEvent({ event, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateScheduledEvent({ event, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/resolve-scheduled-event', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { event, projectId } = req.body;
+router.post(
+    '/resolve-scheduled-event',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { event, projectId } = req.body;
 
-        RealtimeService.resolveScheduledEvent({ event, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.resolveScheduledEvent({ event, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/add-scheduled-event-internal-note',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -219,7 +235,7 @@ router.post(
 router.post(
     '/add-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -238,7 +254,7 @@ router.post(
 router.post(
     '/delete-scheduled-event-internal-note',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -256,7 +272,7 @@ router.post(
 router.post(
     '/delete-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -275,7 +291,7 @@ router.post(
 router.post(
     '/update-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -294,7 +310,7 @@ router.post(
 router.post(
     '/update-scheduled-event-internal-note',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -309,290 +325,303 @@ router.post(
     }
 );
 
-router.post('/send-component-created', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { component, projectId } = req.body;
+router.post(
+    '/send-component-created',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { component, projectId } = req.body;
 
-        RealtimeService.sendComponentCreated({ component, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendComponentCreated({ component, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-monitor-created', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { monitor, projectId } = req.body;
+router.post(
+    '/send-monitor-created',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { monitor, projectId } = req.body;
 
-        RealtimeService.sendMonitorCreated({ monitor, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendMonitorCreated({ monitor, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-monitor-delete', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { monitor, projectId } = req.body;
+router.post(
+    '/send-monitor-delete',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { monitor, projectId } = req.body;
 
-        RealtimeService.sendMonitorDelete({ monitor, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendMonitorDelete({ monitor, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-component-delete', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { component, projectId } = req.body;
+router.post(
+    '/send-component-delete',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { component, projectId } = req.body;
 
-        RealtimeService.sendComponentDelete({ component, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendComponentDelete({ component, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/incident-resolved', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { incident, projectId } = req.body;
+router.post(
+    '/incident-resolved',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { incident, projectId } = req.body;
 
-        RealtimeService.incidentResolved({ incident, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.incidentResolved({ incident, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/incident-acknowledged', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { incident, projectId } = req.body;
+router.post(
+    '/incident-acknowledged',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { incident, projectId } = req.body;
 
-        RealtimeService.incidentAcknowledged({ incident, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.incidentAcknowledged({ incident, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/status-page-edit', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { statusPage, projectId } = req.body;
+router.post(
+    '/status-page-edit',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { statusPage, projectId } = req.body;
 
-        RealtimeService.statusPageEdit({ projectId, statusPage });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.statusPageEdit({ projectId, statusPage });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/component-edit', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { component, projectId } = req.body;
+router.post(
+    '/component-edit',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { component, projectId } = req.body;
 
-        RealtimeService.componentEdit({ component, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.componentEdit({ component, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/monitor-edit', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { monitor, projectId } = req.body;
+router.post(
+    '/monitor-edit',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { monitor, projectId } = req.body;
 
-        RealtimeService.monitorEdit({ monitor, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.monitorEdit({ monitor, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-monitor-log', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const {
-            data,
-            logData,
-            projectId,
-            parentProjectId,
-            monitorId,
-        } = req.body;
+router.post(
+    '/update-monitor-log',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { data, logData, projectId, parentProjectId, monitorId } =
+                req.body;
 
-        RealtimeService.updateMonitorLog({
-            data,
-            logData,
-            projectId,
-            parentProjectId,
-            monitorId,
-        });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateMonitorLog({
+                data,
+                logData,
+                projectId,
+                parentProjectId,
+                monitorId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-lighthouse-log', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const body = req.body;
-        const { data, projectId, monitorId, parentProjectId } = body;
+router.post(
+    '/update-lighthouse-log',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const body = req.body;
+            const { data, projectId, monitorId, parentProjectId } = body;
 
-        RealtimeService.updateLighthouseLog({
-            data,
-            projectId,
-            monitorId,
-            parentProjectId,
-        });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateLighthouseLog({
+                data,
+                projectId,
+                monitorId,
+                parentProjectId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-all-lighthouse-log', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, data, parentProjectId, monitorId } = req.body;
+router.post(
+    '/update-all-lighthouse-log',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, data, parentProjectId, monitorId } = req.body;
 
-        RealtimeService.updateAllLighthouseLog({
-            projectId,
-            data,
-            parentProjectId,
-            monitorId,
-        });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateAllLighthouseLog({
+                projectId,
+                data,
+                parentProjectId,
+                monitorId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-monitor-status', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { data, projectId, monitorId, parentProjectId } = req.body;
+router.post(
+    '/update-monitor-status',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { data, projectId, monitorId, parentProjectId } = req.body;
 
-        RealtimeService.updateMonitorStatus({
-            projectId,
-            data,
-            parentProjectId,
-            monitorId,
-        });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateMonitorStatus({
+                projectId,
+                data,
+                parentProjectId,
+                monitorId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-probe', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { data } = req.body;
+router.post(
+    '/update-probe',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { data } = req.body;
 
-        RealtimeService.updateProbe({ data });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateProbe({ data });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-notification', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { data, projectId } = req.body;
+router.post(
+    '/send-notification',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { data, projectId } = req.body;
 
-        RealtimeService.sendNotification({ data, projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendNotification({ data, projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/update-team-member-role', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, data } = req.body;
+router.post(
+    '/update-team-member-role',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, data } = req.body;
 
-        RealtimeService.updateTeamMemberRole({ projectId, data });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateTeamMemberRole({ projectId, data });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/create-team-member', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, data } = req.body;
+router.post(
+    '/create-team-member',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, data } = req.body;
 
-        RealtimeService.createTeamMember({ projectId, data });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.createTeamMember({ projectId, data });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/delete-team-member', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId, data } = req.body;
+router.post(
+    '/delete-team-member',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId, data } = req.body;
 
-        RealtimeService.deleteTeamMember({ projectId, data });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.deleteTeamMember({ projectId, data });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/send-application-log-created',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { applicationLog, componentId } = req.body;
 
@@ -607,55 +636,61 @@ router.post(
     }
 );
 
-router.post('/send-application-log-delete', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { applicationLog, componentId } = req.body;
+router.post(
+    '/send-application-log-delete',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { applicationLog, componentId } = req.body;
 
-        RealtimeService.sendApplicationLogDelete({
-            applicationLog,
-            componentId,
-        });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendApplicationLogDelete({
+                applicationLog,
+                componentId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-log-created', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { contentLog, applicationLogId } = req.body;
+router.post(
+    '/send-log-created',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { contentLog, applicationLogId } = req.body;
 
-        RealtimeService.sendLogCreated({ contentLog, applicationLogId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendLogCreated({ contentLog, applicationLogId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/application-log-key-reset', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { applicationLog, componentId } = req.body;
+router.post(
+    '/application-log-key-reset',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { applicationLog, componentId } = req.body;
 
-        RealtimeService.applicationLogKeyReset({ applicationLog, componentId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.applicationLogKeyReset({
+                applicationLog,
+                componentId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/send-container-security-created',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { containerSecurity, componentId } = req.body;
 
@@ -673,7 +708,7 @@ router.post(
 router.post(
     '/send-application-security-created',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { applicationSecurity, componentId } = req.body;
 
@@ -688,80 +723,95 @@ router.post(
     }
 );
 
-router.post('/send-error-tracker-created', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { errorTracker, componentId } = req.body;
+router.post(
+    '/send-error-tracker-created',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { errorTracker, componentId } = req.body;
 
-        RealtimeService.sendErrorTrackerCreated({ errorTracker, componentId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendErrorTrackerCreated({
+                errorTracker,
+                componentId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-error-tracker-delete', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { errorTracker, componentId } = req.body;
+router.post(
+    '/send-error-tracker-delete',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { errorTracker, componentId } = req.body;
 
-        RealtimeService.sendErrorTrackerDelete({ errorTracker, componentId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendErrorTrackerDelete({
+                errorTracker,
+                componentId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/error-tracker-key-reset', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { errorTracker, componentId } = req.body;
+router.post(
+    '/error-tracker-key-reset',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { errorTracker, componentId } = req.body;
 
-        RealtimeService.errorTrackerKeyReset({ errorTracker, componentId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.errorTrackerKeyReset({ errorTracker, componentId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-error-event-created', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { data, errorTrackerId } = req.body;
+router.post(
+    '/send-error-event-created',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { data, errorTrackerId } = req.body;
 
-        RealtimeService.sendErrorEventCreated({ data, errorTrackerId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendErrorEventCreated({ data, errorTrackerId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-issue-status-change', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { issue, type, errorTrackerId } = req.body;
+router.post(
+    '/send-issue-status-change',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { issue, type, errorTrackerId } = req.body;
 
-        RealtimeService.sendIssueStatusChange({ issue, type, errorTrackerId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendIssueStatusChange({
+                issue,
+                type,
+                errorTrackerId,
+            });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/send-error-tracker-issue-delete',
     isAuthorizedService,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { issue, errorTrackerId } = req.body;
 
@@ -776,88 +826,94 @@ router.post(
     }
 );
 
-router.post('/send-time-metrics', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { appId, data } = req.body;
+router.post(
+    '/send-time-metrics',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { appId, data } = req.body;
 
-        RealtimeService.sendTimeMetrics({ appId, data });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendTimeMetrics({ appId, data });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-throughput-metrics', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { appId, data } = req.body;
+router.post(
+    '/send-throughput-metrics',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { appId, data } = req.body;
 
-        RealtimeService.sendThroughputMetrics({ appId, data });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendThroughputMetrics({ appId, data });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/send-error-metrics', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { appId, data } = req.body;
+router.post(
+    '/send-error-metrics',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { appId, data } = req.body;
 
-        RealtimeService.sendErrorMetrics({ appId, data });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.sendErrorMetrics({ appId, data });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/handle-scanning', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { security } = req.body;
+router.post(
+    '/handle-scanning',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { security } = req.body;
 
-        RealtimeService.handleScanning({ security });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.handleScanning({ security });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/handle-log', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { securityId, securityLog } = req.body;
+router.post(
+    '/handle-log',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { securityId, securityLog } = req.body;
 
-        RealtimeService.handleLog({ securityId, securityLog });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.handleLog({ securityId, securityLog });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/status-page-update-tweets', isAuthorizedService, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { tweets, statusPageId, _projectId } = req.body;
+router.post(
+    '/status-page-update-tweets',
+    isAuthorizedService,
+    async function (req: Request, res: Response) {
+        try {
+            const { tweets, statusPageId, _projectId } = req.body;
 
-        RealtimeService.updateTweets({ tweets, statusPageId, _projectId });
-        return sendEmptyResponse(req, res);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            RealtimeService.updateTweets({ tweets, statusPageId, _projectId });
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 export default router;

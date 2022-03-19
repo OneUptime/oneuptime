@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const emailTemplateModel = new EmailTemplateModel();
 
         emailTemplateModel.projectId = data.projectId || null;
@@ -16,7 +16,7 @@ export default {
         return emailTemplate;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -38,7 +38,7 @@ export default {
         return updatedEmailTemplate;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -56,7 +56,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const emailTemplate = await EmailTemplateModel.findOneAndUpdate(
             query,
             {
@@ -73,7 +73,13 @@ export default {
         return emailTemplate;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -103,7 +109,7 @@ export default {
         return result;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -119,7 +125,7 @@ export default {
         return result;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -129,7 +135,7 @@ export default {
         return count;
     },
 
-    getTemplates: async function(projectId: $TSFixMe) {
+    getTemplates: async function (projectId: $TSFixMe) {
         const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
@@ -150,7 +156,7 @@ export default {
         return templates;
     },
 
-    resetTemplate: async function(projectId: $TSFixMe, templateId: $TSFixMe) {
+    resetTemplate: async function (projectId: $TSFixMe, templateId: $TSFixMe) {
         const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const oldTemplate = await _this.findOneBy({
@@ -175,7 +181,7 @@ export default {
         return resetTemplate;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await EmailTemplateModel.deleteMany(query);
         return 'Email Template(s) removed successfully';
     },

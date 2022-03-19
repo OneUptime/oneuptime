@@ -17,17 +17,17 @@ export function hideDeleteModal() {
 // Component list
 // props -> {name: '', type, data -> { data.url}}
 export function fetchComponents({ projectId, skip = 0, limit = 3 }: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchComponentsRequest());
 
         promise.then(
-            function(components) {
+            function (components) {
                 dispatch(fetchComponentsSuccess(components.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -79,17 +79,17 @@ export function fetchPaginatedComponents({
     skip = 0,
     limit = 3,
 }: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}/paginated?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchPaginatedComponentsRequest(projectId));
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchPaginatedComponentsSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -136,15 +136,15 @@ export function fetchPaginatedComponentsFailure(
 
 export function createComponent(projectId: $TSFixMe, values: $TSFixMe) {
     values.projectId = values.projectId._id || values.projectId;
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`component/${projectId}`, values);
         dispatch(createComponentRequest());
 
         promise.then(
-            function(component) {
+            function (component) {
                 dispatch(createComponentSuccess(component.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -193,15 +193,15 @@ export function resetCreateComponent() {
 export function editComponent(projectId: $TSFixMe, values: $TSFixMe) {
     values.projectId = values.projectId._id || values.projectId;
 
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`component/${projectId}/${values._id}`, values);
         dispatch(editComponentRequest());
 
         promise.then(
-            function(component) {
+            function (component) {
                 dispatch(editComponentSuccess(component.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -257,17 +257,17 @@ export function resetEditComponent() {
 // Delete a component
 // props -> {name: '', type, data -> { data.url}}
 export function deleteComponent(componentId: $TSFixMe, projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`component/${projectId}/${componentId}`, {
             componentId,
         });
         dispatch(deleteComponentRequest(componentId));
 
         promise.then(
-            function(component) {
+            function (component) {
                 dispatch(deleteComponentSuccess(component.data._id));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -320,17 +320,17 @@ export function deleteProjectComponents(projectId: $TSFixMe) {
 }
 
 export function addSeat(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`component/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
 
         promise.then(
-            function(component) {
+            function (component) {
                 dispatch(createComponentFailure(component.data));
 
                 dispatch(addSeatSuccess(component.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -384,17 +384,17 @@ export function fetchComponentResources(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `component/${projectId}/resources/${componentId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchComponentResourcesRequest(componentId));
 
         promise.then(
-            function(components) {
+            function (components) {
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -447,7 +447,7 @@ export function fetchComponentSummary(
     startDate: $TSFixMe,
     endDate: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `component/${projectId}/summary/${componentId}`,
             { startDate, endDate }
@@ -455,10 +455,10 @@ export function fetchComponentSummary(
         dispatch(fetchComponentSummaryRequest(componentId));
 
         promise.then(
-            function(components) {
+            function (components) {
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -532,15 +532,15 @@ export function fetchComponentFailure(error: $TSFixMe) {
 }
 
 export function fetchComponent(projectId: $TSFixMe, slug: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`component/${projectId}/slug/${slug}`);
         dispatch(fetchComponentRequest());
 
         promise.then(
-            function(component) {
+            function (component) {
                 dispatch(fetchComponentSuccess(component.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

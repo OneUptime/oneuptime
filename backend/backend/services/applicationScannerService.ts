@@ -1,5 +1,5 @@
 export default {
-    create: async function(data) {
+    create: async function (data) {
         const _this = this;
         let applicationScannerKey;
         if (data.applicationScannerKey) {
@@ -34,31 +34,31 @@ export default {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        const applicationScanner = await ApplicationScannerModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            {
-                new: true,
-            }
-        );
+        const applicationScanner =
+            await ApplicationScannerModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
         return applicationScanner;
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function ({ query, select, populate }) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let applicationScannerQuery = ApplicationScannerModel.findOne(
-            query
-        ).lean();
+        let applicationScannerQuery =
+            ApplicationScannerModel.findOne(query).lean();
 
         applicationScannerQuery = handleSelect(select, applicationScannerQuery);
         applicationScannerQuery = handlePopulate(
@@ -69,12 +69,13 @@ export default {
         return applicationScanner;
     },
 
-    updateApplicationScannerStatus: async function(applicationScannerId) {
-        const applicationScanner = await ApplicationScannerModel.findOneAndUpdate(
-            { _id: applicationScannerId },
-            { $set: { lastAlive: Date.now() } },
-            { new: true }
-        );
+    updateApplicationScannerStatus: async function (applicationScannerId) {
+        const applicationScanner =
+            await ApplicationScannerModel.findOneAndUpdate(
+                { _id: applicationScannerId },
+                { $set: { lastAlive: Date.now() } },
+                { new: true }
+            );
         return applicationScanner;
     },
 };

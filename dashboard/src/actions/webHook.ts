@@ -29,7 +29,7 @@ export const resetDeleteWebHook = () => {
 
 // Calls the API to link webhook team to project
 export function deleteWebHook(projectId: $TSFixMe, webhookId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${webhookId}`,
             null
@@ -38,12 +38,12 @@ export function deleteWebHook(projectId: $TSFixMe, webhookId: $TSFixMe) {
         dispatch(deleteWebHookRequest());
 
         return promise.then(
-            function(webhook) {
+            function (webhook) {
                 dispatch(deleteWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -92,7 +92,7 @@ export function getWebHook(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10}`
@@ -100,10 +100,10 @@ export function getWebHook(
         dispatch(getWebHookRequest(promise));
 
         promise.then(
-            function(webhooks) {
+            function (webhooks) {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -128,19 +128,20 @@ export function getWebHookMonitor(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip ||
-                0}&limit=${limit || 10}`
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
+            }`
         );
         dispatch(getWebHookRequest(promise));
 
         promise.then(
-            function(webhooks) {
+            function (webhooks) {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -187,18 +188,18 @@ export const resetCreateWebHook = () => {
 
 // Calls the API to add webhook to project
 export function createWebHook(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
         dispatch(createWebHookRequest());
 
         return promise.then(
-            function(webhook) {
+            function (webhook) {
                 dispatch(createWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -247,18 +248,18 @@ export function updateWebHook(
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 
         dispatch(updateWebHookRequest());
 
         return promise.then(
-            function(webhook) {
+            function (webhook) {
                 dispatch(updateWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -296,7 +297,7 @@ export function paginateReset() {
 }
 
 export function paginate(type: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

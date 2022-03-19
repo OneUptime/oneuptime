@@ -11,8 +11,7 @@ export default [
             '{{monitor.customFields.*}} : The value of any monitor custom field',
         ],
         smsType: 'Subscriber Incident Created',
-        body:
-            '{{projectName}} - {{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+        body: '{{projectName}} - {{monitorName}} is {{incidentType}} at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
@@ -27,8 +26,7 @@ export default [
             '{{length}} : Length of the incident',
         ],
         smsType: 'Subscriber Incident Acknowledged',
-        body:
-            '{{projectName}} - {{incidentType}} incident on {{monitorName}} is acknowledged at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+        body: '{{projectName}} - {{incidentType}} incident on {{monitorName}} is acknowledged at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
@@ -43,8 +41,7 @@ export default [
             '{{length}} : Length of the incident',
         ],
         smsType: 'Subscriber Incident Resolved',
-        body:
-            '{{projectName}} - {{incidentType}} incident on {{monitorName}} is resolved at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
+        body: '{{projectName}} - {{incidentType}} incident on {{monitorName}} is resolved at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
     {
         allowedVariables: [
@@ -59,8 +56,7 @@ export default [
             '{{incidentNote}} : The content of the investigation note',
         ],
         smsType: 'Investigation note is created',
-        body:
-            'A new update has been added to an incident on {{monitorName}}. {{#if statusPageUrl}}Please check it out here {{statusPageUrl}}{{/if}}',
+        body: 'A new update has been added to an incident on {{monitorName}}. {{#if statusPageUrl}}Please check it out here {{statusPageUrl}}{{/if}}',
     },
     {
         allowedVariables: [
@@ -71,8 +67,7 @@ export default [
             '{{projectName}} : Name of the project on which the event is created.',
         ],
         smsType: 'Subscriber Scheduled Maintenance Created',
-        body:
-            'New Scheduled Maintenance Event for {{projectName}} - {{eventName}}. Starts at: {{eventStartTime}}, Ends at {{eventEndTime}}.',
+        body: 'New Scheduled Maintenance Event for {{projectName}} - {{eventName}}. Starts at: {{eventStartTime}}, Ends at {{eventEndTime}}.',
     },
     {
         allowedVariables: [
@@ -81,8 +76,7 @@ export default [
             '{{projectName}} : Name of the project on which the event is created.',
         ],
         smsType: 'Subscriber Scheduled Maintenance Resolved',
-        body:
-            'Scheduled maintenance event for {{projectName}} - {{eventName}}, is resolved.',
+        body: 'Scheduled maintenance event for {{projectName}} - {{eventName}}, is resolved.',
     },
     {
         allowedVariables: [
@@ -92,8 +86,7 @@ export default [
             '{{eventNoteContent}} : Content of event note.',
         ],
         smsType: 'Subscriber Scheduled Maintenance Note',
-        body:
-            'A new note has been added to the scheduled maintenance event - {{eventName}}. Note: "{{eventNoteContent}}."',
+        body: 'A new note has been added to the scheduled maintenance event - {{eventName}}. Note: "{{eventNoteContent}}."',
     },
     {
         allowedVariables: [
@@ -102,8 +95,7 @@ export default [
             '{{projectName}} : Name of the project on which the event is created.',
         ],
         smsType: 'Subscriber Scheduled Maintenance Cancelled',
-        body:
-            'Scheduled maintenance event for {{projectName}} - {{eventName}}, has been cancelled.',
+        body: 'Scheduled maintenance event for {{projectName}} - {{eventName}}, has been cancelled.',
     },
     {
         allowedVariables: [
@@ -112,7 +104,6 @@ export default [
             '{{projectName}} : Name of the project on which the event is created.',
         ],
         smsType: 'Subscriber Announcement Notification Created',
-        body:
-            'An announcement has been made on {{projectName}}. Title: {{announcementTitle}}, Content: "{{announcementDescription}}."',
+        body: 'An announcement has been made on {{projectName}}. Title: {{announcementTitle}}, Content: "{{announcementDescription}}."',
     },
 ];

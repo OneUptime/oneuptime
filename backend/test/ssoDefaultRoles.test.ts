@@ -76,10 +76,10 @@ const projectCreationPayloads = [
     },
 ];
 
-describe('SSO DEFAULT ROLES API', function() {
+describe('SSO DEFAULT ROLES API', function () {
     this.timeout(300000);
 
-    before(async function() {
+    before(async function () {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
         const response = await createUser(request, userData.adminUser);
@@ -122,7 +122,7 @@ describe('SSO DEFAULT ROLES API', function() {
         ssoId2 = sso2.body._id;
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ 'users.userId': userId });
         await UserService.hardDeleteBy({

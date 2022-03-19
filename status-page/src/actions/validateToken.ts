@@ -36,7 +36,7 @@ export const resetvalidateToken = () => ({
 
 // Calls the API to register a user.
 export function validateToken(token: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `user/isAuthenticated?accessToken=${token}`,
             {}

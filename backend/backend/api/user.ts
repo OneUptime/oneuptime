@@ -40,7 +40,7 @@ import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import Ip from '../middlewares/ipHandler';
 
-router.post('/signup', async function(req: Request, res: Response) {
+router.post('/signup', async function (req: Request, res: Response) {
     try {
         if (
             typeof process.env.DISABLE_SIGNUP === 'string' &&
@@ -300,7 +300,7 @@ router.post('/signup', async function(req: Request, res: Response) {
     }
 });
 
-router.get('/masterAdminExists', async function(req: Request, res: Response) {
+router.get('/masterAdminExists', async function (req: Request, res: Response) {
     try {
         const masterAdmin = await UserService.findBy({
             query: { role: 'master-admin' },
@@ -322,7 +322,7 @@ router.get('/masterAdminExists', async function(req: Request, res: Response) {
 // Params:
 // Param 1: req.query-> {email }
 // Returns: 400: Error; 500: Server Error; 200: redirect to login page
-router.get('/sso/login', async function(req: Request, res: Response) {
+router.get('/sso/login', async function (req: Request, res: Response) {
     const { email } = req.query;
     if (!email) {
         return sendErrorResponse(req, res, {
@@ -373,13 +373,14 @@ router.get('/sso/login', async function(req: Request, res: Response) {
             sso_login_url: remoteLoginUrl,
         });
 
-        sp.create_login_request_url(idp, {}, function(
-            error: $TSFixMe,
-            login_url: $TSFixMe
-        ) {
-            if (error != null) return sendErrorResponse(req, res, error);
-            return sendItemResponse(req, res, { url: login_url });
-        });
+        sp.create_login_request_url(
+            idp,
+            {},
+            function (error: $TSFixMe, login_url: $TSFixMe) {
+                if (error != null) return sendErrorResponse(req, res, error);
+                return sendItemResponse(req, res, { url: login_url });
+            }
+        );
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
@@ -388,7 +389,7 @@ router.get('/sso/login', async function(req: Request, res: Response) {
 // Route
 // Description: Callback function after SSO authentication page
 // param: query->{domain}
-router.post('/sso/callback', async function(req: Request, res: Response) {
+router.post('/sso/callback', async function (req: Request, res: Response) {
     const options = {
         request_body: req.body,
         allow_unencrypted_assertion: true,
@@ -428,112 +429,114 @@ router.post('/sso/callback', async function(req: Request, res: Response) {
         sso_login_url: sso.samlSsoUrl,
     });
 
-    sp.post_assert(idp, options, async function(
-        err: $TSFixMe,
-        saml_response: $TSFixMe
-    ) {
-        if (err != null)
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Invalid request',
-            });
-
-        // The structure of the saml_response is not the same from the different servers.
-        const email =
-            saml_response.user.email || saml_response.user.attributes.email[0];
-
-        const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
-        const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
-
-        if (!matchedTokens) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Invalid email.',
-            });
-        }
-
-        const domain = matchedTokens[1];
-
-        const sso = await SsoService.findOneBy({
-            query: { domain },
-            select: '_id domain saml-enabled',
-        });
-
-        if (!sso)
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SSO not defined for the domain.',
-            });
-
-        if (!sso['saml-enabled'])
-            return sendErrorResponse(req, res, {
-                code: 401,
-                message: 'SSO is disabled for the domain.',
-            });
-
-        let user = await UserService.findOneBy({
-            query: { email },
-            select: '_id name email stripeCustomerId jwtRefreshToken role',
-        });
-
-        if (!user) {
-            // User is not create yet
-            try {
-                user = await UserService.create({
-                    email,
-                    sso: sso._id,
-                });
-                if (!user) {
-                    return sendErrorResponse(req, res, {
-                        code: 401,
-                        message: 'USER creation failed.',
-                    });
-                }
-                const { _id: userId } = user;
-                const { _id: domain } = sso;
-                await SsoDefaultRolesService.addUserToDefaultProjects({
-                    domain,
-                    userId,
-                });
-            } catch (error) {
+    sp.post_assert(
+        idp,
+        options,
+        async function (err: $TSFixMe, saml_response: $TSFixMe) {
+            if (err != null)
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: error,
+                    message: 'Invalid request',
+                });
+
+            // The structure of the saml_response is not the same from the different servers.
+            const email =
+                saml_response.user.email ||
+                saml_response.user.attributes.email[0];
+
+            const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+            const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
+
+            if (!matchedTokens) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Invalid email.',
                 });
             }
+
+            const domain = matchedTokens[1];
+
+            const sso = await SsoService.findOneBy({
+                query: { domain },
+                select: '_id domain saml-enabled',
+            });
+
+            if (!sso)
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'SSO not defined for the domain.',
+                });
+
+            if (!sso['saml-enabled'])
+                return sendErrorResponse(req, res, {
+                    code: 401,
+                    message: 'SSO is disabled for the domain.',
+                });
+
+            let user = await UserService.findOneBy({
+                query: { email },
+                select: '_id name email stripeCustomerId jwtRefreshToken role',
+            });
+
+            if (!user) {
+                // User is not create yet
+                try {
+                    user = await UserService.create({
+                        email,
+                        sso: sso._id,
+                    });
+                    if (!user) {
+                        return sendErrorResponse(req, res, {
+                            code: 401,
+                            message: 'USER creation failed.',
+                        });
+                    }
+                    const { _id: userId } = user;
+                    const { _id: domain } = sso;
+                    await SsoDefaultRolesService.addUserToDefaultProjects({
+                        domain,
+                        userId,
+                    });
+                } catch (error) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: error,
+                    });
+                }
+            }
+
+            const authUserObj = {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                redirect: null,
+                cardRegistered: user.stripeCustomerId ? true : false,
+                tokens: {
+                    jwtAccessToken: `${jwt.sign(
+                        {
+                            id: user._id,
+                        },
+                        jwtSecretKey,
+                        { expiresIn: 8640000 }
+                    )}`,
+                    jwtRefreshToken: user.jwtRefreshToken,
+                },
+                role: user.role || null,
+            };
+
+            return res.redirect(
+                `${global.accountsHost}` +
+                    `/ssologin?id=${authUserObj.id}` +
+                    `&name=${authUserObj.name}` +
+                    `&email=${authUserObj.email}` +
+                    `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
+                    `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
+                    `&role=${authUserObj.role}` +
+                    `&redirect=${authUserObj.redirect}` +
+                    `&cardRegistered=${authUserObj.cardRegistered}`
+            );
         }
-
-        const authUserObj = {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            redirect: null,
-            cardRegistered: user.stripeCustomerId ? true : false,
-            tokens: {
-                jwtAccessToken: `${jwt.sign(
-                    {
-                        id: user._id,
-                    },
-                    jwtSecretKey,
-                    { expiresIn: 8640000 }
-                )}`,
-                jwtRefreshToken: user.jwtRefreshToken,
-            },
-            role: user.role || null,
-        };
-
-        return res.redirect(
-            `${global.accountsHost}` +
-                `/ssologin?id=${authUserObj.id}` +
-                `&name=${authUserObj.name}` +
-                `&email=${authUserObj.email}` +
-                `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
-                `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
-                `&role=${authUserObj.role}` +
-                `&redirect=${authUserObj.redirect}` +
-                `&cardRegistered=${authUserObj.cardRegistered}`
-        );
-    });
+    );
 });
 
 // Route
@@ -541,7 +544,7 @@ router.post('/sso/callback', async function(req: Request, res: Response) {
 // Params:
 // Param 1: req.body-> {email, password }
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/login', async function(req: Request, res: Response) {
+router.post('/login', async function (req: Request, res: Response) {
     try {
         const data = req.body;
         const clientIP = Ip.getClientIp(req)[0];
@@ -618,7 +621,7 @@ router.post('/login', async function(req: Request, res: Response) {
 // Params:
 // Param 1: req.body-> {token}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/totp/verifyToken', async function(req: Request, res: Response) {
+router.post('/totp/verifyToken', async function (req: Request, res: Response) {
     try {
         const data = req.body;
         const token = data.token;
@@ -684,7 +687,7 @@ router.post('/totp/verifyToken', async function(req: Request, res: Response) {
 // Params:
 // Param 1: req.body-> {code}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/verify/backupCode', async function(req: Request, res: Response) {
+router.post('/verify/backupCode', async function (req: Request, res: Response) {
     try {
         const data = req.body;
         // Call the UserService
@@ -768,85 +771,89 @@ router.post('/verify/backupCode', async function(req: Request, res: Response) {
 // Params:
 // None
 // Return: return the new list of backup codes.
-router.post('/generate/backupCode', getUser, async function(
-    req: Request,
-    res: Response
-) {
-    const userId = req.user.id || null;
-    const user = await UserService.findOneBy({
-        query: { _id: userId },
-        select: 'twoFactorAuthEnabled twoFactorSecretCode backupCodes',
-    });
-    if (!user) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Provide a valid user Id',
+router.post(
+    '/generate/backupCode',
+    getUser,
+    async function (req: Request, res: Response) {
+        const userId = req.user.id || null;
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'twoFactorAuthEnabled twoFactorSecretCode backupCodes',
         });
-    }
-    const { twoFactorAuthEnabled, twoFactorSecretCode, backupCodes } = user;
-    if (!twoFactorAuthEnabled) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: '2FA is not enabled',
-        });
-    }
-    if (!twoFactorSecretCode || !twoFactorSecretCode.trim()) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'SecretCode is not defined',
-        });
-    }
-    const numberOfCodes = 8;
-    let firstCounter = 0;
-    if (Array.isArray(backupCodes) && backupCodes.length) {
-        firstCounter = backupCodes[backupCodes.length - 1].counter + 1;
-    }
-    const newBackupCodes = await UserService.generateUserBackupCodes(
-        twoFactorSecretCode,
-        numberOfCodes,
-        firstCounter
-    );
-    try {
-        await UserService.updateOneBy(
-            { _id: userId },
-            { backupCodes: newBackupCodes }
+        if (!user) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Provide a valid user Id',
+            });
+        }
+        const { twoFactorAuthEnabled, twoFactorSecretCode, backupCodes } = user;
+        if (!twoFactorAuthEnabled) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: '2FA is not enabled',
+            });
+        }
+        if (!twoFactorSecretCode || !twoFactorSecretCode.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'SecretCode is not defined',
+            });
+        }
+        const numberOfCodes = 8;
+        let firstCounter = 0;
+        if (Array.isArray(backupCodes) && backupCodes.length) {
+            firstCounter = backupCodes[backupCodes.length - 1].counter + 1;
+        }
+        const newBackupCodes = await UserService.generateUserBackupCodes(
+            twoFactorSecretCode,
+            numberOfCodes,
+            firstCounter
         );
-        return sendItemResponse(req, res, newBackupCodes);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+        try {
+            await UserService.updateOneBy(
+                { _id: userId },
+                { backupCodes: newBackupCodes }
+            );
+            return sendItemResponse(req, res, newBackupCodes);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: generate user secret token for creating QRcode
 // Params:
 // Param 1: req.params-> {userId}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/totp/token/:userId', async function(req: Request, res: Response) {
-    try {
-        const userId = req.params.userId;
-        const user = await UserService.findOneBy({
-            query: { _id: userId },
-            select: '_id otpauth_url',
-        });
-        if (!userId || !user._id) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Provide a valid user Id',
+router.post(
+    '/totp/token/:userId',
+    async function (req: Request, res: Response) {
+        try {
+            const userId = req.params.userId;
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: '_id otpauth_url',
             });
-        }
+            if (!userId || !user._id) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Provide a valid user Id',
+                });
+            }
 
-        if (user.otpauth_url) {
-            const response = { otpauth_url: user.otpauth_url };
+            if (user.otpauth_url) {
+                const response = { otpauth_url: user.otpauth_url };
+                return sendItemResponse(req, res, response);
+            }
+
+            const response = await UserService.generateTwoFactorSecret(userId);
             return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const response = await UserService.generateTwoFactorSecret(userId);
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Route
 // Description: forgot password function for  user
@@ -854,7 +861,7 @@ router.post('/totp/token/:userId', async function(req: Request, res: Response) {
 // Param 1: req.body-> {email}; req.headers-> {host}
 // Returns: 400: Error; 500: Server Error: 200: User password has been reset successfully.
 
-router.post('/forgot-password', async function(req: Request, res: Response) {
+router.post('/forgot-password', async function (req: Request, res: Response) {
     try {
         const data = req.body;
 
@@ -895,7 +902,7 @@ router.post('/forgot-password', async function(req: Request, res: Response) {
 // Params:
 // Param 1: req.body-> {password}; req.params-> {token}
 // Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
-router.post('/reset-password', async function(req: Request, res: Response) {
+router.post('/reset-password', async function (req: Request, res: Response) {
     try {
         const data = req.body;
 
@@ -955,7 +962,7 @@ router.post('/reset-password', async function(req: Request, res: Response) {
 // Params:
 // Param 1: req.body-> {email, password }
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/isInvited', async function(req: Request, res: Response) {
+router.post('/isInvited', async function (req: Request, res: Response) {
     try {
         const data = req.body;
 
@@ -999,7 +1006,7 @@ router.post(
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/profile', getUser, async function(req: Request, res: Response) {
+router.put('/profile', getUser, async function (req: Request, res: Response) {
     try {
         const upload = multer({
             storage,
@@ -1009,7 +1016,7 @@ router.put('/profile', getUser, async function(req: Request, res: Response) {
                 maxCount: 1,
             },
         ]);
-        upload(req, res, async function(error: $TSFixMe) {
+        upload(req, res, async function (error: $TSFixMe) {
             const userId = req.user ? req.user.id : null;
             const data = req.body;
 
@@ -1050,190 +1057,198 @@ router.put('/profile', getUser, async function(req: Request, res: Response) {
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/push-notification', getUser, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const userId = req.user ? req.user.id : null;
-        const data = req.body;
-        const user = await UserService.updatePush({ userId, data });
-        return sendItemResponse(req, res, user);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.put(
+    '/push-notification',
+    getUser,
+    async function (req: Request, res: Response) {
+        try {
+            const userId = req.user ? req.user.id : null;
+            const data = req.body;
+            const user = await UserService.updatePush({ userId, data });
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: Turns on or off 2FA.
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/:userId/2fa', isUserMasterAdmin, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { userId } = req.params;
-        const data = req.body;
-        const userData = await UserService.findOneBy({
-            query: { _id: userId },
-            select: 'email',
-        });
-        if (userData.email !== data.email) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Invalid user data.',
-            });
-        }
-        // Call the UserService
-        const user = await UserService.updateOneBy({ _id: userId }, data);
-        return sendItemResponse(req, res, user);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.put('/profile/:userId', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const upload = multer({
-            storage,
-        }).fields([
-            {
-                name: 'profilePic',
-                maxCount: 1,
-            },
-        ]);
-
-        upload(req, res, async function(error: $TSFixMe) {
-            const userId = req.params.userId;
+router.put(
+    '/:userId/2fa',
+    isUserMasterAdmin,
+    async function (req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
             const data = req.body;
-
-            if (error) {
-                return sendErrorResponse(req, res, error);
+            const userData = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'email',
+            });
+            if (userData.email !== data.email) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Invalid user data.',
+                });
             }
-
-            if (
-                req.files &&
-                req.files.profilePic &&
-                req.files.profilePic[0].filename
-            ) {
-                data.profilePic = req.files.profilePic[0].filename;
-            }
-
             // Call the UserService
             const user = await UserService.updateOneBy({ _id: userId }, data);
             return sendItemResponse(req, res, user);
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
+
+router.put(
+    '/profile/:userId',
+    getUser,
+    isUserMasterAdmin,
+    async function (req, res) {
+        try {
+            const upload = multer({
+                storage,
+            }).fields([
+                {
+                    name: 'profilePic',
+                    maxCount: 1,
+                },
+            ]);
+
+            upload(req, res, async function (error: $TSFixMe) {
+                const userId = req.params.userId;
+                const data = req.body;
+
+                if (error) {
+                    return sendErrorResponse(req, res, error);
+                }
+
+                if (
+                    req.files &&
+                    req.files.profilePic &&
+                    req.files.profilePic[0].filename
+                ) {
+                    data.profilePic = req.files.profilePic[0].filename;
+                }
+
+                // Call the UserService
+                const user = await UserService.updateOneBy(
+                    { _id: userId },
+                    data
+                );
+                return sendItemResponse(req, res, user);
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route
 // Description: Updating change password setting.
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic}; req.data- {currentPassword, newPassword, confirmPassword}
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/changePassword', getUser, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const data = req.body;
+router.put(
+    '/changePassword',
+    getUser,
+    async function (req: Request, res: Response) {
+        try {
+            const data = req.body;
 
-        const userId = req.user ? req.user.id : null;
-        data._id = userId;
+            const userId = req.user ? req.user.id : null;
+            data._id = userId;
 
-        if (!data.currentPassword) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Current Password must be present.',
-            });
+            if (!data.currentPassword) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Current Password must be present.',
+                });
+            }
+
+            if (typeof data.currentPassword !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Current Password  is not in string type.',
+                });
+            }
+
+            if (!data.newPassword) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'New Password  must be present.',
+                });
+            }
+
+            if (typeof data.newPassword !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'New Password is not in string type.',
+                });
+            }
+
+            if (!data.confirmPassword) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Confirm Password must be present.',
+                });
+            }
+
+            if (typeof data.confirmPassword !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Confirm Password  is not in string type.',
+                });
+            }
+
+            if (data.confirmPassword !== data.newPassword) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'New Password does not match confirm password.',
+                });
+            }
+
+            if (data.currentPassword === data.newPassword) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'New password should not be the same as current password.',
+                });
+            }
+
+            const user = await UserService.changePassword(data);
+            const userObj = {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                redirect: data.redirect,
+                tokens: {
+                    jwtAccessToken: `${jwt.sign(
+                        {
+                            id: user._id,
+                        },
+                        jwtSecretKey,
+                        { expiresIn: 8640000 }
+                    )}`,
+                    jwtRefreshToken: user.jwtRefreshToken,
+                },
+            };
+            return sendItemResponse(req, res, userObj);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (typeof data.currentPassword !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Current Password  is not in string type.',
-            });
-        }
-
-        if (!data.newPassword) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'New Password  must be present.',
-            });
-        }
-
-        if (typeof data.newPassword !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'New Password is not in string type.',
-            });
-        }
-
-        if (!data.confirmPassword) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Confirm Password must be present.',
-            });
-        }
-
-        if (typeof data.confirmPassword !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Confirm Password  is not in string type.',
-            });
-        }
-
-        if (data.confirmPassword !== data.newPassword) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'New Password does not match confirm password.',
-            });
-        }
-
-        if (data.currentPassword === data.newPassword) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message:
-                    'New password should not be the same as current password.',
-            });
-        }
-
-        const user = await UserService.changePassword(data);
-        const userObj = {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            redirect: data.redirect,
-            tokens: {
-                jwtAccessToken: `${jwt.sign(
-                    {
-                        id: user._id,
-                    },
-                    jwtSecretKey,
-                    { expiresIn: 8640000 }
-                )}`,
-                jwtRefreshToken: user.jwtRefreshToken,
-            },
-        };
-        return sendItemResponse(req, res, userObj);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Route
 // Description: Get Previous User Settings.
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.get('/profile', getUser, async function(req: Request, res: Response) {
+router.get('/profile', getUser, async function (req: Request, res: Response) {
     try {
         const userId = req.user ? req.user.id : null;
 
@@ -1290,62 +1305,67 @@ router.get('/profile', getUser, async function(req: Request, res: Response) {
     }
 });
 
-router.get('/confirmation/:token', async function(req: Request, res: Response) {
-    try {
-        if (req.params && req.params.token) {
-            const token = await VerificationTokenModel.findOne({
-                token: req.params.token,
-            });
-            if (!token) {
+router.get(
+    '/confirmation/:token',
+    async function (req: Request, res: Response) {
+        try {
+            if (req.params && req.params.token) {
+                const token = await VerificationTokenModel.findOne({
+                    token: req.params.token,
+                });
+                if (!token) {
+                    return res.redirect(
+                        global.accountsHost +
+                            '/user-verify/resend?status=link-expired'
+                    );
+                }
+                const user = await UserModel.findOne({
+                    _id: token.userId,
+                });
+                if (!user) {
+                    return res.redirect(
+                        global.accountsHost + '/register?status=user-not-found'
+                    );
+                }
+                if (
+                    user.isVerified &&
+                    (!user.tempEmail ||
+                        (user.tempEmail && user.tempEmail === user.email))
+                ) {
+                    return res.redirect(
+                        global.accountsHost + '/login?status=already-verified'
+                    );
+                }
+                let dataUpdate = { isVerified: true };
+                if (user.tempEmail && user.tempEmail !== user.email) {
+                    dataUpdate = {
+                        isVerified: true,
+
+                        email: user.tempEmail,
+                        tempEmail: null,
+                    };
+                }
+                await UserModel.findByIdAndUpdate(user._id, {
+                    $set: dataUpdate,
+                });
+
+                return res.redirect(
+                    global.accountsHost + '/login?status=verified'
+                );
+            } else {
                 return res.redirect(
                     global.accountsHost +
-                        '/user-verify/resend?status=link-expired'
+                        '/user-verify/resend?status=invalid-verification-link'
                 );
             }
-            const user = await UserModel.findOne({
-                _id: token.userId,
-            });
-            if (!user) {
-                return res.redirect(
-                    global.accountsHost + '/register?status=user-not-found'
-                );
-            }
-            if (
-                user.isVerified &&
-                (!user.tempEmail ||
-                    (user.tempEmail && user.tempEmail === user.email))
-            ) {
-                return res.redirect(
-                    global.accountsHost + '/login?status=already-verified'
-                );
-            }
-            let dataUpdate = { isVerified: true };
-            if (user.tempEmail && user.tempEmail !== user.email) {
-                dataUpdate = {
-                    isVerified: true,
-
-                    email: user.tempEmail,
-                    tempEmail: null,
-                };
-            }
-            await UserModel.findByIdAndUpdate(user._id, {
-                $set: dataUpdate,
-            });
-
-            return res.redirect(global.accountsHost + '/login?status=verified');
-        } else {
-            return res.redirect(
-                global.accountsHost +
-                    '/user-verify/resend?status=invalid-verification-link'
-            );
+        } catch (error) {
+            ErrorService.log('user.router.get(/confirmation/:token)', error);
+            throw error;
         }
-    } catch (error) {
-        ErrorService.log('user.router.get(/confirmation/:token)', error);
-        throw error;
     }
-});
+);
 
-router.post('/resend', async function(req: Request, res: Response) {
+router.post('/resend', async function (req: Request, res: Response) {
     if (req.body && req.body.email) {
         const { email, userId } = req.body;
         let user;
@@ -1393,147 +1413,162 @@ router.post('/resend', async function(req: Request, res: Response) {
     }
 });
 
-router.get('/users', getUser, isUserMasterAdmin, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 10;
-        const [users, count] = await Promise.all([
-            UserService.getAllUsers(skip, limit),
-            UserService.countBy({
-                _id: { $ne: null },
-                deleted: { $ne: null },
-            }),
-        ]);
-        return sendListResponse(req, res, users, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/users/:userId', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const userId = req.params.userId;
-        const select =
-            'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-        const user = await UserService.findOneBy({
-            query: { _id: userId, deleted: { $ne: null } },
-            select,
-        });
-
-        return sendItemResponse(req, res, user);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.delete('/:userId', getUser, isUserMasterAdmin, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const userId = req.params.userId;
-
-        const authUserId = req.user.id;
-        if (userId === authUserId) {
-            const err = new Error(
-                "Invalid operation! You can't perform this operation on your own account"
-            );
-
-            err.code = 400;
-            throw err;
+router.get(
+    '/users',
+    getUser,
+    isUserMasterAdmin,
+    async function (req: Request, res: Response) {
+        try {
+            const skip = req.query.skip || 0;
+            const limit = req.query.limit || 10;
+            const [users, count] = await Promise.all([
+                UserService.getAllUsers(skip, limit),
+                UserService.countBy({
+                    _id: { $ne: null },
+                    deleted: { $ne: null },
+                }),
+            ]);
+            return sendListResponse(req, res, users, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const masterUserId = req.user.id || null;
-        const user = await UserService.deleteBy({ _id: userId }, masterUserId);
-        return sendItemResponse(req, res, user);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const userId = req.params.userId;
+router.get(
+    '/users/:userId',
+    getUser,
+    isUserMasterAdmin,
+    async function (req, res) {
+        try {
+            const userId = req.params.userId;
+            const select =
+                'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
+            const user = await UserService.findOneBy({
+                query: { _id: userId, deleted: { $ne: null } },
+                select,
+            });
 
-        const authUserId = req.user.id;
-        if (userId === authUserId) {
-            const err = new Error(
-                "Invalid operation! You can't perform this operation on your own account"
-            );
-
-            err.code = 400;
-            throw err;
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        const user = await UserService.restoreBy({
-            _id: userId,
-            deleted: true,
-        });
-        return sendItemResponse(req, res, user);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const userId = req.params.userId;
+router.delete(
+    '/:userId',
+    getUser,
+    isUserMasterAdmin,
+    async function (req: Request, res: Response) {
+        try {
+            const userId = req.params.userId;
 
-        const authUserId = req.user.id;
-        if (userId === authUserId) {
-            const err = new Error(
-                "Invalid operation! You can't perform this operation on your own account"
+            const authUserId = req.user.id;
+            if (userId === authUserId) {
+                const err = new Error(
+                    "Invalid operation! You can't perform this operation on your own account"
+                );
+
+                err.code = 400;
+                throw err;
+            }
+
+            const masterUserId = req.user.id || null;
+            const user = await UserService.deleteBy(
+                { _id: userId },
+                masterUserId
             );
-
-            err.code = 400;
-            throw err;
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        const user = await UserService.updateOneBy(
-            { _id: userId },
-            { isBlocked: true }
-        );
-        return sendItemResponse(req, res, user);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const userId = req.params.userId;
+router.put(
+    '/:userId/restoreUser',
+    getUser,
+    isUserMasterAdmin,
+    async function (req, res) {
+        try {
+            const userId = req.params.userId;
 
-        const authUserId = req.user.id;
-        if (userId === authUserId) {
-            const err = new Error(
-                "Invalid operation! You can't perform this operation on your own account"
+            const authUserId = req.user.id;
+            if (userId === authUserId) {
+                const err = new Error(
+                    "Invalid operation! You can't perform this operation on your own account"
+                );
+
+                err.code = 400;
+                throw err;
+            }
+            const user = await UserService.restoreBy({
+                _id: userId,
+                deleted: true,
+            });
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:userId/blockUser',
+    getUser,
+    isUserMasterAdmin,
+    async function (req, res) {
+        try {
+            const userId = req.params.userId;
+
+            const authUserId = req.user.id;
+            if (userId === authUserId) {
+                const err = new Error(
+                    "Invalid operation! You can't perform this operation on your own account"
+                );
+
+                err.code = 400;
+                throw err;
+            }
+            const user = await UserService.updateOneBy(
+                { _id: userId },
+                { isBlocked: true }
             );
-
-            err.code = 400;
-            throw err;
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        const user = await UserService.updateOneBy(
-            { _id: userId },
-            { isBlocked: false }
-        );
-        return sendItemResponse(req, res, user);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
+
+router.put(
+    '/:userId/unblockUser',
+    getUser,
+    isUserMasterAdmin,
+    async function (req, res) {
+        try {
+            const userId = req.params.userId;
+
+            const authUserId = req.user.id;
+            if (userId === authUserId) {
+                const err = new Error(
+                    "Invalid operation! You can't perform this operation on your own account"
+                );
+
+                err.code = 400;
+                throw err;
+            }
+            const user = await UserService.updateOneBy(
+                { _id: userId },
+                { isBlocked: false }
+            );
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route
 // Description: Switch user account to admin mode.
@@ -1544,7 +1579,7 @@ router.post(
     '/:userId/switchToAdminMode',
     getUser,
     isUserMasterAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const userId = req.params.userId;
 
@@ -1578,7 +1613,7 @@ router.post(
     '/:userId/exitAdminMode',
     getUser,
     isUserMasterAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const userId = req.params.userId;
 
@@ -1599,63 +1634,87 @@ router.post(
     }
 );
 
-router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const userId = req.params.userId;
-        if (Array.isArray(req.body)) {
-            const data: $TSFixMe = [];
-            if (req.body.length > 0) {
-                for (const val of req.body) {
-                    if (!val._id) {
-                        // Sanitize
-                        if (!val.note) {
-                            return sendErrorResponse(req, res, {
-                                code: 400,
-                                message: 'User note must be present.',
-                            });
-                        }
+router.post(
+    '/:userId/addNote',
+    getUser,
+    isUserMasterAdmin,
+    async function (req, res) {
+        try {
+            const userId = req.params.userId;
+            if (Array.isArray(req.body)) {
+                const data: $TSFixMe = [];
+                if (req.body.length > 0) {
+                    for (const val of req.body) {
+                        if (!val._id) {
+                            // Sanitize
+                            if (!val.note) {
+                                return sendErrorResponse(req, res, {
+                                    code: 400,
+                                    message: 'User note must be present.',
+                                });
+                            }
 
-                        if (typeof val.note !== 'string') {
-                            return sendErrorResponse(req, res, {
-                                code: 400,
-                                message: 'User note is not in string format.',
-                            });
+                            if (typeof val.note !== 'string') {
+                                return sendErrorResponse(req, res, {
+                                    code: 400,
+                                    message:
+                                        'User note is not in string format.',
+                                });
+                            }
                         }
+                        data.push(val);
                     }
-                    data.push(val);
+
+                    const user = await UserService.addNotes(userId, data);
+                    return sendItemResponse(req, res, user);
+                } else {
+                    const user = await UserService.addNotes(userId, data);
+                    return sendItemResponse(req, res, user);
                 }
-
-                const user = await UserService.addNotes(userId, data);
-                return sendItemResponse(req, res, user);
             } else {
-                const user = await UserService.addNotes(userId, data);
-                return sendItemResponse(req, res, user);
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Admin notes are expected in array format.',
+                });
             }
-        } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Admin notes are expected in array format.',
-            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.post('/users/search', getUser, isUserMasterAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const filter = req.body.filter;
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 10;
-        const [users, count] = await Promise.all([
-            UserService.searchUsers(
-                {
+router.post(
+    '/users/search',
+    getUser,
+    isUserMasterAdmin,
+    async function (req, res) {
+        try {
+            const filter = req.body.filter;
+            const skip = req.query.skip || 0;
+            const limit = req.query.limit || 10;
+            const [users, count] = await Promise.all([
+                UserService.searchUsers(
+                    {
+                        deleted: { $ne: null },
+                        $or: [
+                            {
+                                name: {
+                                    $regex: new RegExp(filter),
+                                    $options: 'i',
+                                },
+                            },
+                            {
+                                email: {
+                                    $regex: new RegExp(filter),
+                                    $options: 'i',
+                                },
+                            },
+                        ],
+                    },
+                    skip,
+                    limit
+                ),
+                UserService.countBy({
                     deleted: { $ne: null },
                     $or: [
                         { name: { $regex: new RegExp(filter), $options: 'i' } },
@@ -1666,111 +1725,106 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function(
                             },
                         },
                     ],
-                },
-                skip,
-                limit
-            ),
-            UserService.countBy({
-                deleted: { $ne: null },
-                $or: [
-                    { name: { $regex: new RegExp(filter), $options: 'i' } },
-                    { email: { $regex: new RegExp(filter), $options: 'i' } },
-                ],
-            }),
-        ]);
+                }),
+            ]);
 
-        return sendListResponse(req, res, users, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendListResponse(req, res, users, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: Delete user account.
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
-router.delete('/:userId/delete', getUser, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        if (req.params.userId !== req.user.id) {
-            return sendErrorResponse(req, res, {
-                code: 401,
-                message: 'You are unauthorized to access the page',
-            });
-        }
+router.delete(
+    '/:userId/delete',
+    getUser,
+    async function (req: Request, res: Response) {
+        try {
+            if (req.params.userId !== req.user.id) {
+                return sendErrorResponse(req, res, {
+                    code: 401,
+                    message: 'You are unauthorized to access the page',
+                });
+            }
 
-        const userId = req.user.id;
-        const user = await UserService.findOneBy({
-            query: { _id: userId },
-            select: 'projects',
-        });
-        if (!user) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'No user associated with this account',
+            const userId = req.user.id;
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'projects',
             });
-        }
-        const { deleteMyAccount } = req.body;
-        if (deleteMyAccount !== 'DELETE MY ACCOUNT') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'No confirmation was provided by the user',
-            });
-        }
+            if (!user) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'No user associated with this account',
+                });
+            }
+            const { deleteMyAccount } = req.body;
+            if (deleteMyAccount !== 'DELETE MY ACCOUNT') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'No confirmation was provided by the user',
+                });
+            }
 
-        const { projects } = user;
-        projects
-            .filter((project: $TSFixMe) => {
-                return project.users.find(
-                    (user: $TSFixMe) =>
-                        user.userId === userId &&
-                        user.role === 'Owner' &&
-                        project.users.length > 1
-                );
-            })
-            .forEach(async (project: $TSFixMe) => {
-                const { _id: projectId } = project;
-
-                await ProjectService.exitProject(projectId, userId);
-            });
-
-        projects
-            .filter((project: $TSFixMe) => {
-                return project.users.find(
-                    (user: $TSFixMe) =>
-                        (user.userId === userId && user.role !== 'Owner') ||
-                        (user.userId === userId &&
+            const { projects } = user;
+            projects
+                .filter((project: $TSFixMe) => {
+                    return project.users.find(
+                        (user: $TSFixMe) =>
+                            user.userId === userId &&
                             user.role === 'Owner' &&
-                            project.users.length === 1)
-                );
-            })
-            .forEach(async (project: $TSFixMe) => {
-                const { _id: projectId, users } = project;
-                const user = users.find(
-                    (user: $TSFixMe) => user.userId === userId
-                );
-                if (user) {
-                    if (user.role === 'Owner') {
-                        await ProjectService.deleteBy(
-                            { _id: projectId },
-                            userId
-                        );
-                    } else {
-                        await ProjectService.exitProject(projectId, userId);
-                    }
-                }
-            });
-        const deletedUser = await UserService.deleteBy({ _id: userId }, userId);
-        return sendItemResponse(req, res, { user: deletedUser });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
+                            project.users.length > 1
+                    );
+                })
+                .forEach(async (project: $TSFixMe) => {
+                    const { _id: projectId } = project;
 
-router.get('/:token/email', async function(req: Request, res: Response) {
+                    await ProjectService.exitProject(projectId, userId);
+                });
+
+            projects
+                .filter((project: $TSFixMe) => {
+                    return project.users.find(
+                        (user: $TSFixMe) =>
+                            (user.userId === userId && user.role !== 'Owner') ||
+                            (user.userId === userId &&
+                                user.role === 'Owner' &&
+                                project.users.length === 1)
+                    );
+                })
+                .forEach(async (project: $TSFixMe) => {
+                    const { _id: projectId, users } = project;
+                    const user = users.find(
+                        (user: $TSFixMe) => user.userId === userId
+                    );
+                    if (user) {
+                        if (user.role === 'Owner') {
+                            await ProjectService.deleteBy(
+                                { _id: projectId },
+                                userId
+                            );
+                        } else {
+                            await ProjectService.exitProject(projectId, userId);
+                        }
+                    }
+                });
+            const deletedUser = await UserService.deleteBy(
+                { _id: userId },
+                userId
+            );
+            return sendItemResponse(req, res, { user: deletedUser });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get('/:token/email', async function (req: Request, res: Response) {
     try {
         const token = await VerificationTokenModel.findOne({
             token: req.params.token,

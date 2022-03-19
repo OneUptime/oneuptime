@@ -13,7 +13,7 @@ import ProjectService from './projectService';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         try {
             let incidentTimeline = {};
 
@@ -95,7 +95,7 @@ export default {
         }
     },
 
-    findOneBy: async function(query: $TSFixMe) {
+    findOneBy: async function (query: $TSFixMe) {
         try {
             if (!query) {
                 query = {};

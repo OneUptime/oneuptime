@@ -102,15 +102,15 @@ export function loginUser(values: $TSFixMe) {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/login', values);
         dispatch(loginRequest(promise));
 
         promise.then(
-            function(user) {
+            function (user) {
                 dispatch(loginSuccess(user.data));
             },
-            function(error) {
+            function (error) {
                 if (error.message === 'Verify your email first.') {
                     dispatch(resendToken(values));
                     dispatch({
@@ -135,29 +135,30 @@ export function loginUser(values: $TSFixMe) {
     };
 }
 
-export const loginUserSso = (values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    try {
-        const response = await getApi(`user/sso/login?email=${values.email}`);
+export const loginUserSso =
+    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        try {
+            const response = await getApi(
+                `user/sso/login?email=${values.email}`
+            );
 
-        const { url } = response.data;
-        window.location = url;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const { url } = response.data;
+            window.location = url;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(loginError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(loginError(errors(errorMsg)));
-    }
-};
+    };
 
 // Calls the API to verify a user token and log them in.
 export function verifyAuthToken(values: $TSFixMe) {
@@ -166,15 +167,15 @@ export function verifyAuthToken(values: $TSFixMe) {
     if (redirect) values.redirect = redirect;
     const email = User.getEmail();
     values.email = values.email || email;
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/totp/verifyToken', values);
         dispatch(verifyTokenRequest(promise));
 
         promise.then(
-            function(user) {
+            function (user) {
                 dispatch(loginSuccess(user.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -220,15 +221,15 @@ export function verifyBackupCode(values: $TSFixMe) {
     if (redirect) values.redirect = redirect;
     const email = User.getEmail();
     values.email = values.email || email;
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/verify/backupCode', values);
         dispatch(useBackupCodeRequest(promise));
 
         promise.then(
-            function(user) {
+            function (user) {
                 dispatch(loginSuccess(user.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -282,14 +283,14 @@ export const resetMasterAdminExists = () => {
 
 // Calls the API to register a user.
 export function checkIfMasterAdminExists(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(masterAdminExistsSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -309,7 +310,7 @@ export function checkIfMasterAdminExists(values: $TSFixMe) {
 }
 
 export function changeLogin(data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({
             type: types.CHANGE_LOGIN,
             payload: data,

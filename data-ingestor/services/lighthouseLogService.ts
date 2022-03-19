@@ -13,7 +13,7 @@ import ProjectService from './projectService';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         try {
             const result = await lighthouseLogCollection.insertOne({
                 monitorId: data.monitorId,
@@ -45,7 +45,7 @@ export default {
         }
     },
 
-    findOneBy: async function(query: $TSFixMe) {
+    findOneBy: async function (query: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -109,7 +109,7 @@ export default {
         }
     },
 
-    updateManyBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateManyBy: async function (query: $TSFixMe, data: $TSFixMe) {
         try {
             if (!query) {
                 query = {};

@@ -179,43 +179,49 @@ router.get(
     }
 );
 
-router.post('/:projectId/routingNumber', getUser, isUserAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const data = req.body;
-        const { projectId } = req.params;
-        const CallRouting = await CallRoutingService.reserveNumber(
-            data,
-            projectId
-        );
-        return sendItemResponse(req, res, CallRouting);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.post(
+    '/:projectId/routingNumber',
+    getUser,
+    isUserAdmin,
+    async function (req, res) {
+        try {
+            const data = req.body;
+            const { projectId } = req.params;
+            const CallRouting = await CallRoutingService.reserveNumber(
+                data,
+                projectId
+            );
+            return sendItemResponse(req, res, CallRouting);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.put('/:projectId/:callRoutingId', getUser, isUserAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const { callRoutingId } = req.params;
-        const data = req.body;
-        data.callRoutingId = callRoutingId;
-        const CallRouting = await CallRoutingService.updateRoutingSchema(data);
-        return sendItemResponse(req, res, CallRouting);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.put(
+    '/:projectId/:callRoutingId',
+    getUser,
+    isUserAdmin,
+    async function (req, res) {
+        try {
+            const { callRoutingId } = req.params;
+            const data = req.body;
+            data.callRoutingId = callRoutingId;
+            const CallRouting = await CallRoutingService.updateRoutingSchema(
+                data
+            );
+            return sendItemResponse(req, res, CallRouting);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.put(
     '/:projectId/:callRoutingId/:audioFieldName',
     getUser,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { audioFieldName, callRoutingId } = req.params;
             const upload = multer({
@@ -226,7 +232,7 @@ router.put(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function(error: $TSFixMe) {
+            upload(req, res, async function (error: $TSFixMe) {
                 if (error) {
                     return sendErrorResponse(req, res, error);
                 }
@@ -244,9 +250,8 @@ router.put(
 
                     data.fileName = req.files[audioFieldName][0].originalname;
                 }
-                const CallRouting = await CallRoutingService.updateRoutingSchemaAudio(
-                    data
-                );
+                const CallRouting =
+                    await CallRoutingService.updateRoutingSchemaAudio(data);
                 return sendItemResponse(req, res, CallRouting);
             });
         } catch (error) {
@@ -259,7 +264,7 @@ router.delete(
     '/:projectId/:callRoutingId',
     getUser,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, callRoutingId } = req.params;
 
@@ -288,7 +293,7 @@ router.delete(
     '/:projectId/:callRoutingId/removeAudio',
     getUser,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { callRoutingId, backup } = req.body;
             if (!callRoutingId) {

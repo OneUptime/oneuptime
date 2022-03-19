@@ -39,74 +39,77 @@ import moment from 'moment';
 // Params:
 // Param 1: req.params-> {projectId}; req.body -> {[_id], name, type, data, visibleOnStatusPage} <- Check ComponentMoal for description.
 // Returns: response status, error message
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const data = req.body;
-        const projectId = req.params.projectId;
-        if (!data) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "values can't be null",
-            });
-        }
-
-        data.createdById = req.user ? req.user.id : null;
-
-        if (!data.name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Component Name is required.',
-            });
-        }
-
-        if (typeof data.name !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Component Name is not of type string.',
-            });
-        }
-
-        data.projectId = projectId;
-
-        const component = await ComponentService.create(data);
-
-        const user = await UserService.findOneBy({
-            query: { _id: req.user.id },
-            select: 'name _id',
-        });
-
-        if (component) {
-            try {
-                NotificationService.create(
-                    component.projectId._id || component.projectId,
-                    `A New Component was Created with name ${component.name} by ${user.name}`,
-                    user._id,
-                    'componentaddremove'
-                );
-                // run in the background
-                RealTimeService.sendComponentCreated(component);
-            } catch (error) {
-                ErrorService.log(
-                    'realtimeService.sendComponentCreated',
-                    component
-                );
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function (req, res) {
+        try {
+            const data = req.body;
+            const projectId = req.params.projectId;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "values can't be null",
+                });
             }
+
+            data.createdById = req.user ? req.user.id : null;
+
+            if (!data.name) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component Name is required.',
+                });
+            }
+
+            if (typeof data.name !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Component Name is not of type string.',
+                });
+            }
+
+            data.projectId = projectId;
+
+            const component = await ComponentService.create(data);
+
+            const user = await UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'name _id',
+            });
+
+            if (component) {
+                try {
+                    NotificationService.create(
+                        component.projectId._id || component.projectId,
+                        `A New Component was Created with name ${component.name} by ${user.name}`,
+                        user._id,
+                        'componentaddremove'
+                    );
+                    // run in the background
+                    RealTimeService.sendComponentCreated(component);
+                } catch (error) {
+                    ErrorService.log(
+                        'realtimeService.sendComponentCreated',
+                        component
+                    );
+                }
+            }
+            return sendItemResponse(req, res, component);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        return sendItemResponse(req, res, component);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.put(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const { componentId } = req.params;
@@ -135,78 +138,86 @@ router.put(
 
 // Route
 // Description: Get all Components by projectId.
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
-    req,
-    res
-) {
-    try {
-        const { limit, skip } = req.query;
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function (req, res) {
+        try {
+            const { limit, skip } = req.query;
 
-        // Call the ComponentService.
-        const components = await ComponentService.getComponentsBySubprojects(
-            [req.params.projectId],
-            limit || 0,
-            skip || 0
-        );
-        return sendItemResponse(req, res, components);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            // Call the ComponentService.
+            const components =
+                await ComponentService.getComponentsBySubprojects(
+                    [req.params.projectId],
+                    limit || 0,
+                    skip || 0
+                );
+            return sendItemResponse(req, res, components);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: Get all Components by pagination.
-router.get('/:projectId/paginated', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { projectId } = req.params;
-        const { limit, skip } = req.query;
+router.get(
+    '/:projectId/paginated',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { projectId } = req.params;
+            const { limit, skip } = req.query;
 
-        // Call the ComponentService.
-        const response = await ComponentService.getComponentsByPaginate(
-            projectId,
-            limit,
-            skip
-        );
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            // Call the ComponentService.
+            const response = await ComponentService.getComponentsByPaginate(
+                projectId,
+                limit,
+                skip
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { slug } = req.params;
-        const populateComponent = [
-            { path: 'projectId', select: 'name' },
-            { path: 'componentCategoryId', select: 'name' },
-        ];
+router.get(
+    '/:projectId/slug/:slug',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { slug } = req.params;
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
 
-        const selectComponent =
-            '_id createdAt name createdById projectId slug componentCategoryId';
-        const component = await ComponentService.findOneBy({
-            query: { slug },
-            select: selectComponent,
-            populate: populateComponent,
-        });
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+            const component = await ComponentService.findOneBy({
+                query: { slug },
+                select: selectComponent,
+                populate: populateComponent,
+            });
 
-        return sendItemResponse(req, res, component);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, component);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/:projectId/component',
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const type = req.query.type;
 
@@ -249,7 +260,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
@@ -286,7 +297,7 @@ router.post(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { startDate, endDate } = req.body;
             const componentId = req.params.componentId;
@@ -323,25 +334,25 @@ router.post(
                             monitorUptime: 100,
                         };
 
-                        const monitorStatus = await MonitorService.getMonitorStatuses(
-                            monitor._id,
-                            startDate,
-                            endDate
-                        );
+                        const monitorStatus =
+                            await MonitorService.getMonitorStatuses(
+                                monitor._id,
+                                startDate,
+                                endDate
+                            );
 
                         if (monitorStatus && monitorStatus.length) {
                             const uptimePercents = await Promise.all(
                                 monitorStatus.map(async probe => {
-                                    const {
-                                        uptimePercent,
-                                    } = await MonitorService.calculateTime(
-                                        probe.statuses,
-                                        startDate,
-                                        moment(endDate).diff(
-                                            moment(startDate),
-                                            'days'
-                                        )
-                                    );
+                                    const { uptimePercent } =
+                                        await MonitorService.calculateTime(
+                                            probe.statuses,
+                                            startDate,
+                                            moment(endDate).diff(
+                                                moment(startDate),
+                                                'days'
+                                            )
+                                        );
 
                                     return uptimePercent;
                                 })
@@ -386,7 +397,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const componentId = req.params.componentId;
             const type = req.query.type;
@@ -514,16 +525,15 @@ router.get(
 
             await Promise.all(
                 containerSecurity.map(async (elem: $TSFixMe) => {
-                    const securityLog = await ContainerSecurityLogService.findOneBy(
-                        {
+                    const securityLog =
+                        await ContainerSecurityLogService.findOneBy({
                             query: {
                                 securityId: elem._id,
                                 componentId,
                             },
                             select: selectContainerLog,
                             populate: populateContainerLog,
-                        }
-                    );
+                        });
                     const newElement = {
                         _id: elem._id,
                         name: elem.name,
@@ -550,23 +560,21 @@ router.get(
                         },
                         {
                             path: 'securityId',
-                            select:
-                                '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                            select: '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
                         },
                     ];
 
                     const selectApplicationSecurityLog =
                         '_id securityId componentId data';
-                    const securityLog = await ApplicationSecurityLogService.findOneBy(
-                        {
+                    const securityLog =
+                        await ApplicationSecurityLogService.findOneBy({
                             query: {
                                 securityId: elem._id,
                                 componentId,
                             },
                             select: selectApplicationSecurityLog,
                             populate: populateApplicationSecurityLog,
-                        }
-                    );
+                        });
                     const newElement = {
                         _id: elem._id,
                         name: elem.name,
@@ -653,8 +661,8 @@ router.get(
                 performanceTrackers.map(
                     async (performanceTracker: $TSFixMe) => {
                         let trackerStatus = 'Not monitoring performance';
-                        const metrics = await PerformanceTrackerMetricService.findBy(
-                            {
+                        const metrics =
+                            await PerformanceTrackerMetricService.findBy({
                                 query: {
                                     performanceTrackerId:
                                         performanceTracker._id,
@@ -662,8 +670,7 @@ router.get(
                                 limit: 1,
                                 skip: 0,
                                 select: '_id',
-                            }
-                        );
+                            });
                         if (metrics.length > 0) {
                             trackerStatus = 'Monitoring performance';
                         }
@@ -700,18 +707,19 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
 
             // Call the ComponentService.
-            const components = await ComponentService.getComponentsBySubprojects(
-                subProjectIds,
-                req.query.limit || 0,
-                req.query.skip || 0
-            );
+            const components =
+                await ComponentService.getComponentsBySubprojects(
+                    subProjectIds,
+                    req.query.limit || 0,
+                    req.query.skip || 0
+                );
             let allComponents: $TSFixMe = [];
 
             components.map(component => {
@@ -732,15 +740,14 @@ router.get(
             ];
             await Promise.all(
                 allComponents.map(async component => {
-                    const componentErrorTrackers = await ErrorTrackerService.findBy(
-                        {
+                    const componentErrorTrackers =
+                        await ErrorTrackerService.findBy({
                             query: {
                                 componentId: component._id,
                             },
                             select,
                             populate,
-                        }
-                    );
+                        });
                     errorTrackers = [
                         ...errorTrackers,
                         ...componentErrorTrackers,
@@ -764,7 +771,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { componentId, projectId } = req.params;
         try {
             await ComponentService.deleteBy(

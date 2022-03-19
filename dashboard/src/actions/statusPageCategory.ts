@@ -17,36 +17,37 @@ export const createStatusPageCategoryFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const createStatusPageCategory = ({
-    projectId,
-    statusPageId,
-    statusPageCategoryName,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    const promise = postApi(`statusPageCategory/${projectId}/${statusPageId}`, {
-        statusPageCategoryName,
-    });
-    dispatch(createStatusPageCategoryRequest());
+export const createStatusPageCategory =
+    ({ projectId, statusPageId, statusPageCategoryName }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        const promise = postApi(
+            `statusPageCategory/${projectId}/${statusPageId}`,
+            {
+                statusPageCategoryName,
+            }
+        );
+        dispatch(createStatusPageCategoryRequest());
 
-    promise.then(
-        function(response) {
-            dispatch(createStatusPageCategorySuccess(response.data));
-        },
-        function(error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function (response) {
+                dispatch(createStatusPageCategorySuccess(response.data));
+            },
+            function (error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(createStatusPageCategoryFailure(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(createStatusPageCategoryFailure(errors(error)));
-        }
-    );
-    return promise;
-};
+        );
+        return promise;
+    };
 
 // update status page category
 export const updateStatusPageCategoryRequest = () => ({
@@ -63,39 +64,37 @@ export const updateStatusPageCategoryFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const updateStatusPageCategory = ({
-    projectId,
-    statusPageCategoryId,
-    statusPageCategoryName,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    const promise = putApi(
-        `statusPageCategory/${projectId}/${statusPageCategoryId}`,
-        {
-            statusPageCategoryName,
-        }
-    );
-    dispatch(updateStatusPageCategoryRequest());
+export const updateStatusPageCategory =
+    ({ projectId, statusPageCategoryId, statusPageCategoryName }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        const promise = putApi(
+            `statusPageCategory/${projectId}/${statusPageCategoryId}`,
+            {
+                statusPageCategoryName,
+            }
+        );
+        dispatch(updateStatusPageCategoryRequest());
 
-    promise.then(
-        function(response) {
-            dispatch(updateStatusPageCategorySuccess(response.data));
-        },
-        function(error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function (response) {
+                dispatch(updateStatusPageCategorySuccess(response.data));
+            },
+            function (error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateStatusPageCategoryFailure(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(updateStatusPageCategoryFailure(errors(error)));
-        }
-    );
-    return promise;
-};
+        );
+        return promise;
+    };
 
 // fetch status page categories
 export const fetchStatusPageCategoriesRequest = () => ({
@@ -112,43 +111,40 @@ export const fetchStatusPageCategoriesFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchStatusPageCategories = ({
-    projectId,
-    statusPageId,
-    skip,
-    limit,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    if (!skip) {
-        skip = 0;
-    }
-    if (!limit) {
-        limit = 0;
-    }
-    const promise = getApi(
-        `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
-    );
-    dispatch(fetchStatusPageCategoriesRequest());
-
-    promise.then(
-        function(response) {
-            dispatch(fetchStatusPageCategoriesSuccess(response.data));
-        },
-        function(error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(fetchStatusPageCategoriesFailure(errors(error)));
+export const fetchStatusPageCategories =
+    ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        if (!skip) {
+            skip = 0;
         }
-    );
-    return promise;
-};
+        if (!limit) {
+            limit = 0;
+        }
+        const promise = getApi(
+            `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchStatusPageCategoriesRequest());
+
+        promise.then(
+            function (response) {
+                dispatch(fetchStatusPageCategoriesSuccess(response.data));
+            },
+            function (error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchStatusPageCategoriesFailure(errors(error)));
+            }
+        );
+        return promise;
+    };
 
 // fetch  status page categories
 export const fetchAllStatusPageCategoriesRequest = () => ({
@@ -165,43 +161,40 @@ export const fetchAllStatusPageCategoriesFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchAllStatusPageCategories = ({
-    projectId,
-    statusPageId,
-    skip,
-    limit,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    if (!skip) {
-        skip = 0;
-    }
-    if (!limit) {
-        limit = 0;
-    }
-    const promise = getApi(
-        `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
-    );
-    dispatch(fetchAllStatusPageCategoriesRequest());
-
-    promise.then(
-        function(response) {
-            dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
-        },
-        function(error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
-            }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(fetchAllStatusPageCategoriesFailure(errors(error)));
+export const fetchAllStatusPageCategories =
+    ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        if (!skip) {
+            skip = 0;
         }
-    );
-    return promise;
-};
+        if (!limit) {
+            limit = 0;
+        }
+        const promise = getApi(
+            `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchAllStatusPageCategoriesRequest());
+
+        promise.then(
+            function (response) {
+                dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
+            },
+            function (error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchAllStatusPageCategoriesFailure(errors(error)));
+            }
+        );
+        return promise;
+    };
 
 // delete status page category
 export const deleteStatusPageCategoryRequest = () => ({
@@ -218,32 +211,31 @@ export const deleteStatusPageCategoryFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteStatusPageCategory = ({
-    projectId,
-    statusPageCategoryId,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    const promise = deleteApi(
-        `statusPageCategory/${projectId}/${statusPageCategoryId}`
-    );
-    dispatch(updateStatusPageCategoryRequest());
+export const deleteStatusPageCategory =
+    ({ projectId, statusPageCategoryId }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        const promise = deleteApi(
+            `statusPageCategory/${projectId}/${statusPageCategoryId}`
+        );
+        dispatch(updateStatusPageCategoryRequest());
 
-    promise.then(
-        function(response) {
-            dispatch(updateStatusPageCategorySuccess(response.data));
-        },
-        function(error) {
-            if (error && error.response && error.response.data)
-                error = error.response.data;
-            if (error && error.data) {
-                error = error.data;
+        promise.then(
+            function (response) {
+                dispatch(updateStatusPageCategorySuccess(response.data));
+            },
+            function (error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateStatusPageCategoryFailure(errors(error)));
             }
-            if (error && error.message) {
-                error = error.message;
-            } else {
-                error = 'Network Error';
-            }
-            dispatch(updateStatusPageCategoryFailure(errors(error)));
-        }
-    );
-    return promise;
-};
+        );
+        return promise;
+    };

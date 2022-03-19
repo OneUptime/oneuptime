@@ -54,19 +54,19 @@ export function register(config: $TSFixMe) {
 
 function registerValidSW(swUrl: $TSFixMe, config: $TSFixMe) {
     // Clear old caches
-    navigator.serviceWorker.addEventListener('activate', function(event) {
+    navigator.serviceWorker.addEventListener('activate', function (event) {
         event.waitUntil(
-            caches.keys().then(function(cacheNames) {
+            caches.keys().then(function (cacheNames) {
                 // grab the updated cache names
                 const validCacheSet = new Set(
                     Object.values(workbox.core.cacheNames)
                 );
                 return Promise.all(
                     cacheNames
-                        .filter(function(cacheName) {
+                        .filter(function (cacheName) {
                             return !validCacheSet.has(cacheName);
                         })
-                        .map(function(cacheName) {
+                        .map(function (cacheName) {
                             // delete old cache
                             return caches.delete(cacheName);
                         })

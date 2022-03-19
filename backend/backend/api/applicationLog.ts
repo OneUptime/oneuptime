@@ -13,8 +13,8 @@ import NotificationService from '../services/notificationService';
 
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
-const isApplicationLogValid = require('../middlewares/applicationLog')
-    .isApplicationLogValid;
+const isApplicationLogValid =
+    require('../middlewares/applicationLog').isApplicationLogValid;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -38,7 +38,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const componentId = req.params.componentId;
@@ -108,30 +108,33 @@ router.post(
 );
 
 // Description: Get all Application Logs by componentId.
-router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const componentId = req.params.componentId;
-        if (!componentId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "Component ID can't be null",
-            });
-        }
+router.get(
+    '/:projectId/:componentId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Component ID can't be null",
+                });
+            }
 
-        const { skip, limit } = req.query;
-        const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
-            componentId,
-            limit,
-            skip
-        );
-        return sendItemResponse(req, res, applicationLogs);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const { skip, limit } = req.query;
+            const applicationLogs =
+                await ApplicationLogService.getApplicationLogsByComponentId(
+                    componentId,
+                    limit,
+                    skip
+                );
+            return sendItemResponse(req, res, applicationLogs);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Description: Delete an Application Log by applicationLogId and componentId.
 router.delete(
@@ -139,7 +142,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { applicationLogId, componentId } = req.params;
         try {
             const applicationLog = await ApplicationLogService.deleteBy(
@@ -164,43 +167,46 @@ router.delete(
     }
 );
 
-router.post('/:applicationLogId/log', isApplicationLogValid, async function(
-    req,
-    res
-) {
-    try {
-        const data = req.body;
-        const applicationLogId = req.params.applicationLogId;
-
-        if (data.tags) {
-            if (!(typeof data.tags === 'string' || Array.isArray(data.tags))) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message:
-                        'Application Log Tags must be of type String or Array of Strings',
-                });
-            }
-        }
-        data.applicationLogId = applicationLogId;
-
-        const log = await LogService.create(data);
-
+router.post(
+    '/:applicationLogId/log',
+    isApplicationLogValid,
+    async function (req, res) {
         try {
-            RealTimeService.sendLogCreated(log);
+            const data = req.body;
+            const applicationLogId = req.params.applicationLogId;
+
+            if (data.tags) {
+                if (
+                    !(typeof data.tags === 'string' || Array.isArray(data.tags))
+                ) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message:
+                            'Application Log Tags must be of type String or Array of Strings',
+                    });
+                }
+            }
+            data.applicationLogId = applicationLogId;
+
+            const log = await LogService.create(data);
+
+            try {
+                RealTimeService.sendLogCreated(log);
+            } catch (error) {
+                ErrorService.log('realtimeService.sendLogCreated', error);
+            }
+            return sendItemResponse(req, res, log);
         } catch (error) {
-            ErrorService.log('realtimeService.sendLogCreated', error);
+            return sendErrorResponse(req, res, error);
         }
-        return sendItemResponse(req, res, log);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 // Description: Get all Logs by applicationLogId.
 router.post(
     '/:projectId/:componentId/:applicationLogId/logs',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { skip, limit, startDate, endDate, type, filter } = req.body;
             const applicationLogId = req.params.applicationLogId;
@@ -260,7 +266,7 @@ router.post(
     '/:projectId/:componentId/:applicationLogId/stats',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const applicationLogId = req.params.applicationLogId;
 
@@ -282,17 +288,13 @@ router.post(
 
             const stat = {};
 
-            const [
-                allCount,
-                errorCount,
-                infoCount,
-                warningCount,
-            ] = await Promise.all([
-                LogService.countBy({ ...query }),
-                LogService.countBy({ ...query, type: 'error' }),
-                LogService.countBy({ ...query, type: 'info' }),
-                LogService.countBy({ ...query, type: 'warning' }),
-            ]);
+            const [allCount, errorCount, infoCount, warningCount] =
+                await Promise.all([
+                    LogService.countBy({ ...query }),
+                    LogService.countBy({ ...query, type: 'error' }),
+                    LogService.countBy({ ...query, type: 'info' }),
+                    LogService.countBy({ ...query, type: 'warning' }),
+                ]);
 
             stat.all = allCount;
 
@@ -315,7 +317,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const applicationLogId = req.params.applicationLogId;
 
         const currentApplicationCount = await ApplicationLogService.countBy({
@@ -352,7 +354,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { applicationLogId, componentId } = req.params;
 
         const data = req.body;
@@ -450,7 +452,7 @@ router.post(
     '/:projectId/:componentId/:applicationLogId/search',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { applicationLogId } = req.params;
         const startTime = new Date();
         const { duration, filter, range } = req.body;

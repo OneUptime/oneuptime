@@ -1,5 +1,5 @@
 export default {
-    create: async function(data) {
+    create: async function (data) {
         const _this = this;
         let probeKey;
         if (data.probeKey) {
@@ -30,7 +30,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -46,7 +46,7 @@ export default {
         return probe;
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -63,7 +63,7 @@ export default {
         return updatedData;
     },
 
-    findBy: async function({ query, limit, skip, populate, select }) {
+    findBy: async function ({ query, limit, skip, populate, select }) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -95,7 +95,7 @@ export default {
         return probe;
     },
 
-    findOneBy: async function({ query, populate, select }) {
+    findOneBy: async function ({ query, populate, select }) {
         if (!query) {
             query = {};
         }
@@ -110,7 +110,7 @@ export default {
         return probe;
     },
 
-    countBy: async function(query) {
+    countBy: async function (query) {
         if (!query) {
             query = {};
         }
@@ -120,7 +120,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query) {
+    deleteBy: async function (query) {
         if (!query) {
             query = {};
         }
@@ -133,12 +133,12 @@ export default {
         return probe;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         await ProbeModel.deleteMany(query);
         return 'Probe(s) removed successfully!';
     },
 
-    sendProbe: async function(probeId, monitorId) {
+    sendProbe: async function (probeId, monitorId) {
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
 
@@ -153,12 +153,12 @@ export default {
         }
     },
 
-    saveLighthouseLog: async function(data) {
+    saveLighthouseLog: async function (data) {
         const log = await LighthouseLogService.create(data);
         return log;
     },
 
-    createMonitorDisabledStatus: async function(data) {
+    createMonitorDisabledStatus: async function (data) {
         const select =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
         let monitorStatus = await MonitorStatusService.findBy({
@@ -178,7 +178,7 @@ export default {
         return monitorStatus;
     },
 
-    saveMonitorLog: async function(data) {
+    saveMonitorLog: async function (data) {
         const _this = this;
 
         let monitorStatus = await MonitorStatusService.findBy({
@@ -278,7 +278,7 @@ export default {
         return log;
     },
 
-    getMonitorLog: async function(data) {
+    getMonitorLog: async function (data) {
         const date = new Date();
 
         const selectMonitorLog =
@@ -287,8 +287,7 @@ export default {
         const populateMonitorLog = [
             {
                 path: 'probeId',
-                select:
-                    'createdAt lastAlive probeKey probeName version probeImage deleted',
+                select: 'createdAt lastAlive probeKey probeName version probeImage deleted',
             },
         ];
         const log = await MonitorLogService.findOneBy({
@@ -303,7 +302,7 @@ export default {
         return log;
     },
 
-    incidentCreateOrUpdate: async function(data) {
+    incidentCreateOrUpdate: async function (data) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -590,7 +589,7 @@ export default {
         return incidentIds;
     },
 
-    incidentResolveOrAcknowledge: async function(data, allCriteria) {
+    incidentResolveOrAcknowledge: async function (data, allCriteria) {
         const populate = [
             {
                 path: 'probes.probeId',
@@ -758,7 +757,7 @@ export default {
         return {};
     },
 
-    updateProbeStatus: async function(probeId) {
+    updateProbeStatus: async function (probeId) {
         try {
             const probe = await ProbeModel.findOneAndUpdate(
                 { _id: probeId },
@@ -973,7 +972,7 @@ export default {
         return { eventOccurred, matchedCriterion };
     },
 
-    toArray: function(params) {
+    toArray: function (params) {
         const array = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
@@ -984,7 +983,7 @@ export default {
         return null;
     },
 
-    processHttpRequest: async function(data) {
+    processHttpRequest: async function (data) {
         const _this = this;
         const { monitor, body } = data;
         let { queryParams, headers } = data;
@@ -1109,7 +1108,7 @@ export default {
         return log;
     },
 
-    probeHttpRequest: async function(monitor, probeId) {
+    probeHttpRequest: async function (monitor, probeId) {
         const _this = this;
         let status, reason;
         let matchedCriterion;
@@ -1966,13 +1965,15 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         }
                     } else if (
@@ -1992,13 +1993,15 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         }
                     }
@@ -3852,13 +3855,15 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         }
                     } else if (
@@ -3875,13 +3880,15 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         }
                     }
@@ -4296,13 +4303,15 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         } else {
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         }
                     } else if (
@@ -4320,13 +4329,15 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         } else {
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         }
                     }
@@ -6103,13 +6114,15 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         } else {
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         }
                     } else if (
@@ -6124,13 +6137,15 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         } else {
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         }
                     }

@@ -105,9 +105,10 @@ export default function ssoDefaultRoles(
                 },
                 ssoDefaultRoles: {
                     ...state.ssoDefaultRoles,
-                    ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.filter(
-                        element => element._id !== action.payload._id
-                    ),
+                    ssoDefaultRoles:
+                        state.ssoDefaultRoles.ssoDefaultRoles.filter(
+                            element => element._id !== action.payload._id
+                        ),
                 },
             });
         case DELETE_SSO_DEFAULT_ROLE_FAILED:

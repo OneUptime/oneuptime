@@ -21,7 +21,7 @@ import main from './workers/main';
 
 app.use(cors());
 
-app.use(function(req: Request, res: Response, next: NextFunction) {
+app.use(function (req: Request, res: Response, next: NextFunction) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -41,7 +41,7 @@ app.set('port', process.env.PORT || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-app.get(['/script/status', '/status'], function(req: Request, res: Response) {
+app.get(['/script/status', '/status'], function (req: Request, res: Response) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -54,7 +54,7 @@ app.get(['/script/status', '/status'], function(req: Request, res: Response) {
 
 app.use('/script', require('./api/script'));
 
-http.listen(app.get('port'), function() {
+http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     console.log('Script runner started on port ' + app.get('port'));
 });

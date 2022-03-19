@@ -42,7 +42,7 @@ class OutgoingListener {
                     method,
                 });
 
-                req.emit = function(eventName, response) {
+                req.emit = function (eventName, response) {
                     switch (eventName) {
                         case 'response': {
                             response.on('end', () => {

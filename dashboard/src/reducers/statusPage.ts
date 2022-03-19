@@ -1553,9 +1553,11 @@ export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
                 ),
                 subProjectStatusPages: state.subProjectStatusPages.map(
                     subProjectStatusPage => {
-                        subProjectStatusPage.statusPages = subProjectStatusPage.statusPages.filter(
-                            ({ _id }: $TSFixMe) => _id !== action.payload._id
-                        );
+                        subProjectStatusPage.statusPages =
+                            subProjectStatusPage.statusPages.filter(
+                                ({ _id }: $TSFixMe) =>
+                                    _id !== action.payload._id
+                            );
                         return subProjectStatusPage;
                     }
                 ),

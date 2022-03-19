@@ -3,7 +3,7 @@ import ErrorService from '../utils/errorService';
 import ApplicationSecurity from './applicationSecurity';
 
 export default {
-    runApplicationScan: async function() {
+    runApplicationScan: async function () {
         try {
             const securities = await getApi(
                 'application/applicationSecurities'

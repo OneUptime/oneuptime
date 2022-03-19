@@ -21,12 +21,8 @@ router.post(
     isAuthorized,
     async (req: Request, res: Response) => {
         try {
-            const {
-                gitUsername,
-                gitPassword,
-                sshTitle,
-                sshPrivateKey,
-            } = req.body;
+            const { gitUsername, gitPassword, sshTitle, sshPrivateKey } =
+                req.body;
             const { projectId } = req.params;
 
             if (gitUsername && gitPassword) {
@@ -88,12 +84,8 @@ router.put(
     async (req: Request, res: Response) => {
         try {
             const { credentialId } = req.params;
-            const {
-                gitUsername,
-                gitPassword,
-                sshTitle,
-                sshPrivateKey,
-            } = req.body;
+            const { gitUsername, gitPassword, sshTitle, sshPrivateKey } =
+                req.body;
 
             const data = {};
 

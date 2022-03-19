@@ -46,65 +46,85 @@ const incidentSettings = {
     name: 'Another update',
 };
 
-describe('Incident Settings API', function() {
+describe('Incident Settings API', function () {
     this.timeout(500000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                projectId = res.body.project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    projectId = res.body.project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    ComponentModel.create({
-                                        name: 'New Component',
-                                        projectId,
-                                    }).then(component => {
-                                        componentId = component._id;
-                                        request
-                                            .post(`/monitor/${projectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({ ...monitor, componentId })
-                                            .end(async function(
-                                                err: $TSFixMe,
-                                                res: Response
-                                            ) {
-                                                monitorId = res.body._id;
-                                                expect(res).to.have.status(200);
-                                                expect(
-                                                    res.body.name
-                                                ).to.be.equal(monitor.name);
-                                                done();
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
+                                            err: $TSFixMe,
+                                            res: Response
+                                        ) {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            const authorization = `Basic ${token}`;
+                                            ComponentModel.create({
+                                                name: 'New Component',
+                                                projectId,
+                                            }).then(component => {
+                                                componentId = component._id;
+                                                request
+                                                    .post(
+                                                        `/monitor/${projectId}`
+                                                    )
+                                                    .set(
+                                                        'Authorization',
+                                                        authorization
+                                                    )
+                                                    .send({
+                                                        ...monitor,
+                                                        componentId,
+                                                    })
+                                                    .end(async function (
+                                                        err: $TSFixMe,
+                                                        res: Response
+                                                    ) {
+                                                        monitorId =
+                                                            res.body._id;
+                                                        expect(
+                                                            res
+                                                        ).to.have.status(200);
+                                                        expect(
+                                                            res.body.name
+                                                        ).to.be.equal(
+                                                            monitor.name
+                                                        );
+                                                        done();
+                                                    });
                                             });
-                                    });
+                                        });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await IncidentService.hardDeleteBy({ _id: incidentId });
         await IncidentSettings.hardDeleteBy({ projectId });
@@ -155,8 +175,7 @@ describe('Incident Settings API', function() {
                 projectId,
                 name: 'High',
             },
-            select:
-                'projectId name color createdAt deletedAt deleted deletedById',
+            select: 'projectId name color createdAt deletedAt deleted deletedById',
         });
         expect(incidentPriorityObject).to.not.equal(null);
         const { _id: incidentPriority } = incidentPriorityObject;

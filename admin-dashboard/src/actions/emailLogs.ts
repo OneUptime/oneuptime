@@ -23,37 +23,38 @@ export const fetchEmailLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const fetchEmailLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
+export const fetchEmailLogs =
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
 
-    dispatch(fetchEmailLogsRequest());
+        dispatch(fetchEmailLogsRequest());
 
-    try {
-        const response = await getApi(`email-logs?skip=${skip}&limit=${limit}`);
+        try {
+            const response = await getApi(
+                `email-logs?skip=${skip}&limit=${limit}`
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(fetchEmailLogsSuccess(data));
+            dispatch(fetchEmailLogsSuccess(data));
 
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchEmailLogsError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchEmailLogsError(errors(errorMsg)));
-    }
-};
+    };
 
 // Search Email Logs.
 export const searchEmailLogsRequest = () => {
@@ -76,42 +77,40 @@ export const searchEmailLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const searchEmailLogs = (
-    filter: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    const values = {
-        filter,
+export const searchEmailLogs =
+    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        const values = {
+            filter,
+        };
+
+        dispatch(searchEmailLogsRequest());
+
+        try {
+            const response = await postApi(
+                `email-logs/search?skip=${skip}&limit=${limit}`,
+                values
+            );
+
+            const data = response.data;
+
+            dispatch(searchEmailLogsSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(searchEmailLogsError(errors(errorMsg)));
+        }
     };
-
-    dispatch(searchEmailLogsRequest());
-
-    try {
-        const response = await postApi(
-            `email-logs/search?skip=${skip}&limit=${limit}`,
-            values
-        );
-
-        const data = response.data;
-
-        dispatch(searchEmailLogsSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
-        }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(searchEmailLogsError(errors(errorMsg)));
-    }
-};
 
 // Delete All Email Logs
 export const deleteEmailLogsRequest = () => {
@@ -244,32 +243,31 @@ export const resetConfirmEmailLogStatus = () => {
 };
 
 // Calls the API to change emailLogStatus
-export const emailLogStatusChange = (values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(changeEmailLogStatusRequest());
+export const emailLogStatusChange =
+    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(changeEmailLogStatusRequest());
 
-    try {
-        const response = await postApi('globalConfig/', [
-            { name: 'emailLogMonitoringStatus', value: values.status },
-        ]);
+        try {
+            const response = await postApi('globalConfig/', [
+                { name: 'emailLogMonitoringStatus', value: values.status },
+            ]);
 
-        const data = response.data;
-        dispatch(changeEmailLogStatusSuccess(data));
-        return data;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const data = response.data;
+            dispatch(changeEmailLogStatusSuccess(data));
+            return data;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(changeEmailLogStatusError(errors(errorMsg)));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(changeEmailLogStatusError(errors(errorMsg)));
-        return 'error';
-    }
-};
+    };

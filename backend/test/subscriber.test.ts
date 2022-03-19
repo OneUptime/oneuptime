@@ -55,91 +55,111 @@ const csvData = {
     ],
 };
 
-describe('Subscriber API', function() {
+describe('Subscriber API', function () {
     this.timeout(20000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                projectId = res.body.project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    projectId = res.body.project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    ComponentModel.create({
-                                        name: 'New Component',
-                                    }).then(component => {
-                                        componentId = component._id;
-                                        request
-                                            .post(`/monitor/${projectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({
-                                                ...monitor,
-                                                componentId,
-                                            })
-                                            .end(function(
-                                                err: $TSFixMe,
-                                                res: Response
-                                            ) {
-                                                monitorId = res.body._id;
-                                                expect(
-                                                    res.body.name
-                                                ).to.be.equal(monitor.name);
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
+                                            err: $TSFixMe,
+                                            res: Response
+                                        ) {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            const authorization = `Basic ${token}`;
+                                            ComponentModel.create({
+                                                name: 'New Component',
+                                            }).then(component => {
+                                                componentId = component._id;
                                                 request
                                                     .post(
-                                                        `/status-page/${projectId}`
+                                                        `/monitor/${projectId}`
                                                     )
                                                     .set(
                                                         'Authorization',
                                                         authorization
                                                     )
                                                     .send({
-                                                        links: [],
-                                                        title: 'Status title',
-                                                        name: 'Status name',
-                                                        description:
-                                                            'status description',
-                                                        copyright:
-                                                            'status copyright',
-                                                        projectId,
-                                                        monitorIds: [monitorId],
+                                                        ...monitor,
+                                                        componentId,
                                                     })
-                                                    .end(function(
+                                                    .end(function (
                                                         err: $TSFixMe,
                                                         res: Response
                                                     ) {
-                                                        statusPageId =
+                                                        monitorId =
                                                             res.body._id;
                                                         expect(
-                                                            res
-                                                        ).to.have.status(200);
-                                                        done();
+                                                            res.body.name
+                                                        ).to.be.equal(
+                                                            monitor.name
+                                                        );
+                                                        request
+                                                            .post(
+                                                                `/status-page/${projectId}`
+                                                            )
+                                                            .set(
+                                                                'Authorization',
+                                                                authorization
+                                                            )
+                                                            .send({
+                                                                links: [],
+                                                                title: 'Status title',
+                                                                name: 'Status name',
+                                                                description:
+                                                                    'status description',
+                                                                copyright:
+                                                                    'status copyright',
+                                                                projectId,
+                                                                monitorIds: [
+                                                                    monitorId,
+                                                                ],
+                                                            })
+                                                            .end(function (
+                                                                err: $TSFixMe,
+                                                                res: Response
+                                                            ) {
+                                                                statusPageId =
+                                                                    res.body
+                                                                        ._id;
+                                                                expect(
+                                                                    res
+                                                                ).to.have.status(
+                                                                    200
+                                                                );
+                                                                done();
+                                                            });
                                                     });
                                             });
-                                    });
+                                        });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
@@ -232,12 +252,12 @@ describe('Subscriber API', function() {
             });
     });
 
-    it('should delete a subscriber', function(done: $TSFixMe) {
+    it('should delete a subscriber', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/subscriber/${projectId}/${subscriberId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });

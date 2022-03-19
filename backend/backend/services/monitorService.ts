@@ -3,7 +3,7 @@ export default {
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
         let subProject = null;
 
@@ -221,7 +221,7 @@ export default {
         }
     },
 
-    markMonitorsAsShouldNotMonitor: async function(monitorIds: $TSFixMe) {
+    markMonitorsAsShouldNotMonitor: async function (monitorIds: $TSFixMe) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -232,7 +232,7 @@ export default {
         );
     },
 
-    markMonitorsAsShouldMonitor: async function(monitorIds: $TSFixMe) {
+    markMonitorsAsShouldMonitor: async function (monitorIds: $TSFixMe) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -243,7 +243,7 @@ export default {
         );
     },
 
-    unsetColumnsOfManyMonitors: async function(
+    unsetColumnsOfManyMonitors: async function (
         monitorIds: $TSFixMe,
         columns: $TSFixMe
     ) {
@@ -257,7 +257,7 @@ export default {
         );
     },
 
-    updateManyIncidentCommunicationSla: async function(
+    updateManyIncidentCommunicationSla: async function (
         monitorIds: $TSFixMe,
         incidentCommunicationSlaId: $TSFixMe
     ) {
@@ -273,7 +273,7 @@ export default {
         );
     },
 
-    updateManyMonitorSla: async function(
+    updateManyMonitorSla: async function (
         monitorIds: $TSFixMe,
         monitorSlaId: $TSFixMe
     ) {
@@ -287,7 +287,7 @@ export default {
         );
     },
 
-    updateCriterion: async function(
+    updateCriterion: async function (
         _id: $TSFixMe,
         lastMatchedCriterion: $TSFixMe
     ) {
@@ -300,7 +300,7 @@ export default {
         );
     },
 
-    updateLighthouseScanStatus: async function(
+    updateLighthouseScanStatus: async function (
         _id: $TSFixMe,
         lighthouseScanStatus: $TSFixMe,
         lighthouseScannedBy: $TSFixMe
@@ -347,7 +347,7 @@ export default {
         return monitor;
     },
 
-    disableMonitor: async function(
+    disableMonitor: async function (
         _id: $TSFixMe,
         isDisabledOrEnable: $TSFixMe
     ) {
@@ -361,7 +361,7 @@ export default {
         );
     },
 
-    updateScriptStatus: async function(
+    updateScriptStatus: async function (
         _id: $TSFixMe,
         scriptRunStatus: $TSFixMe,
         scriptRunBy: $TSFixMe
@@ -380,7 +380,7 @@ export default {
         );
     },
 
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData: $TSFixMe
@@ -475,7 +475,7 @@ export default {
         return monitor;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -500,7 +500,7 @@ export default {
 
     // To be used to know the current status of a monitor
     // online, offline or degraded
-    updateAllMonitorStatus: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateAllMonitorStatus: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -574,7 +574,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -1075,9 +1075,7 @@ export default {
                         // or weren't completed due to a crash
                         {
                             lastPingTime: {
-                                $lte: moment()
-                                    .subtract(10, 'minutes')
-                                    .toDate(),
+                                $lte: moment().subtract(10, 'minutes').toDate(),
                             },
                         },
                     ],
@@ -1107,9 +1105,7 @@ export default {
     },
 
     async getUrlMonitorsNotScannedByLightHouseInPastOneDay() {
-        const oneDay = moment()
-            .subtract(1, 'days')
-            .toDate();
+        const oneDay = moment().subtract(1, 'days').toDate();
 
         const monitors = await MonitorModel.find({
             $and: [
@@ -1213,8 +1209,7 @@ export default {
             const populateMonitorLog = [
                 {
                     path: 'probeId',
-                    select:
-                        'createdAt lastAlive probeKey probeName version probeImage deleted',
+                    select: 'createdAt lastAlive probeKey probeName version probeImage deleted',
                 },
             ];
 
@@ -1388,7 +1383,7 @@ export default {
         return probeStatuses;
     },
 
-    addSeat: async function(query: $TSFixMe) {
+    addSeat: async function (query: $TSFixMe) {
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -1411,7 +1406,7 @@ export default {
         return 'A new seat added. Now you can add a monitor';
     },
 
-    addSiteUrl: async function(query: $TSFixMe, data: $TSFixMe) {
+    addSiteUrl: async function (query: $TSFixMe, data: $TSFixMe) {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
 
         if (
@@ -1432,7 +1427,7 @@ export default {
         return monitor;
     },
 
-    removeSiteUrl: async function(query: $TSFixMe, data: $TSFixMe) {
+    removeSiteUrl: async function (query: $TSFixMe, data: $TSFixMe) {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
         const siteUrlIndex =
             monitor.siteUrls && monitor.siteUrls.length > 0
@@ -1456,7 +1451,7 @@ export default {
         return monitor;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await MonitorModel.deleteMany(query);
         return 'Monitor(s) removed successfully!';
     },
@@ -1477,12 +1472,7 @@ export default {
         let days = moment(dateNow)
             .utc()
             .startOf('day')
-            .diff(
-                moment(monitorTime.createdAt)
-                    .utc()
-                    .startOf('day'),
-                'days'
-            );
+            .diff(moment(monitorTime.createdAt).utc().startOf('day'), 'days');
 
         if (days > 89) days = 89;
         const times = [];
@@ -1491,9 +1481,7 @@ export default {
             const temp = {};
             let status = 'online';
 
-            temp.date = moment(dateNow)
-                .utc()
-                .subtract(i, 'days');
+            temp.date = moment(dateNow).utc().subtract(i, 'days');
 
             temp.monitorId = monitorId;
             if (monitorIncidents && monitorIncidents.length) {
@@ -1502,9 +1490,7 @@ export default {
                         .utc()
                         .startOf('day')
                         .diff(
-                            moment(inc.createdAt)
-                                .utc()
-                                .startOf('day'),
+                            moment(inc.createdAt).utc().startOf('day'),
                             'days'
                         );
 
@@ -1512,9 +1498,7 @@ export default {
                         .utc()
                         .startOf('day')
                         .diff(
-                            moment(inc.resolvedAt)
-                                .utc()
-                                .startOf('day'),
+                            moment(inc.resolvedAt).utc().startOf('day'),
                             'days'
                         );
                     if (creatediff > -1 && resolveddiff < 1) return true;
@@ -1526,9 +1510,7 @@ export default {
                               .utc()
                               .startOf('day')
                               .diff(
-                                  moment(temp.date)
-                                      .utc()
-                                      .startOf('day'),
+                                  moment(temp.date).utc().startOf('day'),
                                   'days'
                               ) > 0
                         : true
@@ -1541,9 +1523,7 @@ export default {
                         .utc()
                         .startOf('day')
                         .diff(
-                            moment(inc.createdAt)
-                                .utc()
-                                .startOf('day'),
+                            moment(inc.createdAt).utc().startOf('day'),
                             'days'
                         );
                     const resolveddiff = inc.resolvedAt
@@ -1551,20 +1531,13 @@ export default {
                               .utc()
                               .startOf('day')
                               .diff(
-                                  moment(inc.resolvedAt)
-                                      .utc()
-                                      .startOf('day'),
+                                  moment(inc.resolvedAt).utc().startOf('day'),
                                   'days'
                               )
                         : moment(temp.date)
                               .utc()
                               .startOf('day')
-                              .diff(
-                                  moment()
-                                      .utc()
-                                      .startOf('day'),
-                                  'days'
-                              );
+                              .diff(moment().utc().startOf('day'), 'days');
                     if (creatediff > 0 && resolveddiff < 0) {
                         return 1440;
                     } else if (creatediff === 0 && resolveddiff !== 0) {
@@ -1605,7 +1578,7 @@ export default {
         return times;
     },
 
-    restoreBy: async function(query: $TSFixMe) {
+    restoreBy: async function (query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         const select = '_id';
@@ -1642,7 +1615,7 @@ export default {
 
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
     // then update the monitor => breachedMonitorSla
-    updateMonitorSlaStat: async function(query: $TSFixMe) {
+    updateMonitorSlaStat: async function (query: $TSFixMe) {
         const _this = this;
         const currentDate = moment().format();
         let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
@@ -1731,7 +1704,7 @@ export default {
         }
     },
 
-    calculateTime: function(
+    calculateTime: function (
         statuses: $TSFixMe,
         start: $TSFixMe,
         range: $TSFixMe
@@ -1904,9 +1877,10 @@ export default {
                 i--;
             }
             //Remove events having start and end time equal.
-            incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
-                event => !moment(event.start).isSame(event.end)
-            );
+            incidentsHappenedDuringTheDay =
+                incidentsHappenedDuringTheDay.filter(
+                    event => !moment(event.start).isSame(event.end)
+                );
             //Last step
             for (const incident of incidentsHappenedDuringTheDay) {
                 const { start, end, status } = incident;
@@ -1940,7 +1914,7 @@ export default {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 
-    closeBreachedMonitorSla: async function(
+    closeBreachedMonitorSla: async function (
         projectId: $TSFixMe,
         monitorId: $TSFixMe,
         userId: $TSFixMe
@@ -1961,7 +1935,7 @@ export default {
         return monitor;
     },
 
-    changeMonitorComponent: async function(
+    changeMonitorComponent: async function (
         projectId: $TSFixMe,
         monitorId: $TSFixMe,
         componentId: $TSFixMe
@@ -1995,7 +1969,7 @@ export default {
         return updatedMonitor;
     },
 
-    calcTime: function(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) {
+    calcTime: function (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -2199,9 +2173,10 @@ export default {
                 i--;
             }
             //Remove events having start and end time equal.
-            incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
-                event => !moment(event.start).isSame(event.end)
-            );
+            incidentsHappenedDuringTheDay =
+                incidentsHappenedDuringTheDay.filter(
+                    event => !moment(event.start).isSame(event.end)
+                );
             //Last step
             for (const incident of incidentsHappenedDuringTheDay) {
                 const { start, end, status } = incident;

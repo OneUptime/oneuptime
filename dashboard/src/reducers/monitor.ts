@@ -809,11 +809,13 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                           monitor._id ===
                                           action.payload.monitorId
                                       ) {
-                                          const mainSiteUrlLogs = action.payload.logs.data.filter(
-                                              (log: $TSFixMe) =>
-                                                  monitor.data &&
-                                                  monitor.data.url === log.url
-                                          );
+                                          const mainSiteUrlLogs =
+                                              action.payload.logs.data.filter(
+                                                  (log: $TSFixMe) =>
+                                                      monitor.data &&
+                                                      monitor.data.url ===
+                                                          log.url
+                                              );
                                           if (
                                               mainSiteUrlLogs &&
                                               mainSiteUrlLogs.length > 0
@@ -851,12 +853,14 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                                   monitor._id ===
                                                   action.payload.monitorId
                                               ) {
-                                                  const mainSiteUrlLogs = action.payload.logs.data.filter(
-                                                      (log: $TSFixMe) =>
-                                                          monitor.data &&
-                                                          monitor.data.url ===
-                                                              log.url
-                                                  );
+                                                  const mainSiteUrlLogs =
+                                                      action.payload.logs.data.filter(
+                                                          (log: $TSFixMe) =>
+                                                              monitor.data &&
+                                                              monitor.data
+                                                                  .url ===
+                                                                  log.url
+                                                      );
                                                   if (
                                                       mainSiteUrlLogs &&
                                                       mainSiteUrlLogs.length > 0
@@ -865,14 +869,13 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                                           mainSiteUrlLogs[0];
                                                   }
                                                   monitor.lighthouseLogs = {
-                                                      data:
-                                                          action.payload.logs
-                                                              .data,
+                                                      data: action.payload.logs
+                                                          .data,
                                                       skip: action.payload.skip,
-                                                      limit:
-                                                          action.payload.limit,
-                                                      count:
-                                                          action.payload.count,
+                                                      limit: action.payload
+                                                          .limit,
+                                                      count: action.payload
+                                                          .count,
                                                   };
                                                   return monitor;
                                               } else {
@@ -1230,9 +1233,10 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                                   monitor.statuses &&
                                                   monitor.statuses.length > 0
                                               ) {
-                                                  const monitorProbes = monitor.statuses.map(
-                                                      (a: $TSFixMe) => a._id
-                                                  );
+                                                  const monitorProbes =
+                                                      monitor.statuses.map(
+                                                          (a: $TSFixMe) => a._id
+                                                      );
 
                                                   if (
                                                       monitorProbes.includes(
@@ -1240,38 +1244,41 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                                       ) ||
                                                       !data.probeId
                                                   ) {
-                                                      monitor.statuses = monitor.statuses.map(
-                                                          (
-                                                              probeStatuses: $TSFixMe
-                                                          ) => {
-                                                              const probeId =
-                                                                  probeStatuses._id;
+                                                      monitor.statuses =
+                                                          monitor.statuses.map(
+                                                              (
+                                                                  probeStatuses: $TSFixMe
+                                                              ) => {
+                                                                  const probeId =
+                                                                      probeStatuses._id;
 
-                                                              if (
-                                                                  probeId ===
-                                                                      data.probeId ||
-                                                                  !data.probeId
-                                                              ) {
-                                                                  const previousStatus =
-                                                                      probeStatuses
-                                                                          .statuses[0];
-                                                                  previousStatus.endTime = new Date().toISOString();
+                                                                  if (
+                                                                      probeId ===
+                                                                          data.probeId ||
+                                                                      !data.probeId
+                                                                  ) {
+                                                                      const previousStatus =
+                                                                          probeStatuses
+                                                                              .statuses[0];
+                                                                      previousStatus.endTime =
+                                                                          new Date().toISOString();
 
-                                                                  return {
-                                                                      _id: probeId,
-                                                                      statuses: [
-                                                                          data,
-                                                                          previousStatus,
-                                                                          ...probeStatuses.statuses.slice(
-                                                                              1
-                                                                          ),
-                                                                      ],
-                                                                  };
-                                                              } else {
-                                                                  return probeStatuses;
+                                                                      return {
+                                                                          _id: probeId,
+                                                                          statuses:
+                                                                              [
+                                                                                  data,
+                                                                                  previousStatus,
+                                                                                  ...probeStatuses.statuses.slice(
+                                                                                      1
+                                                                                  ),
+                                                                              ],
+                                                                      };
+                                                                  } else {
+                                                                      return probeStatuses;
+                                                                  }
                                                               }
-                                                          }
-                                                      );
+                                                          );
 
                                                       if (
                                                           isValidProbe &&
@@ -1285,7 +1292,8 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                                           )
                                                       ) {
                                                           // add manual status to all new probes
-                                                          const newProbeStatuses: $TSFixMe = [];
+                                                          const newProbeStatuses: $TSFixMe =
+                                                              [];
 
                                                           probes.forEach(
                                                               (
@@ -1298,11 +1306,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                                                   ) {
                                                                       newProbeStatuses.push(
                                                                           {
-                                                                              _id:
-                                                                                  probe._id,
-                                                                              statuses: [
-                                                                                  data,
-                                                                              ],
+                                                                              _id: probe._id,
+                                                                              statuses:
+                                                                                  [
+                                                                                      data,
+                                                                                  ],
                                                                           }
                                                                       );
                                                                   }
@@ -1327,14 +1335,17 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                                   }
                                               } else {
                                                   if (isValidProbe) {
-                                                      monitor.statuses = probes.map(
-                                                          (
-                                                              probe: $TSFixMe
-                                                          ) => ({
-                                                              _id: probe._id,
-                                                              statuses: [data],
-                                                          })
-                                                      );
+                                                      monitor.statuses =
+                                                          probes.map(
+                                                              (
+                                                                  probe: $TSFixMe
+                                                              ) => ({
+                                                                  _id: probe._id,
+                                                                  statuses: [
+                                                                      data,
+                                                                  ],
+                                                              })
+                                                          );
                                                   } else {
                                                       monitor.statuses = [
                                                           {
@@ -1387,11 +1398,13 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                               monitor.lighthouseLogs.data
                                                   .length > 0
                                           ) {
-                                              const logIndex = monitor.lighthouseLogs.data.findIndex(
-                                                  (log: $TSFixMe) =>
-                                                      log.url ===
-                                                      action.payload.data.url
-                                              );
+                                              const logIndex =
+                                                  monitor.lighthouseLogs.data.findIndex(
+                                                      (log: $TSFixMe) =>
+                                                          log.url ===
+                                                          action.payload.data
+                                                              .url
+                                                  );
                                               if (logIndex > -1) {
                                                   monitor.lighthouseLogs.data[
                                                       logIndex
@@ -1439,23 +1452,23 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                                                           ._id
                                           )
                                       ) {
-                                          monitor.currentLighthouseLog = action.payload.data.logs.lighthouseLogs.filter(
-                                              (log: $TSFixMe) =>
-                                                  monitor.currentLighthouseLog &&
-                                                  log._id ===
-                                                      monitor
-                                                          .currentLighthouseLog
-                                                          ._id
-                                          )[0];
+                                          monitor.currentLighthouseLog =
+                                              action.payload.data.logs.lighthouseLogs.filter(
+                                                  (log: $TSFixMe) =>
+                                                      monitor.currentLighthouseLog &&
+                                                      log._id ===
+                                                          monitor
+                                                              .currentLighthouseLog
+                                                              ._id
+                                              )[0];
                                       }
                                       if (
                                           monitor._id ===
                                           action.payload.monitorId
                                       ) {
                                           monitor.lighthouseLogs = {
-                                              data:
-                                                  action.payload.data.logs
-                                                      .lighthouseLogs,
+                                              data: action.payload.data.logs
+                                                  .lighthouseLogs,
                                               skip: 0,
                                               limit: 1,
                                               count: 1,
@@ -1576,10 +1589,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
-                                ({ _id }: $TSFixMe) =>
-                                    String(_id) !== String(action.payload)
-                            );
+                            subProjectMonitor.monitors =
+                                subProjectMonitor.monitors.filter(
+                                    ({ _id }: $TSFixMe) =>
+                                        String(_id) !== String(action.payload)
+                                );
 
                             subProjectMonitor.count =
                                 subProjectMonitor.monitors.length;
@@ -1622,20 +1636,21 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            subProjectMonitor.monitors = subProjectMonitor.monitors.map(
-                                (monitor: $TSFixMe) => {
-                                    if (
-                                        String(monitor._id) ===
-                                        String(action.payload.monitorId)
-                                    ) {
-                                        monitor.disabled =
-                                            action.payload.disable;
-                                        return monitor;
-                                    } else {
-                                        return monitor;
+                            subProjectMonitor.monitors =
+                                subProjectMonitor.monitors.map(
+                                    (monitor: $TSFixMe) => {
+                                        if (
+                                            String(monitor._id) ===
+                                            String(action.payload.monitorId)
+                                        ) {
+                                            monitor.disabled =
+                                                action.payload.disable;
+                                            return monitor;
+                                        } else {
+                                            return monitor;
+                                        }
                                     }
-                                }
-                            );
+                                );
                             return subProjectMonitor;
                         }
                     ),
@@ -1675,20 +1690,21 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            subProjectMonitor.monitors = subProjectMonitor.monitors.map(
-                                (monitor: $TSFixMe) => {
-                                    if (
-                                        String(monitor._id) ===
-                                        String(action.payload.monitorId)
-                                    ) {
-                                        monitor.componentId =
-                                            action.payload.newComponentId;
-                                        return monitor;
-                                    } else {
-                                        return monitor;
+                            subProjectMonitor.monitors =
+                                subProjectMonitor.monitors.map(
+                                    (monitor: $TSFixMe) => {
+                                        if (
+                                            String(monitor._id) ===
+                                            String(action.payload.monitorId)
+                                        ) {
+                                            monitor.componentId =
+                                                action.payload.newComponentId;
+                                            return monitor;
+                                        } else {
+                                            return monitor;
+                                        }
                                     }
-                                }
-                            );
+                                );
                             return subProjectMonitor;
                         }
                     ),
@@ -1884,10 +1900,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     monitors: state.monitorsList.monitors.map(
                         subProjectMonitor => {
-                            subProjectMonitor.monitors = subProjectMonitor.monitors.filter(
-                                ({ _id }: $TSFixMe) =>
-                                    String(_id) !== String(action.payload)
-                            );
+                            subProjectMonitor.monitors =
+                                subProjectMonitor.monitors.filter(
+                                    ({ _id }: $TSFixMe) =>
+                                        String(_id) !== String(action.payload)
+                                );
 
                             subProjectMonitor.count =
                                 subProjectMonitor.monitors.length;
@@ -1907,10 +1924,11 @@ export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
                             (action.payload.projectId._id ||
                                 action.payload.projectId)
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
-                                      const monitors = action.payload.monitors.map(
-                                          (monitor: $TSFixMe) =>
-                                              monitor.monitorId
-                                      );
+                                      const monitors =
+                                          action.payload.monitors.map(
+                                              (monitor: $TSFixMe) =>
+                                                  monitor.monitorId
+                                          );
                                       monitors.forEach(
                                           (monitorObj: $TSFixMe) => {
                                               if (

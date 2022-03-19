@@ -67,7 +67,7 @@ global.io = io;
 
 app.use(cors());
 
-app.use(async function(req: Request, res: Response, next: NextFunction) {
+app.use(async function (req: Request, res: Response, next: NextFunction) {
     const method = req.method;
     const url = req.url;
     const requestStartedAt = Date.now();
@@ -102,7 +102,7 @@ app.use(async function(req: Request, res: Response, next: NextFunction) {
     next();
 });
 
-app.use(function(req: Request, res: Response, next: NextFunction) {
+app.use(function (req: Request, res: Response, next: NextFunction) {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
@@ -469,7 +469,7 @@ app.use(
 
 app.use(['/api'], require('./backend/api/apiStatus'));
 
-app.use('/*', function(req: Request, res: Response) {
+app.use('/*', function (req: Request, res: Response) {
     res.status(404).send('Endpoint not found.');
 });
 
@@ -478,7 +478,7 @@ require('./backend/workers/main');
 
 app.set('port', process.env.PORT || 3002);
 
-const server = http.listen(app.get('port'), function() {
+const server = http.listen(app.get('port'), function () {
     logger.info('Server Started on port ' + app.get('port'));
 });
 
@@ -491,7 +491,7 @@ mongoose.connection.on('connected', async () => {
                 maintainerEmail: 'certs@oneuptime.com',
                 staging: false,
 
-                notify: function(event, details) {
+                notify: function (event, details) {
                     if ('error' === event) {
                         // `details` is an error object in this case
                         // eslint-disable-next-line no-console
@@ -521,6 +521,6 @@ mongoose.connection.on('connected', async () => {
 });
 
 export default app;
-module.exports.close = function() {
+module.exports.close = function () {
     server.close();
 };

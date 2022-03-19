@@ -8,7 +8,13 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -33,7 +39,7 @@ export default {
         return sortDataList;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -42,7 +48,7 @@ export default {
         return count;
     },
 
-    countLogsBy: async function(query: $TSFixMe) {
+    countLogsBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -51,7 +57,7 @@ export default {
         return count;
     },
 
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const script = new ScriptModel();
 
         script.name = data.name || null;
@@ -72,7 +78,7 @@ export default {
         return newScript;
     },
 
-    createLog: async function(id: $TSFixMe, data: $TSFixMe) {
+    createLog: async function (id: $TSFixMe, data: $TSFixMe) {
         const scriptLog = new ScriptModelLog();
 
         scriptLog.automationScriptId = id || null;
@@ -95,7 +101,7 @@ export default {
         return newScriptLog;
     },
 
-    updateOne: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOne: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -112,7 +118,7 @@ export default {
         return response;
     },
 
-    findAllLogs: async function(
+    findAllLogs: async function (
         query: $TSFixMe,
         skip: $TSFixMe,
         limit: $TSFixMe
@@ -139,7 +145,7 @@ export default {
         return response;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -154,7 +160,7 @@ export default {
         return response;
     },
 
-    getAutomatedLogs: async function(
+    getAutomatedLogs: async function (
         query: $TSFixMe,
         skip: $TSFixMe,
         limit: $TSFixMe
@@ -164,13 +170,13 @@ export default {
         return response;
     },
 
-    createScript: async function(data: $TSFixMe) {
+    createScript: async function (data: $TSFixMe) {
         const _this = this;
         const response = await _this.create(data);
         return response;
     },
 
-    runResource: async function({
+    runResource: async function ({
         triggeredId,
         triggeredBy,
         resources,
@@ -233,7 +239,7 @@ export default {
         return Promise.all(eventPromises);
     },
 
-    runAutomatedScript: async function({
+    runAutomatedScript: async function ({
         automatedScriptId,
         triggeredId,
         triggeredBy = 'script',
@@ -244,16 +250,12 @@ export default {
             'name script scriptType slug projectId successEvent failureEvent';
         const populateScript = [{ path: 'createdById', select: 'name' }];
 
-        const {
-            script,
-            scriptType,
-            successEvent,
-            failureEvent,
-        } = await _this.findOneBy({
-            query: { _id: automatedScriptId },
-            select: selectScript,
-            populate: populateScript,
-        });
+        const { script, scriptType, successEvent, failureEvent } =
+            await _this.findOneBy({
+                query: { _id: automatedScriptId },
+                select: selectScript,
+                populate: populateScript,
+            });
         let data = null;
         if (scriptType === 'JavaScript') {
             const result = await postApi(`${scriptBaseUrl}/script/js`, {
@@ -315,7 +317,7 @@ export default {
         return automatedScriptLog;
     },
 
-    removeScriptFromEvent: async function({ projectId, id }: $TSFixMe) {
+    removeScriptFromEvent: async function ({ projectId, id }: $TSFixMe) {
         const _this = this;
         const scripts = await ScriptModel.find({ projectId }).lean();
         await Promise.all(
@@ -336,7 +338,7 @@ export default {
         );
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -358,7 +360,7 @@ export default {
         return response;
     },
 
-    hardDeleteBy: async function({ query }: $TSFixMe) {
+    hardDeleteBy: async function ({ query }: $TSFixMe) {
         await ScriptModel.deleteMany(query);
     },
 };

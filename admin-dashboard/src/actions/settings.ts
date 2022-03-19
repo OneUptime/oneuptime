@@ -133,31 +133,30 @@ export const fetchSettings = (type: $TSFixMe) => async (dispatch: $TSFixMe) => {
     }
 };
 
-export const saveSettings = (type: $TSFixMe, settings: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(requestingSettings());
-    try {
-        const response = await postApi(`globalConfig`, {
-            name: type,
-            value: settings,
-        });
+export const saveSettings =
+    (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(requestingSettings());
+        try {
+            const response = await postApi(`globalConfig`, {
+                name: type,
+                value: settings,
+            });
 
-        const data = response.data || { value: {} };
-        dispatch(requestingSettingsSucceeded(data.value, type));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const data = response.data || { value: {} };
+            dispatch(requestingSettingsSucceeded(data.value, type));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(requestingSettingsFailed(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(requestingSettingsFailed(errors(errorMsg)));
-    }
-};
+    };

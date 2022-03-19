@@ -114,9 +114,8 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                                       return subProjectComponents._id ===
                                           action.payload.projectId._id
                                           ? {
-                                                _id:
-                                                    action.payload.projectId
-                                                        ._id,
+                                                _id: action.payload.projectId
+                                                    ._id,
                                                 components: [
                                                     action.payload,
 
@@ -127,8 +126,7 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                                                     1,
 
                                                 skip: subProjectComponents.skip,
-                                                limit:
-                                                    subProjectComponents.limit,
+                                                limit: subProjectComponents.limit,
                                             }
                                           : subProjectComponents;
                                   }
@@ -306,9 +304,8 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                                 if (!newComponent.count)
                                     newComponent.count = oldComponent.count;
 
-                                subProjectComponents[
-                                    componentIndex
-                                ] = newComponent;
+                                subProjectComponents[componentIndex] =
+                                    newComponent;
                             } else {
                                 newComponent.skip = 0;
                                 newComponent.limit = 0;
@@ -409,9 +406,11 @@ export default function component(state = INITIAL_STATE, action: $TSFixMe) {
                     success: false,
                     components: state.componentList.components.map(
                         subProjectComponent => {
-                            subProjectComponent.components = subProjectComponent.components.filter(
-                                ({ _id }: $TSFixMe) => _id !== action.payload
-                            );
+                            subProjectComponent.components =
+                                subProjectComponent.components.filter(
+                                    ({ _id }: $TSFixMe) =>
+                                        _id !== action.payload
+                                );
                             return subProjectComponent;
                         }
                     ),

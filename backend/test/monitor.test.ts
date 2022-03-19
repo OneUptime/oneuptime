@@ -78,56 +78,63 @@ const httpMonitorCriteria = {
     },
 };
 
-describe('Monitor API', function() {
+describe('Monitor API', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(30000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                ComponentModel.create({ name: 'Test Component' }, function(
-                    err,
-                    component
-                ) {
-                    componentId = component;
-                    VerificationTokenModel.findOne({ userId }, function(
-                        err: $TSFixMe,
-                        verificationToken: $TSFixMe
-                    ) {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end(function() {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.user.email,
-                                        password: userData.user.password,
-                                    })
-                                    .end(function(
-                                        err: $TSFixMe,
-                                        res: Response
-                                    ) {
-                                        token = res.body.tokens.jwtAccessToken;
-                                        done();
-                                    });
-                            });
-                    });
-                });
-            });
+                    ComponentModel.create(
+                        { name: 'Test Component' },
+                        function (err, component) {
+                            componentId = component;
+                            VerificationTokenModel.findOne(
+                                { userId },
+                                function (
+                                    err: $TSFixMe,
+                                    verificationToken: $TSFixMe
+                                ) {
+                                    request
+                                        .get(
+                                            `/user/confirmation/${verificationToken.token}`
+                                        )
+                                        .redirects(0)
+                                        .end(function () {
+                                            request
+                                                .post('/user/login')
+                                                .send({
+                                                    email: userData.user.email,
+                                                    password:
+                                                        userData.user.password,
+                                                })
+                                                .end(function (
+                                                    err: $TSFixMe,
+                                                    res: Response
+                                                ) {
+                                                    token =
+                                                        res.body.tokens
+                                                            .jwtAccessToken;
+                                                    done();
+                                                });
+                                        });
+                                }
+                            );
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ projectId });
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -144,19 +151,19 @@ describe('Monitor API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should reject the request of an unauthenticated user', function(done: $TSFixMe) {
+    it('should reject the request of an unauthenticated user', function (done: $TSFixMe) {
         request
             .post(`/monitor/${projectId}`)
             .send({
                 name: 'New Schedule',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not create a monitor when the `name` field is null', function(done: $TSFixMe) {
+    it('should not create a monitor when the `name` field is null', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -167,13 +174,13 @@ describe('Monitor API', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create a monitor when the `type` field is null', function(done: $TSFixMe) {
+    it('should not create a monitor when the `type` field is null', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -184,13 +191,13 @@ describe('Monitor API', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create a monitor when the `data` field is not valid', function(done: $TSFixMe) {
+    it('should not create a monitor when the `data` field is not valid', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -201,13 +208,13 @@ describe('Monitor API', function() {
                 data: null,
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create an agentless server monitor when identityFile authentication is selected and the `identityFile` field is not valid', function(done: $TSFixMe) {
+    it('should not create an agentless server monitor when identityFile authentication is selected and the `identityFile` field is not valid', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -220,13 +227,13 @@ describe('Monitor API', function() {
                 },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new monitor when the correct data is given by an authenticated user', function(done: $TSFixMe) {
+    it('should create a new monitor when the correct data is given by an authenticated user', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -237,7 +244,7 @@ describe('Monitor API', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 3');
@@ -245,7 +252,7 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should add a new site url to a monitor', function(done: $TSFixMe) {
+    it('should add a new site url to a monitor', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}/siteUrl/${monitorId}`)
@@ -253,7 +260,7 @@ describe('Monitor API', function() {
             .send({
                 siteUrl: 'https://twitter.com',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 expect(res.body.siteUrls).to.contain('https://twitter.com');
@@ -261,7 +268,7 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should remove a site url from a monitor', function(done: $TSFixMe) {
+    it('should remove a site url from a monitor', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/siteUrl/${monitorId}`)
@@ -269,7 +276,7 @@ describe('Monitor API', function() {
             .send({
                 siteUrl: 'https://twitter.com',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 expect(res.body.siteUrls).to.not.contain('https://twitter.com');
@@ -277,7 +284,7 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should not create a new monitor with invalid call schedule', function(done: $TSFixMe) {
+    it('should not create a new monitor with invalid call schedule', function (done: $TSFixMe) {
         const scheduleId = 20;
         const authorization = `Basic ${token}`;
         request
@@ -290,13 +297,13 @@ describe('Monitor API', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new monitor with valid call schedule', function(done: $TSFixMe) {
+    it('should create a new monitor with valid call schedule', function (done: $TSFixMe) {
         let scheduleId;
         const authorization = `Basic ${token}`;
         request
@@ -305,7 +312,7 @@ describe('Monitor API', function() {
             .send({
                 name: 'Valid Schedule',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 scheduleId = res.body._id;
                 request
                     .post(`/monitor/${projectId}`)
@@ -317,14 +324,14 @@ describe('Monitor API', function() {
                         data: { url: 'http://www.tests.org' },
                         componentId,
                     })
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         monitorId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body.name).to.be.equal('New Monitor 5');
                         request
                             .get(`/schedule/${projectId}`)
                             .set('Authorization', authorization)
-                            .end(function(err: $TSFixMe, res: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 expect(res).to.have.status(200);
                                 expect(res.body).to.be.an('object');
                                 expect(res.body).to.have.property('data');
@@ -337,7 +344,7 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should create two new monitors and add them to one call schedule', function(done: $TSFixMe) {
+    it('should create two new monitors and add them to one call schedule', function (done: $TSFixMe) {
         let scheduleId: $TSFixMe;
         const authorization = `Basic ${token}`;
         request
@@ -346,7 +353,7 @@ describe('Monitor API', function() {
             .send({
                 name: 'Valid Schedule for two monitors',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 scheduleId = res.body._id;
                 request
                     .post(`/monitor/${projectId}`)
@@ -358,7 +365,7 @@ describe('Monitor API', function() {
                         data: { url: 'http://www.tests.org' },
                         componentId,
                     })
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         monitorId = res.body._id;
                         request
                             .post(`/monitor/${projectId}`)
@@ -370,12 +377,12 @@ describe('Monitor API', function() {
                                 data: { url: 'http://www.tests.org' },
                                 componentId,
                             })
-                            .end(function(err: $TSFixMe, res: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 monitorId = res.body._id;
                                 request
                                     .get(`/schedule/${projectId}`)
                                     .set('Authorization', authorization)
-                                    .end(function(
+                                    .end(function (
                                         err: $TSFixMe,
                                         res: Response
                                     ) {
@@ -399,7 +406,7 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should update a monitor when the correct data is given by an authenticated user', function(done: $TSFixMe) {
+    it('should update a monitor when the correct data is given by an authenticated user', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put(`/monitor/${projectId}/${monitorId}`)
@@ -411,19 +418,19 @@ describe('Monitor API', function() {
                     url: 'https://twitter.com',
                 },
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(monitorId);
                 done();
             });
     });
 
-    it('should get monitors for an authenticated user by ProjectId', function(done: $TSFixMe) {
+    it('should get monitors for an authenticated user by ProjectId', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}/monitor`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -432,12 +439,12 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should get a monitor for an authenticated user with valid monitorId', function(done: $TSFixMe) {
+    it('should get a monitor for an authenticated user with valid monitorId', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}/monitor/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body._id).to.be.equal(monitorId);
@@ -445,12 +452,12 @@ describe('Monitor API', function() {
             });
     });
 
-    it('should delete a monitor when monitorId is valid', function(done: $TSFixMe) {
+    it('should delete a monitor when monitorId is valid', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -462,68 +469,75 @@ const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 
 const testServer = chai.request(HTTP_TEST_SERVER_URL);
 
-describe('API Monitor API', function() {
+describe('API Monitor API', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(30000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                ComponentModel.create({ name: 'Test Component' }, function(
-                    err,
-                    component
-                ) {
-                    componentId = component;
-                    VerificationTokenModel.findOne({ userId }, function(
-                        err: $TSFixMe,
-                        verificationToken: $TSFixMe
-                    ) {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end(function() {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.user.email,
-                                        password: userData.user.password,
-                                    })
-                                    .end(function(
-                                        err: $TSFixMe,
-                                        res: Response
-                                    ) {
-                                        token = res.body.tokens.jwtAccessToken;
-                                        testServer
-                                            .post('/api/settings')
-                                            .send({
-                                                responseTime: 0,
-                                                statusCode: 200,
-                                                responseType: 'json',
-                                                header:
-                                                    '{"Content-Type":"application/json"}',
-                                                body: '{"status":"ok"}',
-                                            })
-                                            .end(async () => {
-                                                done();
-                                            });
-                                    });
-                            });
-                    });
-                });
-            });
+                    ComponentModel.create(
+                        { name: 'Test Component' },
+                        function (err, component) {
+                            componentId = component;
+                            VerificationTokenModel.findOne(
+                                { userId },
+                                function (
+                                    err: $TSFixMe,
+                                    verificationToken: $TSFixMe
+                                ) {
+                                    request
+                                        .get(
+                                            `/user/confirmation/${verificationToken.token}`
+                                        )
+                                        .redirects(0)
+                                        .end(function () {
+                                            request
+                                                .post('/user/login')
+                                                .send({
+                                                    email: userData.user.email,
+                                                    password:
+                                                        userData.user.password,
+                                                })
+                                                .end(function (
+                                                    err: $TSFixMe,
+                                                    res: Response
+                                                ) {
+                                                    token =
+                                                        res.body.tokens
+                                                            .jwtAccessToken;
+                                                    testServer
+                                                        .post('/api/settings')
+                                                        .send({
+                                                            responseTime: 0,
+                                                            statusCode: 200,
+                                                            responseType:
+                                                                'json',
+                                                            header: '{"Content-Type":"application/json"}',
+                                                            body: '{"status":"ok"}',
+                                                        })
+                                                        .end(async () => {
+                                                            done();
+                                                        });
+                                                });
+                                        });
+                                }
+                            );
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await UserService.hardDeleteBy({
@@ -533,7 +547,7 @@ describe('API Monitor API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should not add API monitor with invalid website url', function(done: $TSFixMe) {
+    it('should not add API monitor with invalid website url', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -545,7 +559,7 @@ describe('API Monitor API', function() {
                 data: { url: 'https://google.com' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'API Monitor URL should not be a HTML page.'
@@ -554,7 +568,7 @@ describe('API Monitor API', function() {
             });
     });
 
-    it('should not add API monitor with invalid url', function(done: $TSFixMe) {
+    it('should not add API monitor with invalid url', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -566,13 +580,13 @@ describe('API Monitor API', function() {
                 data: { url: `https://oneuptime.com/api/monitor/${projectId}` },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not add API monitor with empty or invalid header', function(done: $TSFixMe) {
+    it('should not add API monitor with empty or invalid header', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -584,14 +598,14 @@ describe('API Monitor API', function() {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Unauthorized');
                 done();
             });
     });
 
-    it('should not add API monitor with empty body', function(done: $TSFixMe) {
+    it('should not add API monitor with empty body', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -604,14 +618,14 @@ describe('API Monitor API', function() {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Bad Request');
                 done();
             });
     });
 
-    it('should not add API monitor with invalid body', function(done: $TSFixMe) {
+    it('should not add API monitor with invalid body', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -626,14 +640,14 @@ describe('API Monitor API', function() {
                 data: { url: `${BACKEND_URL}/monitor/${projectId}` },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Bad Request');
                 done();
             });
     });
 
-    it('should add API monitor with valid url', function(done: $TSFixMe) {
+    it('should add API monitor with valid url', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -645,7 +659,7 @@ describe('API Monitor API', function() {
                 data: { url: HTTP_TEST_SERVER_URL },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 30');
@@ -653,7 +667,7 @@ describe('API Monitor API', function() {
             });
     });
 
-    it('should not edit API monitor with invalid url', function(done: $TSFixMe) {
+    it('should not edit API monitor with invalid url', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .put(`/monitor/${projectId}/${monitorId}`)
@@ -665,7 +679,7 @@ describe('API Monitor API', function() {
                 data: { url: 'https://google.com' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'API Monitor URL should not be a HTML page.'
@@ -675,56 +689,63 @@ describe('API Monitor API', function() {
     });
 });
 
-describe('IncomingHttpRequest Monitor', function() {
+describe('IncomingHttpRequest Monitor', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(30000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                ComponentModel.create({ name: 'Test Component' }, function(
-                    err,
-                    component
-                ) {
-                    componentId = component;
-                    VerificationTokenModel.findOne({ userId }, function(
-                        err: $TSFixMe,
-                        verificationToken: $TSFixMe
-                    ) {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end(function() {
-                                request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.user.email,
-                                        password: userData.user.password,
-                                    })
-                                    .end(function(
-                                        err: $TSFixMe,
-                                        res: Response
-                                    ) {
-                                        token = res.body.tokens.jwtAccessToken;
-                                        done();
-                                    });
-                            });
-                    });
-                });
-            });
+                    ComponentModel.create(
+                        { name: 'Test Component' },
+                        function (err, component) {
+                            componentId = component;
+                            VerificationTokenModel.findOne(
+                                { userId },
+                                function (
+                                    err: $TSFixMe,
+                                    verificationToken: $TSFixMe
+                                ) {
+                                    request
+                                        .get(
+                                            `/user/confirmation/${verificationToken.token}`
+                                        )
+                                        .redirects(0)
+                                        .end(function () {
+                                            request
+                                                .post('/user/login')
+                                                .send({
+                                                    email: userData.user.email,
+                                                    password:
+                                                        userData.user.password,
+                                                })
+                                                .end(function (
+                                                    err: $TSFixMe,
+                                                    res: Response
+                                                ) {
+                                                    token =
+                                                        res.body.tokens
+                                                            .jwtAccessToken;
+                                                    done();
+                                                });
+                                        });
+                                }
+                            );
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await MonitorService.hardDeleteBy({ _id: monitor2Id });
@@ -735,7 +756,7 @@ describe('IncomingHttpRequest Monitor', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create a new IncomingHttpRequest monitor', function(done: $TSFixMe) {
+    it('should create a new IncomingHttpRequest monitor', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -750,7 +771,7 @@ describe('IncomingHttpRequest Monitor', function() {
                 },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 120');
@@ -758,50 +779,50 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    it('should report monitor degraded when api has no body in post request', function(done: $TSFixMe) {
+    it('should report monitor degraded when api has no body in post request', function (done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
             .send({})
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('degraded');
                 done();
             });
     });
 
-    it('should report monitor degraded when api has no body in get request', function(done: $TSFixMe) {
+    it('should report monitor degraded when api has no body in get request', function (done: $TSFixMe) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('degraded');
                 done();
             });
     });
 
-    it('should report monitor up when api has a valid body in post request', function(done: $TSFixMe) {
+    it('should report monitor up when api has a valid body in post request', function (done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitorId}`)
             .send({ id: '123456' })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('online');
                 done();
             });
     });
 
-    it('should report monitor up when api has a valid body in get request', function(done: $TSFixMe) {
+    it('should report monitor up when api has a valid body in get request', function (done: $TSFixMe) {
         request
             .get(`/incomingHttpRequest/${httpMonitorId}`)
             .send({ id: '123456' })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitorId);
                 expect(res.body.status).to.be.equal('online');
                 done();
             });
     });
 
-    it('should create a new IncomingHttpRequest monitor with query params and request headers', function(done: $TSFixMe) {
+    it('should create a new IncomingHttpRequest monitor with query params and request headers', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const criteria = { ...httpMonitorCriteria };
         criteria.up.and.push({
@@ -830,7 +851,7 @@ describe('IncomingHttpRequest Monitor', function() {
                 },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitor2Id = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 121');
@@ -838,23 +859,23 @@ describe('IncomingHttpRequest Monitor', function() {
             });
     });
 
-    it('should report monitor offline when api has no query param and request headers in post request', function(done: $TSFixMe) {
+    it('should report monitor offline when api has no query param and request headers in post request', function (done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitor2Id}`)
             .send({ id: '123456' })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitor2Id);
                 expect(res.body.status).to.be.equal('offline');
                 done();
             });
     });
 
-    it('should report monitor up when api has the query param and request headers', function(done: $TSFixMe) {
+    it('should report monitor up when api has the query param and request headers', function (done: $TSFixMe) {
         request
             .post(`/incomingHttpRequest/${httpMonitor2Id}?abc=xyz`)
             .set('Cache-Control', 'no-cache')
             .send({ id: '123456' })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res.body.monitorId).to.be.equal(monitor2Id);
                 expect(res.body.status).to.be.equal('online');
                 done();
@@ -862,62 +883,75 @@ describe('IncomingHttpRequest Monitor', function() {
     });
 });
 
-describe('Monitor API with resource Category', function() {
+describe('Monitor API with resource Category', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
                                     request
-                                        .post(`/resourceCategory/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(resourceCategory)
-                                        .end(function(
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
                                             err: $TSFixMe,
                                             res: Response
                                         ) {
-                                            resourceCategoryId = res.body._id;
-                                            done();
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            const authorization = `Basic ${token}`;
+                                            request
+                                                .post(
+                                                    `/resourceCategory/${projectId}`
+                                                )
+                                                .set(
+                                                    'Authorization',
+                                                    authorization
+                                                )
+                                                .send(resourceCategory)
+                                                .end(function (
+                                                    err: $TSFixMe,
+                                                    res: Response
+                                                ) {
+                                                    resourceCategoryId =
+                                                        res.body._id;
+                                                    done();
+                                                });
                                         });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ResourceCategoryService.hardDeleteBy({ _id: resourceCategoryId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create a new monitor when the resource Category is provided by an authenticated user', function(done: $TSFixMe) {
+    it('should create a new monitor when the resource Category is provided by an authenticated user', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -929,7 +963,7 @@ describe('Monitor API with resource Category', function() {
                 resourceCategory: resourceCategoryId,
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 8');
@@ -946,125 +980,145 @@ let subProjectId: $TSFixMe,
     newUserToken: $TSFixMe,
     subProjectMonitorId: $TSFixMe;
 
-describe('Monitor API with Sub-Projects', function() {
+describe('Monitor API with Sub-Projects', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
-        GlobalConfig.initTestConfig().then(function() {
+    before(function (done: $TSFixMe) {
+        GlobalConfig.initTestConfig().then(function () {
             const authorization = `Basic ${token}`;
             // create a subproject for parent project
             request
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function(err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function(
-                        err: $TSFixMe,
-                        res: Response
-                    ) {
-                        userId = res.body.id;
-                        VerificationTokenModel.findOne({ userId }, function(
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ) {
-                            request
-                                .get(
-                                    `/user/confirmation/${verificationToken.token}`
-                                )
-                                .redirects(0)
-                                .end(function() {
+                    createUser(
+                        request,
+                        userData.newUser,
+                        function (err: $TSFixMe, res: Response) {
+                            userId = res.body.id;
+                            VerificationTokenModel.findOne(
+                                { userId },
+                                function (
+                                    err: $TSFixMe,
+                                    verificationToken: $TSFixMe
+                                ) {
                                     request
-                                        .post('/user/login')
-                                        .send({
-                                            email: userData.newUser.email,
-                                            password: userData.newUser.password,
-                                        })
-                                        .end(function(
-                                            err: $TSFixMe,
-                                            res: Response
-                                        ) {
-                                            newUserToken =
-                                                res.body.tokens.jwtAccessToken;
-                                            const authorization = `Basic ${token}`;
-                                            // add second user to subproject
+                                        .get(
+                                            `/user/confirmation/${verificationToken.token}`
+                                        )
+                                        .redirects(0)
+                                        .end(function () {
                                             request
-                                                .post(`/team/${subProjectId}`)
-                                                .set(
-                                                    'Authorization',
-                                                    authorization
-                                                )
+                                                .post('/user/login')
                                                 .send({
-                                                    emails:
-                                                        userData.newUser.email,
-                                                    role: 'Member',
+                                                    email: userData.newUser
+                                                        .email,
+                                                    password:
+                                                        userData.newUser
+                                                            .password,
                                                 })
-                                                .end(function() {
-                                                    done();
+                                                .end(function (
+                                                    err: $TSFixMe,
+                                                    res: Response
+                                                ) {
+                                                    newUserToken =
+                                                        res.body.tokens
+                                                            .jwtAccessToken;
+                                                    const authorization = `Basic ${token}`;
+                                                    // add second user to subproject
+                                                    request
+                                                        .post(
+                                                            `/team/${subProjectId}`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send({
+                                                            emails: userData
+                                                                .newUser.email,
+                                                            role: 'Member',
+                                                        })
+                                                        .end(function () {
+                                                            done();
+                                                        });
                                                 });
                                         });
-                                });
-                        });
-                    });
+                                }
+                            );
+                        }
+                    );
                 });
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await MonitorService.hardDeleteBy({ _id: subProjectMonitorId });
     });
 
-    it('should not create a monitor for user not present in project', function(done: $TSFixMe) {
-        createUser(request, userData.anotherUser, function(
-            err: $TSFixMe,
-            res: Response
-        ) {
-            userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(
-                err: $TSFixMe,
-                verificationToken: $TSFixMe
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
+    it('should not create a monitor for user not present in project', function (done: $TSFixMe) {
+        createUser(
+            request,
+            userData.anotherUser,
+            function (err: $TSFixMe, res: Response) {
+                userId = res.body.id;
+                VerificationTokenModel.findOne(
+                    { userId },
+                    function (err: $TSFixMe, verificationToken: $TSFixMe) {
                         request
-                            .post('/user/login')
-                            .send({
-                                email: userData.anotherUser.email,
-                                password: userData.anotherUser.password,
-                            })
-                            .end(function(err: $TSFixMe, res: Response) {
-                                const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function () {
                                 request
-                                    .post(`/monitor/${projectId}`)
-                                    .set('Authorization', authorization)
+                                    .post('/user/login')
                                     .send({
-                                        name: 'New Monitor 9',
-                                        type: 'url',
-                                        data: { url: 'http://www.tests.org' },
-                                        componentId,
+                                        email: userData.anotherUser.email,
+                                        password: userData.anotherUser.password,
                                     })
-                                    .end(function(
+                                    .end(function (
                                         err: $TSFixMe,
                                         res: Response
                                     ) {
-                                        expect(res).to.have.status(400);
-                                        expect(res.body.message).to.be.equal(
-                                            'You are not present in this project.'
-                                        );
-                                        done();
+                                        const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                        request
+                                            .post(`/monitor/${projectId}`)
+                                            .set('Authorization', authorization)
+                                            .send({
+                                                name: 'New Monitor 9',
+                                                type: 'url',
+                                                data: {
+                                                    url: 'http://www.tests.org',
+                                                },
+                                                componentId,
+                                            })
+                                            .end(function (
+                                                err: $TSFixMe,
+                                                res: Response
+                                            ) {
+                                                expect(res).to.have.status(400);
+                                                expect(
+                                                    res.body.message
+                                                ).to.be.equal(
+                                                    'You are not present in this project.'
+                                                );
+                                                done();
+                                            });
                                     });
                             });
-                    });
-            });
-        });
+                    }
+                );
+            }
+        );
     });
 
-    it('should not create a monitor for user that is not `admin` in project.', function(done: $TSFixMe) {
+    it('should not create a monitor for user that is not `admin` in project.', function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .post(`/monitor/${subProjectId}`)
@@ -1075,7 +1129,7 @@ describe('Monitor API with Sub-Projects', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -1084,7 +1138,7 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should create a monitor in parent project by valid admin.', function(done: $TSFixMe) {
+    it('should create a monitor in parent project by valid admin.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
@@ -1095,7 +1149,7 @@ describe('Monitor API with Sub-Projects', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 11');
@@ -1103,7 +1157,7 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should create a monitor in sub-project.', function(done: $TSFixMe) {
+    it('should create a monitor in sub-project.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${subProjectId}`)
@@ -1114,7 +1168,7 @@ describe('Monitor API with Sub-Projects', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 subProjectMonitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor 12');
@@ -1122,12 +1176,12 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it("should get only sub-project's monitors for valid sub-project user", function(done: $TSFixMe) {
+    it("should get only sub-project's monitors for valid sub-project user", function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .get(`/monitor/${subProjectId}/monitor`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -1138,12 +1192,12 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should get both project and sub-project monitors for valid parent project user.', function(done: $TSFixMe) {
+    it('should get both project and sub-project monitors for valid parent project user.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('monitors');
@@ -1154,12 +1208,12 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should not delete a monitor for user that is not `admin` in sub-project.', function(done: $TSFixMe) {
+    it('should not delete a monitor for user that is not `admin` in sub-project.', function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
             .delete(`/monitor/${subProjectId}/${subProjectMonitorId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -1168,30 +1222,30 @@ describe('Monitor API with Sub-Projects', function() {
             });
     });
 
-    it('should delete sub-project monitor', function(done: $TSFixMe) {
+    it('should delete sub-project monitor', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${subProjectId}/${subProjectMonitorId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should delete project monitor', function(done: $TSFixMe) {
+    it('should delete project monitor', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 });
 
-describe('Monitor API - Tests Project Seats With SubProjects', function() {
+describe('Monitor API - Tests Project Seats With SubProjects', function () {
     this.timeout(30000);
 
     const monitorDataArray = [
@@ -1247,7 +1301,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         },
     ];
 
-    before(async function() {
+    before(async function () {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
         const authorization = `Basic ${token}`;
@@ -1264,7 +1318,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         );
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
@@ -1281,7 +1335,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
         await MonitorService.hardDeleteBy({ projectId });
     });
 
-    it('should not create a new monitor because the monitor count limit is reached (Startup Plan -> 5 monitors/user).', function(done: $TSFixMe) {
+    it('should not create a new monitor because the monitor count limit is reached (Startup Plan -> 5 monitors/user).', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -1293,7 +1347,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You can't add any more monitors. Please upgrade your account."
@@ -1302,7 +1356,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
             });
     });
 
-    it('should be able to create more monitor on upgrade of project to Growth plan.', function(done: $TSFixMe) {
+    it('should be able to create more monitor on upgrade of project to Growth plan.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const growthPlan = 'plan_GoWKgxRnPPBJWy';
 
@@ -1322,7 +1376,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
                     data: { url: 'http://www.tests.org' },
                     componentId,
                 })
-                .end(function(err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     monitorId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body.name).to.be.equal('New Monitor 15');

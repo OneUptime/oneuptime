@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
 
         // prepare issue model
@@ -84,7 +84,7 @@ export default {
         const issue = await issueQuery;
         return issue;
     },
-    findOneByHashAndErrorTracker: async function(
+    findOneByHashAndErrorTracker: async function (
         fingerprint: $TSFixMe,
         errorTrackerId: $TSFixMe
     ) {
@@ -102,7 +102,7 @@ export default {
             .populate('ignoredById', 'name');
         return issue;
     },
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData = null
@@ -147,7 +147,7 @@ export default {
 
         return issue;
     },
-    deleteBy: async function(
+    deleteBy: async function (
         query: $TSFixMe,
         userId: $TSFixMe,
         componentId: $TSFixMe
@@ -190,7 +190,7 @@ export default {
         }
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }

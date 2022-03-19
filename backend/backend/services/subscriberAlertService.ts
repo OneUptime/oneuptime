@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const subscriberAlertModel = new SubscriberAlertModel();
 
         subscriberAlertModel.projectId = data.projectId || null;
@@ -26,7 +26,7 @@ export default {
         return subscriberAlert;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -45,7 +45,7 @@ export default {
         return subscriberAlert;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -59,8 +59,7 @@ export default {
             { path: 'projectId', select: 'name' },
             {
                 path: 'subscriberId',
-                select:
-                    'name contactEmail contactPhone contactWebhook countryCode',
+                select: 'name contactEmail contactPhone contactWebhook countryCode',
             },
         ];
         const select =
@@ -69,7 +68,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(
             query,
             {
@@ -86,7 +85,13 @@ export default {
         return subscriberAlert;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -118,7 +123,7 @@ export default {
         return subscriberAlerts;
     },
 
-    findByOne: async function({ query, select, populate }: $TSFixMe) {
+    findByOne: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -136,7 +141,7 @@ export default {
         return subscriberAlert;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -146,7 +151,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await SubscriberAlertModel.deleteMany(query);
         return 'Subscriber Alert(s) removed successfully';
     },

@@ -45,8 +45,7 @@ router.get('/site', async (req: Request, res: Response) => {
         const { servername } = req.query;
         const site = await SiteManagerService.findOneBy({
             query: { subject: servername },
-            select:
-                'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
+            select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
         });
 
         return sendItemResponse(req, res, site);
@@ -60,8 +59,7 @@ router.get('/sites', async (req: Request, res: Response) => {
     try {
         const sites = await SiteManagerService.findBy({
             query: {},
-            select:
-                'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
+            select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
         });
         return sendItemResponse(req, res, sites);
     } catch (error) {
@@ -75,8 +73,7 @@ router.post('/site/servernames', async (req: Request, res: Response) => {
         const { servernames = [] } = req.body;
         const sites = await SiteManagerService.findBy({
             query: { subject: { $in: servernames } },
-            select:
-                'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
+            select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
         });
         return sendItemResponse(req, res, sites);
     } catch (error) {
@@ -115,8 +112,7 @@ router.post('/site/opts', async (req: Request, res: Response) => {
         query.deleted = false;
         const sites = await SiteManagerService.findBy({
             query,
-            select:
-                'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
+            select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
         });
         return sendItemResponse(req, res, sites);
     } catch (error) {

@@ -5,7 +5,7 @@ export default {
     //Param 2: projectId: Project Id present in req.params.
     //Param 3: userId: User Id.
     //Returns: promise
-    create: async function(
+    create: async function (
         projectId: $TSFixMe,
         message: $TSFixMe,
         page: $TSFixMe,
@@ -62,7 +62,7 @@ export default {
         return feedback;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await FeedbackModel.deleteMany(query);
         return 'Feedback(s) removed successfully!';
     },

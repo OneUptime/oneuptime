@@ -10,7 +10,7 @@ import { ObjectId } from 'mongodb';
 import moment from 'moment';
 
 export default {
-    createLog: async function(id: $TSFixMe, data: $TSFixMe) {
+    createLog: async function (id: $TSFixMe, data: $TSFixMe) {
         try {
             const scriptLog = {};
 
@@ -52,7 +52,7 @@ export default {
         }
     },
 
-    updateOne: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOne: async function (query: $TSFixMe, data: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -72,7 +72,7 @@ export default {
         }
     },
 
-    findOneBy: async function(query: $TSFixMe) {
+    findOneBy: async function (query: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -92,7 +92,7 @@ export default {
         }
     },
 
-    runResource: async function({
+    runResource: async function ({
         triggeredId,
         triggeredBy,
         resources,
@@ -160,7 +160,7 @@ export default {
         }
     },
 
-    runAutomatedScript: async function({
+    runAutomatedScript: async function ({
         automatedScriptId,
         triggeredId,
         triggeredBy = 'script',
@@ -168,14 +168,10 @@ export default {
     }: $TSFixMe) {
         try {
             const _this = this;
-            const {
-                script,
-                scriptType,
-                successEvent,
-                failureEvent,
-            } = await _this.findOneBy({
-                _id: ObjectId(automatedScriptId),
-            });
+            const { script, scriptType, successEvent, failureEvent } =
+                await _this.findOneBy({
+                    _id: ObjectId(automatedScriptId),
+                });
             let data = null;
             if (scriptType === 'JavaScript') {
                 const result = await postApi(

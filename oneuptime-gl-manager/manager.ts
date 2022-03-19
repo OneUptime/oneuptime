@@ -3,14 +3,14 @@ const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST
 
 const Manager = module.exports;
 // eslint-disable-next-line no-unused-vars
-Manager.create = function(opts: $TSFixMe) {
+Manager.create = function (opts: $TSFixMe) {
     const manager = {};
 
     //
     // REQUIRED (basic issuance)
     //
 
-    manager.get = async function({ servername }: $TSFixMe) {
+    manager.get = async function ({ servername }: $TSFixMe) {
         const url = `${BASE_URL}/api/manager/site?servername=${servername}`;
         const response = await axios({
             url,
@@ -24,7 +24,7 @@ Manager.create = function(opts: $TSFixMe) {
     // REQUIRED (basic issuance)
     //
 
-    manager.set = async function(opts: $TSFixMe) {
+    manager.set = async function (opts: $TSFixMe) {
         const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
@@ -39,7 +39,7 @@ Manager.create = function(opts: $TSFixMe) {
     // Optional (Fully Automatic Renewal)
     //
 
-    manager.find = async function(opts: $TSFixMe) {
+    manager.find = async function (opts: $TSFixMe) {
         // { subject, servernames, altnames, renewBefore }
         if (opts.subject) {
             const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
@@ -90,7 +90,7 @@ Manager.create = function(opts: $TSFixMe) {
     // The default behavior is to set `deletedAt`
     //
 
-    manager.remove = async function(opts: $TSFixMe) {
+    manager.remove = async function (opts: $TSFixMe) {
         const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
@@ -106,7 +106,7 @@ Manager.create = function(opts: $TSFixMe) {
     // This is a setter/getter function
     //
 
-    manager.defaults = async function(opts: $TSFixMe) {
+    manager.defaults = async function (opts: $TSFixMe) {
         if (!opts) {
             const url = `${BASE_URL}/api/manager/default`;
             const response = await axios({

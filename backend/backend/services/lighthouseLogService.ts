@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const Log = new LighthouseLogModel();
 
         Log.monitorId = data.monitorId;
@@ -32,7 +32,7 @@ export default {
         return savedLog;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -47,7 +47,7 @@ export default {
 
         return lighthouseLog;
     },
-    updateManyBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateManyBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -138,8 +138,7 @@ export default {
         const populateLighthouseLogs = [
             {
                 path: 'probeId',
-                select:
-                    'probeName probeKey version lastAlive deleted probeImage',
+                select: 'probeName probeKey version lastAlive deleted probeImage',
             },
         ];
         if (url) {

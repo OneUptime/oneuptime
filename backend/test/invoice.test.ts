@@ -20,10 +20,10 @@ const stripe = Stripe(payment.paymentPrivateKey);
 
 let token, userId, projectId, stripeCustomerId, testPlan;
 
-describe('Invoice API', function() {
+describe('Invoice API', function () {
     this.timeout(200000);
 
-    before(async function() {
+    before(async function () {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
         const checkCardData = await request.post('/stripe/checkCard').send({
@@ -93,7 +93,7 @@ describe('Invoice API', function() {
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -113,7 +113,7 @@ describe('Invoice API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should return invoices', async function() {
+    it('should return invoices', async function () {
         const authorization = `Basic ${token}`;
         const invoices = await request
 
@@ -127,14 +127,12 @@ describe('Invoice API', function() {
         expect(invoices.body.data.data).to.be.an('array');
         expect(invoices.body.data.data).to.have.length(3);
         expect(invoices.body).to.have.property('count');
-        expect(invoices.body.count)
-            .to.be.an('number')
-            .to.be.equal(3);
+        expect(invoices.body.count).to.be.an('number').to.be.equal(3);
         expect(invoices.body).not.to.have.property('total_count');
         expect(invoices.body.data.data[0].total).to.be.equal(5000);
     });
 
-    it('should paginate invoices', async function() {
+    it('should paginate invoices', async function () {
         for (let i = 0; i < 10; i++) {
             await stripe.subscriptions.create({
                 customer: stripeCustomerId,
@@ -161,9 +159,7 @@ describe('Invoice API', function() {
         expect(invoices.body.data.data).to.be.an('array');
         expect(invoices.body.data.data).to.have.length(10);
         expect(invoices.body).to.have.property('count');
-        expect(invoices.body.count)
-            .to.be.an('number')
-            .to.be.equal(10);
+        expect(invoices.body.count).to.be.an('number').to.be.equal(10);
         expect(invoices.body.data).to.have.property('has_more');
         expect(invoices.body.data.has_more).to.be.equal(true);
         invoices = await request
@@ -179,9 +175,7 @@ describe('Invoice API', function() {
         expect(invoices.body.data.data).to.be.an('array');
         expect(invoices.body.data.data).to.have.length(3);
         expect(invoices.body).to.have.property('count');
-        expect(invoices.body.count)
-            .to.be.an('number')
-            .to.be.equal(3);
+        expect(invoices.body.count).to.be.an('number').to.be.equal(3);
         expect(invoices.body.data).to.have.property('has_more');
         expect(invoices.body.data.has_more).to.be.equal(false);
     });

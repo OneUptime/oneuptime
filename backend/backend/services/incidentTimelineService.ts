@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         let incidentTimeline = new IncidentTimelineModel();
 
         incidentTimeline.incidentId = data.incidentId;
@@ -62,7 +62,7 @@ export default {
         return incidentTimeline;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -94,7 +94,7 @@ export default {
         return incidentTimeline;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -122,7 +122,13 @@ export default {
         return incidentTimelines;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -151,7 +157,7 @@ export default {
         return incidentTimelines;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -166,7 +172,7 @@ export default {
         return incidentTimeline;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -179,7 +185,7 @@ export default {
 
     // fetches just the last/latest incident timeline
     // this timelines will be used in status page
-    getIncidentLastTimelines: async function(incidents: $TSFixMe) {
+    getIncidentLastTimelines: async function (incidents: $TSFixMe) {
         const _this = this;
         const skip = 0,
             limit = 1;
@@ -209,25 +215,26 @@ export default {
         timelines = flattenArray(timelines);
         return timelines;
     },
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
 
-        const incidentTimelineModel = await IncidentTimelineModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId,
+        const incidentTimelineModel =
+            await IncidentTimelineModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
                 },
-            },
-            {
-                new: true,
-            }
-        );
+                {
+                    new: true,
+                }
+            );
         return incidentTimelineModel;
     },
 };

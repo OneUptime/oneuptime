@@ -4,7 +4,7 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const monitorSlaCount = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -44,7 +44,7 @@ export default {
 
         return createdMonitorSla;
     },
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -57,7 +57,13 @@ export default {
         const monitorSla = await monitorSlaQuery;
         return monitorSla;
     },
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -83,7 +89,7 @@ export default {
 
         return monitorSla;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -188,7 +194,7 @@ export default {
 
         return updatedMonitorSla;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         const deletedSla = await MonitorSlaModel.findOneAndUpdate(
             query,
             {
@@ -202,7 +208,7 @@ export default {
 
         return deletedSla;
     },
-    hardDelete: async function(query: $TSFixMe) {
+    hardDelete: async function (query: $TSFixMe) {
         await MonitorSlaModel.deleteMany(query);
         return 'Monitor SLA(s) deleted successfully';
     },

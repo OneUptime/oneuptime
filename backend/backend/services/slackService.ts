@@ -1,6 +1,6 @@
 export default {
     // process messages to be sent to slack workspace channels
-    sendNotification: async function(
+    sendNotification: async function (
         projectId: $TSFixMe,
         incident: $TSFixMe,
         monitor: $TSFixMe,
@@ -208,7 +208,7 @@ export default {
         return 'Webhook successfully pinged';
     },
 
-    sendIncidentNoteNotification: async function(
+    sendIncidentNoteNotification: async function (
         projectId: $TSFixMe,
         incident: $TSFixMe,
         data: $TSFixMe,

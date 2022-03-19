@@ -15,28 +15,29 @@ export const createCustomFieldFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const createCustomField = (
-    projectId: $TSFixMe,
-    data: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(createCustomFieldRequest());
+export const createCustomField =
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(createCustomFieldRequest());
 
-        const response = await postApi(`monitorCustomField/${projectId}`, data);
+            const response = await postApi(
+                `monitorCustomField/${projectId}`,
+                data
+            );
 
-        dispatch(createCustomFieldSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(createCustomFieldFailure(errorMsg));
-    }
-};
+            dispatch(createCustomFieldSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(createCustomFieldFailure(errorMsg));
+        }
+    };
 
 export const updateCustomFieldRequest = () => ({
     type: types.UPDATE_CUSTOM_FIELD_REQUEST,
@@ -52,32 +53,30 @@ export const updateCustomFieldFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const updateCustomField = ({
-    projectId,
-    customFieldId,
-    data,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(updateCustomFieldRequest());
+export const updateCustomField =
+    ({ projectId, customFieldId, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(updateCustomFieldRequest());
 
-        const response = await putApi(
-            `monitorCustomField/${projectId}/${customFieldId}`,
-            data
-        );
+            const response = await putApi(
+                `monitorCustomField/${projectId}/${customFieldId}`,
+                data
+            );
 
-        dispatch(updateCustomFieldSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(updateCustomFieldFailure(errorMsg));
-    }
-};
+            dispatch(updateCustomFieldSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateCustomFieldFailure(errorMsg));
+        }
+    };
 
 export const fetchCustomFieldsRequest = () => ({
     type: types.FETCH_CUSTOM_FIELDS_REQUEST,
@@ -93,36 +92,34 @@ export const fetchCustomFieldsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchCustomFields = (
-    projectId: $TSFixMe,
-    skip = 0,
-    limit = 0
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(fetchCustomFieldsRequest());
+export const fetchCustomFields =
+    (projectId: $TSFixMe, skip = 0, limit = 0) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(fetchCustomFieldsRequest());
 
-        let response;
-        if (skip === 0 && limit === 0) {
-            response = await getApi(`monitorCustomField/${projectId}`);
-        } else {
-            response = await getApi(
-                `monitorCustomField/${projectId}?skip=${skip}&limit=${limit}`
-            );
+            let response;
+            if (skip === 0 && limit === 0) {
+                response = await getApi(`monitorCustomField/${projectId}`);
+            } else {
+                response = await getApi(
+                    `monitorCustomField/${projectId}?skip=${skip}&limit=${limit}`
+                );
+            }
+
+            dispatch(fetchCustomFieldsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchCustomFieldsFailure(errorMsg));
         }
-
-        dispatch(fetchCustomFieldsSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(fetchCustomFieldsFailure(errorMsg));
-    }
-};
+    };
 
 export const deleteCustomFieldRequest = () => ({
     type: types.DELETE_CUSTOM_FIELD_REQUEST,
@@ -138,27 +135,26 @@ export const deleteCustomFieldFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteCustomField = (
-    projectId: $TSFixMe,
-    customFieldId: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(deleteCustomFieldRequest());
+export const deleteCustomField =
+    (projectId: $TSFixMe, customFieldId: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(deleteCustomFieldRequest());
 
-        const response = await deleteApi(
-            `monitorCustomField/${projectId}/${customFieldId}`
-        );
+            const response = await deleteApi(
+                `monitorCustomField/${projectId}/${customFieldId}`
+            );
 
-        dispatch(deleteCustomFieldSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(deleteCustomFieldFailure(errorMsg));
-    }
-};
+            dispatch(deleteCustomFieldSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteCustomFieldFailure(errorMsg));
+        }
+    };

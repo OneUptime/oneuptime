@@ -23,16 +23,16 @@ export function addCardSuccess(card: $TSFixMe) {
 }
 
 export function addCard(userId: $TSFixMe, token: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`stripe/${userId}/creditCard/${token}`);
 
         dispatch(addCardRequest(promise));
 
         promise.then(
-            function(card) {
+            function (card) {
                 dispatch(addCardSuccess(card.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -71,16 +71,16 @@ export function fetchCardsSuccess(cards: $TSFixMe) {
 }
 
 export function fetchCards(userId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`stripe/${userId}/creditCard`);
 
         dispatch(fetchCardsRequest(promise));
 
         promise.then(
-            function(cards) {
+            function (cards) {
                 dispatch(fetchCardsSuccess(cards.data.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -120,16 +120,16 @@ export function deleteCardSuccess(card: $TSFixMe) {
 }
 
 export function deleteCard(userId: $TSFixMe, cardId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`stripe/${userId}/creditCard/${cardId}`);
 
         dispatch(deleteCardRequest(promise));
 
         promise.then(
-            function(card) {
+            function (card) {
                 dispatch(deleteCardSuccess(card.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -172,17 +172,17 @@ export function setDefaultCardSuccess(card: $TSFixMe) {
 }
 
 export function setDefaultCard(userId: $TSFixMe, cardId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`stripe/${userId}/creditCard/${cardId}`);
 
         dispatch(setDefaultCardRequest(promise, cardId));
 
         promise.then(
-            function(card) {
+            function (card) {
                 dispatch(setDefaultCardSuccess(card.data));
                 dispatch(fetchCards(userId));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

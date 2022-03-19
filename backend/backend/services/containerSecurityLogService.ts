@@ -3,7 +3,7 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function({ securityId, componentId, data }: $TSFixMe) {
+    create: async function ({ securityId, componentId, data }: $TSFixMe) {
         if (!securityId) {
             const error = new Error('Security ID is required');
 
@@ -45,7 +45,7 @@ export default {
 
         return securityLog;
     },
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -58,7 +58,13 @@ export default {
         const securityLog = await securityLogQuery;
         return securityLog;
     },
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -83,18 +89,19 @@ export default {
         const securityLogs = await securityLogsQuery;
         return securityLogs;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
 
-        const containerSecurityLog = await ContainerSecurityLogModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            { new: true }
-        );
+        const containerSecurityLog =
+            await ContainerSecurityLogModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
 
         if (!containerSecurityLog) {
             const error = new Error(
@@ -107,7 +114,7 @@ export default {
 
         return containerSecurityLog;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         let securityLog = await this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
@@ -126,7 +133,7 @@ export default {
 
         return securityLog;
     },
-    hardDelete: async function(query: $TSFixMe) {
+    hardDelete: async function (query: $TSFixMe) {
         await ContainerSecurityLogModel.deleteMany(query);
         return 'Container Security logs deleted successfully';
     },

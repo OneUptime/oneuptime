@@ -1,5 +1,5 @@
 const Services = {
-    successEvent: async function(
+    successEvent: async function (
         customerId: $TSFixMe,
         subscriptionId: $TSFixMe
     ) {
@@ -27,7 +27,7 @@ const Services = {
         return { paymentStatus: 'success' };
     },
 
-    failedEvent: async function(
+    failedEvent: async function (
         customerId: $TSFixMe,
         subscriptionId: $TSFixMe,
         chargeAttemptCount: $TSFixMe,
@@ -85,7 +85,7 @@ const Services = {
         return { paymentStatus: 'failed' };
     },
 
-    cancelEvent: async function(
+    cancelEvent: async function (
         customerId: $TSFixMe,
         subscriptionId: $TSFixMe
     ) {
@@ -132,7 +132,7 @@ const Services = {
         return { projectDeleted: true };
     },
 
-    charges: async function(userId: $TSFixMe) {
+    charges: async function (userId: $TSFixMe) {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -145,7 +145,7 @@ const Services = {
     },
 
     creditCard: {
-        create: async function(tok: $TSFixMe, userId: $TSFixMe) {
+        create: async function (tok: $TSFixMe, userId: $TSFixMe) {
             const [tokenCard, cards] = await Promise.all([
                 stripe.tokens.retrieve(tok),
 
@@ -199,7 +199,7 @@ const Services = {
             }
         },
 
-        update: async function(userId: $TSFixMe, cardId: $TSFixMe) {
+        update: async function (userId: $TSFixMe, cardId: $TSFixMe) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -211,7 +211,7 @@ const Services = {
             return card;
         },
 
-        delete: async function(cardId: $TSFixMe, userId: $TSFixMe) {
+        delete: async function (cardId: $TSFixMe, userId: $TSFixMe) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -232,7 +232,7 @@ const Services = {
             return card;
         },
 
-        get: async function(userId: $TSFixMe, cardId: $TSFixMe) {
+        get: async function (userId: $TSFixMe, cardId: $TSFixMe) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -263,7 +263,7 @@ const Services = {
             }
         },
     },
-    chargeCustomerForBalance: async function(
+    chargeCustomerForBalance: async function (
         userId: $TSFixMe,
         chargeAmount: $TSFixMe,
         projectId: $TSFixMe,
@@ -297,7 +297,7 @@ const Services = {
         return paymentIntent;
     },
 
-    updateBalance: async function(paymentIntent: $TSFixMe) {
+    updateBalance: async function (paymentIntent: $TSFixMe) {
         if (paymentIntent.status === 'succeeded') {
             const amountRechargedStripe = Number(paymentIntent.amount_received);
             if (amountRechargedStripe) {
@@ -361,7 +361,7 @@ const Services = {
         }
         return false;
     },
-    addBalance: async function(
+    addBalance: async function (
         userId: $TSFixMe,
         chargeAmount: $TSFixMe,
         projectId: $TSFixMe
@@ -387,7 +387,7 @@ const Services = {
         paymentIntent = await this.confirmPayment(paymentIntent);
         return paymentIntent;
     },
-    createInvoice: async function(
+    createInvoice: async function (
         amount: $TSFixMe,
         stripeCustomerId: $TSFixMe,
         description: $TSFixMe,
@@ -432,7 +432,7 @@ const Services = {
         }
         return updatedPaymentIntent;
     },
-    makeTestCharge: async function(
+    makeTestCharge: async function (
         tokenId: $TSFixMe,
         email: $TSFixMe,
         companyName: $TSFixMe
@@ -459,7 +459,7 @@ const Services = {
         );
         return paymentIntent;
     },
-    confirmPayment: async function(paymentIntent: $TSFixMe) {
+    confirmPayment: async function (paymentIntent: $TSFixMe) {
         const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
             paymentIntent.id
         );
@@ -477,12 +477,12 @@ const Services = {
         }
         return confirmedPaymentIntent;
     },
-    retrievePaymentIntent: async function(intentId: $TSFixMe) {
+    retrievePaymentIntent: async function (intentId: $TSFixMe) {
         const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
         return paymentIntent;
     },
 
-    fetchTrialInformation: async function(subscriptionId: $TSFixMe) {
+    fetchTrialInformation: async function (subscriptionId: $TSFixMe) {
         const subscription = await stripe.subscriptions.retrieve(
             subscriptionId
         );

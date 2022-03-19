@@ -1,5 +1,5 @@
 export default {
-    findOneBy: async function({ query }: $TSFixMe) {
+    findOneBy: async function ({ query }: $TSFixMe) {
         try {
             if (!query) {
                 query = {};
@@ -17,7 +17,7 @@ export default {
             throw error;
         }
     },
-    findBy: async function({ query, limit, skip }: $TSFixMe) {
+    findBy: async function ({ query, limit, skip }: $TSFixMe) {
         try {
             if (!skip) skip = 0;
 

@@ -18,7 +18,7 @@ const CLUSTER_KEY = process.env.CLUSTER_KEY;
 global.probes = {};
 
 export default {
-    isAuthorizedProbe: async function(
+    isAuthorizedProbe: async function (
         req: Request,
         res: Response,
         next: NextFunction

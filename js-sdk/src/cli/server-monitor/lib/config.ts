@@ -56,14 +56,11 @@ const offlineTestData = {
 const LOG_PATH = {
     linux: {
         log: '/var/log/OneUptime Server Monitor/oneuptimeservermonitor.log',
-        error:
-            '/var/log/OneUptime Server Monitor/oneuptimeservermonitor_error.log',
+        error: '/var/log/OneUptime Server Monitor/oneuptimeservermonitor_error.log',
     },
     darwin: {
-        log:
-            '/Library/Logs/OneUptime Server Monitor/oneuptimeservermonitor.log',
-        error:
-            '/Library/Logs/OneUptime Server Monitor/oneuptimeservermonitor_error.log',
+        log: '/Library/Logs/OneUptime Server Monitor/oneuptimeservermonitor.log',
+        error: '/Library/Logs/OneUptime Server Monitor/oneuptimeservermonitor_error.log',
     },
     win32: {
         log: path.join(__dirname, 'oneuptimeservermonitor.out.log'),

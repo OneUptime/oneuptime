@@ -16,165 +16,181 @@ import IncidentCommunicationSlaService from '../services/incidentCommunicationSl
 
 const router = express.getRouter();
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId } = req.params;
-        const { limit, skip } = req.query;
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId } = req.params;
+            const { limit, skip } = req.query;
 
-        const selectIncidentComSla =
-            'name projectId isDefault alertTime alertTime deleted duration';
+            const selectIncidentComSla =
+                'name projectId isDefault alertTime alertTime deleted duration';
 
-        const populateIncidentComSla = [
-            { path: 'projectId', select: 'name slug' },
-        ];
-        const [incidentSlas, count] = await Promise.all([
-            IncidentCommunicationSlaService.findBy({
-                query: {
+            const populateIncidentComSla = [
+                { path: 'projectId', select: 'name slug' },
+            ];
+            const [incidentSlas, count] = await Promise.all([
+                IncidentCommunicationSlaService.findBy({
+                    query: {
+                        projectId,
+                    },
+                    limit,
+                    skip,
+                    select: selectIncidentComSla,
+                    populate: populateIncidentComSla,
+                }),
+                IncidentCommunicationSlaService.countBy({
                     projectId,
-                },
-                limit,
-                skip,
-                select: selectIncidentComSla,
-                populate: populateIncidentComSla,
-            }),
-            IncidentCommunicationSlaService.countBy({
-                projectId,
-            }),
-        ]);
+                }),
+            ]);
 
-        return sendListResponse(req, res, incidentSlas, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendListResponse(req, res, incidentSlas, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId } = req.params;
-        const { name, alertTime, duration } = req.body;
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId } = req.params;
+            const { name, alertTime, duration } = req.body;
 
-        if (!name || !name.trim()) {
-            const error = new Error('SLA name is required');
+            if (!name || !name.trim()) {
+                const error = new Error('SLA name is required');
 
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
 
-        if (duration && isNaN(duration)) {
-            const error = new Error('Please use numeric values for duration');
+            if (duration && isNaN(duration)) {
+                const error = new Error(
+                    'Please use numeric values for duration'
+                );
 
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
 
-        if (!alertTime || !alertTime.trim()) {
-            const error = new Error('Please set alert time for this SLA');
+            if (!alertTime || !alertTime.trim()) {
+                const error = new Error('Please set alert time for this SLA');
 
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
 
-        if (isNaN(alertTime)) {
-            const error = new Error('Please use numeric values for alert time');
+            if (isNaN(alertTime)) {
+                const error = new Error(
+                    'Please use numeric values for alert time'
+                );
 
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
 
-        if (Number(alertTime) >= Number(duration)) {
-            const error = new Error(
-                'Alert time should be always less than duration'
+            if (Number(alertTime) >= Number(duration)) {
+                const error = new Error(
+                    'Alert time should be always less than duration'
+                );
+
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            const data = { ...req.body };
+            data.projectId = projectId;
+            const incidentSla = await IncidentCommunicationSlaService.create(
+                data
             );
-
-            error.code = 400;
+            return sendItemResponse(req, res, incidentSla);
+        } catch (error) {
             return sendErrorResponse(req, res, error);
         }
-
-        const data = { ...req.body };
-        data.projectId = projectId;
-        const incidentSla = await IncidentCommunicationSlaService.create(data);
-        return sendItemResponse(req, res, incidentSla);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.put('/:projectId/:incidentSlaId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { projectId, incidentSlaId } = req.params;
-        const { name, handleDefault, alertTime, duration } = req.body;
+router.put(
+    '/:projectId/:incidentSlaId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { projectId, incidentSlaId } = req.params;
+            const { name, handleDefault, alertTime, duration } = req.body;
 
-        if (!handleDefault && (!name || !name.trim())) {
-            const error = new Error('SLA name is required');
+            if (!handleDefault && (!name || !name.trim())) {
+                const error = new Error('SLA name is required');
 
-            error.code = 400;
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            if (!handleDefault && duration && isNaN(duration)) {
+                const error = new Error(
+                    'Please use numeric values for duration'
+                );
+
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            if (!handleDefault && (!alertTime || !alertTime.trim())) {
+                const error = new Error('Please set alert time for this SLA');
+
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            if (!handleDefault && isNaN(alertTime)) {
+                const error = new Error(
+                    'Please use numeric values for alert time'
+                );
+
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            if (!handleDefault && Number(alertTime) >= Number(duration)) {
+                const error = new Error(
+                    'Alert time should be always less than duration'
+                );
+
+                error.code = 400;
+                return sendErrorResponse(req, res, error);
+            }
+
+            const data = { ...req.body };
+            const incidentSla =
+                await IncidentCommunicationSlaService.updateOneBy(
+                    { projectId, _id: incidentSlaId },
+                    data
+                );
+            return sendItemResponse(req, res, incidentSla);
+        } catch (error) {
             return sendErrorResponse(req, res, error);
         }
-
-        if (!handleDefault && duration && isNaN(duration)) {
-            const error = new Error('Please use numeric values for duration');
-
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (!handleDefault && (!alertTime || !alertTime.trim())) {
-            const error = new Error('Please set alert time for this SLA');
-
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (!handleDefault && isNaN(alertTime)) {
-            const error = new Error('Please use numeric values for alert time');
-
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        if (!handleDefault && Number(alertTime) >= Number(duration)) {
-            const error = new Error(
-                'Alert time should be always less than duration'
-            );
-
-            error.code = 400;
-            return sendErrorResponse(req, res, error);
-        }
-
-        const data = { ...req.body };
-        const incidentSla = await IncidentCommunicationSlaService.updateOneBy(
-            { projectId, _id: incidentSlaId },
-            data
-        );
-        return sendItemResponse(req, res, incidentSla);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.delete(
     '/:projectId/:incidentSlaId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, incidentSlaId } = req.params;
 
-            const deletedIncidentSla = await IncidentCommunicationSlaService.deleteBy(
-                {
+            const deletedIncidentSla =
+                await IncidentCommunicationSlaService.deleteBy({
                     _id: incidentSlaId,
                     projectId,
-                }
-            );
+                });
             return sendItemResponse(req, res, deletedIncidentSla);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -186,7 +202,7 @@ router.get(
     '/:projectId/defaultCommunicationSla',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId } = req.params;
 

@@ -11,28 +11,25 @@ import handlePopulate from '../utils/populate';
 import RealTimeService from './realTimeService';
 
 export default {
-    create: async function(data: $TSFixMe) {
-        const [
-            containerNameExist,
-            imagePathExist,
-            dockerCredentialExist,
-        ] = await Promise.all([
-            this.findOneBy({
-                query: { name: data.name, componentId: data.componentId },
-                select: '_id',
-            }),
-            this.findOneBy({
-                query: {
-                    imagePath: data.imagePath,
-                    componentId: data.componentId,
-                },
-                select: '_id',
-            }),
-            DockerCredentialService.findOneBy({
-                query: { _id: data.dockerCredential },
-                select: '_id',
-            }),
-        ]);
+    create: async function (data: $TSFixMe) {
+        const [containerNameExist, imagePathExist, dockerCredentialExist] =
+            await Promise.all([
+                this.findOneBy({
+                    query: { name: data.name, componentId: data.componentId },
+                    select: '_id',
+                }),
+                this.findOneBy({
+                    query: {
+                        imagePath: data.imagePath,
+                        componentId: data.componentId,
+                    },
+                    select: '_id',
+                }),
+                DockerCredentialService.findOneBy({
+                    query: { _id: data.dockerCredential },
+                    select: '_id',
+                }),
+            ]);
 
         if (containerNameExist) {
             const error = new Error(
@@ -70,7 +67,7 @@ export default {
         const containerSecurity = await ContainerSecurityModel.create(data);
         return containerSecurity;
     },
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -86,7 +83,13 @@ export default {
         const containerSecurity = await containerSecurityQuery;
         return containerSecurity;
     },
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -113,7 +116,7 @@ export default {
         const containerSecurities = await containerSecurityQuery;
         return containerSecurities;
     },
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData = null
@@ -159,8 +162,7 @@ export default {
             { path: 'resourceCategory', select: 'name' },
             {
                 path: 'dockerCredential',
-                select:
-                    'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
             },
         ];
         const select =
@@ -172,7 +174,7 @@ export default {
         });
         return containerSecurity;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         let containerSecurity = await this.findOneBy({
             query,
             select: '_id',
@@ -209,21 +211,18 @@ export default {
         });
         return containerSecurity;
     },
-    hardDelete: async function(query: $TSFixMe) {
+    hardDelete: async function (query: $TSFixMe) {
         await ContainerSecurityModel.deleteMany(query);
         return 'Container Securities deleted successfully';
     },
-    getSecuritiesToScan: async function() {
-        const oneDay = moment()
-            .subtract(1, 'days')
-            .toDate();
+    getSecuritiesToScan: async function () {
+        const oneDay = moment().subtract(1, 'days').toDate();
         const populate = [
             { path: 'componentId', select: 'name slug _id' },
             { path: 'resourceCategory', select: 'name' },
             {
                 path: 'dockerCredential',
-                select:
-                    'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
             },
         ];
         const select =
@@ -238,7 +237,7 @@ export default {
         });
         return securities;
     },
-    decryptPassword: async function(security: $TSFixMe) {
+    decryptPassword: async function (security: $TSFixMe) {
         const values = [];
         for (let i = 0; i <= 15; i++)
             values.push(security.dockerCredential.iv[i]);
@@ -249,7 +248,7 @@ export default {
         );
         return security;
     },
-    updateScanTime: async function(query: $TSFixMe) {
+    updateScanTime: async function (query: $TSFixMe) {
         const newDate = new Date();
         const containerSecurity = await this.updateOneBy(query, {
             lastScan: newDate,

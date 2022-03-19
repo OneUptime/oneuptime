@@ -15,27 +15,26 @@ export const createMonitorSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const createMonitorSla = (projectId: $TSFixMe, data: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    try {
-        dispatch(createMonitorSlaRequest());
+export const createMonitorSla =
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(createMonitorSlaRequest());
 
-        const response = await postApi(`monitorSla/${projectId}`, data);
+            const response = await postApi(`monitorSla/${projectId}`, data);
 
-        dispatch(createMonitorSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(createMonitorSlaFailure(errorMsg));
-    }
-};
+            dispatch(createMonitorSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(createMonitorSlaFailure(errorMsg));
+        }
+    };
 
 export const updateMonitorSlaRequest = () => ({
     type: types.UPDATE_MONITOR_SLA_REQUEST,
@@ -51,34 +50,36 @@ export const updateMonitorSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const updateMonitorSla = (
-    projectId: $TSFixMe,
-    monitorSlaId: $TSFixMe,
-    data: $TSFixMe,
-    handleDefault = false
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(updateMonitorSlaRequest());
+export const updateMonitorSla =
+    (
+        projectId: $TSFixMe,
+        monitorSlaId: $TSFixMe,
+        data: $TSFixMe,
+        handleDefault = false
+    ) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(updateMonitorSlaRequest());
 
-        data.handleDefault = handleDefault;
-        const response = await putApi(
-            `monitorSla/${projectId}/${monitorSlaId}`,
-            data
-        );
+            data.handleDefault = handleDefault;
+            const response = await putApi(
+                `monitorSla/${projectId}/${monitorSlaId}`,
+                data
+            );
 
-        dispatch(updateMonitorSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(updateMonitorSlaFailure(errorMsg));
-    }
-};
+            dispatch(updateMonitorSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateMonitorSlaFailure(errorMsg));
+        }
+    };
 
 export const fetchMonitorSlasRequest = () => ({
     type: types.FETCH_MONITOR_SLAS_REQUEST,
@@ -94,31 +95,29 @@ export const fetchMonitorSlasFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchMonitorSlas = (
-    projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(fetchMonitorSlasRequest());
+export const fetchMonitorSlas =
+    (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(fetchMonitorSlasRequest());
 
-        const response = await getApi(
-            `monitorSla/${projectId}?skip=${skip}&limit=${limit}`
-        );
+            const response = await getApi(
+                `monitorSla/${projectId}?skip=${skip}&limit=${limit}`
+            );
 
-        dispatch(fetchMonitorSlasSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(fetchMonitorSlasFailure(errorMsg));
-    }
-};
+            dispatch(fetchMonitorSlasSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchMonitorSlasFailure(errorMsg));
+        }
+    };
 
 export const deleteMonitorSlaRequest = () => ({
     type: types.DELETE_MONITOR_SLA_REQUEST,
@@ -134,30 +133,29 @@ export const deleteMonitorSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteMonitorSla = (
-    projectId: $TSFixMe,
-    monitorSlaId: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        dispatch(deleteMonitorSlaRequest());
+export const deleteMonitorSla =
+    (projectId: $TSFixMe, monitorSlaId: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(deleteMonitorSlaRequest());
 
-        const response = await deleteApi(
-            `monitorSla/${projectId}/${monitorSlaId}`
-        );
+            const response = await deleteApi(
+                `monitorSla/${projectId}/${monitorSlaId}`
+            );
 
-        dispatch(deleteMonitorSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(deleteMonitorSlaFailure(errorMsg));
-    }
-};
+            dispatch(deleteMonitorSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteMonitorSlaFailure(errorMsg));
+        }
+    };
 
 // set active monitor sla
 export const setActiveMonitorSla = (monitorSlaId: $TSFixMe) => ({
@@ -179,29 +177,28 @@ export const fetchDefaultMonitorSlaFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchDefaultMonitorSla = (projectId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    try {
-        dispatch(fetchDefaultMonitorSlaRequest());
+export const fetchDefaultMonitorSla =
+    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        try {
+            dispatch(fetchDefaultMonitorSlaRequest());
 
-        const response = await getApi(
-            `monitorSla/${projectId}/defaultMonitorSla`
-        );
+            const response = await getApi(
+                `monitorSla/${projectId}/defaultMonitorSla`
+            );
 
-        dispatch(fetchDefaultMonitorSlaSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(fetchDefaultMonitorSlaFailure(errorMsg));
-    }
-};
+            dispatch(fetchDefaultMonitorSlaSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(fetchDefaultMonitorSlaFailure(errorMsg));
+        }
+    };
 export const paginateNext = () => {
     return {
         type: types.NEXT_MONITOR_SLA_PAGE,

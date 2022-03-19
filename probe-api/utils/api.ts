@@ -25,10 +25,10 @@ const _this = {
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity,
             })
-                .then(function(response) {
+                .then(function (response) {
                     resolve(response.data);
                 })
-                .catch(function(error) {
+                .catch(function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {

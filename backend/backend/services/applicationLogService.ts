@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
         // check component exists
         const componentCount = await ComponentService.countBy({
@@ -153,7 +153,7 @@ export default {
 
         return { applicationLogs, count, skip, limit };
     },
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -191,7 +191,7 @@ export default {
             return null;
         }
     },
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData = null
@@ -235,7 +235,7 @@ export default {
 
         return applicationLog;
     },
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await ApplicationLogModel.deleteMany(query);
         return 'Application Log(s) removed successfully!';
     },

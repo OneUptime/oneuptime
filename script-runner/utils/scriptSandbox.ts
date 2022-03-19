@@ -22,11 +22,8 @@ class ScriptError extends Error {
     }
 }
 
-const {
-    availableImports,
-    maxScriptRunTime,
-    maxSyncStatementDuration,
-} = runConfig;
+const { availableImports, maxScriptRunTime, maxSyncStatementDuration } =
+    runConfig;
 
 const run = async (
     functionCode: $TSFixMe,

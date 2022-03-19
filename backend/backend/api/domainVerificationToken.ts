@@ -37,10 +37,11 @@ router.put(
         const { domainId } = req.params;
 
         try {
-            const doesTxtRecordExist = await DomainVerificationService.doesTxtRecordExist(
-                subDomain,
-                verificationToken
-            );
+            const doesTxtRecordExist =
+                await DomainVerificationService.doesTxtRecordExist(
+                    subDomain,
+                    verificationToken
+                );
 
             const { result, txtRecords } = doesTxtRecordExist;
 
@@ -173,10 +174,11 @@ router.post(
             }
 
             // check if domain already belong to another project
-            const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
-                projectId,
-                domain
-            );
+            const doesDomainBelongToProject =
+                await DomainVerificationService.doesDomainBelongToProject(
+                    projectId,
+                    domain
+                );
             if (doesDomainBelongToProject) {
                 const error = new Error(
                     'Domain already belong to another project'
@@ -248,10 +250,11 @@ router.put(
             }
 
             // check if domain already belong to another project
-            const doesDomainBelongToProject = await DomainVerificationService.doesDomainBelongToProject(
-                projectId,
-                domain
-            );
+            const doesDomainBelongToProject =
+                await DomainVerificationService.doesDomainBelongToProject(
+                    projectId,
+                    domain
+                );
             if (doesDomainBelongToProject) {
                 const error = new Error(
                     'Domain already belong to another project'

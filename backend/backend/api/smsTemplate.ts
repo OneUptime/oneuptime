@@ -21,34 +21,36 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const data = req.body;
-        data.projectId = req.params.projectId;
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const data = req.body;
+            data.projectId = req.params.projectId;
 
-        if (!data.body) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SMS body is required.',
-            });
+            if (!data.body) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'SMS body is required.',
+                });
+            }
+
+            data.body = await DOMPurify.sanitize(data.body);
+            const smsTemplate = await SmsTemplateService.create(data);
+            return sendItemResponse(req, res, smsTemplate);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        data.body = await DOMPurify.sanitize(data.body);
-        const smsTemplate = await SmsTemplateService.create(data);
-        return sendItemResponse(req, res, smsTemplate);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.get(
     '/:projectId/:templateId/reset',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const projectId = req.params.projectId;
             const templateId = req.params.templateId;
@@ -61,24 +63,26 @@ router.get(
     }
 );
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const projectId = req.params.projectId;
-        const templates = await SmsTemplateService.getTemplates(projectId);
-        return sendItemResponse(req, res, templates);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const projectId = req.params.projectId;
+            const templates = await SmsTemplateService.getTemplates(projectId);
+            return sendItemResponse(req, res, templates);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const smsTemplateId = req.params.smsTemplateId;
             const populate = [{ path: 'projectId', select: 'name' }];
@@ -99,7 +103,7 @@ router.put(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const smsTemplateId = req.params.smsTemplateId;
@@ -116,52 +120,62 @@ router.put(
     }
 );
 
-router.put('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const data = [];
-        const { projectId } = req.params;
-        for (const value of req.body) {
-            if (!value.body) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'SMS body is required.',
+router.put(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const data = [];
+            const { projectId } = req.params;
+            for (const value of req.body) {
+                if (!value.body) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'SMS body is required.',
+                    });
+                }
+                // sanitize template markup
+                value.projectId = projectId;
+                value.body = await DOMPurify.sanitize(value.body);
+                data.push(value);
+            }
+
+            const templateData = [];
+            for (const value of data) {
+                const smsTemplate = await SmsTemplateService.findOneBy({
+                    query: {
+                        projectId: value.projectId,
+                        smsType: value.smsType,
+                    },
+                    select: '_id',
                 });
+                if (smsTemplate) {
+                    await SmsTemplateService.updateOneBy(
+                        { _id: value._id },
+                        value
+                    );
+                } else {
+                    templateData.push(value);
+                }
             }
-            // sanitize template markup
-            value.projectId = projectId;
-            value.body = await DOMPurify.sanitize(value.body);
-            data.push(value);
-        }
+            await SmsTemplateService.createMany(templateData);
 
-        const templateData = [];
-        for (const value of data) {
-            const smsTemplate = await SmsTemplateService.findOneBy({
-                query: { projectId: value.projectId, smsType: value.smsType },
-                select: '_id',
-            });
-            if (smsTemplate) {
-                await SmsTemplateService.updateOneBy({ _id: value._id }, value);
-            } else {
-                templateData.push(value);
-            }
+            const smsTemplates = await SmsTemplateService.getTemplates(
+                projectId
+            );
+            return sendItemResponse(req, res, smsTemplates);
+        } catch (error) {
+            sendErrorResponse(req, res, error);
         }
-        await SmsTemplateService.createMany(templateData);
-
-        const smsTemplates = await SmsTemplateService.getTemplates(projectId);
-        return sendItemResponse(req, res, smsTemplates);
-    } catch (error) {
-        sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.delete(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isUserOwner,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const smsTemplateId = req.params.smsTemplateId;
 

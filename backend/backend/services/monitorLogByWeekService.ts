@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const LogWeek = new MonitorLogByWeekModel();
 
         LogWeek.monitorId = data.monitorId;
@@ -55,7 +55,7 @@ export default {
         return savedLogWeek;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }

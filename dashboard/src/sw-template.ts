@@ -27,8 +27,7 @@ if ('function' === typeof importScripts) {
 
             self.registration.showNotification(data.title, {
                 body: data.body,
-                icon:
-                    'https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png',
+                icon: 'https://res.cloudinary.com/deityhub/image/upload/v1637736803/1png.png',
             });
         });
     } else {

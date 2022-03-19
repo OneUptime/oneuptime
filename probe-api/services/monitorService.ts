@@ -50,11 +50,12 @@ export default {
             monitors = monitors.concat(monitorsThatHaveNeverBeenPinged);
 
             if (monitorsThatHaveNeverBeenPinged.length < limit) {
-                const monitorsThatHaveBeenPingedBeforeOneMinute = await monitorCollection
-                    .find(query)
-                    .sort({ [key]: 1 })
-                    .limit(limit)
-                    .toArray();
+                const monitorsThatHaveBeenPingedBeforeOneMinute =
+                    await monitorCollection
+                        .find(query)
+                        .sort({ [key]: 1 })
+                        .limit(limit)
+                        .toArray();
                 monitors = monitors.concat(
                     monitorsThatHaveBeenPingedBeforeOneMinute
                 );

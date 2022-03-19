@@ -21,7 +21,7 @@ import handlePopulate from '../utils/populate';
 // import RealTimeService from './realTimeService'
 
 export default {
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -36,7 +36,7 @@ export default {
         return result;
     },
 
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
         if (
             !data.selectAllMonitors &&
@@ -141,7 +141,7 @@ export default {
         return incomingRequest;
     },
 
-    getRequestUrl: async function(projectId: $TSFixMe, requestId: $TSFixMe) {
+    getRequestUrl: async function (projectId: $TSFixMe, requestId: $TSFixMe) {
         // create a unique request url
         // update incomingRequest collection with the new url
         const _this = this;
@@ -155,7 +155,7 @@ export default {
         return updatedIncomingRequest;
     },
 
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         excludeMonitors: $TSFixMe
@@ -309,20 +309,22 @@ export default {
             }));
         }
 
-        let updatedIncomingRequest = await IncomingRequestModel.findOneAndUpdate(
-            { _id: query.requestId },
-            {
-                $set: data,
-            },
-            { new: true }
-        );
-
-        if (!isEmpty(unsetData)) {
-            updatedIncomingRequest = await IncomingRequestModel.findOneAndUpdate(
+        let updatedIncomingRequest =
+            await IncomingRequestModel.findOneAndUpdate(
                 { _id: query.requestId },
-                { $unset: unsetData },
+                {
+                    $set: data,
+                },
                 { new: true }
             );
+
+        if (!isEmpty(unsetData)) {
+            updatedIncomingRequest =
+                await IncomingRequestModel.findOneAndUpdate(
+                    { _id: query.requestId },
+                    { $unset: unsetData },
+                    { new: true }
+                );
         }
 
         if (!updatedIncomingRequest) {
@@ -356,7 +358,7 @@ export default {
         return updatedIncomingRequest;
     },
 
-    updateCustomFieldBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateCustomFieldBy: async function (query: $TSFixMe, data: $TSFixMe) {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -365,7 +367,13 @@ export default {
         return incomingRequest;
     },
 
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -396,7 +404,7 @@ export default {
         return result;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -405,7 +413,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             {
@@ -431,7 +439,7 @@ export default {
         return incomingRequest;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -463,7 +471,7 @@ export default {
         return updateIncomingRequest;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await IncomingRequestModel.deleteMany(query);
         return 'Incoming request(s) removed successfully!';
     },
@@ -474,7 +482,7 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function(monitorId: $TSFixMe) {
+    removeMonitor: async function (monitorId: $TSFixMe) {
         const allIncomingRequest = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors',
@@ -490,11 +498,12 @@ export default {
                 );
 
                 if (incomingRequest.monitors.length > 0) {
-                    let updatedIncomingRequest = await IncomingRequestModel.findOneAndUpdate(
-                        { _id: incomingRequest._id },
-                        { $set: { monitors: incomingRequest.monitors } },
-                        { new: true }
-                    );
+                    let updatedIncomingRequest =
+                        await IncomingRequestModel.findOneAndUpdate(
+                            { _id: incomingRequest._id },
+                            { $set: { monitors: incomingRequest.monitors } },
+                            { new: true }
+                        );
                     updatedIncomingRequest = await updatedIncomingRequest
                         .populate('monitors.monitorId', 'name')
                         .populate('projectId', 'name')
@@ -509,17 +518,18 @@ export default {
                     // 1. No monitor is remaining in the monitors array
                     // 2. It does not select all monitors
                     if (!incomingRequest.selectAllMonitors) {
-                        let deletedIncomingRequest = await IncomingRequestModel.findOneAndUpdate(
-                            { _id: incomingRequest._id },
-                            {
-                                $set: {
-                                    monitors: incomingRequest.monitors,
-                                    deleted: true,
-                                    deletedAt: Date.now(),
+                        let deletedIncomingRequest =
+                            await IncomingRequestModel.findOneAndUpdate(
+                                { _id: incomingRequest._id },
+                                {
+                                    $set: {
+                                        monitors: incomingRequest.monitors,
+                                        deleted: true,
+                                        deletedAt: Date.now(),
+                                    },
                                 },
-                            },
-                            { new: true }
-                        );
+                                { new: true }
+                            );
                         deletedIncomingRequest = await deletedIncomingRequest
                             .populate('monitors.monitorId', 'name')
                             .populate('projectId', 'name')
@@ -535,7 +545,7 @@ export default {
         );
     },
 
-    handleIncomingRequestAction: async function(data: $TSFixMe) {
+    handleIncomingRequestAction: async function (data: $TSFixMe) {
         const _this = this;
         const selectIncPriority =
             'projectId name color createdAt deletedAt deleted deletedById';
@@ -552,28 +562,25 @@ export default {
             },
             { path: 'projectId', select: 'name' },
         ];
-        const [
-            incidentPriorities,
-            incidentSettings,
-            incomingRequest,
-        ] = await Promise.all([
-            IncidentPrioritiesService.findBy({
-                query: { projectId: data.projectId },
-                select: selectIncPriority,
-            }),
-            IncidentSettingsService.findOne({
-                query: {
-                    projectId: data.projectId,
-                    isDefault: true,
-                },
-                select: selectIncSettings,
-            }),
-            _this.findOneBy({
-                query: { _id: data.requestId, projectId: data.projectId },
-                select: selectInRequest,
-                populate: populateInRequest,
-            }),
-        ]);
+        const [incidentPriorities, incidentSettings, incomingRequest] =
+            await Promise.all([
+                IncidentPrioritiesService.findBy({
+                    query: { projectId: data.projectId },
+                    select: selectIncPriority,
+                }),
+                IncidentSettingsService.findOne({
+                    query: {
+                        projectId: data.projectId,
+                        isDefault: true,
+                    },
+                    select: selectIncSettings,
+                }),
+                _this.findOneBy({
+                    query: { _id: data.requestId, projectId: data.projectId },
+                    select: selectInRequest,
+                    populate: populateInRequest,
+                }),
+            ]);
 
         // grab value for posting to status page
         data.post_statuspage = incomingRequest.post_statuspage ? true : false;
@@ -1948,25 +1955,27 @@ export default {
                                 String(incident._id)
                             )
                         ) {
-                            const incidentData = await IncidentService.acknowledge(
-                                incident._id,
-                                null,
-                                null,
-                                null,
-                                null,
-                                incomingRequest
-                            );
+                            const incidentData =
+                                await IncidentService.acknowledge(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
                             acknowledgeResponse.push(incidentData);
                             acknowledgedIncidents.push(String(incident._id));
                         } else {
-                            const incidentData = await IncidentService.acknowledge(
-                                incident._id,
-                                null,
-                                null,
-                                null,
-                                null,
-                                incomingRequest
-                            );
+                            const incidentData =
+                                await IncidentService.acknowledge(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
                             acknowledgeResponse.push(incidentData);
                         }
                     }
@@ -2086,7 +2095,7 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe) {
         }
 
         // remove any double currly braces from variable
-        variable = variable.replace(replaceRegex, function(match: $TSFixMe) {
+        variable = variable.replace(replaceRegex, function (match: $TSFixMe) {
             match = match.slice(2, -2);
             return match;
         });

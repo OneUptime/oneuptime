@@ -10,7 +10,7 @@ export default {
      * @param {Object} projectId
      * @returns {Object | {error : string}} the updated project or an error
      */
-    addTeamMembersToProject: async function(
+    addTeamMembersToProject: async function (
         projectId: $TSFixMe,
         teamMembers: $TSFixMe
     ) {
@@ -49,7 +49,7 @@ export default {
      * @param {Object} projectId
      * @returns {Object | {error : string}} the updated project or an error
      */
-    removeTeamMembersFromProject: async function(
+    removeTeamMembersFromProject: async function (
         projectId: $TSFixMe,
         teamMembers: $TSFixMe
     ) {

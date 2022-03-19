@@ -16,32 +16,30 @@ export const addContainerSecurityFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const addContainerSecurity = ({
-    projectId,
-    componentId,
-    data,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(addContainerSecurityRequest());
+export const addContainerSecurity =
+    ({ projectId, componentId, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(addContainerSecurityRequest());
 
-    try {
-        const response = await postApi(
-            `security/${projectId}/${componentId}/container`,
-            data
-        );
+        try {
+            const response = await postApi(
+                `security/${projectId}/${componentId}/container`,
+                data
+            );
 
-        dispatch(addContainerSecuritySuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(addContainerSecurityFailure(errorMsg));
-    }
-};
+            dispatch(addContainerSecuritySuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(addContainerSecurityFailure(errorMsg));
+        }
+    };
 
 // Get a Container Security
 export const getContainerSecurityRequest = () => ({
@@ -58,57 +56,53 @@ export const getContainerSecurityFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getContainerSecurity = ({
-    projectId,
-    componentId,
-    containerSecurityId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getContainerSecurityRequest());
+export const getContainerSecurity =
+    ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getContainerSecurityRequest());
 
-    try {
-        const response = await getApi(
-            `security/${projectId}/${componentId}/container/${containerSecurityId}`
-        );
+        try {
+            const response = await getApi(
+                `security/${projectId}/${componentId}/container/${containerSecurityId}`
+            );
 
-        dispatch(getContainerSecuritySuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getContainerSecurityFailure(errorMsg));
-    }
-};
+            dispatch(getContainerSecuritySuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getContainerSecurityFailure(errorMsg));
+        }
+    };
 
-export const getContainerSecurityBySlug = ({
-    projectId,
-    componentId,
-    containerSecuritySlug,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getContainerSecurityRequest());
+export const getContainerSecurityBySlug =
+    ({ projectId, componentId, containerSecuritySlug }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getContainerSecurityRequest());
 
-    try {
-        const response = await getApi(
-            `security/${projectId}/${componentId}/containerSecuritySlug/${containerSecuritySlug}`
-        );
+        try {
+            const response = await getApi(
+                `security/${projectId}/${componentId}/containerSecuritySlug/${containerSecuritySlug}`
+            );
 
-        dispatch(getContainerSecuritySuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getContainerSecurityFailure(errorMsg));
-    }
-};
+            dispatch(getContainerSecuritySuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getContainerSecurityFailure(errorMsg));
+        }
+    };
 
 // Get all Container Security
 export const getContainerSecuritiesRequest = (fetchingPage: $TSFixMe) => ({
@@ -126,33 +120,35 @@ export const getContainerSecuritiesFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getContainerSecurities = ({
-    projectId,
-    componentId,
-    skip = 0,
-    limit = 0,
-    fetchingPage = false,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getContainerSecuritiesRequest(fetchingPage));
+export const getContainerSecurities =
+    ({
+        projectId,
+        componentId,
+        skip = 0,
+        limit = 0,
+        fetchingPage = false,
+    }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getContainerSecuritiesRequest(fetchingPage));
 
-    try {
-        const response = await getApi(
-            `security/${projectId}/${componentId}/container?skip=${skip}&limit=${limit}`
-        );
+        try {
+            const response = await getApi(
+                `security/${projectId}/${componentId}/container?skip=${skip}&limit=${limit}`
+            );
 
-        dispatch(getContainerSecuritiesSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getContainerSecuritiesFailure(errorMsg));
-    }
-};
+            dispatch(getContainerSecuritiesSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getContainerSecuritiesFailure(errorMsg));
+        }
+    };
 
 // Delete Container Security
 export const deleteContainerSecurityRequest = () => ({
@@ -169,34 +165,32 @@ export const deleteContainerSecurityFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteContainerSecurity = ({
-    projectId,
-    componentId,
-    containerSecurityId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(deleteContainerSecurityRequest());
+export const deleteContainerSecurity =
+    ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(deleteContainerSecurityRequest());
 
-    try {
-        const response = await deleteApi(
-            `security/${projectId}/${componentId}/container/${containerSecurityId}`
-        );
+        try {
+            const response = await deleteApi(
+                `security/${projectId}/${componentId}/container/${containerSecurityId}`
+            );
 
-        dispatch(deleteContainerSecuritySuccess(response.data));
+            dispatch(deleteContainerSecuritySuccess(response.data));
 
-        // update the list of container securities
-        dispatch(getContainerSecurities({ projectId, componentId }));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(deleteContainerSecurityFailure(errorMsg));
-    }
-};
+            // update the list of container securities
+            dispatch(getContainerSecurities({ projectId, componentId }));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteContainerSecurityFailure(errorMsg));
+        }
+    };
 
 // Scan Container Security
 export const scanContainerSecurityRequest = () => ({
@@ -213,29 +207,28 @@ export const scanContainerSecurityFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const scanContainerSecurity = ({
-    projectId,
-    containerSecurityId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(scanContainerSecurityRequest());
-    dispatch(setActiveContainerSecurity(containerSecurityId));
+export const scanContainerSecurity =
+    ({ projectId, containerSecurityId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(scanContainerSecurityRequest());
+        dispatch(setActiveContainerSecurity(containerSecurityId));
 
-    try {
-        await postApi(
-            `security/${projectId}/container/scan/${containerSecurityId}`
-        );
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(scanContainerSecurityFailure(errorMsg));
-    }
-};
+        try {
+            await postApi(
+                `security/${projectId}/container/scan/${containerSecurityId}`
+            );
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(scanContainerSecurityFailure(errorMsg));
+        }
+    };
 
 // Get a particular Container Security Log
 export const getContainerSecurityLogRequest = () => ({
@@ -252,57 +245,53 @@ export const getContainerSecurityLogFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getContainerSecurityLog = ({
-    projectId,
-    componentId,
-    containerSecurityId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getContainerSecurityLogRequest());
+export const getContainerSecurityLog =
+    ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getContainerSecurityLogRequest());
 
-    try {
-        const response = await getApi(
-            `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
-        );
+        try {
+            const response = await getApi(
+                `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
+            );
 
-        dispatch(getContainerSecurityLogSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getContainerSecurityLogFailure(errorMsg));
-    }
-};
+            dispatch(getContainerSecurityLogSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getContainerSecurityLogFailure(errorMsg));
+        }
+    };
 
-export const getContainerSecurityLogBySlug = ({
-    projectId,
-    componentId,
-    containerSecuritySlug,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getContainerSecurityLogRequest());
+export const getContainerSecurityLogBySlug =
+    ({ projectId, componentId, containerSecuritySlug }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getContainerSecurityLogRequest());
 
-    try {
-        const response = await getApi(
-            `securityLog/${projectId}/${componentId}/containerSecuritySlug/logs/${containerSecuritySlug}`
-        );
+        try {
+            const response = await getApi(
+                `securityLog/${projectId}/${componentId}/containerSecuritySlug/logs/${containerSecuritySlug}`
+            );
 
-        dispatch(getContainerSecurityLogSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getContainerSecurityLogFailure(errorMsg));
-    }
-};
+            dispatch(getContainerSecurityLogSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getContainerSecurityLogFailure(errorMsg));
+        }
+    };
 
 // Get Container Security Logs in a component
 export const getContainerSecurityLogsRequest = () => ({
@@ -319,30 +308,29 @@ export const getContainerSecurityLogsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getContainerSecurityLogs = ({
-    projectId,
-    componentId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getContainerSecurityLogsRequest());
+export const getContainerSecurityLogs =
+    ({ projectId, componentId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getContainerSecurityLogsRequest());
 
-    try {
-        const response = await getApi(
-            `securityLog/${projectId}/${componentId}/container/logs`
-        );
+        try {
+            const response = await getApi(
+                `securityLog/${projectId}/${componentId}/container/logs`
+            );
 
-        dispatch(getContainerSecurityLogsSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getContainerSecurityLogsFailure(errorMsg));
-    }
-};
+            dispatch(getContainerSecurityLogsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getContainerSecurityLogsFailure(errorMsg));
+        }
+    };
 
 // Edit container security
 export const editContainerSecurityRequest = () => ({
@@ -365,7 +353,7 @@ export function editContainerSecurity({
     containerSecurityId,
     data,
 }: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`,
             data
@@ -373,10 +361,10 @@ export function editContainerSecurity({
         dispatch(editContainerSecurityRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(editContainerSecuritySuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -408,32 +396,30 @@ export const addApplicationSecurityFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const addApplicationSecurity = ({
-    projectId,
-    componentId,
-    data,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(addApplicationSecurityRequest());
+export const addApplicationSecurity =
+    ({ projectId, componentId, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(addApplicationSecurityRequest());
 
-    try {
-        const response = await postApi(
-            `security/${projectId}/${componentId}/application`,
-            data
-        );
+        try {
+            const response = await postApi(
+                `security/${projectId}/${componentId}/application`,
+                data
+            );
 
-        dispatch(addApplicationSecuritySuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(addApplicationSecurityFailure(errorMsg));
-    }
-};
+            dispatch(addApplicationSecuritySuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(addApplicationSecurityFailure(errorMsg));
+        }
+    };
 
 // Get an Application Security
 export const getApplicationSecurityRequest = () => ({
@@ -450,57 +436,53 @@ export const getApplicationSecurityFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getApplicationSecurity = ({
-    projectId,
-    componentId,
-    applicationSecurityId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getApplicationSecurityRequest());
+export const getApplicationSecurity =
+    ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getApplicationSecurityRequest());
 
-    try {
-        const response = await getApi(
-            `security/${projectId}/${componentId}/application/${applicationSecurityId}`
-        );
+        try {
+            const response = await getApi(
+                `security/${projectId}/${componentId}/application/${applicationSecurityId}`
+            );
 
-        dispatch(getApplicationSecuritySuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getApplicationSecurityFailure(errorMsg));
-    }
-};
+            dispatch(getApplicationSecuritySuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getApplicationSecurityFailure(errorMsg));
+        }
+    };
 
-export const getApplicationSecurityBySlug = ({
-    projectId,
-    componentId,
-    applicationSecuritySlug,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getApplicationSecurityRequest());
+export const getApplicationSecurityBySlug =
+    ({ projectId, componentId, applicationSecuritySlug }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getApplicationSecurityRequest());
 
-    try {
-        const response = await getApi(
-            `security/${projectId}/${componentId}/applicationSecuritySlug/${applicationSecuritySlug}`
-        );
+        try {
+            const response = await getApi(
+                `security/${projectId}/${componentId}/applicationSecuritySlug/${applicationSecuritySlug}`
+            );
 
-        dispatch(getApplicationSecuritySuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getApplicationSecurityFailure(errorMsg));
-    }
-};
+            dispatch(getApplicationSecuritySuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getApplicationSecurityFailure(errorMsg));
+        }
+    };
 
 // Get all Application Security
 export const getApplicationSecuritiesRequest = (fetchingPage: $TSFixMe) => ({
@@ -518,33 +500,35 @@ export const getApplicationSecuritiesFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getApplicationSecurities = ({
-    projectId,
-    componentId,
-    skip = 0,
-    limit = 0,
-    fetchingPage = false,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getApplicationSecuritiesRequest(fetchingPage));
+export const getApplicationSecurities =
+    ({
+        projectId,
+        componentId,
+        skip = 0,
+        limit = 0,
+        fetchingPage = false,
+    }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getApplicationSecuritiesRequest(fetchingPage));
 
-    try {
-        const response = await getApi(
-            `security/${projectId}/${componentId}/application?skip=${skip}&limit=${limit}`
-        );
+        try {
+            const response = await getApi(
+                `security/${projectId}/${componentId}/application?skip=${skip}&limit=${limit}`
+            );
 
-        dispatch(getApplicationSecuritiesSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getApplicationSecuritiesFailure(errorMsg));
-    }
-};
+            dispatch(getApplicationSecuritiesSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getApplicationSecuritiesFailure(errorMsg));
+        }
+    };
 
 // Delete Application Security
 export const deleteApplicationSecurityRequest = () => ({
@@ -561,34 +545,32 @@ export const deleteApplicationSecurityFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteApplicationSecurity = ({
-    projectId,
-    componentId,
-    applicationSecurityId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(deleteApplicationSecurityRequest());
+export const deleteApplicationSecurity =
+    ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(deleteApplicationSecurityRequest());
 
-    try {
-        const response = await deleteApi(
-            `security/${projectId}/${componentId}/application/${applicationSecurityId}`
-        );
+        try {
+            const response = await deleteApi(
+                `security/${projectId}/${componentId}/application/${applicationSecurityId}`
+            );
 
-        dispatch(deleteApplicationSecuritySuccess(response.data));
+            dispatch(deleteApplicationSecuritySuccess(response.data));
 
-        // update the list of application securities
-        dispatch(getApplicationSecurities({ projectId, componentId }));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(deleteApplicationSecurityFailure(errorMsg));
-    }
-};
+            // update the list of application securities
+            dispatch(getApplicationSecurities({ projectId, componentId }));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(deleteApplicationSecurityFailure(errorMsg));
+        }
+    };
 
 // Scan Application Security
 export const scanApplicationSecurityRequest = () => ({
@@ -605,28 +587,27 @@ export const scanApplicationSecurityFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const scanApplicationSecurity = ({
-    projectId,
-    applicationSecurityId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(scanApplicationSecurityRequest());
-    dispatch(setActiveApplicationSecurity(applicationSecurityId));
-    try {
-        await postApi(
-            `security/${projectId}/application/scan/${applicationSecurityId}`
-        );
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(scanApplicationSecurityFailure(errorMsg));
-    }
-};
+export const scanApplicationSecurity =
+    ({ projectId, applicationSecurityId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(scanApplicationSecurityRequest());
+        dispatch(setActiveApplicationSecurity(applicationSecurityId));
+        try {
+            await postApi(
+                `security/${projectId}/application/scan/${applicationSecurityId}`
+            );
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(scanApplicationSecurityFailure(errorMsg));
+        }
+    };
 
 // Get a particular Application Security Log
 export const getApplicationSecurityLogRequest = () => ({
@@ -643,57 +624,53 @@ export const getApplicationSecurityLogFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getApplicationSecurityLog = ({
-    projectId,
-    componentId,
-    applicationSecurityId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getApplicationSecurityLogRequest());
+export const getApplicationSecurityLog =
+    ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getApplicationSecurityLogRequest());
 
-    try {
-        const response = await getApi(
-            `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
-        );
+        try {
+            const response = await getApi(
+                `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
+            );
 
-        dispatch(getApplicationSecurityLogSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getApplicationSecurityLogFailure(errorMsg));
-    }
-};
+            dispatch(getApplicationSecurityLogSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getApplicationSecurityLogFailure(errorMsg));
+        }
+    };
 
-export const getApplicationSecurityLogBySlug = ({
-    projectId,
-    componentId,
-    applicationSecuritySlug,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getApplicationSecurityLogRequest());
+export const getApplicationSecurityLogBySlug =
+    ({ projectId, componentId, applicationSecuritySlug }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getApplicationSecurityLogRequest());
 
-    try {
-        const response = await getApi(
-            `securityLog/${projectId}/${componentId}/applicationSecuritySlug/logs/${applicationSecuritySlug}`
-        );
+        try {
+            const response = await getApi(
+                `securityLog/${projectId}/${componentId}/applicationSecuritySlug/logs/${applicationSecuritySlug}`
+            );
 
-        dispatch(getApplicationSecurityLogSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getApplicationSecurityLogFailure(errorMsg));
-    }
-};
+            dispatch(getApplicationSecurityLogSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getApplicationSecurityLogFailure(errorMsg));
+        }
+    };
 
 // Get Application Security Logs in a component
 export const getApplicationSecurityLogsRequest = () => ({
@@ -710,30 +687,29 @@ export const getApplicationSecurityLogsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getApplicationSecurityLogs = ({
-    projectId,
-    componentId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(getApplicationSecurityLogsRequest());
+export const getApplicationSecurityLogs =
+    ({ projectId, componentId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getApplicationSecurityLogsRequest());
 
-    try {
-        const response = await getApi(
-            `securityLog/${projectId}/${componentId}/application/logs`
-        );
+        try {
+            const response = await getApi(
+                `securityLog/${projectId}/${componentId}/application/logs`
+            );
 
-        dispatch(getApplicationSecurityLogsSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getApplicationSecurityLogsFailure(errorMsg));
-    }
-};
+            dispatch(getApplicationSecurityLogsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getApplicationSecurityLogsFailure(errorMsg));
+        }
+    };
 
 // Edit application security
 export const editApplicationSecurityRequest = () => ({
@@ -756,7 +732,7 @@ export function editApplicationSecurity({
     applicationSecurityId,
     data,
 }: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`,
             data
@@ -764,10 +740,10 @@ export function editApplicationSecurity({
         dispatch(editApplicationSecurityRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(editApplicationSecuritySuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

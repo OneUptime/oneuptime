@@ -300,10 +300,10 @@ describe('Monitor Detail API', () => {
                 page,
                 `#numberOfIncidents`
             );
-            incidentCountSpanElement = await incidentCountSpanElement.getProperty(
-                'innerText'
-            );
-            incidentCountSpanElement = await incidentCountSpanElement.jsonValue();
+            incidentCountSpanElement =
+                await incidentCountSpanElement.getProperty('innerText');
+            incidentCountSpanElement =
+                await incidentCountSpanElement.jsonValue();
 
             expect(incidentCountSpanElement).toMatch('0 Incident');
             done();

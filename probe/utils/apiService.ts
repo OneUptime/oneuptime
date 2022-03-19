@@ -27,7 +27,7 @@ export default {
         return bodyContent;
     },
 
-    setMonitorTime: async function(
+    setMonitorTime: async function (
         monitorId: $TSFixMe,
         responseTime: $TSFixMe,
         responseStatus: $TSFixMe,
@@ -39,22 +39,22 @@ export default {
             status,
         });
     },
-    getMonitorTime: async function(monitorId: $TSFixMe, date: $TSFixMe) {
+    getMonitorTime: async function (monitorId: $TSFixMe, date: $TSFixMe) {
         return await postApi(`probe/getTime/${monitorId}`, { date });
     },
-    ping: async function(monitorId: $TSFixMe, data: $TSFixMe) {
+    ping: async function (monitorId: $TSFixMe, data: $TSFixMe) {
         return await postApi(`probe/ping/${monitorId}`, data);
     },
-    setScanStatus: async function(monitorIds: $TSFixMe, status: $TSFixMe) {
+    setScanStatus: async function (monitorIds: $TSFixMe, status: $TSFixMe) {
         return await postApi('probe/set-scan-status', {
             scanning: status,
             monitorIds,
         });
     },
-    addProbeScan: async function(monitorIds: $TSFixMe) {
+    addProbeScan: async function (monitorIds: $TSFixMe) {
         return await postApi('probe/add-probe-scan', { monitorIds });
     },
-    removeProbeScan: async function(monitorIds: $TSFixMe) {
+    removeProbeScan: async function (monitorIds: $TSFixMe) {
         return await postApi('probe/remove-probe-scan', { monitorIds });
     },
 };

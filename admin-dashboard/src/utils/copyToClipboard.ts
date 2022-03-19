@@ -3,7 +3,7 @@
  * @description copies text to clipboard
  */
 
-export default function(text: $TSFixMe) {
+export default function (text: $TSFixMe) {
     /* Get the text field */
     const el = document.createElement('textarea');
     el.value = text;

@@ -23,81 +23,83 @@ import { getSubProjects } from '../middlewares/subProject';
 
 const router = express.getRouter();
 
-router.post('/:projectId', getUser, getSubProjects, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const val = req.body.search;
-        const parentProjectId = req.params.projectId;
+router.post(
+    '/:projectId',
+    getUser,
+    getSubProjects,
+    async function (req: Request, res: Response) {
+        try {
+            const val = req.body.search;
+            const parentProjectId = req.params.projectId;
 
-        const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
-            : null;
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                : null;
 
-        const searchResponse = [];
+            const searchResponse = [];
 
-        const [
-            components,
-            monitors,
-            statusPages,
-            users,
-            schedules,
-            getSchedultEvents,
-            incidents,
-            errorTrackers,
-            logContainers,
-            applicationTracker,
-        ] = await Promise.all([
-            getComponents(subProjectIds, val, parentProjectId),
-            getMonitors(subProjectIds, val, parentProjectId),
-            getStatusPages(subProjectIds, val, parentProjectId),
+            const [
+                components,
+                monitors,
+                statusPages,
+                users,
+                schedules,
+                getSchedultEvents,
+                incidents,
+                errorTrackers,
+                logContainers,
+                applicationTracker,
+            ] = await Promise.all([
+                getComponents(subProjectIds, val, parentProjectId),
+                getMonitors(subProjectIds, val, parentProjectId),
+                getStatusPages(subProjectIds, val, parentProjectId),
 
-            getUsers(subProjectIds, val, parentProjectId),
-            getOnCallDuty(subProjectIds, val, parentProjectId),
-            getSchedultEvent(subProjectIds, val, parentProjectId),
-            getIncidents(subProjectIds, val, parentProjectId),
-            getErrorTrackers(subProjectIds, val, parentProjectId),
-            getLogContainers(subProjectIds, val, parentProjectId),
-            getPerformanceTrackers(subProjectIds, val, parentProjectId),
-        ]);
+                getUsers(subProjectIds, val, parentProjectId),
+                getOnCallDuty(subProjectIds, val, parentProjectId),
+                getSchedultEvent(subProjectIds, val, parentProjectId),
+                getIncidents(subProjectIds, val, parentProjectId),
+                getErrorTrackers(subProjectIds, val, parentProjectId),
+                getLogContainers(subProjectIds, val, parentProjectId),
+                getPerformanceTrackers(subProjectIds, val, parentProjectId),
+            ]);
 
-        if (components) {
-            searchResponse.push(components);
-        }
-        if (monitors) {
-            searchResponse.push(monitors);
-        }
-        if (statusPages) {
-            searchResponse.push(statusPages);
-        }
-        if (users) {
-            searchResponse.push(users);
-        }
-        if (schedules) {
-            searchResponse.push(schedules);
-        }
-        if (getSchedultEvents) {
-            searchResponse.push(getSchedultEvents);
-        }
-        if (incidents) {
-            searchResponse.push(incidents);
-        }
-        if (errorTrackers) {
-            searchResponse.push(errorTrackers);
-        }
-        if (logContainers) {
-            searchResponse.push(logContainers);
-        }
-        if (applicationTracker) {
-            searchResponse.push(applicationTracker);
-        }
+            if (components) {
+                searchResponse.push(components);
+            }
+            if (monitors) {
+                searchResponse.push(monitors);
+            }
+            if (statusPages) {
+                searchResponse.push(statusPages);
+            }
+            if (users) {
+                searchResponse.push(users);
+            }
+            if (schedules) {
+                searchResponse.push(schedules);
+            }
+            if (getSchedultEvents) {
+                searchResponse.push(getSchedultEvents);
+            }
+            if (incidents) {
+                searchResponse.push(incidents);
+            }
+            if (errorTrackers) {
+                searchResponse.push(errorTrackers);
+            }
+            if (logContainers) {
+                searchResponse.push(logContainers);
+            }
+            if (applicationTracker) {
+                searchResponse.push(applicationTracker);
+            }
 
-        return sendListResponse(req, res, searchResponse);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendListResponse(req, res, searchResponse);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 const getComponents = async (
     projectIds: $TSFixMe,

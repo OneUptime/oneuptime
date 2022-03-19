@@ -29,16 +29,12 @@ export default {
     generateRandomString: () => {
         return (
             'str' + // Prevent strings starting with numbers
-            Math.random()
-                .toString(36)
-                .substring(10)
+            Math.random().toString(36).substring(10)
         );
     },
 
     generateRandomBusinessEmail: () => {
-        return `${Math.random()
-            .toString(36)
-            .substring(7)}@${Math.random()
+        return `${Math.random().toString(36).substring(7)}@${Math.random()
             .toString(36)
             .substring(5)}.com`;
     },

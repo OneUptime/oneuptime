@@ -55,8 +55,8 @@ const Consulting = lazy(() => import('./Consulting'));
 const ErrorTracking = lazy(() => import('./ErrorTracking'));
 const Advanced = lazy(() => import('./Advanced'));
 const ComponentSettings = lazy(() => import('./ComponentSettings'));
-const ComponentSettingsAdvanced = lazy(() =>
-    import('./ComponentSettingsAdvanced')
+const ComponentSettingsAdvanced = lazy(
+    () => import('./ComponentSettingsAdvanced')
 );
 const CallRouting = lazy(() => import('./CallRouting'));
 const DomainSettings = lazy(() => import('./DomainSettings'));

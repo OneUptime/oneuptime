@@ -225,29 +225,31 @@ export default function scheduledEvent(
                 }
             }
 
-            const scheduledEvents = state.subProjectScheduledEventList.scheduledEvents.map(
-                event => {
-                    if (
-                        String(event.project) ===
-                        String(action.payload.projectId._id)
-                    ) {
-                        const existingEvent = event.scheduledEvents.find(
-                            (event: $TSFixMe) =>
-                                String(event._id) === String(action.payload._id)
-                        );
-                        if (!existingEvent) {
-                            event.scheduledEvents = [
-                                action.payload,
+            const scheduledEvents =
+                state.subProjectScheduledEventList.scheduledEvents.map(
+                    event => {
+                        if (
+                            String(event.project) ===
+                            String(action.payload.projectId._id)
+                        ) {
+                            const existingEvent = event.scheduledEvents.find(
+                                (event: $TSFixMe) =>
+                                    String(event._id) ===
+                                    String(action.payload._id)
+                            );
+                            if (!existingEvent) {
+                                event.scheduledEvents = [
+                                    action.payload,
 
-                                ...event.scheduledEvents,
-                            ];
+                                    ...event.scheduledEvents,
+                                ];
 
-                            event.count = event.count + 1;
+                                event.count = event.count + 1;
+                            }
                         }
+                        return event;
                     }
-                    return event;
-                }
-            );
+                );
 
             return Object.assign({}, state, {
                 currentScheduledEvent: {
@@ -319,21 +321,22 @@ export default function scheduledEvent(
             });
 
         case FETCH_SCHEDULED_EVENTS_SUCCESS: {
-            const scheduledEvents = state.subProjectScheduledEventList.scheduledEvents.map(
-                event => {
-                    if (
-                        action.payload.data.length > 0 &&
-                        String(event.project) ===
-                            String(action.payload.data[0].projectId._id)
-                    ) {
-                        event.scheduledEvents = action.payload.data;
+            const scheduledEvents =
+                state.subProjectScheduledEventList.scheduledEvents.map(
+                    event => {
+                        if (
+                            action.payload.data.length > 0 &&
+                            String(event.project) ===
+                                String(action.payload.data[0].projectId._id)
+                        ) {
+                            event.scheduledEvents = action.payload.data;
 
-                        event.skip = action.payload.skip;
+                            event.skip = action.payload.skip;
+                        }
+
+                        return event;
                     }
-
-                    return event;
-                }
-            );
+                );
             return Object.assign({}, state, {
                 ...state,
                 scheduledEventList: {
@@ -516,35 +519,37 @@ export default function scheduledEvent(
         case DELETE_SCHEDULED_EVENT_SUCCESS: {
             let deleted = true;
 
-            const scheduledEvents = state.subProjectScheduledEventList.scheduledEvents.map(
-                subEvent => {
-                    if (
-                        String(subEvent.project) ===
-                        String(action.payload.projectId)
-                    ) {
-                        subEvent.scheduledEvents = subEvent.scheduledEvents.filter(
-                            (event: $TSFixMe) => {
-                                if (
-                                    String(event._id) ===
-                                    String(action.payload._id)
-                                ) {
-                                    deleted = false;
-                                }
+            const scheduledEvents =
+                state.subProjectScheduledEventList.scheduledEvents.map(
+                    subEvent => {
+                        if (
+                            String(subEvent.project) ===
+                            String(action.payload.projectId)
+                        ) {
+                            subEvent.scheduledEvents =
+                                subEvent.scheduledEvents.filter(
+                                    (event: $TSFixMe) => {
+                                        if (
+                                            String(event._id) ===
+                                            String(action.payload._id)
+                                        ) {
+                                            deleted = false;
+                                        }
 
-                                return (
-                                    String(event._id) !==
-                                    String(action.payload._id)
+                                        return (
+                                            String(event._id) !==
+                                            String(action.payload._id)
+                                        );
+                                    }
                                 );
-                            }
-                        );
 
-                        subEvent.count = deleted
-                            ? subEvent.count
-                            : subEvent.count - 1;
+                            subEvent.count = deleted
+                                ? subEvent.count
+                                : subEvent.count - 1;
+                        }
+                        return subEvent;
                     }
-                    return subEvent;
-                }
-            );
+                );
 
             const events = state.subProjectOngoingScheduledEvent.events.map(
                 eventData => {
@@ -552,10 +557,12 @@ export default function scheduledEvent(
                         String(eventData.project) ===
                         String(action.payload.projectId)
                     ) {
-                        eventData.ongoingScheduledEvents = eventData.ongoingScheduledEvents.filter(
-                            (event: $TSFixMe) =>
-                                String(event._id) !== String(action.payload._id)
-                        );
+                        eventData.ongoingScheduledEvents =
+                            eventData.ongoingScheduledEvents.filter(
+                                (event: $TSFixMe) =>
+                                    String(event._id) !==
+                                    String(action.payload._id)
+                            );
 
                         eventData.count =
                             eventData.ongoingScheduledEvents.length;
@@ -568,20 +575,21 @@ export default function scheduledEvent(
                 ...state,
                 scheduledEventList: {
                     ...state.scheduledEventList,
-                    scheduledEvents: state.scheduledEventList.scheduledEvents.filter(
-                        scheduledEvent => {
-                            if (
-                                String(scheduledEvent._id) ===
-                                String(action.payload._id)
-                            ) {
-                                deleted = false;
+                    scheduledEvents:
+                        state.scheduledEventList.scheduledEvents.filter(
+                            scheduledEvent => {
+                                if (
+                                    String(scheduledEvent._id) ===
+                                    String(action.payload._id)
+                                ) {
+                                    deleted = false;
+                                }
+                                return (
+                                    String(scheduledEvent._id) !==
+                                    String(action.payload._id)
+                                );
                             }
-                            return (
-                                String(scheduledEvent._id) !==
-                                String(action.payload._id)
-                            );
-                        }
-                    ),
+                        ),
                     count: deleted
                         ? state.scheduledEventList.count
                         : state.scheduledEventList.count - 1,
@@ -626,8 +634,8 @@ export default function scheduledEvent(
             const currentDate = moment().format();
             const startDate = moment(action.payload.startDate).format();
             const endDate = moment(action.payload.endDate).format();
-            const scheduledEvents = state.scheduledEventList.scheduledEvents.map(
-                scheduledEvent => {
+            const scheduledEvents =
+                state.scheduledEventList.scheduledEvents.map(scheduledEvent => {
                     if (
                         String(action.payload._id) ===
                         String(scheduledEvent._id)
@@ -635,29 +643,30 @@ export default function scheduledEvent(
                         return action.payload;
                     }
                     return scheduledEvent;
-                }
-            );
-            const subEvents = state.subProjectScheduledEventList.scheduledEvents.map(
-                subEvent => {
-                    if (
-                        String(subEvent.project) ===
-                        String(action.payload.projectId._id)
-                    ) {
-                        subEvent.scheduledEvents = subEvent.scheduledEvents.map(
-                            (event: $TSFixMe) => {
-                                if (
-                                    String(event._id) ===
-                                    String(action.payload._id)
-                                ) {
-                                    event = action.payload;
-                                }
-                                return event;
-                            }
-                        );
+                });
+            const subEvents =
+                state.subProjectScheduledEventList.scheduledEvents.map(
+                    subEvent => {
+                        if (
+                            String(subEvent.project) ===
+                            String(action.payload.projectId._id)
+                        ) {
+                            subEvent.scheduledEvents =
+                                subEvent.scheduledEvents.map(
+                                    (event: $TSFixMe) => {
+                                        if (
+                                            String(event._id) ===
+                                            String(action.payload._id)
+                                        ) {
+                                            event = action.payload;
+                                        }
+                                        return event;
+                                    }
+                                );
+                        }
+                        return subEvent;
                     }
-                    return subEvent;
-                }
-            );
+                );
 
             const events = state.subProjectOngoingScheduledEvent.events.map(
                 eventData => {
@@ -665,14 +674,15 @@ export default function scheduledEvent(
                         String(eventData.project) ===
                         String(action.payload.projectId._id)
                     ) {
-                        eventData.ongoingScheduledEvents = eventData.ongoingScheduledEvents.filter(
-                            (event: $TSFixMe) => {
-                                return (
-                                    String(event._id) !==
-                                    String(action.payload._id)
-                                );
-                            }
-                        );
+                        eventData.ongoingScheduledEvents =
+                            eventData.ongoingScheduledEvents.filter(
+                                (event: $TSFixMe) => {
+                                    return (
+                                        String(event._id) !==
+                                        String(action.payload._id)
+                                    );
+                                }
+                            );
                         if (startDate <= currentDate && endDate > currentDate) {
                             eventData.ongoingScheduledEvents = [
                                 action.payload,
@@ -742,8 +752,8 @@ export default function scheduledEvent(
             const currentDate = moment().format();
             const startDate = moment(action.payload.startDate).format();
             const endDate = moment(action.payload.endDate).format();
-            const scheduledEvents = state.scheduledEventList.scheduledEvents.map(
-                scheduledEvent => {
+            const scheduledEvents =
+                state.scheduledEventList.scheduledEvents.map(scheduledEvent => {
                     if (
                         String(action.payload._id) ===
                         String(scheduledEvent._id)
@@ -751,29 +761,30 @@ export default function scheduledEvent(
                         return action.payload;
                     }
                     return scheduledEvent;
-                }
-            );
-            const subEvents = state.subProjectScheduledEventList.scheduledEvents.map(
-                subEvent => {
-                    if (
-                        String(subEvent.project) ===
-                        String(action.payload.projectId._id)
-                    ) {
-                        subEvent.scheduledEvents = subEvent.scheduledEvents.map(
-                            (event: $TSFixMe) => {
-                                if (
-                                    String(event._id) ===
-                                    String(action.payload._id)
-                                ) {
-                                    event = action.payload;
-                                }
-                                return event;
-                            }
-                        );
+                });
+            const subEvents =
+                state.subProjectScheduledEventList.scheduledEvents.map(
+                    subEvent => {
+                        if (
+                            String(subEvent.project) ===
+                            String(action.payload.projectId._id)
+                        ) {
+                            subEvent.scheduledEvents =
+                                subEvent.scheduledEvents.map(
+                                    (event: $TSFixMe) => {
+                                        if (
+                                            String(event._id) ===
+                                            String(action.payload._id)
+                                        ) {
+                                            event = action.payload;
+                                        }
+                                        return event;
+                                    }
+                                );
+                        }
+                        return subEvent;
                     }
-                    return subEvent;
-                }
-            );
+                );
 
             const events = state.subProjectOngoingScheduledEvent.events.map(
                 eventData => {
@@ -781,14 +792,15 @@ export default function scheduledEvent(
                         String(eventData.project) ===
                         String(action.payload.projectId._id)
                     ) {
-                        eventData.ongoingScheduledEvents = eventData.ongoingScheduledEvents.filter(
-                            (event: $TSFixMe) => {
-                                return (
-                                    String(event._id) !==
-                                    String(action.payload._id)
-                                );
-                            }
-                        );
+                        eventData.ongoingScheduledEvents =
+                            eventData.ongoingScheduledEvents.filter(
+                                (event: $TSFixMe) => {
+                                    return (
+                                        String(event._id) !==
+                                        String(action.payload._id)
+                                    );
+                                }
+                            );
                         if (startDate <= currentDate && endDate > currentDate) {
                             eventData.ongoingScheduledEvents = [
                                 action.payload,
@@ -926,18 +938,19 @@ export default function scheduledEvent(
             };
 
         case UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_SUCCESS: {
-            const scheduledEventNotes = state.scheduledEventInvestigationList.scheduledEventNotes.map(
-                investigationNote => {
-                    if (
-                        String(investigationNote._id) ===
-                        String(action.payload._id)
-                    ) {
-                        return action.payload;
-                    }
+            const scheduledEventNotes =
+                state.scheduledEventInvestigationList.scheduledEventNotes.map(
+                    investigationNote => {
+                        if (
+                            String(investigationNote._id) ===
+                            String(action.payload._id)
+                        ) {
+                            return action.payload;
+                        }
 
-                    return investigationNote;
-                }
-            );
+                        return investigationNote;
+                    }
+                );
 
             return {
                 ...state,
@@ -977,17 +990,19 @@ export default function scheduledEvent(
             };
 
         case UPDATE_SCHEDULED_EVENT_NOTE_INTERNAL_SUCCESS: {
-            const scheduledEventNotes = state.scheduledEventInternalList.scheduledEventNotes.map(
-                internalNote => {
-                    if (
-                        String(internalNote._id) === String(action.payload._id)
-                    ) {
-                        return action.payload;
-                    }
+            const scheduledEventNotes =
+                state.scheduledEventInternalList.scheduledEventNotes.map(
+                    internalNote => {
+                        if (
+                            String(internalNote._id) ===
+                            String(action.payload._id)
+                        ) {
+                            return action.payload;
+                        }
 
-                    return internalNote;
-                }
-            );
+                        return internalNote;
+                    }
+                );
             return {
                 ...state,
                 updateScheduledEventNoteInternal: {
@@ -1025,17 +1040,19 @@ export default function scheduledEvent(
             };
 
         case DELETE_SCHEDULED_EVENT_NOTE_SUCCESS: {
-            const scheduledEventNotes = state.scheduledEventInternalList.scheduledEventNotes.map(
-                internalNote => {
-                    if (
-                        String(internalNote._id) === String(action.payload._id)
-                    ) {
-                        return action.payload;
-                    }
+            const scheduledEventNotes =
+                state.scheduledEventInternalList.scheduledEventNotes.map(
+                    internalNote => {
+                        if (
+                            String(internalNote._id) ===
+                            String(action.payload._id)
+                        ) {
+                            return action.payload;
+                        }
 
-                    return internalNote;
-                }
-            );
+                        return internalNote;
+                    }
+                );
 
             return {
                 ...state,
@@ -1150,11 +1167,12 @@ export default function scheduledEvent(
                         String(event.project) ===
                         String(action.payload.projectId._id)
                     ) {
-                        event.ongoingScheduledEvents = event.ongoingScheduledEvents.filter(
-                            (ongoingEvent: $TSFixMe) =>
-                                String(ongoingEvent._id) !==
-                                String(action.payload._id)
-                        );
+                        event.ongoingScheduledEvents =
+                            event.ongoingScheduledEvents.filter(
+                                (ongoingEvent: $TSFixMe) =>
+                                    String(ongoingEvent._id) !==
+                                    String(action.payload._id)
+                            );
 
                         event.count = event.ongoingScheduledEvents.length;
                     }

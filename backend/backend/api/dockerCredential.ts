@@ -21,11 +21,8 @@ router.post(
     isAuthorized,
     async (req: Request, res: Response) => {
         try {
-            const {
-                dockerRegistryUrl,
-                dockerUsername,
-                dockerPassword,
-            } = req.body;
+            const { dockerRegistryUrl, dockerUsername, dockerPassword } =
+                req.body;
             const { projectId } = req.params;
 
             if (!dockerRegistryUrl || !dockerRegistryUrl.trim()) {
@@ -97,11 +94,8 @@ router.put(
     async (req: Request, res: Response) => {
         try {
             const { credentialId } = req.params;
-            const {
-                dockerRegistryUrl,
-                dockerUsername,
-                dockerPassword,
-            } = req.body;
+            const { dockerRegistryUrl, dockerUsername, dockerPassword } =
+                req.body;
 
             const data = {};
             if (dockerRegistryUrl) {
@@ -133,9 +127,8 @@ router.delete(
         try {
             const { credentialId } = req.params;
 
-            const deletedDockerCredential = await DockerCredentialService.deleteBy(
-                { _id: credentialId }
-            );
+            const deletedDockerCredential =
+                await DockerCredentialService.deleteBy({ _id: credentialId });
 
             return sendItemResponse(req, res, deletedDockerCredential);
         } catch (error) {

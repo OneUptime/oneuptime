@@ -152,7 +152,7 @@ class ErrorTracker {
     // set up error listener
     _setUpErrorListener() {
         const _this = this;
-        window.onerror = async function(message, file, line, col, error) {
+        window.onerror = async function (message, file, line, col, error) {
             const errorEvent = { message, file, line, col, error };
 
             const string = errorEvent.message

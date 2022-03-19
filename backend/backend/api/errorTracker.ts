@@ -23,8 +23,8 @@ import ErrorTrackerService from '../services/errorTrackerService';
 import ResourceCategoryService from '../services/resourceCategoryService';
 
 import uuid from 'uuid';
-const isErrorTrackerValid = require('../middlewares/errorTracker')
-    .isErrorTrackerValid;
+const isErrorTrackerValid =
+    require('../middlewares/errorTracker').isErrorTrackerValid;
 import ErrorEventService from '../services/errorEventService';
 import { sendListResponse } from 'common-server/utils/response';
 import IssueService from '../services/issueService';
@@ -42,7 +42,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const data = req.body;
             const componentId = req.params.componentId;
@@ -111,30 +111,33 @@ router.post(
 );
 
 // Description: Get all Error Trackers by componentId.
-router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const componentId = req.params.componentId;
-        if (!componentId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: "Component ID can't be null",
-            });
-        }
+router.get(
+    '/:projectId/:componentId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const componentId = req.params.componentId;
+            if (!componentId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Component ID can't be null",
+                });
+            }
 
-        const { skip, limit } = req.query;
-        const errorTrackers = await ErrorTrackerService.getErrorTrackersByComponentId(
-            componentId,
-            limit,
-            skip
-        );
-        return sendItemResponse(req, res, errorTrackers);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const { skip, limit } = req.query;
+            const errorTrackers =
+                await ErrorTrackerService.getErrorTrackersByComponentId(
+                    componentId,
+                    limit,
+                    skip
+                );
+            return sendItemResponse(req, res, errorTrackers);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Description: Delete an Error Tracker by errorTrackerId and componentId.
 router.delete(
@@ -142,7 +145,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { errorTrackerId, componentId } = req.params;
         try {
             const errorTracker = await ErrorTrackerService.deleteBy(
@@ -173,7 +176,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const errorTrackerId = req.params.errorTrackerId;
         const select =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
@@ -217,7 +220,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const { errorTrackerId, componentId } = req.params;
 
         const data = req.body;
@@ -326,73 +329,77 @@ router.put(
 );
 
 // Description: send an error event to the server.
-router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
-    req,
-    res
-) {
-    try {
-        const data = req.body;
-        const errorTrackerId = req.params.errorTrackerId;
-        data.errorTrackerId = errorTrackerId;
-
-        // try to fetch the particular issue with the fingerprint of the error event and the error tracker id
-        let issue = await IssueService.findOneByHashAndErrorTracker(
-            data.fingerprint,
-            errorTrackerId
-        );
-
-        // if it doesnt exist, create the issue and use its details
-        if (!issue) {
-            issue = await IssueService.create(data);
-        } else {
-            // issue exist but checked if it is resolved so to uresolve it
-            if (issue.resolved) {
-                const updateData = {
-                    resolved: false,
-                    resolvedAt: '',
-                    resolvedById: null,
-                };
-                const query = {
-                    _id: issue._id,
-                    errorTrackerId,
-                };
-                await IssueService.updateOneBy(query, updateData);
-            }
-        }
-        // since it now exist, use the issue details
-        data.issueId = issue._id;
-        data.fingerprintHash = issue.fingerprintHash;
-
-        // create the error event
-        const errorEvent = await ErrorEventService.create(data);
-
-        // get the issue in the format that the fronnted will want for the real time update
-        const errorTrackerIssue = await ErrorEventService.findDistinct(
-            { _id: data.issueId, errorTrackerId: data.errorTrackerId },
-            1,
-            0
-        );
-
-        issue = errorTrackerIssue.totalErrorEvents[0];
-
+router.post(
+    '/:errorTrackerId/track',
+    isErrorTrackerValid,
+    async function (req, res) {
         try {
-            // run in the background
-            RealTimeService.sendErrorEventCreated({ errorEvent, issue });
+            const data = req.body;
+            const errorTrackerId = req.params.errorTrackerId;
+            data.errorTrackerId = errorTrackerId;
+
+            // try to fetch the particular issue with the fingerprint of the error event and the error tracker id
+            let issue = await IssueService.findOneByHashAndErrorTracker(
+                data.fingerprint,
+                errorTrackerId
+            );
+
+            // if it doesnt exist, create the issue and use its details
+            if (!issue) {
+                issue = await IssueService.create(data);
+            } else {
+                // issue exist but checked if it is resolved so to uresolve it
+                if (issue.resolved) {
+                    const updateData = {
+                        resolved: false,
+                        resolvedAt: '',
+                        resolvedById: null,
+                    };
+                    const query = {
+                        _id: issue._id,
+                        errorTrackerId,
+                    };
+                    await IssueService.updateOneBy(query, updateData);
+                }
+            }
+            // since it now exist, use the issue details
+            data.issueId = issue._id;
+            data.fingerprintHash = issue.fingerprintHash;
+
+            // create the error event
+            const errorEvent = await ErrorEventService.create(data);
+
+            // get the issue in the format that the fronnted will want for the real time update
+            const errorTrackerIssue = await ErrorEventService.findDistinct(
+                { _id: data.issueId, errorTrackerId: data.errorTrackerId },
+                1,
+                0
+            );
+
+            issue = errorTrackerIssue.totalErrorEvents[0];
+
+            try {
+                // run in the background
+                RealTimeService.sendErrorEventCreated({ errorEvent, issue });
+            } catch (error) {
+                ErrorService.log(
+                    'realtimeService.sendErrorEventCreated',
+                    error
+                );
+            }
+            return sendItemResponse(req, res, errorEvent);
         } catch (error) {
-            ErrorService.log('realtimeService.sendErrorEventCreated', error);
+            return sendErrorResponse(req, res, error);
         }
-        return sendItemResponse(req, res, errorEvent);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Description: Get all error event grouped by hash by errorTrackerId.
 router.post(
     '/:projectId/:componentId/:errorTrackerId/issues',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { skip, limit, startDate, endDate, filters } = req.body;
             const errorTrackerId = req.params.errorTrackerId;
@@ -448,7 +455,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/error-events/:errorEventId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const errorEventId = req.params.errorEventId;
             if (!errorEventId) {
@@ -499,7 +506,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/issues/:issueId/details',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const issueId = req.params.issueId;
             if (!issueId) {
@@ -542,7 +549,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/issues/action',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { issueId, action } = req.body;
             if (!issueId) {
@@ -728,15 +735,10 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/error-events',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
-            const {
-                skip,
-                limit,
-                startDate,
-                endDate,
-                fingerprintHash,
-            } = req.body;
+            const { skip, limit, startDate, endDate, fingerprintHash } =
+                req.body;
             if (!fingerprintHash) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -791,7 +793,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/members/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const componentId = req.params.componentId;
             if (!componentId) {
@@ -869,7 +871,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/assign/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { teamMemberId } = req.body;
             if (!teamMemberId) {
@@ -1017,7 +1019,7 @@ router.post(
     '/:projectId/:componentId/:errorTrackerId/unassign/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { teamMemberId } = req.body;
             if (!teamMemberId) {
@@ -1150,7 +1152,7 @@ router.delete(
     '/:projectId/:componentId/:errorTrackerId/issue/:issueId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const componentId = req.params.componentId;
             if (!componentId) {

@@ -1,5 +1,5 @@
 export default {
-    create: async function({ name, value }: $TSFixMe) {
+    create: async function ({ name, value }: $TSFixMe) {
         if (name === 'smtp' && value.internalSmtp && !value.customSmtp) {
             value = {
                 internalSmtp: true,
@@ -32,13 +32,12 @@ export default {
         globalConfig = await globalConfig.save();
 
         if (globalConfig.name === 'twilio') {
-            globalConfig.value[
-                'authentication-token'
-            ] = await EncryptDecrypt.decrypt(
-                globalConfig.value['authentication-token'],
+            globalConfig.value['authentication-token'] =
+                await EncryptDecrypt.decrypt(
+                    globalConfig.value['authentication-token'],
 
-                globalConfig.value['iv']
-            );
+                    globalConfig.value['iv']
+                );
 
             delete globalConfig.value['iv'];
         }
@@ -60,7 +59,7 @@ export default {
         return globalConfig;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -114,12 +113,11 @@ export default {
         );
 
         if (globalConfig.name === 'twilio') {
-            globalConfig.value[
-                'authentication-token'
-            ] = await EncryptDecrypt.decrypt(
-                globalConfig.value['authentication-token'],
-                globalConfig.value['iv'].buffer
-            );
+            globalConfig.value['authentication-token'] =
+                await EncryptDecrypt.decrypt(
+                    globalConfig.value['authentication-token'],
+                    globalConfig.value['iv'].buffer
+                );
             delete globalConfig.value['iv'];
         } else if (
             globalConfig.name === 'smtp' &&
@@ -137,7 +135,7 @@ export default {
         return globalConfig;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -152,7 +150,13 @@ export default {
         return globalConfigs;
     },
 
-    findBy: async function({ query, skip, limit, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -179,12 +183,11 @@ export default {
                     globalConfig.value['iv'] &&
                     globalConfig.value['authentication-token']
                 ) {
-                    globalConfig.value[
-                        'authentication-token'
-                    ] = await EncryptDecrypt.decrypt(
-                        globalConfig.value['authentication-token'],
-                        globalConfig.value['iv'].buffer
-                    );
+                    globalConfig.value['authentication-token'] =
+                        await EncryptDecrypt.decrypt(
+                            globalConfig.value['authentication-token'],
+                            globalConfig.value['iv'].buffer
+                        );
                     delete globalConfig.value['iv'];
                 }
             } else if (
@@ -197,12 +200,11 @@ export default {
                     globalConfig.value['iv'] &&
                     globalConfig.value['password']
                 ) {
-                    globalConfig.value[
-                        'password'
-                    ] = await EncryptDecrypt.decrypt(
-                        globalConfig.value['password'],
-                        globalConfig.value['iv'].buffer
-                    );
+                    globalConfig.value['password'] =
+                        await EncryptDecrypt.decrypt(
+                            globalConfig.value['password'],
+                            globalConfig.value['iv'].buffer
+                        );
                     delete globalConfig.value['iv'];
                 }
             }
@@ -211,7 +213,7 @@ export default {
         return globalConfigs;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -229,12 +231,11 @@ export default {
                 globalConfig.value['iv'] &&
                 globalConfig.value['authentication-token']
             ) {
-                globalConfig.value[
-                    'authentication-token'
-                ] = await EncryptDecrypt.decrypt(
-                    globalConfig.value['authentication-token'],
-                    globalConfig.value['iv'].buffer
-                );
+                globalConfig.value['authentication-token'] =
+                    await EncryptDecrypt.decrypt(
+                        globalConfig.value['authentication-token'],
+                        globalConfig.value['iv'].buffer
+                    );
                 delete globalConfig.value['iv'];
             }
         } else if (
@@ -255,7 +256,7 @@ export default {
         return globalConfig;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -265,7 +266,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await GlobalConfigModel.deleteMany(query);
         return 'Global Config(s) Removed Successfully!';
     },

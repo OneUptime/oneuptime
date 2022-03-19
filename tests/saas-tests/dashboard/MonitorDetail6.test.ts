@@ -74,10 +74,10 @@ describe('Monitor Detail API', () => {
             `#performance_${urlMonitorName}_0`,
             { visible: true, timeout: init.timeout }
         );
-        lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
-            'innerText'
-        );
-        lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
+        lighthousePerformanceElement =
+            await lighthousePerformanceElement.getProperty('innerText');
+        lighthousePerformanceElement =
+            await lighthousePerformanceElement.jsonValue();
         lighthousePerformanceElement.should.endWith('%');
         done();
     }, 600000);
@@ -138,10 +138,10 @@ describe('Monitor Detail API', () => {
                 `#lighthouse-performance-${urlMonitorName}`,
                 { visible: true, timeout: init.timeout }
             );
-            lighthousePerformanceElement = await lighthousePerformanceElement.getProperty(
-                'innerText'
-            );
-            lighthousePerformanceElement = await lighthousePerformanceElement.jsonValue();
+            lighthousePerformanceElement =
+                await lighthousePerformanceElement.getProperty('innerText');
+            lighthousePerformanceElement =
+                await lighthousePerformanceElement.jsonValue();
             lighthousePerformanceElement.should.endWith('%');
 
             let lighthouseAccessibilityElement = await init.pageWaitForSelector(
@@ -149,10 +149,10 @@ describe('Monitor Detail API', () => {
                 `#lighthouse-accessibility-${urlMonitorName}`,
                 { visible: true, timeout: init.timeout }
             );
-            lighthouseAccessibilityElement = await lighthouseAccessibilityElement.getProperty(
-                'innerText'
-            );
-            lighthouseAccessibilityElement = await lighthouseAccessibilityElement.jsonValue();
+            lighthouseAccessibilityElement =
+                await lighthouseAccessibilityElement.getProperty('innerText');
+            lighthouseAccessibilityElement =
+                await lighthouseAccessibilityElement.jsonValue();
             lighthouseAccessibilityElement.should.endWith('%');
 
             let lighthouseBestPracticesElement = await init.pageWaitForSelector(
@@ -160,10 +160,10 @@ describe('Monitor Detail API', () => {
                 `#lighthouse-bestPractices-${urlMonitorName}`,
                 { visible: true, timeout: init.timeout }
             );
-            lighthouseBestPracticesElement = await lighthouseBestPracticesElement.getProperty(
-                'innerText'
-            );
-            lighthouseBestPracticesElement = await lighthouseBestPracticesElement.jsonValue();
+            lighthouseBestPracticesElement =
+                await lighthouseBestPracticesElement.getProperty('innerText');
+            lighthouseBestPracticesElement =
+                await lighthouseBestPracticesElement.jsonValue();
             lighthouseBestPracticesElement.should.endWith('%');
 
             let lighthouseSeoElement = await init.pageWaitForSelector(

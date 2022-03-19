@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
         // check if component exist
         const componentCount = await ComponentService.countBy({
@@ -159,7 +159,7 @@ export default {
 
         return { errorTrackers, count, skip, limit };
     },
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -196,7 +196,7 @@ export default {
             return null;
         }
     },
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData = null

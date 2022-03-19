@@ -17,7 +17,7 @@ const _this = {
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
 
-    getUser: async function(req: Request, res: Response, next: $TSFixMe) {
+    getUser: async function (req: Request, res: Response, next: $TSFixMe) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
@@ -119,7 +119,7 @@ const _this = {
         }
     },
 
-    checkUser: function(req: Request, res: Response, next: $TSFixMe) {
+    checkUser: function (req: Request, res: Response, next: $TSFixMe) {
         try {
             const accessToken =
                 req.headers['authorization'] ||
@@ -166,7 +166,7 @@ const _this = {
             throw error;
         }
     },
-    checkUserBelongToProject: function(
+    checkUserBelongToProject: function (
         req: Request,
         res: Response,
         next: NextFunction
@@ -255,7 +255,7 @@ const _this = {
         }
     },
 
-    isUserMasterAdmin: async function(
+    isUserMasterAdmin: async function (
         req: Request,
         res: Response,
         next: NextFunction
@@ -282,7 +282,7 @@ const _this = {
         }
     },
 
-    isScaleOrMasterAdmin: async function(
+    isScaleOrMasterAdmin: async function (
         req: Request,
         res: Response,
         next: NextFunction

@@ -40,7 +40,7 @@ export function getProbes(
     skip = parseInt(skip);
     limit = parseInt(limit);
 
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
@@ -52,14 +52,14 @@ export function getProbes(
         dispatch(probeRequest(promise));
 
         promise.then(
-            function(probes) {
+            function (probes) {
                 probes.data.skip = skip || 0;
 
                 probes.data.limit = limit || 10;
 
                 dispatch(probeSuccess(probes.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

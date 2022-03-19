@@ -21,52 +21,59 @@ const selectEmailStatus =
 
 let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
 
-describe('Feedback API', function() {
+describe('Feedback API', function () {
     this.timeout(50000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            GlobalConfig.enableEmailLog().then(function() {
-                createUser(request, userData.user, function(
-                    err: $TSFixMe,
-                    res: Response
-                ) {
-                    const project = res.body.project;
-                    projectId = project._id;
-                    userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            GlobalConfig.enableEmailLog().then(function () {
+                createUser(
+                    request,
+                    userData.user,
+                    function (err: $TSFixMe, res: Response) {
+                        const project = res.body.project;
+                        projectId = project._id;
+                        userId = res.body.id;
 
-                    VerificationTokenModel.findOne({ userId }, function(
-                        err: $TSFixMe,
-                        verificationToken: $TSFixMe
-                    ) {
-                        request
-                            .get(
-                                `/user/confirmation/${verificationToken.token}`
-                            )
-                            .redirects(0)
-                            .end(function() {
+                        VerificationTokenModel.findOne(
+                            { userId },
+                            function (
+                                err: $TSFixMe,
+                                verificationToken: $TSFixMe
+                            ) {
                                 request
-                                    .post('/user/login')
-                                    .send({
-                                        email: userData.user.email,
-                                        password: userData.user.password,
-                                    })
-                                    .end(function(
-                                        err: $TSFixMe,
-                                        res: Response
-                                    ) {
-                                        token = res.body.tokens.jwtAccessToken;
-                                        done();
+                                    .get(
+                                        `/user/confirmation/${verificationToken.token}`
+                                    )
+                                    .redirects(0)
+                                    .end(function () {
+                                        request
+                                            .post('/user/login')
+                                            .send({
+                                                email: userData.user.email,
+                                                password:
+                                                    userData.user.password,
+                                            })
+                                            .end(function (
+                                                err: $TSFixMe,
+                                                res: Response
+                                            ) {
+                                                token =
+                                                    res.body.tokens
+                                                        .jwtAccessToken;
+                                                done();
+                                            });
                                     });
-                            });
-                    });
-                });
+                            }
+                        );
+                    }
+                );
             });
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -82,7 +89,7 @@ describe('Feedback API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create feedback and check the sent emails to oneuptime team and user', async function() {
+    it('should create feedback and check the sent emails to oneuptime team and user', async function () {
         const authorization = `Basic ${token}`;
         const testFeedback = {
             feedback: 'test feedback',

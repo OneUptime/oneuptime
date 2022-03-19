@@ -1,5 +1,5 @@
 export default {
-    findBy: async function({ query, limit, skip }: $TSFixMe) {
+    findBy: async function ({ query, limit, skip }: $TSFixMe) {
         try {
             if (!skip) skip = 0;
 

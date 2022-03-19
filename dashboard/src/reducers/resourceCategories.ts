@@ -66,17 +66,19 @@ export default function resourceCategory(
                 },
                 resourceCategoryList: {
                     ...state.resourceCategoryList,
-                    resourceCategories: state.resourceCategoryList.resourceCategories.concat(
-                        action.payload
-                    ),
+                    resourceCategories:
+                        state.resourceCategoryList.resourceCategories.concat(
+                            action.payload
+                        ),
 
                     count: state.resourceCategoryList.count + 1,
                 },
                 resourceCategoryListForNewResource: {
                     ...state.resourceCategoryListForNewResource,
-                    resourceCategories: state.resourceCategoryListForNewResource.resourceCategories.concat(
-                        action.payload
-                    ),
+                    resourceCategories:
+                        state.resourceCategoryListForNewResource.resourceCategories.concat(
+                            action.payload
+                        ),
                 },
             });
         case CREATE_RESOURCE_CATEGORY_FAILURE:
@@ -111,14 +113,18 @@ export default function resourceCategory(
                 },
                 resourceCategoryList: {
                     ...state.resourceCategoryList,
-                    resourceCategories: state.resourceCategoryList.resourceCategories.map(
-                        item => {
-                            if (item._id === action.payload._id) {
-                                return { ...item, name: action.payload.name };
+                    resourceCategories:
+                        state.resourceCategoryList.resourceCategories.map(
+                            item => {
+                                if (item._id === action.payload._id) {
+                                    return {
+                                        ...item,
+                                        name: action.payload.name,
+                                    };
+                                }
+                                return item;
                             }
-                            return item;
-                        }
-                    ),
+                        ),
                 },
             });
         case UPDATE_RESOURCE_CATEGORY_REQUEST:
@@ -183,27 +189,29 @@ export default function resourceCategory(
                 ...state,
                 resourceCategoryListForNewResource: {
                     ...state.resourceCategoryListForNewResource,
-                    resourceCategories: state.resourceCategoryListForNewResource.resourceCategories.filter(
-                        resourceCategory => {
-                            if (resourceCategory._id === action.payload) {
-                                return false;
-                            } else {
-                                return true;
+                    resourceCategories:
+                        state.resourceCategoryListForNewResource.resourceCategories.filter(
+                            resourceCategory => {
+                                if (resourceCategory._id === action.payload) {
+                                    return false;
+                                } else {
+                                    return true;
+                                }
                             }
-                        }
-                    ),
+                        ),
                 },
                 resourceCategoryList: {
                     ...state.resourceCategoryList,
-                    resourceCategories: state.resourceCategoryList.resourceCategories.filter(
-                        resourceCategory => {
-                            if (resourceCategory._id === action.payload) {
-                                return false;
-                            } else {
-                                return true;
+                    resourceCategories:
+                        state.resourceCategoryList.resourceCategories.filter(
+                            resourceCategory => {
+                                if (resourceCategory._id === action.payload) {
+                                    return false;
+                                } else {
+                                    return true;
+                                }
                             }
-                        }
-                    ),
+                        ),
 
                     count: state.resourceCategoryList.count - 1,
                 },

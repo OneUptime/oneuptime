@@ -111,10 +111,10 @@ describe('API Monitor API', () => {
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
-                    monitorStatusElement = await monitorStatusElement.getProperty(
-                        'innerText'
-                    );
-                    monitorStatusElement = await monitorStatusElement.jsonValue();
+                    monitorStatusElement =
+                        await monitorStatusElement.getProperty('innerText');
+                    monitorStatusElement =
+                        await monitorStatusElement.jsonValue();
                     monitorStatusElement.should.be.exactly('Online');
                 }
             }
@@ -244,10 +244,10 @@ describe('API Monitor API', () => {
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
-                    monitorStatusElement = await monitorStatusElement.getProperty(
-                        'innerText'
-                    );
-                    monitorStatusElement = await monitorStatusElement.jsonValue();
+                    monitorStatusElement =
+                        await monitorStatusElement.getProperty('innerText');
+                    monitorStatusElement =
+                        await monitorStatusElement.jsonValue();
                     monitorStatusElement.should.be.exactly('Degraded');
                 }
             }
@@ -322,10 +322,10 @@ describe('API Monitor API', () => {
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
-                    monitorStatusElement = await monitorStatusElement.getProperty(
-                        'innerText'
-                    );
-                    monitorStatusElement = await monitorStatusElement.jsonValue();
+                    monitorStatusElement =
+                        await monitorStatusElement.getProperty('innerText');
+                    monitorStatusElement =
+                        await monitorStatusElement.jsonValue();
                     monitorStatusElement.should.be.exactly('Offline');
                 }
             }
@@ -431,10 +431,10 @@ describe('API Monitor API', () => {
                 page,
                 `#${newMonitorName}_IncidentReport_0`
             );
-            monitorIncidentReportElement = await monitorIncidentReportElement.getProperty(
-                'innerText'
-            );
-            monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
+            monitorIncidentReportElement =
+                await monitorIncidentReportElement.getProperty('innerText');
+            monitorIncidentReportElement =
+                await monitorIncidentReportElement.jsonValue();
             expect(monitorIncidentReportElement).toContain(
                 'Response {"status":"not ok"} Did evaluate response.body.status === \'ok\'.'
             );
@@ -450,10 +450,10 @@ describe('API Monitor API', () => {
                 page,
                 '#API_Response'
             );
-            monitorIncidentModalElement = await monitorIncidentModalElement.getProperty(
-                'innerText'
-            );
-            monitorIncidentModalElement = await monitorIncidentModalElement.jsonValue();
+            monitorIncidentModalElement =
+                await monitorIncidentModalElement.getProperty('innerText');
+            monitorIncidentModalElement =
+                await monitorIncidentModalElement.jsonValue();
             monitorIncidentModalElement.should.be.exactly('API Response');
             done();
         },

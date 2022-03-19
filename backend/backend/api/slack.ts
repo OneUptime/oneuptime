@@ -22,7 +22,7 @@ import {
 
 const router = express.getRouter();
 
-router.get('/auth/redirect', function(req: Request, res: Response) {
+router.get('/auth/redirect', function (req: Request, res: Response) {
     // get oneuptime project id from slack auth state query params
     let state = req.query.state;
     const slackCode = req.query.code;
@@ -67,84 +67,86 @@ router.get('/auth/redirect', function(req: Request, res: Response) {
     });
 });
 
-router.post('/:projectId/link', getUser, isUserAdmin, async function(
-    req: Request,
-    res: Response
-) {
-    const projectId = req.params.projectId;
-    const code = req.query.code;
+router.post(
+    '/:projectId/link',
+    getUser,
+    isUserAdmin,
+    async function (req: Request, res: Response) {
+        const projectId = req.params.projectId;
+        const code = req.query.code;
 
-    const userId = req.user ? req.user.id : null;
-    const slug = req.body.slug;
+        const userId = req.user ? req.user.id : null;
+        const slug = req.body.slug;
 
-    if (!slug) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'projectId missing in query, must be present',
-        });
-    }
+        if (!slug) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'projectId missing in query, must be present',
+            });
+        }
 
-    if (!code) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'code missing in query, must be present',
-        });
-    }
+        if (!code) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'code missing in query, must be present',
+            });
+        }
 
-    const options = {
-        uri:
-            'https://slack.com/api/oauth.access?code=' +
-            code +
-            '&client_id=' +
-            CLIENT_ID +
-            '&client_secret=' +
-            CLIENT_SECRET,
-        method: 'GET',
-    };
+        const options = {
+            uri:
+                'https://slack.com/api/oauth.access?code=' +
+                code +
+                '&client_id=' +
+                CLIENT_ID +
+                '&client_secret=' +
+                CLIENT_SECRET,
+            method: 'GET',
+        };
 
-    request(
-        options,
-        async (error: $TSFixMe, response: $TSFixMe, body: $TSFixMe) => {
-            const JSONresponse = JSON.parse(body);
-            if (!JSONresponse.ok) {
-                return sendErrorResponse(req, res, JSONresponse.error);
-            } else {
-                // get slack response object
-                const data = {
-                    userId: JSONresponse.user_id,
-                    teamName: JSONresponse.team_name,
-                    accessToken: JSONresponse.access_token,
-                    teamId: JSONresponse.team_id,
-                    channelId: JSONresponse.incoming_webhook.channel_id,
-                    channel: JSONresponse.incoming_webhook.channel,
-                    botUserId: JSONresponse.bot.bot_user_id,
-                    botAccessToken: JSONresponse.bot.bot_access_token,
-                };
+        request(
+            options,
+            async (error: $TSFixMe, response: $TSFixMe, body: $TSFixMe) => {
+                const JSONresponse = JSON.parse(body);
+                if (!JSONresponse.ok) {
+                    return sendErrorResponse(req, res, JSONresponse.error);
+                } else {
+                    // get slack response object
+                    const data = {
+                        userId: JSONresponse.user_id,
+                        teamName: JSONresponse.team_name,
+                        accessToken: JSONresponse.access_token,
+                        teamId: JSONresponse.team_id,
+                        channelId: JSONresponse.incoming_webhook.channel_id,
+                        channel: JSONresponse.incoming_webhook.channel,
+                        botUserId: JSONresponse.bot.bot_user_id,
+                        botAccessToken: JSONresponse.bot.bot_access_token,
+                    };
 
-                const integrationType = 'slack';
-                try {
-                    const slack = await IntegrationService.create(
-                        projectId,
-                        userId,
-                        data,
-                        integrationType,
-                        null
-                    );
-                    return sendItemResponse(req, res, slack);
-                } catch (error) {
-                    return sendErrorResponse(req, res, error);
+                    const integrationType = 'slack';
+                    try {
+                        const slack = await IntegrationService.create(
+                            projectId,
+                            userId,
+                            data,
+                            integrationType,
+                            null
+                        );
+                        return sendItemResponse(req, res, slack);
+                    } catch (error) {
+                        return sendErrorResponse(req, res, error);
+                    }
                 }
             }
-        }
-    );
-});
+        );
+    }
+);
 
 // req => params => {teamId, projectId}
 router.delete(
     '/:projectId/unLink/:teamId',
     getUser,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         const projectId = req.params.projectId;
         const teamId = req.params.teamId;
 
@@ -169,45 +171,46 @@ router.delete(
 );
 
 // req => params => {projectId}
-router.get('/:projectId/teams', getUser, async function(
-    req: Request,
-    res: Response
-) {
-    const projectId = req.params.projectId;
-    const integrationType = 'slack';
+router.get(
+    '/:projectId/teams',
+    getUser,
+    async function (req: Request, res: Response) {
+        const projectId = req.params.projectId;
+        const integrationType = 'slack';
 
-    try {
-        const select =
-            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
-        const populate = [
-            { path: 'createdById', select: 'name' },
-            { path: 'projectId', select: 'name' },
-            {
-                path: 'monitors.monitorId',
-                select: 'name',
-                populate: [{ path: 'componentId', select: 'name' }],
-            },
-        ];
-        const [integrations, count] = await Promise.all([
-            IntegrationService.findBy({
-                query: {
+        try {
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
+            const [integrations, count] = await Promise.all([
+                IntegrationService.findBy({
+                    query: {
+                        projectId: projectId,
+                        integrationType: integrationType,
+                    },
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
+                    select,
+                    populate,
+                }),
+                IntegrationService.countBy({
                     projectId: projectId,
                     integrationType: integrationType,
-                },
-                skip: req.query.skip || 0,
-                limit: req.query.limit || 10,
-                select,
-                populate,
-            }),
-            IntegrationService.countBy({
-                projectId: projectId,
-                integrationType: integrationType,
-            }),
-        ]);
-        return sendListResponse(req, res, integrations, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+                }),
+            ]);
+            return sendListResponse(req, res, integrations, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 export default router;

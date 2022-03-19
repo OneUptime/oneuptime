@@ -47,8 +47,7 @@ router.get('/store/:id', async (req: Request, res: Response) => {
         const { id } = req.params;
         const certificate = await CertificateStoreService.findOneBy({
             query: { id },
-            select:
-                'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
+            select: 'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
         });
 
         return sendItemResponse(req, res, certificate);
@@ -64,8 +63,7 @@ router.get('/store/cert/:subject', async (req: Request, res: Response) => {
         const { subject } = req.params;
         const certificate = await CertificateStoreService.findOneBy({
             query: { subject },
-            select:
-                'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
+            select: 'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
         });
 
         return sendItemResponse(req, res, certificate);

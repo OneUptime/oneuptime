@@ -4,7 +4,7 @@ import handlePopulate from '../utils/populate';
 import handleSelect from '../utils/select';
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const incidentCommunicationSla = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -31,9 +31,8 @@ export default {
             );
         }
 
-        const createdIncidentCommunicationSla = await IncidentCommunicationSlaModel.create(
-            data
-        );
+        const createdIncidentCommunicationSla =
+            await IncidentCommunicationSlaModel.create(data);
 
         if (data.monitors && data.monitors.length > 0) {
             let monitorIds = [...data.monitors];
@@ -46,14 +45,13 @@ export default {
 
         return createdIncidentCommunicationSla;
     },
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
 
-        let incidentCommunicationSlaQuery = IncidentCommunicationSlaModel.findOne(
-            query
-        ).lean();
+        let incidentCommunicationSlaQuery =
+            IncidentCommunicationSlaModel.findOne(query).lean();
 
         incidentCommunicationSlaQuery = handleSelect(
             select,
@@ -68,7 +66,13 @@ export default {
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     },
-    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -102,7 +106,7 @@ export default {
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -184,13 +188,14 @@ export default {
             );
         }
 
-        let updatedIncidentCommunicationSla = await IncidentCommunicationSlaModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            { new: true }
-        );
+        let updatedIncidentCommunicationSla =
+            await IncidentCommunicationSlaModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
 
         if (!updatedIncidentCommunicationSla) {
             const error = new Error(
@@ -216,7 +221,7 @@ export default {
 
         return updatedIncidentCommunicationSla;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         const deletedSla = await IncidentCommunicationSlaModel.findOneAndUpdate(
             query,
             {
@@ -230,7 +235,7 @@ export default {
 
         return deletedSla;
     },
-    hardDelete: async function(query: $TSFixMe) {
+    hardDelete: async function (query: $TSFixMe) {
         await IncidentCommunicationSlaModel.deleteMany(query);
         return 'Incident Communication SLA(s) deleted successfully';
     },

@@ -40,7 +40,7 @@ export function getProjectIncidents(
     skip = parseInt(skip);
     limit = parseInt(limit);
 
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
@@ -52,12 +52,12 @@ export function getProjectIncidents(
         dispatch(projectIncidentsRequest(promise));
 
         promise.then(
-            function(incidents) {
+            function (incidents) {
                 const data = incidents.data;
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -84,7 +84,7 @@ export function getProjectComponentIncidents(
     skip = parseInt(skip);
     limit = parseInt(limit);
 
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
@@ -96,7 +96,7 @@ export function getProjectComponentIncidents(
         dispatch(projectIncidentsRequest(promise));
 
         promise.then(
-            function(incidents) {
+            function (incidents) {
                 const data = incidents.data;
 
                 data.count = incidents.data.data.count;
@@ -105,7 +105,7 @@ export function getProjectComponentIncidents(
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -153,15 +153,15 @@ export const resetIncidents = () => {
 
 // Gets project Incidents
 export function getIncidents(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`incident/${projectId}`);
         dispatch(incidentsRequest(promise));
 
         promise.then(
-            function(incidents) {
+            function (incidents) {
                 dispatch(incidentsSuccess(incidents.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -182,17 +182,17 @@ export function getComponentIncidents(
     projectId: $TSFixMe,
     componentId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `incident/${projectId}/${componentId}/incidents`
         );
         dispatch(incidentsRequest(promise));
 
         promise.then(
-            function(incidents) {
+            function (incidents) {
                 dispatch(incidentsSuccess(incidents.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -239,7 +239,7 @@ export const resetCreateIncident = () => {
 };
 
 export const createIncidentReset = () => {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(resetCreateIncident());
     };
 };
@@ -254,7 +254,7 @@ export function createNewIncident(
     incidentPriority: $TSFixMe,
     customFields: $TSFixMe
 ) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         const promise = postApi(`incident/${projectId}/create-incident`, {
             monitors,
             projectId,
@@ -268,7 +268,7 @@ export function createNewIncident(
         dispatch(createIncidentRequest(projectId));
 
         promise.then(
-            function(createIncident) {
+            function (createIncident) {
                 dispatch({
                     type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
 
@@ -282,7 +282,7 @@ export function createNewIncident(
 
                 dispatch(createIncidentSuccess(createIncident.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -361,16 +361,16 @@ export function resolveIncidentSuccess(incident: $TSFixMe) {
 // Calls the API to get the incident to show
 export function getIncident(projectId: $TSFixMe, incidentSlug: $TSFixMe) {
     //This fucntion will switch to incidentSlug of the params beig passed.
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(`incident/${projectId}/incident/${incidentSlug}`);
         dispatch(incidentRequest(promise));
 
         promise.then(
-            function(incident) {
+            function (incident) {
                 dispatch(incidentSuccess(incident.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -390,7 +390,7 @@ export function getIncident(projectId: $TSFixMe, incidentSlug: $TSFixMe) {
 }
 
 export function addIncident(incident: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(incidentSuccess(incident));
     };
 }
@@ -401,7 +401,7 @@ export function getIncidentTimeline(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
             `incident/${projectId}/timeline/${incidentId}?skip=${skip}&limit=${limit}`
@@ -409,10 +409,10 @@ export function getIncidentTimeline(
         dispatch(incidentTimelineRequest(promise));
 
         promise.then(
-            function(timeline) {
+            function (timeline) {
                 dispatch(incidentTimelineSuccess(timeline.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -465,7 +465,7 @@ export function acknowledgeIncident(
     multiple: $TSFixMe
 ) {
     //This fucntion will switch to incidentId of the params beig passed.
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         const data = {
             decoded: userId,
@@ -496,7 +496,7 @@ export function acknowledgeIncident(
         }
 
         promise.then(
-            function(result) {
+            function (result) {
                 if (multiple) {
                     dispatch(
                         acknowledgeIncidentSuccess({
@@ -533,7 +533,7 @@ export function acknowledgeIncident(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -573,7 +573,7 @@ export function resolveIncident(
     multiple: $TSFixMe
 ) {
     //This function will switch to incidentId of the params being passed.
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         const data = {
             decoded: userId,
@@ -601,7 +601,7 @@ export function resolveIncident(
         }
 
         promise.then(
-            function(result) {
+            function (result) {
                 if (multiple) {
                     dispatch(
                         resolveIncidentSuccess({
@@ -638,7 +638,7 @@ export function resolveIncident(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -693,7 +693,7 @@ export function closeIncidentSuccess(incident: $TSFixMe) {
 
 export function closeIncident(projectId: $TSFixMe, incidentId: $TSFixMe) {
     //This function will switch to incidentId of the params beig passed.
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `incident/${projectId}/close/${incidentId}`,
             {}
@@ -701,10 +701,10 @@ export function closeIncident(projectId: $TSFixMe, incidentId: $TSFixMe) {
         dispatch(closeIncidentRequest(incidentId));
 
         promise.then(
-            function(incident) {
+            function (incident) {
                 dispatch(closeIncidentSuccess(incident.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -753,7 +753,7 @@ export function resetUnresolvedIncidents() {
 // Calls the API to register a user.
 export function fetchUnresolvedIncidents(projectId: $TSFixMe, isHome = false) {
     //This fucntion will switch to incidentId of the params beig passed.
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
 
         promise = getApi(
@@ -763,10 +763,10 @@ export function fetchUnresolvedIncidents(projectId: $TSFixMe, isHome = false) {
         dispatch(UnresolvedIncidentsRequest(promise));
 
         promise.then(
-            function(incidents) {
+            function (incidents) {
                 dispatch(UnresolvedIncidentsSuccess(incidents.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -819,7 +819,7 @@ export function setInvestigationNote(
     incidentId: $TSFixMe,
     body: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
 
         promise = postApi(
@@ -832,10 +832,10 @@ export function setInvestigationNote(
         dispatch(investigationNoteRequest(promise, isUpdate));
 
         promise.then(
-            function(incidents) {
+            function (incidents) {
                 dispatch(investigationNoteSuccess(incidents.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -879,7 +879,7 @@ export function setInternalNote(
     incidentId: $TSFixMe,
     body: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = postApi(
             `incident/${projectId}/incident/${incidentId}/message`,
@@ -891,7 +891,7 @@ export function setInternalNote(
         dispatch(internalNoteRequest(promise, isUpdate));
 
         promise.then(
-            function(incidents) {
+            function (incidents) {
                 if (incidents.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
@@ -910,7 +910,7 @@ export function setInternalNote(
                     dispatch(internalNoteSuccess(incidents.data));
                 }
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -958,15 +958,15 @@ export function deleteIncidentReset(error: $TSFixMe) {
 
 //Delete an incident
 export function deleteIncident(projectId: $TSFixMe, incidentId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`incident/${projectId}/${incidentId}`);
         dispatch(deleteIncidentRequest(incidentId));
 
         promise.then(
-            function(incident) {
+            function (incident) {
                 dispatch(deleteIncidentSuccess(incident.data._id));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1004,15 +1004,15 @@ function hideIncidentFailure(error: $TSFixMe) {
 // hide an incident
 export function hideIncident(data: $TSFixMe) {
     const { hideIncident, incidentId, projectId } = data;
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`incident/${projectId}/${incidentId}`, {
             hideIncident,
         });
         promise.then(
-            function(incident) {
+            function (incident) {
                 dispatch(hideIncidentSuccess(incident));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1042,7 +1042,7 @@ export function fetchIncidentMessages(
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `incident/${projectId}/incident/${incidentSlug}/message?type=${type}&limit=${limit}&skip=${skip}`
         );
@@ -1055,7 +1055,7 @@ export function fetchIncidentMessages(
         );
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(
                     fetchIncidentMessagesSuccess({
                         incidentId: incidentSlug,
@@ -1070,7 +1070,7 @@ export function fetchIncidentMessages(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1133,14 +1133,14 @@ export function deleteIncidentMessage(
     incidentId: $TSFixMe,
     incidentMessageId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `incident/${projectId}/incident/${incidentId}/message/${incidentMessageId}`
         );
         dispatch(deleteIncidentMessageRequest(incidentMessageId));
 
         promise.then(
-            function(incidentMessage) {
+            function (incidentMessage) {
                 if (incidentMessage.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
@@ -1161,7 +1161,7 @@ export function deleteIncidentMessage(
                     );
                 }
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1214,7 +1214,7 @@ export function updateIncident(
     description: $TSFixMe,
     incidentPriority: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `incident/${projectId}/incident/${incidentId}/details`,
             {
@@ -1227,10 +1227,10 @@ export function updateIncident(
         dispatch(updateIncidentRequest());
 
         promise.then(
-            function(incident) {
+            function (incident) {
                 dispatch(updateIncidentSuccess(incident.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

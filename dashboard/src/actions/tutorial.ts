@@ -56,17 +56,17 @@ export function resetCloseTutorial() {
 }
 
 export function fetchTutorial() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi('tutorial');
 
         dispatch(fetchTutorialRequest(promise));
 
         promise.then(
-            function(tutorial) {
+            function (tutorial) {
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -86,17 +86,17 @@ export function fetchTutorial() {
 }
 
 export function closeTutorial(type: $TSFixMe, projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = putApi('tutorial', { type, projectId });
 
         dispatch(closeTutorialRequest(promise));
 
         promise.then(
-            function(tutorial) {
+            function (tutorial) {
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

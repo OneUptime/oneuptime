@@ -47,10 +47,10 @@ const probeServerRequestHeader = ({
 });
 let probeServerName1: $TSFixMe, probeServerName2: $TSFixMe;
 
-describe('Probe API', function() {
+describe('Probe API', function () {
     this.timeout(20000);
 
-    before(async function() {
+    before(async function () {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
         // remove every monitor in DB
@@ -84,7 +84,7 @@ describe('Probe API', function() {
         return Promise.resolve();
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProbeService.hardDeleteBy({ _id: probeId });
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -110,7 +110,7 @@ describe('Probe API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should add a probe by admin', function(done: $TSFixMe) {
+    it('should add a probe by admin', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
         request
@@ -120,7 +120,7 @@ describe('Probe API', function() {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 probeId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.probeName).to.be.equal(probeName);
@@ -128,50 +128,56 @@ describe('Probe API', function() {
             });
     });
 
-    it('should not add a probe if not admin', function(done: $TSFixMe) {
+    it('should not add a probe if not admin', function (done: $TSFixMe) {
         const probeName = generateRandomString();
-        createUser(request, userData.newUser, function(
-            err: $TSFixMe,
-            res: Response
-        ) {
-            userId = res.body.id;
-            VerificationTokenModel.findOne({ userId }, function(
-                err: $TSFixMe,
-                verificationToken: $TSFixMe
-            ) {
-                request
-                    .get(`/user/confirmation/${verificationToken.token}`)
-                    .redirects(0)
-                    .end(function() {
+        createUser(
+            request,
+            userData.newUser,
+            function (err: $TSFixMe, res: Response) {
+                userId = res.body.id;
+                VerificationTokenModel.findOne(
+                    { userId },
+                    function (err: $TSFixMe, verificationToken: $TSFixMe) {
                         request
-                            .post('/user/login')
-                            .send({
-                                email: userData.newUser.email,
-                                password: userData.newUser.password,
-                            })
-                            .end(function(err: $TSFixMe, res: Response) {
-                                const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                            .get(
+                                `/user/confirmation/${verificationToken.token}`
+                            )
+                            .redirects(0)
+                            .end(function () {
                                 request
-                                    .post('/probe/')
-                                    .set('Authorization', authorization)
+                                    .post('/user/login')
                                     .send({
-                                        probeName: probeName,
-                                        probeKey: '',
+                                        email: userData.newUser.email,
+                                        password: userData.newUser.password,
                                     })
-                                    .end(function(
+                                    .end(function (
                                         err: $TSFixMe,
                                         res: Response
                                     ) {
-                                        expect(res).to.have.status(400);
-                                        done();
+                                        const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                        request
+                                            .post('/probe/')
+                                            .set('Authorization', authorization)
+                                            .send({
+                                                probeName: probeName,
+                                                probeKey: '',
+                                            })
+                                            .end(function (
+                                                err: $TSFixMe,
+                                                res: Response
+                                            ) {
+                                                expect(res).to.have.status(400);
+                                                done();
+                                            });
                                     });
                             });
-                    });
-            });
-        });
+                    }
+                );
+            }
+        );
     });
 
-    it('should reject a probe if same name already exists', function(done: $TSFixMe) {
+    it('should reject a probe if same name already exists', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
         request
@@ -181,7 +187,7 @@ describe('Probe API', function() {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 request
                     .post('/probe/')
@@ -190,26 +196,26 @@ describe('Probe API', function() {
                         probeName: probeName,
                         probeKey: probeKey,
                     })
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(400);
                         done();
                     });
             });
     });
 
-    it('should get probes', function(done: $TSFixMe) {
+    it('should get probes', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get('/probe/')
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should delete a probe by admin', function(done: $TSFixMe) {
+    it('should delete a probe by admin', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = generateRandomString();
         request
@@ -219,21 +225,21 @@ describe('Probe API', function() {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 probeId = res.body._id;
                 expect(res).to.have.status(200);
                 request
                     .delete(`/probe/${probeId}`)
                     .set('Authorization', authorization)
                     .send()
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         done();
                     });
             });
     });
 
-    it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async function() {
+    it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async function () {
         probeServerName1 = generateRandomString();
         const res = await request.get('/probe/monitors').set(
             probeServerRequestHeader({
@@ -252,7 +258,7 @@ describe('Probe API', function() {
         expect(probe).to.not.eql(null);
     });
 
-    it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ', async function() {
+    it('should return the list of monitors of type "server-monitor" only time for one probe server during an interval of 1 min ', async function () {
         this.timeout(100000);
         const monitor = await MonitorService.create({
             projectId,
@@ -334,7 +340,7 @@ describe('Probe API', function() {
         await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 
-    it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min', async function() {
+    it('should return the list of monitors of type "url" only 1 time for every probe server during an interval of 1 min', async function () {
         this.timeout(100000);
         const monitor = await MonitorService.create({
             projectId,
@@ -417,7 +423,7 @@ describe('Probe API', function() {
         await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 
-    it('should get application securities yet to be scanned or scanned 24hrs ago', function(done: $TSFixMe) {
+    it('should get application securities yet to be scanned or scanned 24hrs ago', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = 'US';
         const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
@@ -427,7 +433,7 @@ describe('Probe API', function() {
             gitUsername: gitCredential.gitUsername,
             gitPassword: gitCredential.gitPassword,
             projectId,
-        }).then(function(credential) {
+        }).then(function (credential) {
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
@@ -439,7 +445,7 @@ describe('Probe API', function() {
                 .post(`/security/${projectId}/${componentId}/application`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function() {
+                .end(function () {
                     request
                         .get('/probe/applicationSecurities')
                         .set({
@@ -447,7 +453,7 @@ describe('Probe API', function() {
                             probeKey,
                             clusterKey,
                         })
-                        .end(function(err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('array');
                             done();
@@ -456,7 +462,7 @@ describe('Probe API', function() {
         });
     });
 
-    it('should get container securities yet to be scanned or scanned 24hrs ago', function(done: $TSFixMe) {
+    it('should get container securities yet to be scanned or scanned 24hrs ago', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const probeName = 'US';
         const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
@@ -467,7 +473,7 @@ describe('Probe API', function() {
             dockerUsername: dockerCredential.dockerUsername,
             dockerPassword: dockerCredential.dockerPassword,
             projectId,
-        }).then(function(credential) {
+        }).then(function (credential) {
             const data = {
                 name: 'Test',
                 dockerCredential: credential._id,
@@ -479,7 +485,7 @@ describe('Probe API', function() {
                 .post(`/security/${projectId}/${componentId}/container`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function() {
+                .end(function () {
                     request
                         .get('/probe/containerSecurities')
                         .set({
@@ -487,7 +493,7 @@ describe('Probe API', function() {
                             probeKey,
                             clusterKey,
                         })
-                        .end(function(err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: Response) {
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('array');
                             done();

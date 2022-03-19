@@ -1,5 +1,5 @@
 export default {
-    updateCriterion: async function(
+    updateCriterion: async function (
         _id: $TSFixMe,
         lastMatchedCriterion: $TSFixMe
     ) {
@@ -17,7 +17,7 @@ export default {
         }
     },
 
-    updateScanStatus: async function(monitorIds: $TSFixMe, status: $TSFixMe) {
+    updateScanStatus: async function (monitorIds: $TSFixMe, status: $TSFixMe) {
         try {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
@@ -39,7 +39,7 @@ export default {
         }
     },
 
-    addProbeScanning: async function(monitorIds: $TSFixMe, probeId: $TSFixMe) {
+    addProbeScanning: async function (monitorIds: $TSFixMe, probeId: $TSFixMe) {
         try {
             for (const id of monitorIds) {
                 await monitorCollection.updateOne(
@@ -61,7 +61,7 @@ export default {
         }
     },
 
-    removeProbeScanning: async function(
+    removeProbeScanning: async function (
         monitorIds: $TSFixMe,
         probeId: $TSFixMe
     ) {
@@ -86,7 +86,7 @@ export default {
         }
     },
 
-    updateLighthouseScanStatus: async function(
+    updateLighthouseScanStatus: async function (
         _id: $TSFixMe,
         lighthouseScanStatus: $TSFixMe,
         lighthouseScannedBy: $TSFixMe
@@ -123,7 +123,7 @@ export default {
         }
     },
 
-    updateScriptStatus: async function(
+    updateScriptStatus: async function (
         _id: $TSFixMe,
         scriptRunStatus: $TSFixMe,
         scriptRunBy: $TSFixMe

@@ -109,121 +109,129 @@ router.get('/voice/status', async (req: Request, res: Response) => {
  * @returns Twiml with with action status.
  */
 
-router.post('/sms/sendVerificationToken', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { to } = req.body;
+router.post(
+    '/sms/sendVerificationToken',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { to } = req.body;
 
-        const userId = req.user ? req.user.id : null;
-        const projectId = req.query.projectId;
-        const validationResult = await SmsCountService.validateResend(userId);
-        const sendVerifyToken = await sendVerificationSMS(
-            to,
-            userId,
-            projectId,
-            validationResult
-        );
-        return sendItemResponse(req, res, sendVerifyToken);
-    } catch (error) {
-        return sendErrorResponse(
-            req,
-            res,
-            error.message
-                ? { statusCode: 400, message: error.message }
-                : { status: 'action failed' }
-        );
+            const userId = req.user ? req.user.id : null;
+            const projectId = req.query.projectId;
+            const validationResult = await SmsCountService.validateResend(
+                userId
+            );
+            const sendVerifyToken = await sendVerificationSMS(
+                to,
+                userId,
+                projectId,
+                validationResult
+            );
+            return sendItemResponse(req, res, sendVerifyToken);
+        } catch (error) {
+            return sendErrorResponse(
+                req,
+                res,
+                error.message
+                    ? { statusCode: 400, message: error.message }
+                    : { status: 'action failed' }
+            );
+        }
     }
-});
+);
 
-router.post('/sms/verify', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { to, code } = req.body;
+router.post(
+    '/sms/verify',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const { to, code } = req.body;
 
-        const userId = req.user ? req.user.id : null;
-        if (!to) {
-            sendErrorResponse(req, res, {
-                statusCode: 400,
-                message: 'to field must be present.',
-            });
-        }
-        if (!code) {
-            sendErrorResponse(req, res, {
-                statusCode: 400,
-                message: 'code field must be present.',
-            });
-        }
-        const tempAlertPhoneNumber = to.startsWith('+') ? to : `+${to}`;
-        const user = await UserService.findOneBy({
-            query: {
-                _id: userId,
-                tempAlertPhoneNumber,
-                alertPhoneVerificationCode: code,
-                alertPhoneVerificationCodeRequestTime: {
-                    $gte: new Date(new Date().getTime() - 5 * 60 * 1000),
-                },
-            },
-            select: '_id',
-        });
-        if (!user) {
-            throw new Error('Invalid code !');
-        }
-        await UserService.updateBy(
-            { _id: userId },
-            {
-                alertPhoneNumber: tempAlertPhoneNumber,
-                tempAlertPhoneNumber: null,
-                alertPhoneVerificationCode: null,
-                alertPhoneVerificationCodeRequestTime: null,
+            const userId = req.user ? req.user.id : null;
+            if (!to) {
+                sendErrorResponse(req, res, {
+                    statusCode: 400,
+                    message: 'to field must be present.',
+                });
             }
-        );
-        return sendItemResponse(req, res, { valid: true });
-    } catch (error) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: error.message,
-        });
+            if (!code) {
+                sendErrorResponse(req, res, {
+                    statusCode: 400,
+                    message: 'code field must be present.',
+                });
+            }
+            const tempAlertPhoneNumber = to.startsWith('+') ? to : `+${to}`;
+            const user = await UserService.findOneBy({
+                query: {
+                    _id: userId,
+                    tempAlertPhoneNumber,
+                    alertPhoneVerificationCode: code,
+                    alertPhoneVerificationCodeRequestTime: {
+                        $gte: new Date(new Date().getTime() - 5 * 60 * 1000),
+                    },
+                },
+                select: '_id',
+            });
+            if (!user) {
+                throw new Error('Invalid code !');
+            }
+            await UserService.updateBy(
+                { _id: userId },
+                {
+                    alertPhoneNumber: tempAlertPhoneNumber,
+                    tempAlertPhoneNumber: null,
+                    alertPhoneVerificationCode: null,
+                    alertPhoneVerificationCodeRequestTime: null,
+                }
+            );
+            return sendItemResponse(req, res, { valid: true });
+        } catch (error) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: error.message,
+            });
+        }
     }
-});
+);
 
-router.post('/sms/test', getUser, isUserMasterAdmin, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const data = req.body;
+router.post(
+    '/sms/test',
+    getUser,
+    isUserMasterAdmin,
+    async function (req: Request, res: Response) {
+        try {
+            const data = req.body;
 
-        if (!data.accountSid) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Account Sid is required.',
-            });
+            if (!data.accountSid) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Account Sid is required.',
+                });
+            }
+
+            if (!data.authToken) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Auth Token is required.',
+                });
+            }
+
+            if (!data.phoneNumber) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Phone Number is required.',
+                });
+            }
+
+            let testResult = await test(data);
+            testResult = { message: 'SMS sent successfully' };
+            return sendItemResponse(req, res, testResult);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        if (!data.authToken) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Auth Token is required.',
-            });
-        }
-
-        if (!data.phoneNumber) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Phone Number is required.',
-            });
-        }
-
-        let testResult = await test(data);
-        testResult = { message: 'SMS sent successfully' };
-        return sendItemResponse(req, res, testResult);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 export default router;

@@ -4,25 +4,23 @@ export default {
     //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
     //Returns: promise
 
-    find: async function({ tableName, view, limit }: $TSFixMe) {
-        return base(tableName)
-            .select({ view, pageSize: limit })
-            .firstPage();
+    find: async function ({ tableName, view, limit }: $TSFixMe) {
+        return base(tableName).select({ view, pageSize: limit }).firstPage();
     },
 
-    update: async function({ tableName, id, fields }: $TSFixMe) {
+    update: async function ({ tableName, id, fields }: $TSFixMe) {
         return base(tableName).update(id, fields);
     },
 
-    create: async function({ tableName, fields }: $TSFixMe) {
+    create: async function ({ tableName, fields }: $TSFixMe) {
         return base(tableName).create(fields);
     },
 
-    delete: async function({ tableName, id }: $TSFixMe) {
+    delete: async function ({ tableName, id }: $TSFixMe) {
         return base(tableName).destroy(id);
     },
 
-    logUser: function({
+    logUser: function ({
         name,
         email,
         phone,
@@ -44,7 +42,7 @@ export default {
         });
     },
 
-    logLeads: function({
+    logLeads: function ({
         name,
         country,
         email,
@@ -72,7 +70,7 @@ export default {
         });
     },
 
-    deleteUser: function(airtableId: $TSFixMe) {
+    deleteUser: function (airtableId: $TSFixMe) {
         if (!base) return;
 
         return base('User').destroy(airtableId);
@@ -82,7 +80,7 @@ export default {
     //Params:
     //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
-    logFeedback: function({ message, name, email, project, page }: $TSFixMe) {
+    logFeedback: function ({ message, name, email, project, page }: $TSFixMe) {
         if (!base) return;
 
         return base('Feedback').create({
@@ -94,7 +92,7 @@ export default {
         });
     },
 
-    deleteFeedback: function(airtableId: $TSFixMe) {
+    deleteFeedback: function (airtableId: $TSFixMe) {
         if (!base) return;
 
         if (!airtableId) {
@@ -104,7 +102,7 @@ export default {
         return base('Feedback').destroy(airtableId);
     },
 
-    deleteAll: async function({ tableName, view, limit }: $TSFixMe) {
+    deleteAll: async function ({ tableName, view, limit }: $TSFixMe) {
         if (!view) {
             view = 'Grid view';
         }
@@ -122,7 +120,7 @@ export default {
             .firstPage();
 
         if (records && records.length > 0) {
-            const recordIds = records.map(function(record: $TSFixMe) {
+            const recordIds = records.map(function (record: $TSFixMe) {
                 return record.id;
             });
 
@@ -130,7 +128,7 @@ export default {
         }
     },
 
-    logProjectDeletionFeedback: function({
+    logProjectDeletionFeedback: function ({
         reason,
         project,
         name,

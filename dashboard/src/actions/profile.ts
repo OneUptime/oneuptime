@@ -48,7 +48,7 @@ export function updatePushNotificationSuccess(data: $TSFixMe) {
 // Calls the API to update setting.
 
 export function updateProfileSetting(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const data = new FormData();
         if (values.profilePic && values.profilePic !== 'null') {
             if (!values.removedPic) {
@@ -78,12 +78,12 @@ export function updateProfileSetting(values: $TSFixMe) {
         const promise = putApi('user/profile', data);
         dispatch(updateProfileSettingRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const profileSettings = response.data;
                 dispatch(updateProfileSettingSuccess(profileSettings));
                 return profileSettings;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -104,16 +104,16 @@ export function updateProfileSetting(values: $TSFixMe) {
 
 // Update push notification
 export function updatePushNotification(data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi('user/push-notification', data);
         dispatch(updatePushNotificationRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const profileSettings = response.data;
                 dispatch(updatePushNotificationSuccess(profileSettings));
                 return profileSettings;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -154,16 +154,16 @@ export function twoFactorAuthTokenError(error: $TSFixMe) {
 }
 
 export function verifyTwoFactorAuthToken(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/totp/verifyToken', values);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -204,16 +204,16 @@ export function generateTwoFactorQRCodeError(error: $TSFixMe) {
 }
 
 export function generateTwoFactorQRCode(userId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`user/totp/token/${userId}`);
         dispatch(generateTwoFactorQRCodeRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const payload = response.data;
                 dispatch(generateTwoFactorQRCodeSuccess(payload));
                 return payload;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -235,16 +235,16 @@ export function generateTwoFactorQRCode(userId: $TSFixMe) {
 // Update user twoFactorAuthToken
 
 export function updateTwoFactorAuthToken(data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi('user/profile', data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -286,16 +286,16 @@ export function updateChangePasswordSettingError(error: $TSFixMe) {
 
 // Calls the API to update change password setting.
 export function updateChangePasswordSetting(data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi('user/changePassword', data);
         dispatch(updateChangePasswordSettingRequest());
 
         promise.then(
-            function() {
+            function () {
                 dispatch(updateChangePasswordSettingSuccess());
                 return {};
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -351,17 +351,17 @@ export function userSettingsError(error: $TSFixMe) {
 
 // Calls the API to update on cal alert setting.
 export function userSettings() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi('user/profile');
         dispatch(userSettingsRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const settings = response.data;
                 dispatch(userSettingsSuccess(settings));
                 return settings;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -381,13 +381,13 @@ export function userSettings() {
 }
 
 export function logFile(file: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({ type: 'LOG_FILE', payload: file });
     };
 }
 
 export function resetFile() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({ type: 'RESET_FILE' });
     };
 }
@@ -413,7 +413,7 @@ export function sendVerificationSMSError(error: $TSFixMe) {
 }
 
 export function sendVerificationSMSReset() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({ type: types.SEND_VERIFICATION_SMS_RESET });
     };
 }
@@ -439,16 +439,16 @@ export function sendEmailVerificationError(error: $TSFixMe) {
 }
 
 export function sendEmailVerificationLink(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/resend', values);
         dispatch(sendEmailVerificationRequest());
 
         promise.then(
-            function(data) {
+            function (data) {
                 dispatch(sendEmailVerificationSuccess(data));
                 return data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -466,7 +466,7 @@ export function sendEmailVerificationLink(values: $TSFixMe) {
 }
 
 export function sendVerificationSMS(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `twilio/sms/sendVerificationToken?projectId=${projectId}`,
             values
@@ -474,12 +474,12 @@ export function sendVerificationSMS(projectId: $TSFixMe, values: $TSFixMe) {
         dispatch(sendVerificationSMSRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const vericationAction = response.data;
                 dispatch(sendVerificationSMSSuccess(vericationAction));
                 return vericationAction;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -518,13 +518,13 @@ export function verifySMSCodeError(error: $TSFixMe) {
 }
 
 export function verifySMSCodeReset() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({ type: types.VERIFY_SMS_CODE_RESET });
     };
 }
 
 export function verifySMSCode(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `twilio/sms/verify?projectId=${projectId}`,
             values
@@ -532,12 +532,12 @@ export function verifySMSCode(projectId: $TSFixMe, values: $TSFixMe) {
         dispatch(verifySMSCodeRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 const verificationResult = response.data;
                 dispatch(verifySMSCodeSuccess(verificationResult));
                 return verificationResult;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -669,16 +669,16 @@ export function deleteAccountFailure(error: $TSFixMe) {
 }
 
 export function deleteAccount(userId: $TSFixMe, confirmation: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`user/${userId}/delete`, confirmation);
         dispatch(deleteAccountRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(deleteAccountSuccess(response.data));
                 return response;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -713,16 +713,16 @@ const generateBackupCodesFailure = (payload: $TSFixMe) => ({
 });
 
 export const generateBackupCodes = () => {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`user/generate/backupCode`);
         dispatch(generateBackupCodesRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(generateBackupCodesSuccess(response.data));
                 return response;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

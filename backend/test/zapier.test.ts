@@ -28,59 +28,59 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-describe('Zapier API', function() {
+describe('Zapier API', function () {
     this.timeout(20000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
-                apiKey = project.apiKey;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
+                    apiKey = project.apiKey;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
                                     request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(monitor)
-                                        .end(function(
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
                                             err: $TSFixMe,
                                             res: Response
                                         ) {
-                                            monitorId = res.body._id;
-                                            incidentData.monitors = [monitorId];
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
                                             const authorization = `Basic ${token}`;
                                             request
-                                                .post(
-                                                    `/incident/${projectId}/create-incident`
-                                                )
+                                                .post(`/monitor/${projectId}`)
                                                 .set(
                                                     'Authorization',
                                                     authorization
                                                 )
-                                                .send(incidentData)
-                                                .end(function() {
+                                                .send(monitor)
+                                                .end(function (
+                                                    err: $TSFixMe,
+                                                    res: Response
+                                                ) {
+                                                    monitorId = res.body._id;
+                                                    incidentData.monitors = [
+                                                        monitorId,
+                                                    ];
+                                                    const authorization = `Basic ${token}`;
                                                     request
                                                         .post(
                                                             `/incident/${projectId}/create-incident`
@@ -90,19 +90,35 @@ describe('Zapier API', function() {
                                                             authorization
                                                         )
                                                         .send(incidentData)
-                                                        .end(function() {
-                                                            done();
+                                                        .end(function () {
+                                                            request
+                                                                .post(
+                                                                    `/incident/${projectId}/create-incident`
+                                                                )
+                                                                .set(
+                                                                    'Authorization',
+                                                                    authorization
+                                                                )
+                                                                .send(
+                                                                    incidentData
+                                                                )
+                                                                .end(
+                                                                    function () {
+                                                                        done();
+                                                                    }
+                                                                );
                                                         });
                                                 });
                                         });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -121,19 +137,19 @@ describe('Zapier API', function() {
         app.close();
     });
 
-    it('should not subscribe to zapier when missing apiKey in query', function(done: $TSFixMe) {
+    it('should not subscribe to zapier when missing apiKey in query', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not subscribe to zapier when missing url as a parameter', function(done: $TSFixMe) {
+    it('should not subscribe to zapier when missing url as a parameter', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
@@ -141,13 +157,13 @@ describe('Zapier API', function() {
             .send({
                 type: 'created',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not subscribe to zapier when missing type as a parameter', function(done: $TSFixMe) {
+    it('should not subscribe to zapier when missing type as a parameter', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
@@ -155,13 +171,13 @@ describe('Zapier API', function() {
             .send({
                 url: 'https://www.oneuptime.com',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should subscribe to zapier service', function(done: $TSFixMe) {
+    it('should subscribe to zapier service', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
@@ -171,32 +187,32 @@ describe('Zapier API', function() {
                 type: 'created',
                 input: { monitors: ['12345'] },
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 zapierId = res.body.id;
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should fail getting test and apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail getting test and apiKey is missing in query', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/zapier/test?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail when getting test and projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail when getting test and projectId is missing in query', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/zapier/test?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -214,63 +230,63 @@ describe('Zapier API', function() {
     });
     */
 
-    it('should fail getting incidents and apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail getting incidents and apiKey is missing in query', function (done: $TSFixMe) {
         request
             .get(`/zapier/incidents?projectId=${projectId}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail when getting incidents and projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail when getting incidents and projectId is missing in query', function (done: $TSFixMe) {
         request
             .get(`/zapier/incidents?apiKey=${apiKey}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should get zapier incidents', function(done: $TSFixMe) {
+    it('should get zapier incidents', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/zapier/incidents?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should fail getting resolved and apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail getting resolved and apiKey is missing in query', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/zapier/incident/resolved?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail when getting resolved and projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail when getting resolved and projectId is missing in query', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/zapier/incident/resolved?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should get zapier resolved', function(done: $TSFixMe) {
+    it('should get zapier resolved', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(
@@ -278,37 +294,37 @@ describe('Zapier API', function() {
             )
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should fail getting acknowledged and apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail getting acknowledged and apiKey is missing in query', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/zapier/incident/acknowledged?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail when getting acknowledged and projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail when getting acknowledged and projectId is missing in query', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(`/zapier/incident/acknowledged?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should get zapier acknowledged', function(done: $TSFixMe) {
+    it('should get zapier acknowledged', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get(
@@ -316,49 +332,49 @@ describe('Zapier API', function() {
             )
             .set('Authorization', authorization)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should unsubscribe to zapier', function(done: $TSFixMe) {
+    it('should unsubscribe to zapier', function (done: $TSFixMe) {
         request
             .delete(
                 `/zapier/unsubscribe/${zapierId}?apiKey=${apiKey}&&projectId=${projectId}`
             )
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should fail to create incidents when apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail to create incidents when apiKey is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/createIncident?projectId=${projectId}`)
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail to create incidents when projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail to create incidents when projectId is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/createIncident?apiKey=${apiKey}`)
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create incident', function(done: $TSFixMe) {
+    it('should create incident', function (done: $TSFixMe) {
         request
             .post(
                 `/zapier/incident/createIncident?apiKey=${apiKey}&projectId=${projectId}`
@@ -366,7 +382,7 @@ describe('Zapier API', function() {
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -376,27 +392,27 @@ describe('Zapier API', function() {
             });
     });
 
-    it('should fail to acknowledge an incident when apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail to acknowledge an incident when apiKey is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/acknowledgeIncident?projectId=${projectId}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail to acknowledge an incident when projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail to acknowledge an incident when projectId is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/acknowledgeIncident?apiKey=${apiKey}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should acknowledge an incident', function(done: $TSFixMe) {
+    it('should acknowledge an incident', function (done: $TSFixMe) {
         request
             .post(
                 `/zapier/incident/acknowledgeIncident?apiKey=${apiKey}&projectId=${projectId}`
@@ -404,7 +420,7 @@ describe('Zapier API', function() {
             .send({
                 incidents: [incidentId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -414,27 +430,27 @@ describe('Zapier API', function() {
             });
     });
 
-    it('should fail to resolve an incident when apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail to resolve an incident when apiKey is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveIncident?projectId=${projectId}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail to resolve an incident when projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail to resolve an incident when projectId is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveIncident?apiKey=${apiKey}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should resolve an incident', function(done: $TSFixMe) {
+    it('should resolve an incident', function (done: $TSFixMe) {
         request
             .post(
                 `/zapier/incident/resolveIncident?apiKey=${apiKey}&projectId=${projectId}`
@@ -442,7 +458,7 @@ describe('Zapier API', function() {
             .send({
                 incidents: [incidentId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -452,7 +468,7 @@ describe('Zapier API', function() {
             });
     });
 
-    it('should fail to acknowledge last incidents when apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail to acknowledge last incidents when apiKey is missing in query', function (done: $TSFixMe) {
         request
             .post(
                 `/zapier/incident/acknowledgeLastIncident?projectId=${projectId}`
@@ -460,25 +476,25 @@ describe('Zapier API', function() {
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail to acknowledge last incidents when projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail to acknowledge last incidents when projectId is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/acknowledgeLastIncident?apiKey=${apiKey}`)
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should acknowledge last incident', function(done: $TSFixMe) {
+    it('should acknowledge last incident', function (done: $TSFixMe) {
         request
             .post(
                 `/zapier/incident/acknowledgeLastIncident?apiKey=${apiKey}&projectId=${projectId}`
@@ -486,7 +502,7 @@ describe('Zapier API', function() {
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -496,31 +512,31 @@ describe('Zapier API', function() {
             });
     });
 
-    it('should fail to resolve last incidents when apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail to resolve last incidents when apiKey is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveLastIncident?projectId=${projectId}`)
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail to resolve last incidents when projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail to resolve last incidents when projectId is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveLastIncident?apiKey=${apiKey}`)
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should resolve last incident', function(done: $TSFixMe) {
+    it('should resolve last incident', function (done: $TSFixMe) {
         request
             .post(
                 `/zapier/incident/resolveLastIncident?apiKey=${apiKey}&projectId=${projectId}`
@@ -528,7 +544,7 @@ describe('Zapier API', function() {
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -538,40 +554,40 @@ describe('Zapier API', function() {
             });
     });
 
-    it('should fail to acknowledge all incidents when apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail to acknowledge all incidents when apiKey is missing in query', function (done: $TSFixMe) {
         request
             .post(
                 `/zapier/incident/acknowledgeAllIncidents?projectId=${projectId}`
             )
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail to acknowledge all incidents when projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail to acknowledge all incidents when projectId is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/acknowledgeAllIncidents?apiKey=${apiKey}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should acknowledge all incident', function(done: $TSFixMe) {
+    it('should acknowledge all incident', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData)
-            .end(function() {
+            .end(function () {
                 request
                     .post(`/incident/${projectId}/create-incident`)
                     .set('Authorization', authorization)
                     .send(incidentData)
-                    .end(function() {
+                    .end(function () {
                         request
                             .post(
                                 `/zapier/incident/acknowledgeAllIncidents?apiKey=${apiKey}&projectId=${projectId}`
@@ -579,7 +595,7 @@ describe('Zapier API', function() {
                             .send({
                                 monitors: [monitorId],
                             })
-                            .end(function(err: $TSFixMe, res: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 expect(res).to.have.status(200);
                                 expect(res.body).to.be.an('object');
                                 expect(res.body).to.have.property('incidents');
@@ -595,27 +611,27 @@ describe('Zapier API', function() {
             });
     });
 
-    it('should fail to resolve all incidents when apiKey is missing in query', function(done: $TSFixMe) {
+    it('should fail to resolve all incidents when apiKey is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveAllIncidents?projectId=${projectId}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should fail to resolve all incidents when projectId is missing in query', function(done: $TSFixMe) {
+    it('should fail to resolve all incidents when projectId is missing in query', function (done: $TSFixMe) {
         request
             .post(`/zapier/incident/resolveAllIncidents?apiKey=${apiKey}`)
             .send()
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should resolve all incident', function(done: $TSFixMe) {
+    it('should resolve all incident', function (done: $TSFixMe) {
         request
             .post(
                 `/zapier/incident/resolveAllIncidents?apiKey=${apiKey}&projectId=${projectId}`
@@ -623,7 +639,7 @@ describe('Zapier API', function() {
             .send({
                 monitors: [monitorId],
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('incidents');

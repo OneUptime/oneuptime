@@ -5,7 +5,7 @@ export default {
     //Param 2: projectId: Project Id present in req.params.
     //Param 3: userId: User Id.
     //Returns: promise
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         let lead = new LeadsModel();
 
         lead.type = data.type;
@@ -65,7 +65,7 @@ export default {
         return lead;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await LeadsModel.deleteMany(query);
         return 'Lead(s) Removed Successfully!';
     },

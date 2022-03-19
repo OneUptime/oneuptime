@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -24,7 +30,7 @@ export default {
         return SmsCount;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -42,7 +48,7 @@ export default {
         return SmsCount;
     },
 
-    create: async function(
+    create: async function (
         userId: $TSFixMe,
         sentTo: $TSFixMe,
         projectId: $TSFixMe,
@@ -67,7 +73,7 @@ export default {
         return smsCount;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -77,7 +83,7 @@ export default {
         return count;
     },
 
-    search: async function({ filter, skip, limit }: $TSFixMe) {
+    search: async function ({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             sendTo: { $regex: new RegExp(filter), $options: 'i' },
@@ -97,7 +103,7 @@ export default {
         return { searchedSmsLogs, totalSearchCount };
     },
 
-    validateResend: async function(userId: $TSFixMe) {
+    validateResend: async function (userId: $TSFixMe) {
         const _this = this;
         let problem = '';
         const select = 'createdAt';
@@ -126,7 +132,7 @@ export default {
         };
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const smsCount = await SmsCountModel.findOneAndUpdate(
             query,
             {
@@ -143,7 +149,7 @@ export default {
         return smsCount;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await SmsCountModel.deleteMany(query);
         return 'SmsCount(s) removed successfully';
     },

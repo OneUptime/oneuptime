@@ -7,7 +7,7 @@ import handlePopulate from '../utils/populate';
 import fs from 'fs';
 
 export default {
-    findOneBy: async function({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -20,7 +20,13 @@ export default {
 
         return gitCredential;
     },
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -47,14 +53,9 @@ export default {
 
         return gitCredentials;
     },
-    create: async function(data: $TSFixMe) {
-        const {
-            gitUsername,
-            gitPassword,
-            projectId,
-            sshTitle,
-            sshPrivateKey,
-        } = data;
+    create: async function (data: $TSFixMe) {
+        const { gitUsername, gitPassword, projectId, sshTitle, sshPrivateKey } =
+            data;
         if (gitUsername && gitPassword) {
             const gitCredential = await this.findOneBy({
                 query: { gitUsername, projectId },
@@ -101,7 +102,7 @@ export default {
             return response;
         }
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -149,7 +150,7 @@ export default {
 
         return gitCredential;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         let gitCredential = await this.findOneBy({ query, select: '_id' });
 
         if (!gitCredential) {
@@ -168,7 +169,7 @@ export default {
 
         return gitCredential;
     },
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await GitCredentialModel.deleteMany(query);
         return 'Git credential(s) successfully deleted';
     },

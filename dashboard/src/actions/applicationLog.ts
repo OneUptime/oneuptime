@@ -9,7 +9,7 @@ export function createApplicationLog(
     componentId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/create`,
             values
@@ -17,10 +17,10 @@ export function createApplicationLog(
         dispatch(createApplicationLogRequest());
 
         promise.then(
-            function(applicationLog) {
+            function (applicationLog) {
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -73,17 +73,17 @@ export function fetchApplicationLogs(
     limit = 0,
     paginated = false
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `application-log/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchApplicationLogsRequest(paginated));
 
         promise.then(
-            function(applicationLogs) {
+            function (applicationLogs) {
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -136,7 +136,7 @@ export function deleteApplicationLog(
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             {
@@ -146,10 +146,10 @@ export function deleteApplicationLog(
         dispatch(deleteApplicationLogRequest(applicationLogId));
 
         promise.then(
-            function(applicationLog) {
+            function (applicationLog) {
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -212,7 +212,7 @@ export function fetchLogs(
     type: $TSFixMe,
     filter: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/logs`,
             {
@@ -227,7 +227,7 @@ export function fetchLogs(
         dispatch(fetchLogsRequest({ applicationLogId }));
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
@@ -242,7 +242,7 @@ export function fetchLogs(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -294,17 +294,17 @@ export function resetApplicationLogKey(
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
         );
         dispatch(resetApplicationLogKeyRequest());
 
         promise.then(
-            function(applicationLog) {
+            function (applicationLog) {
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -361,7 +361,7 @@ export function editApplicationLog(
     applicationLogId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             values
@@ -369,10 +369,10 @@ export function editApplicationLog(
         dispatch(editApplicationLogRequest());
 
         promise.then(
-            function(applicationLog) {
+            function (applicationLog) {
                 dispatch(editApplicationLogSuccess(applicationLog.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -417,7 +417,7 @@ export function fetchStats(
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,
             {}
@@ -425,7 +425,7 @@ export function fetchStats(
         dispatch(fetchStatsRequest({ applicationLogId }));
 
         promise.then(
-            function(logs) {
+            function (logs) {
                 dispatch(
                     fetchStatsSuccess({
                         applicationLogId,
@@ -434,7 +434,7 @@ export function fetchStats(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -496,14 +496,14 @@ export function searchLog(
     applicationLogId: $TSFixMe,
     payload: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/search`,
             payload
         );
         dispatch(fetchLogsRequest({ applicationLogId }));
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
@@ -514,7 +514,7 @@ export function searchLog(
                     })
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

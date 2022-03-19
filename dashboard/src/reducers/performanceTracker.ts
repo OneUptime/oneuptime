@@ -59,7 +59,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function(state = INITIAL_STATE, action: $TSFixMe) {
+export default function (state = INITIAL_STATE, action: $TSFixMe) {
     switch (action.type) {
         case 'SET_START_DATE':
             return {

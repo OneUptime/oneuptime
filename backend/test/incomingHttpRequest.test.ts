@@ -32,7 +32,7 @@ const {
     acknowledgeRequest,
 } = require('./data/incomingHttpRequest');
 
-describe('Incoming HTTP Request API', function() {
+describe('Incoming HTTP Request API', function () {
     const timeout = 30000;
     let projectId: $TSFixMe,
         componentId,
@@ -50,92 +50,111 @@ describe('Incoming HTTP Request API', function() {
 
     this.timeout(timeout);
 
-    before(function(done: $TSFixMe) {
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+    before(function (done: $TSFixMe) {
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    authorization = `Basic ${token}`;
-
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
                                     request
-                                        .post(`/component/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send({ name: 'Test Component' })
-                                        .end(function(
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
                                             err: $TSFixMe,
                                             res: Response
                                         ) {
-                                            componentId = res.body._id;
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            authorization = `Basic ${token}`;
 
                                             request
-                                                .post(`/monitor/${projectId}`)
+                                                .post(`/component/${projectId}`)
                                                 .set(
                                                     'Authorization',
                                                     authorization
                                                 )
                                                 .send({
-                                                    name: 'testMonitor',
-                                                    criteria: {},
-                                                    componentId,
-                                                    projectId,
-                                                    type: 'manual',
-                                                    data: { description: null },
-                                                    customFields: [
-                                                        {
-                                                            fieldName:
-                                                                'monitorField',
-                                                            fieldValue:
-                                                                'testing',
-                                                        },
-                                                    ],
+                                                    name: 'Test Component',
                                                 })
-                                                .end(function(
+                                                .end(function (
                                                     err: $TSFixMe,
                                                     res: Response
                                                 ) {
-                                                    monitorId = res.body._id;
+                                                    componentId = res.body._id;
 
-                                                    MonitorCustomFieldService.create(
-                                                        {
+                                                    request
+                                                        .post(
+                                                            `/monitor/${projectId}`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send({
+                                                            name: 'testMonitor',
+                                                            criteria: {},
+                                                            componentId,
                                                             projectId,
-                                                            fieldName:
-                                                                'monitorField',
-                                                            fieldType: 'text',
-                                                        }
-                                                    ).then(function() {
-                                                        done();
-                                                    });
+                                                            type: 'manual',
+                                                            data: {
+                                                                description:
+                                                                    null,
+                                                            },
+                                                            customFields: [
+                                                                {
+                                                                    fieldName:
+                                                                        'monitorField',
+                                                                    fieldValue:
+                                                                        'testing',
+                                                                },
+                                                            ],
+                                                        })
+                                                        .end(function (
+                                                            err: $TSFixMe,
+                                                            res: Response
+                                                        ) {
+                                                            monitorId =
+                                                                res.body._id;
+
+                                                            MonitorCustomFieldService.create(
+                                                                {
+                                                                    projectId,
+                                                                    fieldName:
+                                                                        'monitorField',
+                                                                    fieldType:
+                                                                        'text',
+                                                                }
+                                                            ).then(function () {
+                                                                done();
+                                                            });
+                                                        });
                                                 });
                                         });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -150,11 +169,11 @@ describe('Incoming HTTP Request API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create an incoming http request (Create Incident)', function(done: $TSFixMe) {
+    it('should create an incoming http request (Create Incident)', function (done: $TSFixMe) {
         IncidentPrioritiesService.findOne({
             query: { projectId },
             select: '_id',
-        }).then(function(priority) {
+        }).then(function (priority) {
             // fetch one of the priorities
             incidentPriorityId = priority._id;
             incidentRequest.incidentPriority = incidentPriorityId;
@@ -163,7 +182,7 @@ describe('Incoming HTTP Request API', function() {
                 .post(`/incoming-request/${projectId}/create-request-url`)
                 .set('Authorization', authorization)
                 .send(incidentRequest)
-                .end(function(err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: Response) {
                     requestId = res.body._id;
                     createIncidentUrl = res.body.url;
                     expect(res).to.have.status(200);
@@ -174,12 +193,12 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    it('should create an incoming http request (Acknowledge Incident)', function(done: $TSFixMe) {
+    it('should create an incoming http request (Acknowledge Incident)', function (done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
             .set('Authorization', authorization)
             .send(acknowledgeRequest)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 acknowledgeIncidentUrl = res.body.url;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(acknowledgeRequest.name);
@@ -188,12 +207,12 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    it('should create an incoming http request (Resolve Incident)', function(done: $TSFixMe) {
+    it('should create an incoming http request (Resolve Incident)', function (done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
             .set('Authorization', authorization)
             .send(resolveRequest)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 resolveIncidentUrl = res.body.url;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(resolveRequest.name);
@@ -202,12 +221,12 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    it('should create an incoming http request (Update incident note)', function(done: $TSFixMe) {
+    it('should create an incoming http request (Update incident note)', function (done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
             .send(incidentNoteRequest)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 incidentNoteUrl = res.body.url;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(incidentNoteRequest.name);
@@ -219,12 +238,12 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    it('should create an incoming http request (Update internal note)', function(done: $TSFixMe) {
+    it('should create an incoming http request (Update internal note)', function (done: $TSFixMe) {
         request
             .post(`/incoming-request/${projectId}/create-request-url`)
             .send(internalNoteRequest)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 internalNoteUrl = res.body.url;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(internalNoteRequest.name);
@@ -236,7 +255,7 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    it('should update an incoming http request', function(done: $TSFixMe) {
+    it('should update an incoming http request', function (done: $TSFixMe) {
         const update = {
             name: 'updateName',
         };
@@ -245,14 +264,14 @@ describe('Incoming HTTP Request API', function() {
             .put(`/incoming-request/${projectId}/update/${requestId}`)
             .send(update)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(update.name);
                 done();
             });
     });
 
-    it('should list all the created incoming http request in a project', function(done: $TSFixMe) {
+    it('should list all the created incoming http request in a project', function (done: $TSFixMe) {
         incidentRequest.name = 'anotherOne';
         incidentRequest.selectAllMonitors = false;
         incidentRequest.monitors = [monitorId];
@@ -261,13 +280,13 @@ describe('Incoming HTTP Request API', function() {
             .post(`/incoming-request/${projectId}/create-request-url`)
             .set('Authorization', authorization)
             .send(incidentRequest)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 requestId = res.body._id;
 
                 request
                     .get(`/incoming-request/${projectId}/all-incoming-request`)
                     .set('Authorization', authorization)
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         expect(res.body.data).to.be.an('array');
                         done();
@@ -275,11 +294,11 @@ describe('Incoming HTTP Request API', function() {
             });
     });
 
-    it('should create an incident with incoming http request url', function(done: $TSFixMe) {
+    it('should create an incident with incoming http request url', function (done: $TSFixMe) {
         axios({
             method: 'post',
             url: createIncidentUrl,
-        }).then(function(res) {
+        }).then(function (res) {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.created_incidents).to.be.an('array');
@@ -287,11 +306,11 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    it('should acknowledge an incident with an incoming http request url', function(done: $TSFixMe) {
+    it('should acknowledge an incident with an incoming http request url', function (done: $TSFixMe) {
         axios({
             method: 'post',
             url: acknowledgeIncidentUrl,
-        }).then(function(res) {
+        }).then(function (res) {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.acknowledged_incidents).to.be.an('array');
@@ -299,11 +318,11 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    it('should resolve an incident with an incoming http request url', function(done: $TSFixMe) {
+    it('should resolve an incident with an incoming http request url', function (done: $TSFixMe) {
         axios({
             method: 'post',
             url: resolveIncidentUrl,
-        }).then(function(res) {
+        }).then(function (res) {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.resolved_incidents).to.be.an('array');
@@ -311,12 +330,12 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    it('should add incident note with an incoming http request url', function(done: $TSFixMe) {
+    it('should add incident note with an incoming http request url', function (done: $TSFixMe) {
         // it should also work for a get request
         axios({
             method: 'get',
             url: incidentNoteUrl,
-        }).then(function(res) {
+        }).then(function (res) {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.notes_addedTo).to.be.an('array');
@@ -324,11 +343,11 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    it('should add internal note with an incoming http request url', function(done: $TSFixMe) {
+    it('should add internal note with an incoming http request url', function (done: $TSFixMe) {
         axios({
             method: 'get',
             url: internalNoteUrl,
-        }).then(function(res) {
+        }).then(function (res) {
             expect(res).to.have.status(200);
             expect(res.data.status).to.be.equal('success');
             expect(res.data.notes_addedTo).to.be.an('array');
@@ -336,11 +355,11 @@ describe('Incoming HTTP Request API', function() {
         });
     });
 
-    it('should delete an incoming http request in project', function(done: $TSFixMe) {
+    it('should delete an incoming http request in project', function (done: $TSFixMe) {
         request
             .delete(`/incoming-request/${projectId}/remove/${requestId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(String(res.body._id)).to.be.equal(String(requestId));
                 done();

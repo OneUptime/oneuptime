@@ -11,7 +11,7 @@ import handlePopulate from '../utils/populate';
 import RealTimeService from './realTimeService';
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const [
             applicationNameExist,
             gitRepositoryUrlExist,
@@ -70,7 +70,7 @@ export default {
         const applicationSecurity = await ApplicationSecurityModel.create(data);
         return applicationSecurity;
     },
-    findOneBy: async function({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -91,7 +91,13 @@ export default {
         const applicationSecurity = await applicationSecurityQuery;
         return applicationSecurity;
     },
-    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -122,7 +128,7 @@ export default {
         const applicationSecurities = await applicationSecuritiesQuery;
         return applicationSecurities;
     },
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData = null
@@ -133,22 +139,24 @@ export default {
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
-        let applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            { new: true }
-        ).populate('gitCredential');
+        let applicationSecurity =
+            await ApplicationSecurityModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            ).populate('gitCredential');
 
         if (unsetData) {
-            applicationSecurity = await ApplicationSecurityModel.findOneAndUpdate(
-                query,
-                { $unset: unsetData },
-                {
-                    new: true,
-                }
-            );
+            applicationSecurity =
+                await ApplicationSecurityModel.findOneAndUpdate(
+                    query,
+                    { $unset: unsetData },
+                    {
+                        new: true,
+                    }
+                );
         }
         if (!applicationSecurity) {
             const error = new Error(
@@ -179,7 +187,7 @@ export default {
         });
         return applicationSecurity;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         let applicationSecurity = await this.countBy(query);
 
         if (!applicationSecurity) {
@@ -228,14 +236,12 @@ export default {
         });
         return applicationSecurity;
     },
-    hardDelete: async function(query: $TSFixMe) {
+    hardDelete: async function (query: $TSFixMe) {
         await ApplicationSecurityModel.deleteMany(query);
         return 'Application Securities deleted successfully';
     },
-    getSecuritiesToScan: async function() {
-        const oneDay = moment()
-            .subtract(1, 'days')
-            .toDate();
+    getSecuritiesToScan: async function () {
+        const oneDay = moment().subtract(1, 'days').toDate();
 
         const populateApplicationSecurity = [
             {
@@ -246,8 +252,7 @@ export default {
             { path: 'resourceCategory', select: 'name' },
             {
                 path: 'gitCredential',
-                select:
-                    'sshTitle sshPrivateKey gitUsername gitPassword iv projectId deleted',
+                select: 'sshTitle sshPrivateKey gitUsername gitPassword iv projectId deleted',
             },
         ];
 
@@ -264,7 +269,7 @@ export default {
         });
         return securities;
     },
-    decryptPassword: async function(security: $TSFixMe) {
+    decryptPassword: async function (security: $TSFixMe) {
         const values = [];
         for (let i = 0; i <= 15; i++) values.push(security.gitCredential.iv[i]);
         const iv = Buffer.from(values);
@@ -274,7 +279,7 @@ export default {
         );
         return security;
     },
-    updateScanTime: async function(query: $TSFixMe) {
+    updateScanTime: async function (query: $TSFixMe) {
         const newDate = new Date();
         const applicationSecurity = await this.updateOneBy(query, {
             lastScan: newDate,

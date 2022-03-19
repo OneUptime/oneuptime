@@ -1,5 +1,5 @@
 export default {
-    findBy: async function({
+    findBy: async function ({
         query,
         limit,
         skip,
@@ -43,7 +43,7 @@ export default {
         return items;
     },
 
-    create: async function(
+    create: async function (
         from: $TSFixMe,
         to: $TSFixMe,
         projectId: $TSFixMe,
@@ -69,7 +69,7 @@ export default {
         return item;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -79,7 +79,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -95,11 +95,11 @@ export default {
         return items;
     },
 
-    hardDeleteBy: async function({ query }: $TSFixMe) {
+    hardDeleteBy: async function ({ query }: $TSFixMe) {
         await CallLogsModel.deleteMany(query);
     },
 
-    search: async function({ filter, skip, limit }: $TSFixMe) {
+    search: async function ({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             to: { $regex: new RegExp(filter), $options: 'i' },

@@ -179,7 +179,7 @@ const ping = (
  * @return {Object} The server monitor handlers.
  */
 
-export default function(
+export default function (
     config: $TSFixMe,
     apiUrl: $TSFixMe,
     apiKey: $TSFixMe,

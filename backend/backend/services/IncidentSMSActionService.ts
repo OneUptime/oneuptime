@@ -1,5 +1,5 @@
 export default {
-    get: async function(query: $TSFixMe) {
+    get: async function (query: $TSFixMe) {
         const alerts = await incidentSMSActionModel
             .find(query)
             .lean()

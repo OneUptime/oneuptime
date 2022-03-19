@@ -24,7 +24,7 @@ export function resendTokenSuccess(data: $TSFixMe) {
 }
 
 export function resendTokenReset() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({
             type: types.RESENDTOKEN_RESET,
         });
@@ -32,15 +32,15 @@ export function resendTokenReset() {
 }
 
 export function resendToken(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/resend', values);
         dispatch(resendTokenRequest(promise));
 
         promise.then(
-            function(data) {
+            function (data) {
                 dispatch(resendTokenSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

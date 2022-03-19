@@ -49,7 +49,7 @@ const sites = [
 let sitesIndex = 0;
 let checksFailed = false;
 
-child.on('message', function(score) {
+child.on('message', function (score) {
     const scores = [
         sites[sitesIndex - 1],
 

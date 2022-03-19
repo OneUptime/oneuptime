@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -27,7 +33,7 @@ export default {
         return incidents;
     },
 
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const _this = this;
 
         if (!data.monitors || data.monitors.length === 0) {
@@ -141,18 +147,16 @@ export default {
                 parentCount = pCount;
                 deletedParentCount = dpCount;
             }
-            const [
-                incidentsCountInProject,
-                deletedIncidentsCountInProject,
-            ] = await Promise.all([
-                _this.countBy({
-                    projectId: data.projectId,
-                }),
-                _this.countBy({
-                    projectId: data.projectId,
-                    deleted: true,
-                }),
-            ]);
+            const [incidentsCountInProject, deletedIncidentsCountInProject] =
+                await Promise.all([
+                    _this.countBy({
+                        projectId: data.projectId,
+                    }),
+                    _this.countBy({
+                        projectId: data.projectId,
+                        deleted: true,
+                    }),
+                ]);
 
             incident.projectId = data.projectId || null;
 
@@ -372,7 +376,7 @@ export default {
         }
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -382,7 +386,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -452,7 +456,7 @@ export default {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    findOneBy: async function({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -468,7 +472,7 @@ export default {
         return incident;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -541,7 +545,7 @@ export default {
         return updatedIncident;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -701,7 +705,7 @@ export default {
      * @param {string} name Name of user performing the action.
      * @returns {object} Promise with incident or error.
      */
-    acknowledge: async function(
+    acknowledge: async function (
         incidentId: $TSFixMe,
         userId: $TSFixMe,
         name: $TSFixMe,
@@ -731,9 +735,10 @@ export default {
                 }
             );
 
-            const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
-                incident.createdAt
-            );
+            const downtimestring =
+                IncidentUtilitiy.calculateHumanReadableDownTime(
+                    incident.createdAt
+                );
 
             try {
                 if (isEmpty(httpRequest)) {
@@ -916,7 +921,7 @@ export default {
     // Params:
     // Param 1: data: {incidentId}
     // Returns: promise with incident or error.
-    resolve: async function(
+    resolve: async function (
         incidentId: $TSFixMe,
         userId: $TSFixMe,
         name: $TSFixMe,
@@ -1055,7 +1060,7 @@ export default {
     },
 
     //
-    close: async function(incidentId: $TSFixMe, userId: $TSFixMe) {
+    close: async function (incidentId: $TSFixMe, userId: $TSFixMe) {
         const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
             $pull: { notClosedBy: userId },
         });
@@ -1063,7 +1068,7 @@ export default {
         return incident;
     },
 
-    getUnresolvedIncidents: async function(
+    getUnresolvedIncidents: async function (
         subProjectIds: $TSFixMe,
         userId: $TSFixMe,
         isHome = false
@@ -1129,7 +1134,7 @@ export default {
             : incidentsUnresolved.concat(incidentsResolved);
     },
 
-    getSubProjectIncidents: async function(projectId: $TSFixMe) {
+    getSubProjectIncidents: async function (projectId: $TSFixMe) {
         const _this = this;
         const populate = [
             {
@@ -1180,7 +1185,7 @@ export default {
         return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
     },
 
-    getComponentIncidents: async function(
+    getComponentIncidents: async function (
         projectId: $TSFixMe,
         componentId: $TSFixMe
     ) {
@@ -1230,7 +1235,7 @@ export default {
         return componentIncidents;
     },
 
-    getProjectComponentIncidents: async function(
+    getProjectComponentIncidents: async function (
         projectId: $TSFixMe,
         componentId: $TSFixMe,
         limit: $TSFixMe,
@@ -1279,7 +1284,7 @@ export default {
         ]);
         return { incidents, count, _id: projectId };
     },
-    sendIncidentResolvedNotification: async function(
+    sendIncidentResolvedNotification: async function (
         incident: $TSFixMe,
         name: $TSFixMe,
         monitor: $TSFixMe
@@ -1354,9 +1359,11 @@ export default {
 
         const msg = `${
             monitor.name
-        } monitor was down for ${downtimestring} and is now resolved by ${name ||
+        } monitor was down for ${downtimestring} and is now resolved by ${
+            name ||
             (resolvedincident.resolvedBy && resolvedincident.resolvedBy.name) ||
-            'oneuptime'}`;
+            'oneuptime'
+        }`;
 
         try {
             NotificationService.create(
@@ -1375,7 +1382,7 @@ export default {
         }
     },
 
-    sendIncidentNoteAdded: async function(
+    sendIncidentNoteAdded: async function (
         projectId: $TSFixMe,
         incident: $TSFixMe,
         data: $TSFixMe
@@ -1416,12 +1423,12 @@ export default {
         );
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await IncidentModel.deleteMany(query);
         return 'Incident(s) removed successfully!';
     },
 
-    restoreBy: async function(query: $TSFixMe) {
+    restoreBy: async function (query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         let incident = await _this.findBy({ query, select: '_id' });
@@ -1468,7 +1475,7 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function(monitorId: $TSFixMe, userId: $TSFixMe) {
+    removeMonitor: async function (monitorId: $TSFixMe, userId: $TSFixMe) {
         const _this = this;
         const incidents = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
@@ -1571,7 +1578,7 @@ export default {
         );
     },
 
-    startInterval: async function(
+    startInterval: async function (
         projectId: $TSFixMe,
         monitors: $TSFixMe,
         incident: $TSFixMe
@@ -1713,7 +1720,7 @@ export default {
         }
     },
 
-    clearInterval: function(incidentId: $TSFixMe) {
+    clearInterval: function (incidentId: $TSFixMe) {
         intervals = intervals.filter(interval => {
             if (String(interval.incidentId) === String(incidentId)) {
                 clearInterval(interval.intervalId);
@@ -1723,7 +1730,7 @@ export default {
         });
     },
 
-    refreshInterval: async function(incidentId: $TSFixMe) {
+    refreshInterval: async function (incidentId: $TSFixMe) {
         const _this = this;
         for (const interval of intervals) {
             if (String(interval.incidentId) === String(incidentId)) {

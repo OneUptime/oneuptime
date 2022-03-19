@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const Log = new MonitorLogModel();
         let responseBody = '';
         if (data.resp && data.resp.body) {
@@ -66,7 +66,7 @@ export default {
         return savedLog;
     },
 
-    updateAggregateLogs: async function(data: $TSFixMe) {
+    updateAggregateLogs: async function (data: $TSFixMe) {
         const now = new Date();
 
         const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
@@ -207,7 +207,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -282,8 +282,7 @@ export default {
         const populateMonitorLog = [
             {
                 path: 'probeId',
-                select:
-                    'createdAt lastAlive probeKey probeName version probeImage deleted',
+                select: 'createdAt lastAlive probeKey probeName version probeImage deleted',
             },
         ];
         const [monitor, logData] = await Promise.all([

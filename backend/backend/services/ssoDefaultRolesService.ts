@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -31,7 +37,7 @@ export default {
         const ssos = await ssosQuery;
         return ssos;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -44,7 +50,7 @@ export default {
         return sso;
     },
 
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         if (!data.domain) {
             const error = new Error('Domain must be defined.');
 
@@ -155,7 +161,7 @@ export default {
         return savedSso;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -173,7 +179,7 @@ export default {
         return sso;
     },
 
-    updateById: async function(id: $TSFixMe, data: $TSFixMe) {
+    updateById: async function (id: $TSFixMe, data: $TSFixMe) {
         if (!id) {
             const error = new Error('Id must be defined.');
 
@@ -266,7 +272,7 @@ export default {
         return ssodefaultRole;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -276,7 +282,7 @@ export default {
         const count = await ssoDefaultRolesModel.countDocuments(query);
         return count;
     },
-    addUserToDefaultProjects: async function({ domain, userId }: $TSFixMe) {
+    addUserToDefaultProjects: async function ({ domain, userId }: $TSFixMe) {
         const populateDefaultRoleSso = [
             { path: 'domain', select: '_id domain' },
             { path: 'project', select: '_id name' },
@@ -307,7 +313,7 @@ export default {
             await ProjectService.updateOneBy({ _id: projectId }, { users });
         }
     },
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await ssoDefaultRolesModel.deleteMany(query);
         return 'SSO(s) removed successfully!';
     },

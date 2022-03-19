@@ -20,7 +20,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageCategoryName } = req.body;
             const { statusPageId } = req.params;
@@ -72,7 +72,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageCategoryId } = req.params;
 
@@ -92,12 +92,13 @@ router.delete(
                 });
             }
 
-            const deletedStatusPageCategory = await StatusPageCategoryService.deleteBy(
-                {
-                    _id: statusPageCategoryId,
-                },
-                userId
-            );
+            const deletedStatusPageCategory =
+                await StatusPageCategoryService.deleteBy(
+                    {
+                        _id: statusPageCategoryId,
+                    },
+                    userId
+                );
             return sendItemResponse(req, res, deletedStatusPageCategory);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -111,7 +112,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { statusPageCategoryId } = req.params;
             const { statusPageCategoryName } = req.body;
@@ -145,12 +146,13 @@ router.put(
             }
 
             // Call the StatusPageCategoryService
-            const updatedStatusPageCategory = await StatusPageCategoryService.updateOneBy(
-                { _id: statusPageCategoryId },
-                {
-                    name: statusPageCategoryName,
-                }
-            );
+            const updatedStatusPageCategory =
+                await StatusPageCategoryService.updateOneBy(
+                    { _id: statusPageCategoryId },
+                    {
+                        name: statusPageCategoryName,
+                    }
+                );
             return sendItemResponse(req, res, updatedStatusPageCategory);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -158,42 +160,44 @@ router.put(
     }
 );
 
-router.get('/:projectId/:statusPageId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { statusPageId } = req.params;
-        const { limit, skip } = req.query;
+router.get(
+    '/:projectId/:statusPageId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { statusPageId } = req.params;
+            const { limit, skip } = req.query;
 
-        if (!statusPageId || !statusPageId.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Status page ID is required.',
-            });
-        }
+            if (!statusPageId || !statusPageId.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status page ID is required.',
+                });
+            }
 
-        if (typeof statusPageId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Status page ID is not of string type.',
-            });
+            if (typeof statusPageId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status page ID is not of string type.',
+                });
+            }
+            // Call the StatusPageCategoryService
+            const select = 'statusPageId name createdById createdAt';
+            const [statusPageCategories, count] = await Promise.all([
+                StatusPageCategoryService.findBy({
+                    query: { statusPageId },
+                    limit,
+                    skip,
+                    select,
+                }),
+                StatusPageCategoryService.countBy({ statusPageId }),
+            ]);
+            return sendListResponse(req, res, statusPageCategories, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        // Call the StatusPageCategoryService
-        const select = 'statusPageId name createdById createdAt';
-        const [statusPageCategories, count] = await Promise.all([
-            StatusPageCategoryService.findBy({
-                query: { statusPageId },
-                limit,
-                skip,
-                select,
-            }),
-            StatusPageCategoryService.countBy({ statusPageId }),
-        ]);
-        return sendListResponse(req, res, statusPageCategories, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 export default router;

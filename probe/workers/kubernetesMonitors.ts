@@ -12,7 +12,7 @@ import { serverUrl } from '../utils/config';
 import { deleteFile } from '../utils/fsHandlers';
 
 export default {
-    run: async function({ monitor }) {
+    run: async function ({ monitor }) {
         try {
             if (
                 monitor &&

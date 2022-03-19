@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         // prepare error event model
         const errorEvent = new ErrorEventModel();
 
@@ -154,39 +154,34 @@ export default {
                     issueId: issue._id,
                 };
                 // run a query to get the first and last error event that has current error tracker id and fingerprint hash
-                const [
-                    earliestErrorEvent,
-                    latestErrorEvent,
-                ] = await Promise.all([
-                    ErrorEventModel.findOne(innerQuery).sort({
-                        createdAt: 1,
-                    }),
-                    ErrorEventModel.findOne(innerQuery).sort({
-                        createdAt: -1,
-                    }),
-                ]);
-                // if we have an earliest and latest error event
-                if (earliestErrorEvent && latestErrorEvent) {
-                    const [
-                        totalNumberOfEvents,
-                        members,
-                        timeline,
-                    ] = await Promise.all([
-                        // get total number of events for that issue
-                        this.countBy(innerQuery),
-                        // we get the memebrs attached to this issue
-                        IssueMemberService.findBy({
-                            query: { issueId: issue._id, removed: false },
-                            select: selectIssueMember,
-                            populate: populateIssueMember,
+                const [earliestErrorEvent, latestErrorEvent] =
+                    await Promise.all([
+                        ErrorEventModel.findOne(innerQuery).sort({
+                            createdAt: 1,
                         }),
-                        // we get the timeline to attach to this issue
-                        IssueTimelineService.findBy({
-                            issueId: issue._id,
-                            populate: populateIssueTimeline,
-                            select: selectIssueTimeline,
+                        ErrorEventModel.findOne(innerQuery).sort({
+                            createdAt: -1,
                         }),
                     ]);
+                // if we have an earliest and latest error event
+                if (earliestErrorEvent && latestErrorEvent) {
+                    const [totalNumberOfEvents, members, timeline] =
+                        await Promise.all([
+                            // get total number of events for that issue
+                            this.countBy(innerQuery),
+                            // we get the memebrs attached to this issue
+                            IssueMemberService.findBy({
+                                query: { issueId: issue._id, removed: false },
+                                select: selectIssueMember,
+                                populate: populateIssueMember,
+                            }),
+                            // we get the timeline to attach to this issue
+                            IssueTimelineService.findBy({
+                                issueId: issue._id,
+                                populate: populateIssueTimeline,
+                                select: selectIssueTimeline,
+                            }),
+                        ]);
 
                     // fill in its biodata with the latest error event details
                     const errorEvent = {
@@ -364,7 +359,7 @@ export default {
 
         return count;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -388,7 +383,7 @@ export default {
 
         return errorEvent;
     },
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }

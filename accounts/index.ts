@@ -13,20 +13,24 @@ import compression from 'compression';
 
 app.use(compression());
 
-app.get(['/env.js', '/accounts/env.js'], function(req: Request, res: Response) {
-    const env = {
-        REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
-        REACT_APP_DISABLE_SIGNUP: process.env.DISABLE_SIGNUP,
-        REACT_APP_HOST: req.host,
-        REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
-        REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
-        REACT_APP_VERSION:
-            process.env.npm_package_version || process.env.REACT_APP_VERSION,
-    };
+app.get(
+    ['/env.js', '/accounts/env.js'],
+    function (req: Request, res: Response) {
+        const env = {
+            REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
+            REACT_APP_DISABLE_SIGNUP: process.env.DISABLE_SIGNUP,
+            REACT_APP_HOST: req.host,
+            REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
+            REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
+            REACT_APP_VERSION:
+                process.env.npm_package_version ||
+                process.env.REACT_APP_VERSION,
+        };
 
-    res.contentType('application/javascript');
-    res.send('window._env = ' + JSON.stringify(env));
-});
+        res.contentType('application/javascript');
+        res.send('window._env = ' + JSON.stringify(env));
+    }
+);
 
 app.use(express.static(path.join(__dirname, 'build')));
 
@@ -70,7 +74,7 @@ app.use(
 
 app.use('/accounts', express.static(path.join(__dirname, 'build')));
 
-app.get('/*', function(req: Request, res: Response) {
+app.get('/*', function (req: Request, res: Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

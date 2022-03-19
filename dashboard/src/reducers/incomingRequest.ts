@@ -180,9 +180,11 @@ export default function incomingRequest(
             };
 
         case types.DELETE_INCOMING_REQUEST_SUCCESS: {
-            const incomingRequests = state.incomingRequests.incomingRequests.filter(
-                request => String(request._id) !== String(action.payload._id)
-            );
+            const incomingRequests =
+                state.incomingRequests.incomingRequests.filter(
+                    request =>
+                        String(request._id) !== String(action.payload._id)
+                );
             return {
                 ...state,
                 deleteIncomingRequest: {

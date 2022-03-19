@@ -23,35 +23,36 @@ export const fetchUsersError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch all users.
-export const fetchUsers = (skip: $TSFixMe, limit: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
-    dispatch(fetchUsersRequest());
+export const fetchUsers =
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
+        dispatch(fetchUsersRequest());
 
-    try {
-        const response = await getApi(`user/users?skip=${skip}&limit=${limit}`);
+        try {
+            const response = await getApi(
+                `user/users?skip=${skip}&limit=${limit}`
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(fetchUsersSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchUsersSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchUsersError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchUsersError(errors(errorMsg)));
-    }
-};
+    };
 
 export const fetchUserRequest = () => {
     return {
@@ -178,55 +179,54 @@ export const updateUserSettingError = (error: $TSFixMe) => {
 };
 
 // Calls the API to update user setting.
-export const updateUserSetting = (values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    const data = new FormData();
-    if (values.profilePic && values.profilePic[0]) {
-        data.append(
-            'profilePic',
-            values.profilePic[0],
-            values.profilePic[0].name
-        );
-    }
-
-    data.append('name', values.name);
-    data.append('email', values.email);
-    data.append('companyPhoneNumber', values.companyPhoneNumber);
-    data.append('timezone', values.timezone);
-    dispatch(updateUserSettingRequest());
-
-    try {
-        const response = await putApi(`user/profile/${values._id}`, data);
-
-        const user = response.data;
-
-        dispatch(updateUserSettingSuccess(user));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+export const updateUserSetting =
+    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        const data = new FormData();
+        if (values.profilePic && values.profilePic[0]) {
+            data.append(
+                'profilePic',
+                values.profilePic[0],
+                values.profilePic[0].name
+            );
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
+
+        data.append('name', values.name);
+        data.append('email', values.email);
+        data.append('companyPhoneNumber', values.companyPhoneNumber);
+        data.append('timezone', values.timezone);
+        dispatch(updateUserSettingRequest());
+
+        try {
+            const response = await putApi(`user/profile/${values._id}`, data);
+
+            const user = response.data;
+
+            dispatch(updateUserSettingSuccess(user));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(updateUserSettingError(errors(errorMsg)));
         }
-        dispatch(updateUserSettingError(errors(errorMsg)));
-    }
-};
+    };
 
 export const logFile = (file: $TSFixMe) => {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({ type: 'LOG_FILE', payload: file });
     };
 };
 
 export const resetFile = () => {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({ type: 'RESET_FILE' });
     };
 };
@@ -421,36 +421,35 @@ export const enableAdminModeReset = () => {
 };
 
 // Enable admin mode
-export const enableAdminMode = (userId: $TSFixMe, values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(enableAdminModeRequest());
+export const enableAdminMode =
+    (userId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(enableAdminModeRequest());
 
-    try {
-        const response = await postApi(
-            `user/${userId}/switchToAdminMode`,
-            values
-        );
+        try {
+            const response = await postApi(
+                `user/${userId}/switchToAdminMode`,
+                values
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(enableAdminModeSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(enableAdminModeSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(enableAdminModeError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(enableAdminModeError(errors(errorMsg)));
-    }
-};
+    };
 
 //Disable Admin Mode
 export const disableAdminModeRequest = () => {
@@ -480,33 +479,32 @@ export const disableAdminModeReset = () => {
 };
 
 // Disable admin mode
-export const disableAdminMode = (userId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(disableAdminModeRequest());
+export const disableAdminMode =
+    (userId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(disableAdminModeRequest());
 
-    try {
-        const response = await postApi(`user/${userId}/exitAdminMode`);
+        try {
+            const response = await postApi(`user/${userId}/exitAdminMode`);
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(disableAdminModeSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(disableAdminModeSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(disableAdminModeError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(disableAdminModeError(errors(errorMsg)));
-    }
-};
+    };
 
 //Unblock user
 export const unblockUserRequest = () => {
@@ -590,33 +588,32 @@ export const addUserNoteError = (error: $TSFixMe) => {
 };
 
 // Calls the API to add Admin Note
-export const addUserNote = (userId: $TSFixMe, values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(addUserNoteRequest());
+export const addUserNote =
+    (userId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(addUserNoteRequest());
 
-    try {
-        const response = await postApi(`user/${userId}/addNote`, values);
+        try {
+            const response = await postApi(`user/${userId}/addNote`, values);
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(addUserNoteSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(addUserNoteSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(addUserNoteError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(addUserNoteError(errors(errorMsg)));
-    }
-};
+    };
 
 //Search Users
 export const searchUsersRequest = () => {
@@ -646,44 +643,42 @@ export const searchUsersError = (error: $TSFixMe) => {
 };
 
 // Calls the search users api
-export const searchUsers = (
-    filter: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    const values = {
-        filter,
+export const searchUsers =
+    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        const values = {
+            filter,
+        };
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
+
+        dispatch(searchUsersRequest());
+
+        try {
+            const response = await postApi(
+                `user/users/search?skip=${skip}&limit=${limit}`,
+                values
+            );
+
+            const data = response.data;
+
+            dispatch(searchUsersSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(searchUsersError(errors(errorMsg)));
+        }
     };
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
-
-    dispatch(searchUsersRequest());
-
-    try {
-        const response = await postApi(
-            `user/users/search?skip=${skip}&limit=${limit}`,
-            values
-        );
-
-        const data = response.data;
-
-        dispatch(searchUsersSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
-        }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(searchUsersError(errors(errorMsg)));
-    }
-};
 
 // Update user twoFactorAuthToken
 export function twoFactorAuthTokenRequest() {
@@ -707,16 +702,16 @@ export function twoFactorAuthTokenError(error: $TSFixMe) {
 }
 
 export function updateTwoFactorAuthToken(userId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -769,16 +764,16 @@ export function fetchUserloginHistory(
     skip: $TSFixMe,
     limit = 10
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`history/${userId}?skip=${skip}&limit=${limit}`);
         dispatch(fetchUserHistoryRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const payload = response.data;
                 dispatch(fetchUserHistorySuccess(payload));
                 return payload;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

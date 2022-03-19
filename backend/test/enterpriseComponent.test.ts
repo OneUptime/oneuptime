@@ -19,34 +19,35 @@ let token: $TSFixMe,
     newProjectId: $TSFixMe,
     componentId: $TSFixMe;
 
-describe('Enterprise Component API', function() {
+describe('Enterprise Component API', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createEnterpriseUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
+        GlobalConfig.initTestConfig().then(function () {
+            createEnterpriseUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
 
-                request
-                    .post('/user/login')
-                    .send({
-                        email: userData.user.email,
-                        password: userData.user.password,
-                    })
-                    .end(function(err: $TSFixMe, res: Response) {
-                        token = res.body.tokens.jwtAccessToken;
-                        done();
-                    });
-            });
+                    request
+                        .post('/user/login')
+                        .send({
+                            email: userData.user.email,
+                            password: userData.user.password,
+                        })
+                        .end(function (err: $TSFixMe, res: Response) {
+                            token = res.body.tokens.jwtAccessToken;
+                            done();
+                        });
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
@@ -57,7 +58,7 @@ describe('Enterprise Component API', function() {
         });
     });
 
-    it('should create a new component for project with no billing plan', function(done: $TSFixMe) {
+    it('should create a new component for project with no billing plan', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .post('/project/create')
@@ -65,7 +66,7 @@ describe('Enterprise Component API', function() {
             .send({
                 projectName: 'Test Project',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 newProjectId = res.body._id;
                 request
                     .post(`/component/${newProjectId}`)
@@ -73,7 +74,7 @@ describe('Enterprise Component API', function() {
                     .send({
                         name: 'New Component',
                     })
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         componentId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body.name).to.be.equal('New Component');

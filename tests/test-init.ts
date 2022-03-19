@@ -15,7 +15,7 @@ const _this = {
      */
 
     timeout: 180000, // 3 mins. If things take longer than 3 mins. We consider it a failure. Please do not add your custom timeout.
-    registerUser: async function(user: $TSFixMe, page: $TSFixMe) {
+    registerUser: async function (user: $TSFixMe, page: $TSFixMe) {
         if (
             utils.BACKEND_URL.includes('localhost') ||
             utils.BACKEND_URL.includes('staging.oneuptime.com') ||
@@ -161,7 +161,7 @@ const _this = {
             }
         }
     },
-    registerFailedUser: async function(user: $TSFixMe, page: $TSFixMe) {
+    registerFailedUser: async function (user: $TSFixMe, page: $TSFixMe) {
         if (
             utils.BACKEND_URL.includes('localhost') ||
             utils.BACKEND_URL.includes('staging.oneuptime.com') ||
@@ -296,7 +296,7 @@ const _this = {
             await _this.pageClick(page, 'button[type=submit]');
         }
     },
-    loginProjectViewer: async function(user: $TSFixMe, page: $TSFixMe) {
+    loginProjectViewer: async function (user: $TSFixMe, page: $TSFixMe) {
         const { email, password } =
             utils.BACKEND_URL.includes('localhost') ||
             utils.BACKEND_URL.includes('staging')
@@ -321,7 +321,7 @@ const _this = {
 
         await _this.pageClick(page, 'button[type=submit]');
     },
-    loginUser: async function(user: $TSFixMe, page: $TSFixMe) {
+    loginUser: async function (user: $TSFixMe, page: $TSFixMe) {
         const { email, password } =
             utils.BACKEND_URL.includes('localhost') ||
             utils.BACKEND_URL.includes('staging')
@@ -351,7 +351,7 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    loginAdminUser: async function(user: $TSFixMe, page: $TSFixMe) {
+    loginAdminUser: async function (user: $TSFixMe, page: $TSFixMe) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
@@ -376,7 +376,7 @@ const _this = {
 
         return;
     },
-    testSmptSettings: async function(page: $TSFixMe, email: $TSFixMe) {
+    testSmptSettings: async function (page: $TSFixMe, email: $TSFixMe) {
         await _this.pageWaitForSelector(page, '#settings');
 
         await _this.pageClick(page, '#settings');
@@ -405,7 +405,7 @@ const _this = {
 
         await _this.pageClick(page, '#confirmDelete');
     },
-    addEmailCredentials: async function(page: $TSFixMe, email: $TSFixMe) {
+    addEmailCredentials: async function (page: $TSFixMe, email: $TSFixMe) {
         await _this.pageWaitForSelector(page, '#settings');
 
         await _this.pageClick(page, '#settings');
@@ -496,7 +496,7 @@ const _this = {
 
         await _this.pageClick(page, '#confirmDelete');
     },
-    registerEnterpriseUser: async function(user: $TSFixMe, page: $TSFixMe) {
+    registerEnterpriseUser: async function (user: $TSFixMe, page: $TSFixMe) {
         const masterAdmin = {
             email: 'masteradmin@hackerbay.io',
             password: '1234567890',
@@ -614,7 +614,7 @@ const _this = {
             //catch
         }
     },
-    logout: async function(page: $TSFixMe) {
+    logout: async function (page: $TSFixMe) {
         await page.goto(utils.ADMIN_DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -630,7 +630,7 @@ const _this = {
         await _this.pageClick(page, 'button#logout-button');
         await page.reload();
     },
-    saasLogout: async function(page: $TSFixMe) {
+    saasLogout: async function (page: $TSFixMe) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await _this.pageWaitForSelector(page, 'button#profile-menu', {
             visible: true,
@@ -644,7 +644,7 @@ const _this = {
         await _this.pageClick(page, 'button#logout-button');
         await page.reload({ waitUntil: 'networkidle2' });
     },
-    selectDropdownValue: async function(
+    selectDropdownValue: async function (
         selector: $TSFixMe,
         text: $TSFixMe,
         page: $TSFixMe
@@ -654,12 +654,12 @@ const _this = {
         //'div.css-1gl4k7y' is used if present. However, it presence is not consistent
         await page.keyboard.press('Tab'); //String.fromCharCode(9) could not press tab
     },
-    clear: async function(selector: $TSFixMe, page: $TSFixMe) {
+    clear: async function (selector: $TSFixMe, page: $TSFixMe) {
         const input = await _this.page$(page, selector);
         await input.click({ clickCount: 3 });
         await input.type('');
     },
-    renameProject: async function(newProjectName: $TSFixMe, page: $TSFixMe) {
+    renameProject: async function (newProjectName: $TSFixMe, page: $TSFixMe) {
         await _this.pageWaitForSelector(page, '#projectSettings');
 
         await _this.pageClickNavigate(page, '#projectSettings');
@@ -671,7 +671,7 @@ const _this = {
 
         await _this.pageClick(page, '#btnCreateProject');
     },
-    addMonitor: async function(
+    addMonitor: async function (
         monitorName: $TSFixMe,
         description: $TSFixMe,
         page: $TSFixMe
@@ -706,7 +706,7 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    addAdditionalMonitor: async function(
+    addAdditionalMonitor: async function (
         monitorName: $TSFixMe,
         description: $TSFixMe,
         page: $TSFixMe
@@ -744,7 +744,7 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    navigateToComponentDetails: async function(
+    navigateToComponentDetails: async function (
         component: $TSFixMe,
         page: $TSFixMe
     ) {
@@ -766,7 +766,7 @@ const _this = {
             (e: $TSFixMe) => e.click()
         );
     },
-    addMonitorToStatusPage: async function(
+    addMonitorToStatusPage: async function (
         componentName: $TSFixMe,
         monitorName: $TSFixMe,
         additionalMonitor: $TSFixMe,
@@ -814,7 +814,7 @@ const _this = {
 
         await _this.pageClick(page, '#btnAddStatusPageMonitors');
     },
-    clickStatusPageUrl: async function(page: $TSFixMe) {
+    clickStatusPageUrl: async function (page: $TSFixMe) {
         await _this.pageWaitForSelector(page, '#publicStatusPageUrl');
 
         let link = await _this.page$(page, '#publicStatusPageUrl > span > a');
@@ -822,7 +822,7 @@ const _this = {
         link = await link.jsonValue();
         await page.goto(link, { waitUntil: ['networkidle2'] });
     },
-    navigateToStatusPage: async function(page: $TSFixMe) {
+    navigateToStatusPage: async function (page: $TSFixMe) {
         await _this.pageWaitForSelector(page, '#statusPages');
 
         await _this.pageClickNavigate(page, '#statusPages');
@@ -834,7 +834,7 @@ const _this = {
         await _this.pageClickNavigate(page, '#viewStatusPage');
         await _this.clickStatusPageUrl(page);
     },
-    growthPlanUpgrade: async function(page: $TSFixMe) {
+    growthPlanUpgrade: async function (page: $TSFixMe) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await _this.pageWaitForSelector(page, '#projectSettings', {
             visible: true,
@@ -855,7 +855,7 @@ const _this = {
         await _this.pageClick(page, '#changePlanBtn');
         await _this.pageWaitForSelector(page, '.ball-beat', { hidden: true });
     },
-    gotoTab: async function(tabId: $TSFixMe, page: $TSFixMe) {
+    gotoTab: async function (tabId: $TSFixMe, page: $TSFixMe) {
         await _this.pageWaitForSelector(page, `#react-tabs-${tabId}`, {
             visible: true,
             timeout: _this.timeout,
@@ -864,7 +864,7 @@ const _this = {
             e.click()
         );
     },
-    themeNavigationAndConfirmation: async function(
+    themeNavigationAndConfirmation: async function (
         page: $TSFixMe,
         theme: $TSFixMe
     ) {
@@ -889,7 +889,7 @@ const _this = {
 
         await _this.pageClick(page, '.basic-tab');
     },
-    registerAndLoggingTeamMember: async function(
+    registerAndLoggingTeamMember: async function (
         user: $TSFixMe,
         page: $TSFixMe
     ) {
@@ -961,7 +961,7 @@ const _this = {
         );
     },
 
-    adminLogout: async function(page: $TSFixMe) {
+    adminLogout: async function (page: $TSFixMe) {
         await page.goto(utils.ADMIN_DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -977,7 +977,7 @@ const _this = {
         await _this.pageClick(page, 'button#logout-button');
         await page.reload({ waitUntil: 'networkidle2' });
     },
-    addComponent: async function(
+    addComponent: async function (
         component: $TSFixMe,
         page: $TSFixMe,
         projectName = null
@@ -1008,7 +1008,7 @@ const _this = {
             page.waitForNavigation(),
         ]);
     },
-    addAdditionalComponent: async function(
+    addAdditionalComponent: async function (
         component: $TSFixMe,
         page: $TSFixMe,
         projectName = null
@@ -1044,7 +1044,7 @@ const _this = {
         ]);
     },
 
-    navigateToMonitorDetails: async function(
+    navigateToMonitorDetails: async function (
         component: $TSFixMe,
         monitor: $TSFixMe,
         page: $TSFixMe
@@ -1065,7 +1065,7 @@ const _this = {
             visible: true,
         });
     },
-    navigateToApplicationLogDetails: async function(
+    navigateToApplicationLogDetails: async function (
         component: $TSFixMe,
         applicationLog: $TSFixMe,
         page: $TSFixMe
@@ -1093,7 +1093,7 @@ const _this = {
             `#application-log-title-${applicationLog}`
         );
     },
-    navigateToErrorTrackerDetails: async function(
+    navigateToErrorTrackerDetails: async function (
         component: $TSFixMe,
         errorTracker: $TSFixMe,
         page: $TSFixMe
@@ -1119,7 +1119,7 @@ const _this = {
         );
     },
 
-    createUserFromAdminDashboard: async function(
+    createUserFromAdminDashboard: async function (
         user: $TSFixMe,
         page: $TSFixMe
     ) {
@@ -1163,7 +1163,7 @@ const _this = {
         await _this.pageClick(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, '#frmUser', { hidden: true });
     },
-    addSchedule: async function(
+    addSchedule: async function (
         callSchedule: $TSFixMe,
         projectName: $TSFixMe,
         page: $TSFixMe
@@ -1188,7 +1188,7 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    addSubProject: async function(subProjectName: $TSFixMe, page: $TSFixMe) {
+    addSubProject: async function (subProjectName: $TSFixMe, page: $TSFixMe) {
         const subProjectNameSelector = await _this.isElementOnPage(
             page,
             '#btn_Add_SubProjects',
@@ -1224,7 +1224,7 @@ const _this = {
             hidden: true,
         });
     },
-    addUserToProject: async function(data: $TSFixMe, page: $TSFixMe) {
+    addUserToProject: async function (data: $TSFixMe, page: $TSFixMe) {
         const { email, role, subProjectName } = data;
 
         await _this.pageWaitForSelector(page, '#teamMembers');
@@ -1245,7 +1245,7 @@ const _this = {
 
         await _this.pageClick(page, `#btn_modal_${subProjectName}`);
     },
-    switchProject: async function(projectName: $TSFixMe, page: $TSFixMe) {
+    switchProject: async function (projectName: $TSFixMe, page: $TSFixMe) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         await _this.pageWaitForSelector(page, '#AccountSwitcherId', {
             visible: true,
@@ -1265,7 +1265,7 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    addHttpTestServerMonitorToComponent: async function(
+    addHttpTestServerMonitorToComponent: async function (
         component: $TSFixMe,
         monitorName: $TSFixMe,
         page: $TSFixMe
@@ -1298,7 +1298,7 @@ const _this = {
             visible: true,
         });
     },
-    addMonitorToComponent: async function(
+    addMonitorToComponent: async function (
         component: $TSFixMe,
         monitorName: $TSFixMe,
         page: $TSFixMe
@@ -1331,7 +1331,7 @@ const _this = {
             visible: true,
         });
     },
-    addNewMonitorToComponent: async function(
+    addNewMonitorToComponent: async function (
         page: $TSFixMe,
         componentName: $TSFixMe,
         monitorName: $TSFixMe
@@ -1375,7 +1375,7 @@ const _this = {
             visible: true,
         });
     },
-    addAdditionalMonitorToComponent: async function(
+    addAdditionalMonitorToComponent: async function (
         page: $TSFixMe,
         componentName: $TSFixMe,
         monitorName: $TSFixMe
@@ -1429,7 +1429,7 @@ const _this = {
      * @param {string} monitorName the name of the new monitor
      * @param {{createAlertForOnline : boolean, createAlertForDegraded : boolean, createAlertForDown : boolean}} options
      */
-    addAPIMonitorWithJSExpression: async function(
+    addAPIMonitorWithJSExpression: async function (
         page: $TSFixMe,
         monitorName: $TSFixMe,
         options = {}
@@ -1578,7 +1578,7 @@ const _this = {
             page.waitForNavigation(),
         ]);
     },
-    addMonitorToSubProject: async function(
+    addMonitorToSubProject: async function (
         monitorName: $TSFixMe,
         projectName: $TSFixMe,
         componentName: $TSFixMe,
@@ -1604,7 +1604,7 @@ const _this = {
             visible: true,
         });
     },
-    addIncidentToProject: async function(
+    addIncidentToProject: async function (
         monitorName: $TSFixMe,
         projectName: $TSFixMe,
         page: $TSFixMe
@@ -1641,7 +1641,7 @@ const _this = {
             hidden: true,
         });
     },
-    addIncidentPriority: async function(
+    addIncidentPriority: async function (
         incidentPriority: $TSFixMe,
         page: $TSFixMe
     ) {
@@ -1683,7 +1683,7 @@ const _this = {
             hidden: true,
         });
     },
-    addStatusPageToProject: async function(
+    addStatusPageToProject: async function (
         statusPageName: $TSFixMe,
         projectName: $TSFixMe,
         page: $TSFixMe
@@ -1721,7 +1721,7 @@ const _this = {
             hidden: true,
         });
     },
-    addScheduleToProject: async function(
+    addScheduleToProject: async function (
         scheduleName: $TSFixMe,
         projectName: $TSFixMe,
         page: $TSFixMe
@@ -1763,7 +1763,7 @@ const _this = {
             await _this.pageClick(page, '#btnCreateSchedule');
         }
     },
-    addScheduledMaintenance: async function(
+    addScheduledMaintenance: async function (
         monitorName: $TSFixMe,
         scheduledEventName: $TSFixMe,
         componentName: $TSFixMe,
@@ -1857,7 +1857,7 @@ const _this = {
             request.continue();
         }
     },
-    addProject: async function(
+    addProject: async function (
         page: $TSFixMe,
         projectName = null,
         checkCard = false
@@ -1925,7 +1925,7 @@ const _this = {
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
-    addResourceCategory: async function(
+    addResourceCategory: async function (
         resourceCategory: $TSFixMe,
         page: $TSFixMe
     ) {
@@ -1964,7 +1964,7 @@ const _this = {
             visible: true,
         });
     },
-    addGrowthProject: async function(
+    addGrowthProject: async function (
         projectName = 'GrowthProject',
         page: $TSFixMe
     ) {
@@ -1996,7 +1996,7 @@ const _this = {
             await page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
-    addScaleProject: async function(
+    addScaleProject: async function (
         projectName = 'ScaleProject',
         page: $TSFixMe
     ) {
@@ -2028,7 +2028,7 @@ const _this = {
             await page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
-    addScheduledMaintenanceNote: async function(
+    addScheduledMaintenanceNote: async function (
         page: $TSFixMe,
         type: $TSFixMe,
         eventBtn: $TSFixMe,
@@ -2076,7 +2076,7 @@ const _this = {
             }
         );
     },
-    addIncident: async function(
+    addIncident: async function (
         monitorName: $TSFixMe,
         incidentType: $TSFixMe,
         page: $TSFixMe,
@@ -2121,7 +2121,7 @@ const _this = {
         });
         await _this.pageWaitForSelector(page, '.ball-beat', { hidden: true });
     },
-    addTwilioSettings: async function(
+    addTwilioSettings: async function (
         enableSms: $TSFixMe,
         accountSid: $TSFixMe,
         authToken: $TSFixMe,
@@ -2160,7 +2160,7 @@ const _this = {
 
         await _this.pageWaitForSelector(page, '#accountSid');
     },
-    addGlobalTwilioSettings: async function(
+    addGlobalTwilioSettings: async function (
         enableSms: $TSFixMe,
         enableCalls: $TSFixMe,
         accountSid: $TSFixMe,
@@ -2208,7 +2208,7 @@ const _this = {
 
         await _this.pageWaitForSelector(page, '#account-sid');
     },
-    addSmtpSettings: async function(
+    addSmtpSettings: async function (
         enable: $TSFixMe,
         user: $TSFixMe,
         pass: $TSFixMe,
@@ -2299,7 +2299,7 @@ const _this = {
 
         await _this.pageWaitForSelector(page, '#successMessage');
     },
-    addAnExternalSubscriber: async function(
+    addAnExternalSubscriber: async function (
         componentName: $TSFixMe,
         monitorName: $TSFixMe,
         alertType: $TSFixMe,
@@ -2336,7 +2336,7 @@ const _this = {
 
         await _this.pageClick(page, '#createSubscriber');
     },
-    addCustomField: async function(
+    addCustomField: async function (
         page: $TSFixMe,
         data: $TSFixMe,
         owner: $TSFixMe
@@ -2400,7 +2400,7 @@ const _this = {
             hidden: true,
         });
     },
-    navigateToCustomField: async function(page: $TSFixMe) {
+    navigateToCustomField: async function (page: $TSFixMe) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
@@ -2419,7 +2419,7 @@ const _this = {
 
         await _this.pageClick(page, '.advanced-tab');
     },
-    pageType: async function(
+    pageType: async function (
         page: $TSFixMe,
         selector: $TSFixMe,
         text: $TSFixMe,
@@ -2432,7 +2432,7 @@ const _this = {
         await page.focus(selector);
         return await page.type(selector, text, opts);
     },
-    pageClick: async function(
+    pageClick: async function (
         page: $TSFixMe,
         selector: $TSFixMe,
         opts: $TSFixMe
@@ -2443,7 +2443,7 @@ const _this = {
         });
         return await page.click(selector, opts);
     },
-    page$Eval: async function(
+    page$Eval: async function (
         page: $TSFixMe,
         selector: $TSFixMe,
         evalFunction: $TSFixMe,
@@ -2452,7 +2452,7 @@ const _this = {
         await _this.pageWaitForSelector(page, selector, opts);
         return await page.$eval(selector, evalFunction);
     },
-    page$$Eval: async function(
+    page$$Eval: async function (
         page: $TSFixMe,
         selector: $TSFixMe,
         evalFunction: $TSFixMe
@@ -2460,15 +2460,19 @@ const _this = {
         await _this.pageWaitForSelector(page, selector);
         return await page.$$eval(selector, evalFunction);
     },
-    page$: async function(page: $TSFixMe, selector: $TSFixMe, opts: $TSFixMe) {
+    page$: async function (page: $TSFixMe, selector: $TSFixMe, opts: $TSFixMe) {
         await _this.pageWaitForSelector(page, selector, opts);
         return await page.$(selector, opts);
     },
-    page$$: async function(page: $TSFixMe, selector: $TSFixMe, opts: $TSFixMe) {
+    page$$: async function (
+        page: $TSFixMe,
+        selector: $TSFixMe,
+        opts: $TSFixMe
+    ) {
         await _this.pageWaitForSelector(page, selector);
         return await page.$$(selector, opts);
     },
-    pageWaitForSelector: async function(
+    pageWaitForSelector: async function (
         page: $TSFixMe,
         selector: $TSFixMe,
         opts: $TSFixMe
@@ -2488,14 +2492,14 @@ const _this = {
             ...opts,
         });
     },
-    isElementOnPage: async function(page: $TSFixMe, selector: $TSFixMe) {
+    isElementOnPage: async function (page: $TSFixMe, selector: $TSFixMe) {
         if (await page.$(selector)) {
             return true;
         } else {
             return false;
         }
     },
-    pageClickNavigate: async function(
+    pageClickNavigate: async function (
         page: $TSFixMe,
         selector: $TSFixMe,
         opts: $TSFixMe
@@ -2509,7 +2513,7 @@ const _this = {
             page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
         ]);
     },
-    navigateToTwilio: async function(page: $TSFixMe) {
+    navigateToTwilio: async function (page: $TSFixMe) {
         await page.goto(utils.DASHBOARD_URL);
         await _this.pageWaitForSelector(page, '#projectSettings', {
             visible: true,
@@ -2526,7 +2530,7 @@ const _this = {
 
         await _this.pageClick(page, '#smsCalls');
     },
-    navigateToSmtp: async function(page: $TSFixMe) {
+    navigateToSmtp: async function (page: $TSFixMe) {
         await page.goto(utils.DASHBOARD_URL);
         await _this.pageWaitForSelector(page, '#projectSettings', {
             visible: true,

@@ -188,24 +188,24 @@ checkParams(questions).then(values => {
             grow: 0.5,
         });
 
-        svc.on('install', function() {
+        svc.on('install', function () {
             logger.info('OneUptime Server Monitor daemon installed');
             svc.start();
         });
 
-        svc.on('alreadyinstalled', function() {
+        svc.on('alreadyinstalled', function () {
             logger.warn('OneUptime Server Monitor daemon already installed');
         });
 
-        svc.on('start', function() {
+        svc.on('start', function () {
             logger.info('OneUptime Server Monitor daemon started');
         });
 
-        svc.on('stop', function() {
+        svc.on('stop', function () {
             logger.info('OneUptime Server Monitor daemon stopped');
         });
 
-        svc.on('uninstall', function() {
+        svc.on('uninstall', function () {
             logger.info('OneUptime Server Monitor uninstalled');
         });
 

@@ -3,11 +3,11 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const apiStatus = await ApiStatusModel.create(data);
         return apiStatus;
     },
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -20,7 +20,7 @@ export default {
         const apiStatus = await apiStatusQuery;
         return apiStatus;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
         if (!query) query = {};
 
@@ -41,7 +41,7 @@ export default {
 
         return apiStatus;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         const apiStatus = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),

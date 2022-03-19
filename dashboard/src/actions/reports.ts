@@ -24,36 +24,38 @@ export const getActiveMembersError = (error: $TSFixMe) => {
     };
 };
 
-export const getActiveMembers = (
-    projectId: $TSFixMe,
-    startDate: $TSFixMe,
-    endDate: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        const promise = getApi(
-            `reports/${projectId}/active-members?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`
-        );
-        dispatch(getActiveMembersRequest(promise));
-        const members = await promise;
+export const getActiveMembers =
+    (
+        projectId: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            const promise = getApi(
+                `reports/${projectId}/active-members?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`
+            );
+            dispatch(getActiveMembersRequest(promise));
+            const members = await promise;
 
-        dispatch(getActiveMembersSuccess(members.data));
-    } catch (error) {
-        let newerror = error;
-        if (newerror && newerror.response && newerror.response.data)
-            newerror = newerror.response.data;
-        if (newerror && newerror.data) {
-            newerror = newerror.data;
+            dispatch(getActiveMembersSuccess(members.data));
+        } catch (error) {
+            let newerror = error;
+            if (newerror && newerror.response && newerror.response.data)
+                newerror = newerror.response.data;
+            if (newerror && newerror.data) {
+                newerror = newerror.data;
+            }
+            if (newerror && newerror.message) {
+                newerror = newerror.message;
+            } else {
+                newerror = 'Network Error';
+            }
+            dispatch(getActiveMembersError(newerror));
         }
-        if (newerror && newerror.message) {
-            newerror = newerror.message;
-        } else {
-            newerror = 'Network Error';
-        }
-        dispatch(getActiveMembersError(newerror));
-    }
-};
+    };
 
 export const getActiveMonitorsRequest = (promise: $TSFixMe) => {
     return {
@@ -76,37 +78,40 @@ export const getActiveMonitorsError = (error: $TSFixMe) => {
     };
 };
 
-export const getActiveMonitors = (
-    projectId: $TSFixMe,
-    startDate: $TSFixMe,
-    endDate: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        const promise = getApi(
-            `reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${skip ||
-                0}&limit=${limit || 0}`
-        );
-        dispatch(getActiveMonitorsRequest(promise));
-        const monitors = await promise;
+export const getActiveMonitors =
+    (
+        projectId: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe,
+        skip: $TSFixMe,
+        limit: $TSFixMe
+    ) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            const promise = getApi(
+                `reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${
+                    skip || 0
+                }&limit=${limit || 0}`
+            );
+            dispatch(getActiveMonitorsRequest(promise));
+            const monitors = await promise;
 
-        dispatch(getActiveMonitorsSuccess(monitors.data));
-    } catch (error) {
-        let newerror = error;
-        if (newerror && newerror.response && newerror.response.data)
-            newerror = newerror.response.data;
-        if (newerror && newerror.data) {
-            newerror = newerror.data;
+            dispatch(getActiveMonitorsSuccess(monitors.data));
+        } catch (error) {
+            let newerror = error;
+            if (newerror && newerror.response && newerror.response.data)
+                newerror = newerror.response.data;
+            if (newerror && newerror.data) {
+                newerror = newerror.data;
+            }
+            if (newerror && newerror.message) {
+                newerror = newerror.message;
+            } else {
+                newerror = 'Network Error';
+            }
+            dispatch(getActiveMonitorsError(newerror));
         }
-        if (newerror && newerror.message) {
-            newerror = newerror.message;
-        } else {
-            newerror = 'Network Error';
-        }
-        dispatch(getActiveMonitorsError(newerror));
-    }
-};
+    };
 
 export const getIncidentsRequest = (promise: $TSFixMe) => {
     return {
@@ -129,35 +134,37 @@ export const getIncidentsError = (error: $TSFixMe) => {
     };
 };
 
-export const getIncidents = (
-    projectId: $TSFixMe,
-    filter: $TSFixMe,
-    startDate: $TSFixMe,
-    endDate: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        const promise = getApi(
-            `reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
-        );
-        dispatch(getIncidentsRequest(promise));
-        const reports = await promise;
+export const getIncidents =
+    (
+        projectId: $TSFixMe,
+        filter: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe
+    ) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            const promise = getApi(
+                `reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
+            );
+            dispatch(getIncidentsRequest(promise));
+            const reports = await promise;
 
-        dispatch(getIncidentsSuccess(reports.data));
-    } catch (error) {
-        let newerror = error;
-        if (newerror && newerror.response && newerror.response.data)
-            newerror = newerror.response.data;
-        if (newerror && newerror.data) {
-            newerror = newerror.data;
+            dispatch(getIncidentsSuccess(reports.data));
+        } catch (error) {
+            let newerror = error;
+            if (newerror && newerror.response && newerror.response.data)
+                newerror = newerror.response.data;
+            if (newerror && newerror.data) {
+                newerror = newerror.data;
+            }
+            if (newerror && newerror.message) {
+                newerror = newerror.message;
+            } else {
+                newerror = 'Network Error';
+            }
+            dispatch(getIncidentsError(newerror));
         }
-        if (newerror && newerror.message) {
-            newerror = newerror.message;
-        } else {
-            newerror = 'Network Error';
-        }
-        dispatch(getIncidentsError(newerror));
-    }
-};
+    };
 
 export const getResolveTimeRequest = (promise: $TSFixMe) => {
     return {
@@ -180,32 +187,34 @@ export const getResolveTimeError = (error: $TSFixMe) => {
     };
 };
 
-export const getResolveTime = (
-    projectId: $TSFixMe,
-    filter: $TSFixMe,
-    startDate: $TSFixMe,
-    endDate: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    try {
-        const promise = getApi(
-            `reports/${projectId}/average-resolved?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
-        );
-        dispatch(getResolveTimeRequest(promise));
-        const reports = await promise;
+export const getResolveTime =
+    (
+        projectId: $TSFixMe,
+        filter: $TSFixMe,
+        startDate: $TSFixMe,
+        endDate: $TSFixMe
+    ) =>
+    async (dispatch: $TSFixMe) => {
+        try {
+            const promise = getApi(
+                `reports/${projectId}/average-resolved?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
+            );
+            dispatch(getResolveTimeRequest(promise));
+            const reports = await promise;
 
-        dispatch(getResolveTimeSuccess(reports.data));
-    } catch (error) {
-        let newerror = error;
-        if (newerror && newerror.response && newerror.response.data)
-            newerror = newerror.response.data;
-        if (newerror && newerror.data) {
-            newerror = newerror.data;
+            dispatch(getResolveTimeSuccess(reports.data));
+        } catch (error) {
+            let newerror = error;
+            if (newerror && newerror.response && newerror.response.data)
+                newerror = newerror.response.data;
+            if (newerror && newerror.data) {
+                newerror = newerror.data;
+            }
+            if (newerror && newerror.message) {
+                newerror = newerror.message;
+            } else {
+                newerror = 'Network Error';
+            }
+            dispatch(getResolveTimeError(newerror));
         }
-        if (newerror && newerror.message) {
-            newerror = newerror.message;
-        } else {
-            newerror = 'Network Error';
-        }
-        dispatch(getResolveTimeError(newerror));
-    }
-};
+    };

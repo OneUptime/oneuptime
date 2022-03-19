@@ -16,31 +16,31 @@ export const createIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const createIncidentNoteTemplate = ({ projectId, data }: $TSFixMe) => (
-    dispatch: $TSFixMe
-) => {
-    dispatch(createIncidentNoteTemplateRequest());
-    const promise = postApi(`incidentNoteTemplate/${projectId}`, data);
+export const createIncidentNoteTemplate =
+    ({ projectId, data }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(createIncidentNoteTemplateRequest());
+        const promise = postApi(`incidentNoteTemplate/${projectId}`, data);
 
-    promise.then(
-        function(response) {
-            dispatch(createIncidentNoteTemplateSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(createIncidentNoteTemplateFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(createIncidentNoteTemplateSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(createIncidentNoteTemplateFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 // FETCH INCIDENT NOTE TEMPLATE
 export const fetchIncidentNoteTemplatesRequest = () => ({
@@ -57,35 +57,33 @@ export const fetchIncidentNoteTemplatesFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchIncidentNoteTemplates = ({
-    projectId,
-    skip = 0,
-    limit = 0,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    dispatch(fetchIncidentNoteTemplatesRequest());
-    const promise = getApi(
-        `incidentNoteTemplate/${projectId}?skip=${skip}&limit=${limit}`
-    );
+export const fetchIncidentNoteTemplates =
+    ({ projectId, skip = 0, limit = 0 }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(fetchIncidentNoteTemplatesRequest());
+        const promise = getApi(
+            `incidentNoteTemplate/${projectId}?skip=${skip}&limit=${limit}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(fetchIncidentNoteTemplatesSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(fetchIncidentNoteTemplatesFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(fetchIncidentNoteTemplatesSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchIncidentNoteTemplatesFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 // UPDATE INCIDENT NOTE TEMPLATE
 export const updateIncidentNoteTemplateRequest = () => ({
@@ -102,36 +100,34 @@ export const updateIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const updateIncidentNoteTemplate = ({
-    projectId,
-    templateId,
-    data,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    dispatch(updateIncidentNoteTemplateRequest());
-    const promise = putApi(
-        `incidentNoteTemplate/${projectId}/${templateId}`,
-        data
-    );
+export const updateIncidentNoteTemplate =
+    ({ projectId, templateId, data }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(updateIncidentNoteTemplateRequest());
+        const promise = putApi(
+            `incidentNoteTemplate/${projectId}/${templateId}`,
+            data
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(updateIncidentNoteTemplateSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(updateIncidentNoteTemplateFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(updateIncidentNoteTemplateSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(updateIncidentNoteTemplateFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 // DELETE INCIDENT NOTE TEMPLATE
 export const deleteIncidentNoteTemplateRequest = () => ({
@@ -148,32 +144,31 @@ export const deleteIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteIncidentNoteTemplate = ({
-    projectId,
-    templateId,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    dispatch(deleteIncidentNoteTemplateRequest());
+export const deleteIncidentNoteTemplate =
+    ({ projectId, templateId }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(deleteIncidentNoteTemplateRequest());
 
-    const promise = deleteApi(
-        `incidentNoteTemplate/${projectId}/${templateId}`
-    );
+        const promise = deleteApi(
+            `incidentNoteTemplate/${projectId}/${templateId}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(deleteIncidentNoteTemplateSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(deleteIncidentNoteTemplateFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(deleteIncidentNoteTemplateSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(deleteIncidentNoteTemplateFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };

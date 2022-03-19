@@ -64,129 +64,149 @@ const updatedInvestigationNote = {
     content: 'Just updated this note',
 };
 
-describe('Scheduled Event Note', function() {
+describe('Scheduled Event Note', function () {
     this.timeout(20000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                userId = res.body.id;
-                projectId = project._id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    userId = res.body.id;
+                    projectId = project._id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
-                                    ComponentModel.create({
-                                        name: 'Test Component',
-                                    }).then(component => {
-                                        componentId = component._id;
-                                        request
-                                            .post(`/monitor/${projectId}`)
-                                            .set('Authorization', authorization)
-                                            .send({
-                                                name: 'New Monitor 1',
-                                                type: 'url',
-                                                data: {
-                                                    url: 'http://www.tests.org',
-                                                },
-                                                componentId,
-                                            })
-                                            .end(async function(
-                                                err: $TSFixMe,
-                                                res: Response
-                                            ) {
-                                                monitorId = res.body._id;
-
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
+                                            err: $TSFixMe,
+                                            res: Response
+                                        ) {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            const authorization = `Basic ${token}`;
+                                            ComponentModel.create({
+                                                name: 'Test Component',
+                                            }).then(component => {
+                                                componentId = component._id;
                                                 request
                                                     .post(
-                                                        `/scheduledEvent/${projectId}`
+                                                        `/monitor/${projectId}`
                                                     )
                                                     .set(
                                                         'Authorization',
                                                         authorization
                                                     )
                                                     .send({
-                                                        ...scheduledEvent,
-                                                        monitors: [monitorId],
+                                                        name: 'New Monitor 1',
+                                                        type: 'url',
+                                                        data: {
+                                                            url: 'http://www.tests.org',
+                                                        },
+                                                        componentId,
                                                     })
-                                                    .end(async function(
+                                                    .end(async function (
                                                         err: $TSFixMe,
                                                         res: Response
                                                     ) {
-                                                        scheduledEventId =
+                                                        monitorId =
                                                             res.body._id;
 
-                                                        const scheduledEventNotes = [];
+                                                        request
+                                                            .post(
+                                                                `/scheduledEvent/${projectId}`
+                                                            )
+                                                            .set(
+                                                                'Authorization',
+                                                                authorization
+                                                            )
+                                                            .send({
+                                                                ...scheduledEvent,
+                                                                monitors: [
+                                                                    monitorId,
+                                                                ],
+                                                            })
+                                                            .end(
+                                                                async function (
+                                                                    err: $TSFixMe,
+                                                                    res: Response
+                                                                ) {
+                                                                    scheduledEventId =
+                                                                        res.body
+                                                                            ._id;
 
-                                                        for (
-                                                            let i = 0;
-                                                            i < 12;
-                                                            i++
-                                                        ) {
-                                                            scheduledEventNotes.push(
-                                                                {
-                                                                    type:
-                                                                        'internal',
-                                                                    event_state:
-                                                                        'update',
-                                                                    content:
-                                                                        'This is an update for internal',
+                                                                    const scheduledEventNotes =
+                                                                        [];
+
+                                                                    for (
+                                                                        let i = 0;
+                                                                        i < 12;
+                                                                        i++
+                                                                    ) {
+                                                                        scheduledEventNotes.push(
+                                                                            {
+                                                                                type: 'internal',
+                                                                                event_state:
+                                                                                    'update',
+                                                                                content:
+                                                                                    'This is an update for internal',
+                                                                            }
+                                                                        );
+                                                                    }
+
+                                                                    const createdScheduledEventNotes =
+                                                                        scheduledEventNotes.map(
+                                                                            async scheduledEventNote => {
+                                                                                const sentRequests =
+                                                                                    await request
+                                                                                        .post(
+                                                                                            `/scheduledEvent/${projectId}/${scheduledEventId}/notes`
+                                                                                        )
+                                                                                        .set(
+                                                                                            'Authorization',
+                                                                                            authorization
+                                                                                        )
+                                                                                        .send(
+                                                                                            scheduledEventNote
+                                                                                        );
+                                                                                return sentRequests;
+                                                                            }
+                                                                        );
+
+                                                                    await Promise.all(
+                                                                        createdScheduledEventNotes
+                                                                    );
+
+                                                                    done();
                                                                 }
                                                             );
-                                                        }
-
-                                                        const createdScheduledEventNotes = scheduledEventNotes.map(
-                                                            async scheduledEventNote => {
-                                                                const sentRequests = await request
-                                                                    .post(
-                                                                        `/scheduledEvent/${projectId}/${scheduledEventId}/notes`
-                                                                    )
-                                                                    .set(
-                                                                        'Authorization',
-                                                                        authorization
-                                                                    )
-                                                                    .send(
-                                                                        scheduledEventNote
-                                                                    );
-                                                                return sentRequests;
-                                                            }
-                                                        );
-
-                                                        await Promise.all(
-                                                            createdScheduledEventNotes
-                                                        );
-
-                                                        done();
                                                     });
                                             });
-                                    });
+                                        });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -207,7 +227,7 @@ describe('Scheduled Event Note', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should get all scheduled event notes => internal notes', function(done: $TSFixMe) {
+    it('should get all scheduled event notes => internal notes', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -224,7 +244,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should get first 10 scheduled event notes for data length 10, skip 0, limit 10 and count 12 => internal notes', function(done: $TSFixMe) {
+    it('should get first 10 scheduled event notes for data length 10, skip 0, limit 10 and count 12 => internal notes', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -238,22 +258,16 @@ describe('Scheduled Event Note', function() {
                 expect(res.body.data).to.be.an('array');
                 expect(res.body.data).to.have.length(10);
                 expect(res.body).to.have.property('count');
-                expect(parseInt(res.body.count))
-                    .to.be.a('number')
-                    .to.equal(12);
+                expect(parseInt(res.body.count)).to.be.a('number').to.equal(12);
                 expect(res.body).to.have.property('skip');
-                expect(parseInt(res.body.skip))
-                    .to.be.a('number')
-                    .to.equal(0);
+                expect(parseInt(res.body.skip)).to.be.a('number').to.equal(0);
                 expect(res.body).to.have.property('limit');
-                expect(parseInt(res.body.limit))
-                    .to.be.a('number')
-                    .to.equal(10);
+                expect(parseInt(res.body.limit)).to.be.a('number').to.equal(10);
                 done();
             });
     });
 
-    it('should get 2 last scheduled events notes with data length 2, skip 10, limit 10 and count 12 => internal notes', function(done: $TSFixMe) {
+    it('should get 2 last scheduled events notes with data length 2, skip 10, limit 10 and count 12 => internal notes', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -267,22 +281,16 @@ describe('Scheduled Event Note', function() {
                 expect(res.body.data).to.be.an('array');
                 expect(res.body.data).to.have.length(2);
                 expect(res.body).to.have.property('count');
-                expect(parseInt(res.body.count))
-                    .to.be.a('number')
-                    .to.equal(12);
+                expect(parseInt(res.body.count)).to.be.a('number').to.equal(12);
                 expect(res.body).to.have.property('skip');
-                expect(parseInt(res.body.skip))
-                    .to.be.a('number')
-                    .to.equal(10);
+                expect(parseInt(res.body.skip)).to.be.a('number').to.equal(10);
                 expect(res.body).to.have.property('limit');
-                expect(parseInt(res.body.limit))
-                    .to.be.a('number')
-                    .to.equal(10);
+                expect(parseInt(res.body.limit)).to.be.a('number').to.equal(10);
                 done();
             });
     });
 
-    it('should create a scheduled event note => internal note', function(done: $TSFixMe) {
+    it('should create a scheduled event note => internal note', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -297,7 +305,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should create a scheduled event note => investigation note', function(done: $TSFixMe) {
+    it('should create a scheduled event note => investigation note', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -312,7 +320,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should not create a scheduled event note if any of the field is missing', function(done: $TSFixMe) {
+    it('should not create a scheduled event note if any of the field is missing', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -325,7 +333,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should not creat a scheduled event note if type field is not investigation or internal', function(done: $TSFixMe) {
+    it('should not creat a scheduled event note if type field is not investigation or internal', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -338,7 +346,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should update a note => internal note', function(done: $TSFixMe) {
+    it('should update a note => internal note', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -356,7 +364,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should update a note => investigation note', function(done: $TSFixMe) {
+    it('should update a note => investigation note', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -374,7 +382,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should not update a note if the scheduled event note does not exist', function(done: $TSFixMe) {
+    it('should not update a note if the scheduled event note does not exist', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const noteId = projectId;
 
@@ -390,7 +398,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should delete a scheduled event note => internal note', function(done: $TSFixMe) {
+    it('should delete a scheduled event note => internal note', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -405,7 +413,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should delete a scheduled event note => investigation note', function(done: $TSFixMe) {
+    it('should delete a scheduled event note => investigation note', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
 
         request
@@ -420,7 +428,7 @@ describe('Scheduled Event Note', function() {
             });
     });
 
-    it('should note delete a scheduled event note if it does not exist', function(done: $TSFixMe) {
+    it('should note delete a scheduled event note if it does not exist', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         const noteId = projectId;
 

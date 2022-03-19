@@ -19,7 +19,7 @@ import ProjectService from '../backend/services/projectService';
 import ComponentService from '../backend/services/componentService';
 import MonitorCustomFieldService from '../backend/services/monitorCustomField';
 
-describe('Monitor Custom Field API', function() {
+describe('Monitor Custom Field API', function () {
     const timeout = 30000;
     let projectId: $TSFixMe,
         userId,
@@ -38,42 +38,49 @@ describe('Monitor Custom Field API', function() {
 
     this.timeout(timeout);
 
-    before(function(done: $TSFixMe) {
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+    before(function (done: $TSFixMe) {
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    authorization = `Basic ${token}`;
-                                    done();
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
+                                    request
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
+                                            err: $TSFixMe,
+                                            res: Response
+                                        ) {
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            authorization = `Basic ${token}`;
+                                            done();
+                                        });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -84,36 +91,36 @@ describe('Monitor Custom Field API', function() {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should not create a monitor custom field when field name is missing or not specified', function(done: $TSFixMe) {
+    it('should not create a monitor custom field when field name is missing or not specified', function (done: $TSFixMe) {
         request
             .post(`/monitorCustomField/${projectId}`)
             .send({ fieldType: 'text' })
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Field name is required');
                 done();
             });
     });
 
-    it('should not create a monitor custom field when field type is missing or not specified', function(done: $TSFixMe) {
+    it('should not create a monitor custom field when field type is missing or not specified', function (done: $TSFixMe) {
         request
             .post(`/monitorCustomField/${projectId}`)
             .send({ fieldName: 'missingType' })
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Field type is required');
                 done();
             });
     });
 
-    it('should setup custom fields for all monitors in a project (text)', function(done: $TSFixMe) {
+    it('should setup custom fields for all monitors in a project (text)', function (done: $TSFixMe) {
         request
             .post(`/monitorCustomField/${projectId}`)
             .send(monitorFieldText)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 monitorCustomFieldId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.fieldName).to.be.equal(
@@ -123,12 +130,12 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    it('should not create monitor custom field with an existing name in a project', function(done: $TSFixMe) {
+    it('should not create monitor custom field with an existing name in a project', function (done: $TSFixMe) {
         request
             .post(`/monitorCustomField/${projectId}`)
             .send(monitorFieldText)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Custom field with this name already exist'
@@ -137,14 +144,14 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    it('should update a particular monitor custom field in a project', function(done: $TSFixMe) {
+    it('should update a particular monitor custom field in a project', function (done: $TSFixMe) {
         monitorFieldText.fieldName = 'newName';
 
         request
             .put(`/monitorCustomField/${projectId}/${monitorCustomFieldId}`)
             .send(monitorFieldText)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.fieldName).to.be.equal(
                     monitorFieldText.fieldName
@@ -156,17 +163,17 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    it('should list all the monitor custom fields in a project', function(done: $TSFixMe) {
+    it('should list all the monitor custom fields in a project', function (done: $TSFixMe) {
         // add one more monitor custom field
         request
             .post(`/monitorCustomField/${projectId}`)
             .send(monitorFieldNumber)
             .set('Authorization', authorization)
-            .end(function() {
+            .end(function () {
                 request
                     .get(`/monitorCustomField/${projectId}?skip=0&limit=10`)
                     .set('Authorization', authorization)
-                    .end(function(err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: Response) {
                         expect(res).to.have.status(200);
                         expect(res.body.count).to.be.equal(2);
                         expect(res.body.data).to.be.an('array');
@@ -175,11 +182,11 @@ describe('Monitor Custom Field API', function() {
             });
     });
 
-    it('should delete a particular monitor custom field in a project', function(done: $TSFixMe) {
+    it('should delete a particular monitor custom field in a project', function (done: $TSFixMe) {
         request
             .delete(`/monitorCustomField/${projectId}/${monitorCustomFieldId}`)
             .set('Authorization', authorization)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(String(res.body._id)).to.be.equal(
                     String(monitorCustomFieldId)

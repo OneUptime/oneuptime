@@ -24,35 +24,35 @@ const leadData = {
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-describe('Lead API', function() {
+describe('Lead API', function () {
     this.timeout(20000);
 
-    before(async function() {
+    before(async function () {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
     });
 
-    it('should add lead when requested for type demo or whitepaper', function(done: $TSFixMe) {
+    it('should add lead when requested for type demo or whitepaper', function (done: $TSFixMe) {
         request
             .post('/lead')
             .send(leadData)
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 leadService.hardDeleteBy({ _id: res.body._id });
                 done();
             });
     });
 
-    it('should add lead when requested for type demo and check the sent message', function(done: $TSFixMe) {
+    it('should add lead when requested for type demo and check the sent message', function (done: $TSFixMe) {
         this.timeout(60000);
         request
             .post('/lead')
             .send(leadData)
-            .end(async function(err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 leadService.hardDeleteBy({ _id: res.body._id });
                 const emailStatuses = await EmailStatusService.findBy({

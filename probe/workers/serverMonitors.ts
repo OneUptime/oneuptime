@@ -60,13 +60,11 @@ export default {
                 }
 
                 ssh.connect(config)
-                    .then(async function() {
+                    .then(async function () {
                         let os;
                         try {
-                            const {
-                                stdout: osLine,
-                                stderr,
-                            } = await ssh.execCommand('uname -a');
+                            const { stdout: osLine, stderr } =
+                                await ssh.execCommand('uname -a');
 
                             if (stderr) throw stderr;
 
@@ -143,10 +141,7 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
                 .trim()
                 .split('\n')
                 .map((line: $TSFixMe) => {
-                    const words = line
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .split(' ');
+                    const words = line.replace(/\s+/g, ' ').trim().split(' ');
                     return words;
                 });
             const cpuLines = cpu
@@ -159,10 +154,7 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
                 .trim()
                 .split('\n')
                 .map((line: $TSFixMe) => {
-                    const words = line
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .split(' ');
+                    const words = line.replace(/\s+/g, ' ').trim().split(' ');
                     return words[words.length - 2];
                 });
             const diskLines = disk
@@ -170,10 +162,7 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
                 .trim()
                 .split('\n')
                 .map((line: $TSFixMe) => {
-                    const words = line
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .split(' ');
+                    const words = line.replace(/\s+/g, ' ').trim().split(' ');
                     return {
                         storageUsed: words[2],
                         totalStorage: words[1],
@@ -234,10 +223,7 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
                 .trim()
                 .split('\n')
                 .map((line: $TSFixMe) => {
-                    const words = line
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .split(' ');
+                    const words = line.replace(/\s+/g, ' ').trim().split(' ');
                     return words;
                 });
             const memLines = usedMem
@@ -255,10 +241,7 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
                 .trim()
                 .split('\n')
                 .map((line: $TSFixMe) => {
-                    const words = line
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .split(' ');
+                    const words = line.replace(/\s+/g, ' ').trim().split(' ');
                     return {
                         storageUsed: words[2],
                         totalStorage: words[1],
@@ -316,18 +299,9 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
                 ? exec.execCommand(COMMAND.win.temp)
                 : exec(COMMAND.win.temp));
 
-            const loadLines = load
-                .replace(/\s+/g, ' ')
-                .trim()
-                .split(' ');
-            const cpuLines = cpu
-                .replace(/\s+/g, ' ')
-                .trim()
-                .split(' ');
-            const freeMemLines = freeMem
-                .replace(/\s+/g, ' ')
-                .trim()
-                .split(' ');
+            const loadLines = load.replace(/\s+/g, ' ').trim().split(' ');
+            const cpuLines = cpu.replace(/\s+/g, ' ').trim().split(' ');
+            const freeMemLines = freeMem.replace(/\s+/g, ' ').trim().split(' ');
             const totalMemLines = totalMem
                 .replace(/\s+/g, ' ')
                 .trim()
@@ -348,10 +322,7 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
                 .replace(/\s+/g, ' ')
                 .trim()
                 .split(' ');
-            const tempLines = temp
-                .replace(/\s+/g, ' ')
-                .trim()
-                .split(' ');
+            const tempLines = temp.replace(/\s+/g, ' ').trim().split(' ');
 
             cpuLoad = loadLines[1];
             avgCpuLoad = loadLines[1];

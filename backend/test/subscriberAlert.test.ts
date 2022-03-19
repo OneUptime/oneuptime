@@ -37,78 +37,96 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-describe('Subcriber Alert API', function() {
+describe('Subcriber Alert API', function () {
     this.timeout(20000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createUser(request, userData.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                projectId = res.body.project._id;
-                userId = res.body.id;
+        GlobalConfig.initTestConfig().then(function () {
+            createUser(
+                request,
+                userData.user,
+                function (err: $TSFixMe, res: Response) {
+                    projectId = res.body.project._id;
+                    userId = res.body.id;
 
-                VerificationTokenModel.findOne({ userId }, function(
-                    err: $TSFixMe,
-                    verificationToken: $TSFixMe
-                ) {
-                    request
-                        .get(`/user/confirmation/${verificationToken.token}`)
-                        .redirects(0)
-                        .end(function() {
+                    VerificationTokenModel.findOne(
+                        { userId },
+                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
                             request
-                                .post('/user/login')
-                                .send({
-                                    email: userData.user.email,
-                                    password: userData.user.password,
-                                })
-                                .end(function(err: $TSFixMe, res: Response) {
-                                    token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
+                                .get(
+                                    `/user/confirmation/${verificationToken.token}`
+                                )
+                                .redirects(0)
+                                .end(function () {
                                     request
-                                        .post(`/monitor/${projectId}`)
-                                        .set('Authorization', authorization)
-                                        .send(monitor)
-                                        .end(function(
+                                        .post('/user/login')
+                                        .send({
+                                            email: userData.user.email,
+                                            password: userData.user.password,
+                                        })
+                                        .end(function (
                                             err: $TSFixMe,
                                             res: Response
                                         ) {
-                                            monitorId = res.body._id;
-                                            incidentData.monitors = [monitorId];
+                                            token =
+                                                res.body.tokens.jwtAccessToken;
+                                            const authorization = `Basic ${token}`;
                                             request
-                                                .post(
-                                                    `/incident/${projectId}/create-incident`
-                                                )
+                                                .post(`/monitor/${projectId}`)
                                                 .set(
                                                     'Authorization',
                                                     authorization
                                                 )
-                                                .send(incidentData)
-                                                .end(
-                                                    (
-                                                        err: $TSFixMe,
-                                                        res: Response
-                                                    ) => {
-                                                        idNumber =
-                                                            res.body.idNumber; // This has replaced incidentId and is used to query subscriber alert
-                                                        incidentId =
-                                                            res.body._id;
-                                                        expect(
-                                                            res
-                                                        ).to.have.status(200);
-                                                        expect(
-                                                            res.body
-                                                        ).to.be.an('object');
-                                                        done();
-                                                    }
-                                                );
+                                                .send(monitor)
+                                                .end(function (
+                                                    err: $TSFixMe,
+                                                    res: Response
+                                                ) {
+                                                    monitorId = res.body._id;
+                                                    incidentData.monitors = [
+                                                        monitorId,
+                                                    ];
+                                                    request
+                                                        .post(
+                                                            `/incident/${projectId}/create-incident`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send(incidentData)
+                                                        .end(
+                                                            (
+                                                                err: $TSFixMe,
+                                                                res: Response
+                                                            ) => {
+                                                                idNumber =
+                                                                    res.body
+                                                                        .idNumber; // This has replaced incidentId and is used to query subscriber alert
+                                                                incidentId =
+                                                                    res.body
+                                                                        ._id;
+                                                                expect(
+                                                                    res
+                                                                ).to.have.status(
+                                                                    200
+                                                                );
+                                                                expect(
+                                                                    res.body
+                                                                ).to.be.an(
+                                                                    'object'
+                                                                );
+                                                                done();
+                                                            }
+                                                        );
+                                                });
                                         });
                                 });
-                        });
-                });
-            });
+                        }
+                    );
+                }
+            );
         });
     });
 

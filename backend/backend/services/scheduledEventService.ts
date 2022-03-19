@@ -11,7 +11,7 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function(
+    create: async function (
         { projectId }: $TSFixMe,
         data: $TSFixMe,
         recurring: $TSFixMe
@@ -151,7 +151,7 @@ export default {
         return scheduledEvent;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -243,7 +243,7 @@ export default {
         return updatedScheduledEvent;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -274,7 +274,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(
             query,
             {
@@ -310,7 +310,13 @@ export default {
         return scheduledEvent;
     },
 
-    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -342,7 +348,7 @@ export default {
         return scheduledEvents;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -376,7 +382,7 @@ export default {
         return scheduledEvent;
     },
 
-    getSubProjectScheduledEvents: async function(subProjectIds: $TSFixMe) {
+    getSubProjectScheduledEvents: async function (subProjectIds: $TSFixMe) {
         const populateScheduledEvent = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -412,7 +418,7 @@ export default {
         return subProjectScheduledEvents;
     },
 
-    getSubProjectOngoingScheduledEvents: async function(
+    getSubProjectOngoingScheduledEvents: async function (
         subProjectIds: $TSFixMe,
         query: $TSFixMe
     ) {
@@ -451,7 +457,7 @@ export default {
         return subProjectOngoingScheduledEvents;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -460,7 +466,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await ScheduledEventModel.deleteMany(query);
         return 'Event(s) removed successfully!';
     },
@@ -471,7 +477,7 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function(monitorId: $TSFixMe, userId: $TSFixMe) {
+    removeMonitor: async function (monitorId: $TSFixMe, userId: $TSFixMe) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -504,11 +510,12 @@ export default {
                 );
 
                 if (event.monitors.length > 0) {
-                    let updatedEvent = await ScheduledEventModel.findOneAndUpdate(
-                        { _id: event._id },
-                        { $set: { monitors: event.monitors } },
-                        { new: true }
-                    );
+                    let updatedEvent =
+                        await ScheduledEventModel.findOneAndUpdate(
+                            { _id: event._id },
+                            { $set: { monitors: event.monitors } },
+                            { new: true }
+                        );
 
                     updatedEvent = await _this.findOneBy({
                         query: { _id: updatedEvent._id },
@@ -519,18 +526,19 @@ export default {
                     RealTimeService.updateScheduledEvent(updatedEvent);
                 } else {
                     // delete the scheduled event when no monitor is remaining
-                    let deletedEvent = await ScheduledEventModel.findOneAndUpdate(
-                        { _id: event._id },
-                        {
-                            $set: {
-                                monitors: event.monitors,
-                                deleted: true,
-                                deletedAt: Date.now(),
-                                deletedById: userId,
+                    let deletedEvent =
+                        await ScheduledEventModel.findOneAndUpdate(
+                            { _id: event._id },
+                            {
+                                $set: {
+                                    monitors: event.monitors,
+                                    deleted: true,
+                                    deletedAt: Date.now(),
+                                    deletedById: userId,
+                                },
                             },
-                        },
-                        { new: true }
-                    );
+                            { new: true }
+                        );
                     deletedEvent = await deletedEvent
                         .populate('monitors.monitorId', 'name')
                         .populate('projectId', 'name')
@@ -548,7 +556,7 @@ export default {
      * @param {object} query query parameter to use for db manipulation
      * @param {object} data data to be used to update the schedule
      */
-    resolveScheduledEvent: async function(query: $TSFixMe, data: $TSFixMe) {
+    resolveScheduledEvent: async function (query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
         data.resolved = true;
         data.resolvedAt = Date.now();
@@ -674,7 +682,7 @@ export default {
     /**
      * @description Create Started note for all schedule events
      */
-    createScheduledEventStartedNote: async function() {
+    createScheduledEventStartedNote: async function () {
         const currentTime = moment();
 
         //fetch events that have started
@@ -718,12 +726,11 @@ export default {
                 }
             }
 
-            const scheduledEventNoteCount = await ScheduledEventNoteService.countBy(
-                {
+            const scheduledEventNoteCount =
+                await ScheduledEventNoteService.countBy({
                     scheduledEventId,
                     event_state: 'Started',
-                }
-            );
+                });
             if (scheduledEventNoteCount === 0) {
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has started',
@@ -737,7 +744,7 @@ export default {
 
     /**
      * @description Create Ended note for all schedule events
-     */ createScheduledEventEndedNote: async function() {
+     */ createScheduledEventEndedNote: async function () {
         const currentTime = moment();
 
         //fetch events that have ended
@@ -768,12 +775,11 @@ export default {
                 }
             }
 
-            const scheduledEventNoteListCount = await ScheduledEventNoteService.countBy(
-                {
+            const scheduledEventNoteListCount =
+                await ScheduledEventNoteService.countBy({
                     scheduledEventId,
                     event_state: 'Ended',
-                }
-            );
+                });
             if (scheduledEventNoteListCount === 0) {
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has ended',

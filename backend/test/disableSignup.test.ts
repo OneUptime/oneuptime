@@ -18,12 +18,12 @@ import payment from '../backend/config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
 
-describe('Disable Sign up test', function() {
+describe('Disable Sign up test', function () {
     this.timeout(200000);
 
     let token = null;
 
-    this.beforeAll(async function() {
+    this.beforeAll(async function () {
         this.timeout(400000);
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});

@@ -37,16 +37,16 @@ export function fetchSchedules(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
             `schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`
         );
         promise.then(
-            function(schedule) {
+            function (schedule) {
                 dispatch(scheduleSuccess(schedule.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -97,16 +97,16 @@ export function subProjectScheduleSuccess(schedule: $TSFixMe) {
 // Calls the API to fetch Schedules.
 
 export function fetchSubProjectSchedules(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(`schedule/${projectId}/schedules`);
 
         dispatch(subProjectScheduleRequest());
         promise.then(
-            function(schedule) {
+            function (schedule) {
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -159,18 +159,18 @@ export function fetchProjectSchedule(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
             `schedule/${projectId}/schedule?skip=${skip}&limit=${limit}`
         );
         promise.then(
-            function(schedule) {
+            function (schedule) {
                 const data = schedule.data;
                 data.projectId = projectId;
                 dispatch(projectScheduleSuccess(data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -214,16 +214,16 @@ export function createScheduleSuccess(schedule: $TSFixMe) {
 // Calls the API to create the schedule.
 
 export function createSchedule(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`schedule/${projectId}`, values);
 
         dispatch(createScheduleRequest());
 
         promise.then(
-            function(schedule) {
+            function (schedule) {
                 dispatch(createScheduleSuccess(schedule.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -275,7 +275,7 @@ export function renameSchedule(
     scheduleId: $TSFixMe,
     scheduleName: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`schedule/${projectId}/${scheduleId}`, {
             name: scheduleName,
         });
@@ -284,10 +284,10 @@ export function renameSchedule(
 
         promise
             .then(
-                function(schedule) {
+                function (schedule) {
                     dispatch(renameScheduleSuccess(schedule));
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -301,7 +301,7 @@ export function renameSchedule(
                     dispatch(renameScheduleError(errors(error)));
                 }
             )
-            .then(function() {
+            .then(function () {
                 dispatch(renameScheduleReset());
             });
 
@@ -346,14 +346,14 @@ export function deleteScheduleError(error: $TSFixMe) {
 }
 
 export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`schedule/${projectId}/${scheduleId}`);
 
         dispatch(deleteScheduleRequest());
 
         promise
             .then(
-                function(schedule) {
+                function (schedule) {
                     const data = Object.assign(
                         {},
                         { scheduleId },
@@ -364,7 +364,7 @@ export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
                     dispatch(fetchSchedules(projectId));
                     return dispatch(deleteScheduleSuccess({ data }));
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -378,7 +378,7 @@ export function deleteSchedule(projectId: $TSFixMe, scheduleId: $TSFixMe) {
                     dispatch(deleteScheduleError(errors(error)));
                 }
             )
-            .then(function() {
+            .then(function () {
                 dispatch(deleteScheduleReset());
             });
 
@@ -420,17 +420,17 @@ export function addMonitors(
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`schedule/${projectId}/${scheduleId}`, data);
 
         dispatch(addMonitorRequest());
 
         promise
             .then(
-                function(schedule) {
+                function (schedule) {
                     dispatch(addMonitorSuccess(schedule));
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -444,7 +444,7 @@ export function addMonitors(
                     dispatch(addMonitorError(errors(error)));
                 }
             )
-            .then(function() {
+            .then(function () {
                 dispatch(addMonitorReset());
             });
 
@@ -486,7 +486,7 @@ export function addUsers(
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `schedule/${projectId}/${scheduleId}/addUsers`,
             data
@@ -496,10 +496,10 @@ export function addUsers(
 
         promise
             .then(
-                function(schedule) {
+                function (schedule) {
                     dispatch(addUserSuccess(schedule));
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -513,7 +513,7 @@ export function addUsers(
                     dispatch(addUserError(errors(error)));
                 }
             )
-            .then(function() {
+            .then(function () {
                 dispatch(addUserReset());
             });
 
@@ -557,7 +557,7 @@ export function addEscalation(
 ) {
     data = data.OnCallAlertBox;
 
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `schedule/${projectId}/${scheduleId}/addescalation`,
             data
@@ -566,10 +566,10 @@ export function addEscalation(
         dispatch(escalationRequest());
 
         promise.then(
-            function(escalation) {
+            function (escalation) {
                 dispatch(escalationSuccess(escalation));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -589,7 +589,7 @@ export function addEscalation(
 }
 
 export function getEscalation(projectId: $TSFixMe, scheduleId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `schedule/${projectId}/${scheduleId}/getescalation`
         );
@@ -597,10 +597,10 @@ export function getEscalation(projectId: $TSFixMe, scheduleId: $TSFixMe) {
         dispatch(escalationRequest());
 
         promise.then(
-            function(escalation) {
+            function (escalation) {
                 dispatch(escalationSuccess(escalation.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -640,7 +640,7 @@ export function paginateReset() {
 }
 
 export function paginate(type: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());
@@ -674,7 +674,7 @@ export function userScheduleError(error: $TSFixMe) {
 }
 
 export function fetchUserSchedule(projectId: $TSFixMe, userId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `schedule/${projectId}/${userId}/getescalations`
         );
@@ -682,10 +682,10 @@ export function fetchUserSchedule(projectId: $TSFixMe, userId: $TSFixMe) {
         dispatch(userScheduleRequest());
 
         promise.then(
-            function(schedule) {
+            function (schedule) {
                 dispatch(userScheduleSuccess(schedule.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

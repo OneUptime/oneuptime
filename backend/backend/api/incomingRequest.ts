@@ -20,7 +20,7 @@ router.get(
     '/:projectId/all-incoming-request',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
@@ -61,7 +61,7 @@ router.post(
     '/:projectId/create-request-url',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId } = req.params;
             const data = req.body;
@@ -118,7 +118,7 @@ router.put(
     '/:projectId/update/:requestId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
             const data = req.body;
@@ -175,7 +175,7 @@ router.delete(
     '/:projectId/remove/:requestId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
 
@@ -191,60 +191,58 @@ router.delete(
 );
 
 // process incoming http request from post request
-router.post('/:projectId/request/:requestId', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        // request object for use in variables
-        const request = {
-            body: { ...req.body },
-            query: { ...req.query },
-            headers: { ...req.headers },
-        };
+router.post(
+    '/:projectId/request/:requestId',
+    async function (req: Request, res: Response) {
+        try {
+            // request object for use in variables
+            const request = {
+                body: { ...req.body },
+                query: { ...req.query },
+                headers: { ...req.headers },
+            };
 
-        const { projectId, requestId } = req.params;
-        const data = { projectId, requestId, request };
+            const { projectId, requestId } = req.params;
+            const data = { projectId, requestId, request };
 
-        const response = await IncomingRequestService.handleIncomingRequestAction(
-            data
-        );
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const response =
+                await IncomingRequestService.handleIncomingRequestAction(data);
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // process incoming http request from get request
-router.get('/:projectId/request/:requestId', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        // request object for use in variables
-        // request body won't be available for a get request
-        const request = {
-            query: { ...req.query },
-            headers: { ...req.headers },
-        };
+router.get(
+    '/:projectId/request/:requestId',
+    async function (req: Request, res: Response) {
+        try {
+            // request object for use in variables
+            // request body won't be available for a get request
+            const request = {
+                query: { ...req.query },
+                headers: { ...req.headers },
+            };
 
-        const { projectId, requestId } = req.params;
-        const data = { projectId, requestId, request };
+            const { projectId, requestId } = req.params;
+            const data = { projectId, requestId, request };
 
-        const response = await IncomingRequestService.handleIncomingRequestAction(
-            data
-        );
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const response =
+                await IncomingRequestService.handleIncomingRequestAction(data);
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/:projectId/toggle/:requestId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, requestId } = req.params;
             const data = req.body;

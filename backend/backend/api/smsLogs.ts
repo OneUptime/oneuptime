@@ -15,30 +15,32 @@ import { sendListResponse } from 'common-server/utils/response';
 
 import { sendItemResponse } from 'common-server/utils/response';
 
-router.get('/', getUser, isUserMasterAdmin, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const selectSmsCount =
-            'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
-        const query = {};
-        const skip = req.query.skip;
-        const limit = req.query.limit;
-        const [smsLogs, count] = await Promise.all([
-            SmsLogsService.findBy({
-                query,
-                limit,
-                skip,
-                select: selectSmsCount,
-            }),
-            SmsLogsService.countBy(query),
-        ]);
-        return sendListResponse(req, res, smsLogs, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/',
+    getUser,
+    isUserMasterAdmin,
+    async function (req: Request, res: Response) {
+        try {
+            const selectSmsCount =
+                'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
+            const query = {};
+            const skip = req.query.skip;
+            const limit = req.query.limit;
+            const [smsLogs, count] = await Promise.all([
+                SmsLogsService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    select: selectSmsCount,
+                }),
+                SmsLogsService.countBy(query),
+            ]);
+            return sendListResponse(req, res, smsLogs, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/',
@@ -96,39 +98,46 @@ router.post(
     }
 );
 
-router.post('/search', getUser, isUserMasterAdmin, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const filter = req.body.filter;
-        const skip = req.query.skip;
-        const limit = req.query.limit;
+router.post(
+    '/search',
+    getUser,
+    isUserMasterAdmin,
+    async function (req: Request, res: Response) {
+        try {
+            const filter = req.body.filter;
+            const skip = req.query.skip;
+            const limit = req.query.limit;
 
-        const {
-            searchedSmsLogs,
-            totalSearchCount,
-        } = await SmsLogsService.search({ filter, skip, limit });
+            const { searchedSmsLogs, totalSearchCount } =
+                await SmsLogsService.search({ filter, skip, limit });
 
-        return sendListResponse(req, res, searchedSmsLogs, totalSearchCount);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendListResponse(
+                req,
+                res,
+                searchedSmsLogs,
+                totalSearchCount
+            );
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.delete('/', getUser, isUserMasterAdmin, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const query = {};
+router.delete(
+    '/',
+    getUser,
+    isUserMasterAdmin,
+    async function (req: Request, res: Response) {
+        try {
+            const query = {};
 
-        const msg = await SmsLogsService.hardDeleteBy({ query });
+            const msg = await SmsLogsService.hardDeleteBy({ query });
 
-        return sendItemResponse(req, res, msg);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, msg);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 export default router;

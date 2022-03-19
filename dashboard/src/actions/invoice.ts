@@ -48,7 +48,7 @@ export function getInvoice(
     startingAfter: $TSFixMe,
     endingBefore: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         const reqFornext = Boolean(startingAfter) && !endingBefore;
         const reqForPrev = Boolean(endingBefore) && Boolean(startingAfter);
@@ -70,7 +70,7 @@ export function getInvoice(
         dispatch(getInvoiceRequest(promise));
 
         promise.then(
-            function(invoices) {
+            function (invoices) {
                 dispatch(getInvoiceSuccess(invoices.data));
                 if (reqFornext) {
                     dispatch(incrementNextCount());
@@ -79,7 +79,7 @@ export function getInvoice(
                     dispatch(decrementNextCount());
                 }
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

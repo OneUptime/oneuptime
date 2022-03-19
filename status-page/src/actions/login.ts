@@ -42,15 +42,15 @@ export const resetLogin = () => {
 
 // Calls the API to register a user.
 export const loginUser = (values: $TSFixMe) => {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/login', values);
         dispatch(loginRequest(promise));
 
         promise.then(
-            function(user) {
+            function (user) {
                 dispatch(loginSuccess(user.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

@@ -29,7 +29,7 @@ export const resetDeleteMsTeams = () => {
 
 // Calls the API to link webhook team to project
 export function deleteMsTeams(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${msTeamsId}`,
             null
@@ -38,12 +38,12 @@ export function deleteMsTeams(projectId: $TSFixMe, msTeamsId: $TSFixMe) {
         dispatch(deleteMsTeamsRequest());
 
         return promise.then(
-            function(msTeams) {
+            function (msTeams) {
                 dispatch(deleteMsTeamsSuccess(msTeams.data));
 
                 return msTeams.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -92,19 +92,20 @@ export function getMsTeams(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit ||
-                10}&type=msteams`
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
+                limit || 10
+            }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
 
         promise.then(
-            function(webhooks) {
+            function (webhooks) {
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -129,19 +130,20 @@ export function getMsTeamsMonitor(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip ||
-                0}&limit=${limit || 10}&type=msteams`
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
+            }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
 
         promise.then(
-            function(webhooks) {
+            function (webhooks) {
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -188,17 +190,17 @@ export const resetCreateMsTeams = () => {
 
 // Calls the API to add webhook to project
 export function createMsTeams(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
         dispatch(createMsTeamsRequest());
         return promise.then(
-            function(webhook) {
+            function (webhook) {
                 dispatch(createMsTeamsSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -247,18 +249,18 @@ export function updateMsTeams(
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 
         dispatch(updateMsTeamsRequest());
 
         return promise.then(
-            function(webhook) {
+            function (webhook) {
                 dispatch(updateMsTeamsSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -296,7 +298,7 @@ export function paginateReset() {
 }
 
 export function paginate(type: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

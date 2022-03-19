@@ -24,7 +24,7 @@ const incidentSlaPayload = {
     isDefault: true,
 };
 
-describe('Incident Communication SLA', function() {
+describe('Incident Communication SLA', function () {
     const timeout = 30000;
     let projectId: $TSFixMe,
         userId,
@@ -34,7 +34,7 @@ describe('Incident Communication SLA', function() {
 
     this.timeout(timeout);
 
-    before(async function() {
+    before(async function () {
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
         projectId = res.body.project._id;
@@ -53,7 +53,7 @@ describe('Incident Communication SLA', function() {
         authorization = `Basic ${token}`;
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -64,7 +64,7 @@ describe('Incident Communication SLA', function() {
         });
     });
 
-    it('should not add incident communication SLA without a name', async function() {
+    it('should not add incident communication SLA without a name', async function () {
         const res = await request
             .post(`/incidentSla/${projectId}`)
             .set('Authorization', authorization)
@@ -77,7 +77,7 @@ describe('Incident Communication SLA', function() {
         expect(res.body.message).to.be.equal('SLA name is required');
     });
 
-    it('should not add incident communication SLA without an alertTime', async function() {
+    it('should not add incident communication SLA without an alertTime', async function () {
         const res = await request
             .post(`/incidentSla/${projectId}`)
             .set('Authorization', authorization)
@@ -92,7 +92,7 @@ describe('Incident Communication SLA', function() {
         );
     });
 
-    it('should not add incident communication SLA when duration is not a number', async function() {
+    it('should not add incident communication SLA when duration is not a number', async function () {
         const res = await request
             .post(`/incidentSla/${projectId}`)
             .set('Authorization', authorization)
@@ -107,7 +107,7 @@ describe('Incident Communication SLA', function() {
         );
     });
 
-    it('should not add incident communication SLA when alertTime is not a number', async function() {
+    it('should not add incident communication SLA when alertTime is not a number', async function () {
         const res = await request
             .post(`/incidentSla/${projectId}`)
             .set('Authorization', authorization)
@@ -122,7 +122,7 @@ describe('Incident Communication SLA', function() {
         );
     });
 
-    it('should not add incident communication SLA when alertTime is greater than or equal to duration', async function() {
+    it('should not add incident communication SLA when alertTime is greater than or equal to duration', async function () {
         const res = await request
             .post(`/incidentSla/${projectId}`)
             .set('Authorization', authorization)
@@ -138,7 +138,7 @@ describe('Incident Communication SLA', function() {
         );
     });
 
-    it('should add incident communication SLA', async function() {
+    it('should add incident communication SLA', async function () {
         const res = await request
             .post(`/incidentSla/${projectId}`)
             .set('Authorization', authorization)
@@ -148,7 +148,7 @@ describe('Incident Communication SLA', function() {
         expect(res.body.name).to.be.equal(incidentSlaPayload.name);
     });
 
-    it('should update an incident communication SLA', async function() {
+    it('should update an incident communication SLA', async function () {
         incidentSlaPayload.name = 'NewName';
         const res = await request
             .put(`/incidentSla/${projectId}/${slaId}`)
@@ -159,7 +159,7 @@ describe('Incident Communication SLA', function() {
         expect(res.body.name).to.be.equal(incidentSlaPayload.name);
     });
 
-    it('should not update incident communication SLA without a name', async function() {
+    it('should not update incident communication SLA without a name', async function () {
         const res = await request
             .put(`/incidentSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -172,7 +172,7 @@ describe('Incident Communication SLA', function() {
         expect(res.body.message).to.be.equal('SLA name is required');
     });
 
-    it('should not update incident communication SLA without an alertTime', async function() {
+    it('should not update incident communication SLA without an alertTime', async function () {
         const res = await request
             .put(`/incidentSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -187,7 +187,7 @@ describe('Incident Communication SLA', function() {
         );
     });
 
-    it('should not update incident communication SLA when duration is not a number', async function() {
+    it('should not update incident communication SLA when duration is not a number', async function () {
         const res = await request
             .put(`/incidentSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -202,7 +202,7 @@ describe('Incident Communication SLA', function() {
         );
     });
 
-    it('should not update incident communication SLA when alertTime is not a number', async function() {
+    it('should not update incident communication SLA when alertTime is not a number', async function () {
         const res = await request
             .put(`/incidentSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -217,7 +217,7 @@ describe('Incident Communication SLA', function() {
         );
     });
 
-    it('should not update incident communication SLA when alertTime is greater than or equal to duration', async function() {
+    it('should not update incident communication SLA when alertTime is greater than or equal to duration', async function () {
         const res = await request
             .put(`/incidentSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -233,7 +233,7 @@ describe('Incident Communication SLA', function() {
         );
     });
 
-    it('should fetch all the incident communication SLAs', async function() {
+    it('should fetch all the incident communication SLAs', async function () {
         const res = await request
             .get(`/incidentSla/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
@@ -242,7 +242,7 @@ describe('Incident Communication SLA', function() {
         expect(res.body.count).to.be.equal(1);
     });
 
-    it('should delete an incident communication SLA', async function() {
+    it('should delete an incident communication SLA', async function () {
         const res = await request
             .delete(`/incidentSla/${projectId}/${slaId}`)
             .set('Authorization', authorization);

@@ -12,7 +12,7 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         try {
             const _this = this;
             // check if component exists
@@ -76,7 +76,13 @@ export default {
         }
     },
     //Description: Gets all application logs by component.
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -109,7 +115,7 @@ export default {
         return performanceTracker;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -125,9 +131,8 @@ export default {
         // })
         // .populate('createdById', 'name email');
 
-        let performanceTrackerQuery = PerformanceTrackerModel.findOne(
-            query
-        ).lean();
+        let performanceTrackerQuery =
+            PerformanceTrackerModel.findOne(query).lean();
 
         performanceTrackerQuery = handleSelect(select, performanceTrackerQuery);
         performanceTrackerQuery = handlePopulate(
@@ -139,7 +144,7 @@ export default {
         return performanceTracker;
     },
 
-    getPerformanceTrackerByComponentId: async function(
+    getPerformanceTrackerByComponentId: async function (
         componentId: $TSFixMe,
         limit: $TSFixMe,
         skip: $TSFixMe
@@ -179,32 +184,33 @@ export default {
         });
         return performanceTracker;
     },
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
 
-        const performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId,
+        const performanceTracker =
+            await PerformanceTrackerModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
                 },
-            },
-            { new: true }
-        )
-            .populate('deletedById', 'name')
-            .populate({
-                path: 'componentId',
-                select: 'name slug',
-                populate: {
-                    path: 'projectId',
+                { new: true }
+            )
+                .populate('deletedById', 'name')
+                .populate({
+                    path: 'componentId',
                     select: 'name slug',
-                },
-            });
+                    populate: {
+                        path: 'projectId',
+                        select: 'name slug',
+                    },
+                });
         if (performanceTracker) {
             try {
                 NotificationService.create(
@@ -225,7 +231,7 @@ export default {
             return null;
         }
     },
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         unsetData = null
@@ -280,11 +286,11 @@ export default {
 
         return performanceTracker;
     },
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await PerformanceTrackerModel.deleteMany(query);
         return 'Performance Tracker removed successfully!';
     },
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }

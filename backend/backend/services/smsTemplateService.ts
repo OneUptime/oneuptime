@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const smsTemplateModel = new SmsTemplateModel();
 
         smsTemplateModel.projectId = data.projectId || null;
@@ -15,7 +15,7 @@ export default {
         return smsTemplate;
     },
 
-    createMany: async function(allData: $TSFixMe) {
+    createMany: async function (allData: $TSFixMe) {
         allData = allData.map((data: $TSFixMe) => {
             data.allowedVariables = smsTemplateVariables[data.smsType];
             return data;
@@ -23,7 +23,7 @@ export default {
         return await SmsTemplateModel.insertMany(allData);
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -41,7 +41,7 @@ export default {
         return updatedSmsTemplate;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -56,7 +56,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const smsTemplate = await SmsTemplateModel.findOneAndUpdate(
             query,
             {
@@ -73,7 +73,13 @@ export default {
         return smsTemplate;
     },
 
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -105,7 +111,7 @@ export default {
         return smsTemplates;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -123,7 +129,7 @@ export default {
         return smsTemplate;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -133,7 +139,7 @@ export default {
         return count;
     },
 
-    getTemplates: async function(projectId: $TSFixMe) {
+    getTemplates: async function (projectId: $TSFixMe) {
         const _this = this;
         const populate = [{ path: 'projectId', select: 'name' }];
         const select = 'projectId body smsType allowedVariables';
@@ -155,7 +161,7 @@ export default {
         return templates;
     },
 
-    resetTemplate: async function(projectId: $TSFixMe, templateId: $TSFixMe) {
+    resetTemplate: async function (projectId: $TSFixMe, templateId: $TSFixMe) {
         const _this = this;
         const oldTemplate = await _this.findOneBy({
             query: { _id: templateId },
@@ -177,7 +183,7 @@ export default {
         return resetTemplate;
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await SmsTemplateModel.deleteMany(query);
         return 'SMS Template(s) removed successfully';
     },

@@ -72,10 +72,9 @@ class ServiceBase {
 
             if (existingItemCount > 0) {
                 const error = new Error(
-                    `${this.friendlyName ||
-                        `Item`} with the same ${valuesIn.join(
-                        ','
-                    )} already exists.`
+                    `${
+                        this.friendlyName || `Item`
+                    } with the same ${valuesIn.join(',')} already exists.`
                 );
 
                 error.code = 400;

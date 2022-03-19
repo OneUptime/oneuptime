@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const query = {};
 
         if (data.monitorId) query.monitorId = data.monitorId;
@@ -65,7 +65,7 @@ export default {
 
     // allData is an array of object
     // to be bulk written to the db
-    createMany: async function(allData: $TSFixMe) {
+    createMany: async function (allData: $TSFixMe) {
         const dataList = [];
         for (const data of allData) {
             const query = {};
@@ -123,7 +123,7 @@ export default {
         return null;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -140,7 +140,7 @@ export default {
         return updatedMonitorStatus;
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -155,7 +155,13 @@ export default {
         return updatedData;
     },
 
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -187,7 +193,7 @@ export default {
         return monitorStatus;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -213,7 +219,7 @@ export default {
             RealTimeService.updateMonitorStatus(data, monitor.projectId._id);
         }
     },
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
@@ -233,12 +239,8 @@ export default {
             }
         );
         if (monitorStatus) {
-            const {
-                manuallyCreated,
-                probeId,
-                createdAt,
-                endTime,
-            } = monitorStatus;
+            const { manuallyCreated, probeId, createdAt, endTime } =
+                monitorStatus;
             const previousMonitorStatuses = await MonitorStatusModel.find({
                 manuallyCreated,
                 probeId,

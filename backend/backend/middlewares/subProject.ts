@@ -6,7 +6,7 @@ import url from 'url';
 
 export default {
     // Description: Get subprojects which user belongs to.
-    getSubProjects: async function(
+    getSubProjects: async function (
         req: Request,
         res: Response,
         next: NextFunction

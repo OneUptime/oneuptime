@@ -16,86 +16,91 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
-    req,
-    res
-) {
-    try {
-        const data = req.body;
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    isUserAdmin,
+    async function (req, res) {
+        try {
+            const data = req.body;
 
-        const userId = req.user ? req.user.id : null;
-        data.createdById = userId;
-        data.projectId = req.params.projectId;
+            const userId = req.user ? req.user.id : null;
+            data.createdById = userId;
+            data.projectId = req.params.projectId;
 
-        if (!data.name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Name is required',
-            });
+            if (!data.name) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Name is required',
+                });
+            }
+            const schedule = await ScheduleService.create(data);
+            return sendItemResponse(req, res, schedule);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        const schedule = await ScheduleService.create(data);
-        return sendItemResponse(req, res, schedule);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const projectId = req.params.projectId;
-        const populate = [
-            { path: 'userIds', select: 'name' },
-            { path: 'createdById', select: 'name' },
-            { path: 'monitorIds', select: 'name' },
-            {
-                path: 'projectId',
-                select: '_id name slug',
-            },
-            {
-                path: 'escalationIds',
-                select: 'teams',
-                populate: {
-                    path: 'teams.teamMembers.userId',
-                    select: 'name email',
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const projectId = req.params.projectId;
+            const populate = [
+                { path: 'userIds', select: 'name' },
+                { path: 'createdById', select: 'name' },
+                { path: 'monitorIds', select: 'name' },
+                {
+                    path: 'projectId',
+                    select: '_id name slug',
                 },
-            },
-            {
-                path: 'escalationIds',
-                select: 'teams',
-                populate: {
-                    path: 'teams.teamMembers.groupId',
-                    select: 'name',
+                {
+                    path: 'escalationIds',
+                    select: 'teams',
+                    populate: {
+                        path: 'teams.teamMembers.userId',
+                        select: 'name email',
+                    },
                 },
-            },
-        ];
+                {
+                    path: 'escalationIds',
+                    select: 'teams',
+                    populate: {
+                        path: 'teams.teamMembers.groupId',
+                        select: 'name',
+                    },
+                },
+            ];
 
-        const select =
-            '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-        const [schedules, count] = await Promise.all([
-            ScheduleService.findBy({
-                query: { projectId: projectId },
-                limit: req.query.limit || 10,
-                skip: req.query.skip || 0,
-                populate,
-                select,
-            }),
-            ScheduleService.countBy({ projectId }),
-        ]);
-        return sendListResponse(req, res, schedules, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const select =
+                '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
+            const [schedules, count] = await Promise.all([
+                ScheduleService.findBy({
+                    query: { projectId: projectId },
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
+                    populate,
+                    select,
+                }),
+                ScheduleService.countBy({ projectId }),
+            ]);
+            return sendListResponse(req, res, schedules, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/:projectId/schedules',
     getUser,
     isAuthorized,
     getSubProjects,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -110,54 +115,56 @@ router.get(
     }
 );
 
-router.get('/:projectId/schedule', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const projectId = req.params.projectId;
-        const populate = [
-            { path: 'userIds', select: 'name' },
-            { path: 'createdById', select: 'name' },
-            { path: 'monitorIds', select: 'name' },
-            {
-                path: 'projectId',
-                select: '_id name slug',
-            },
-            {
-                path: 'escalationIds',
-                select: 'teams',
-                populate: {
-                    path: 'teams.teamMembers.userId',
-                    select: 'name email',
+router.get(
+    '/:projectId/schedule',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const projectId = req.params.projectId;
+            const populate = [
+                { path: 'userIds', select: 'name' },
+                { path: 'createdById', select: 'name' },
+                { path: 'monitorIds', select: 'name' },
+                {
+                    path: 'projectId',
+                    select: '_id name slug',
                 },
-            },
-        ];
+                {
+                    path: 'escalationIds',
+                    select: 'teams',
+                    populate: {
+                        path: 'teams.teamMembers.userId',
+                        select: 'name email',
+                    },
+                },
+            ];
 
-        const select =
-            '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-        const [schedule, count] = await Promise.all([
-            ScheduleService.findBy({
-                query: { projectId },
-                limit: req.query.limit || 10,
-                skip: req.query.skip || 0,
-                populate,
-                select,
-            }),
-            ScheduleService.countBy({ projectId }),
-        ]);
-        return sendListResponse(req, res, schedule, count); // frontend expects sendListResponse
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const select =
+                '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
+            const [schedule, count] = await Promise.all([
+                ScheduleService.findBy({
+                    query: { projectId },
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
+                    populate,
+                    select,
+                }),
+                ScheduleService.countBy({ projectId }),
+            ]);
+            return sendListResponse(req, res, schedule, count); // frontend expects sendListResponse
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.put(
     '/:projectId/:scheduleId',
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, scheduleId } = req.params;
             const data = req.body;
@@ -177,7 +184,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const scheduleId = req.params.scheduleId;
 

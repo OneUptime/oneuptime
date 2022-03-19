@@ -1,5 +1,5 @@
 export default {
-    create: async function(data: $TSFixMe) {
+    create: async function (data: $TSFixMe) {
         const {
             projectId,
             title,
@@ -52,7 +52,13 @@ export default {
         incidentSettings.name = name;
         return await incidentSettings.save();
     },
-    findBy: async function({ query, limit, skip, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -97,7 +103,7 @@ export default {
         const incidentSettings = await responseQuery;
         return incidentSettings;
     },
-    updateOne: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOne: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
         if (!query.deleted) query.deleted = false;
 
@@ -145,8 +151,7 @@ export default {
         );
         const incidentSettings = await this.findOne({
             query,
-            select:
-                'projectId title description incidentPriority isDefault name createdAt',
+            select: 'projectId title description incidentPriority isDefault name createdAt',
         });
         return incidentSettings;
     },
@@ -166,11 +171,10 @@ export default {
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         const incidentSetting = await this.findOne({
             query,
-            select:
-                'projectId title description incidentPriority isDefault name createdAt',
+            select: 'projectId title description incidentPriority isDefault name createdAt',
         });
         if (incidentSetting.isDefault) {
             const error = new Error('Default template cannot be deleted');
@@ -179,20 +183,21 @@ export default {
             throw error;
         }
 
-        const deletedIncidentSetting = await incidentSettingsModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
+        const deletedIncidentSetting =
+            await incidentSettingsModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                    },
                 },
-            },
-            { new: true }
-        );
+                { new: true }
+            );
 
         return deletedIncidentSetting;
     },
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await incidentSettingsModel.deleteMany(query);
         return 'Incident setting(s) removed successfully!';
     },

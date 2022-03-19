@@ -1,5 +1,5 @@
 export default {
-    findBy: async function({ query, select, populate }: $TSFixMe) {
+    findBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -13,7 +13,7 @@ export default {
         return zap;
     },
 
-    test: async function(projectId: $TSFixMe, apiKey: $TSFixMe) {
+    test: async function (projectId: $TSFixMe, apiKey: $TSFixMe) {
         const project = await ProjectService.findOneBy({
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
@@ -32,7 +32,7 @@ export default {
         }
     },
 
-    getIncidents: async function(projectId: $TSFixMe) {
+    getIncidents: async function (projectId: $TSFixMe) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -61,8 +61,7 @@ export default {
             };
             const incidents = await IncidentService.findBy({
                 query: findquery,
-                select:
-                    'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                select: 'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                 populate: [
                     { path: 'acknowledgedBy', select: 'name' },
                     { path: 'resolvedBy', select: 'name' },
@@ -90,7 +89,7 @@ export default {
             return [];
         }
     },
-    getIncidentsNotes: async function(projectId: $TSFixMe) {
+    getIncidentsNotes: async function (projectId: $TSFixMe) {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse = {};
         const _this = this;
@@ -155,7 +154,7 @@ export default {
             return [];
         }
     },
-    createIncidentNote: async function(data: $TSFixMe) {
+    createIncidentNote: async function (data: $TSFixMe) {
         const zapierResponse = {};
         const incidentNoteArr: $TSFixMe = [];
         const populateIncidentMessage = [
@@ -197,7 +196,7 @@ export default {
         zapierResponse.incidentMessage = incidentNoteArr;
         return zapierResponse;
     },
-    getAcknowledgedIncidents: async function(projectId: $TSFixMe) {
+    getAcknowledgedIncidents: async function (projectId: $TSFixMe) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -225,8 +224,7 @@ export default {
             };
             const incidents = await IncidentService.findBy({
                 query: findquery,
-                select:
-                    'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                select: 'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                 populate: [
                     { path: 'acknowledgedBy', select: 'name' },
                     { path: 'resolvedBy', select: 'name' },
@@ -255,7 +253,7 @@ export default {
         }
     },
 
-    getResolvedIncidents: async function(projectId: $TSFixMe) {
+    getResolvedIncidents: async function (projectId: $TSFixMe) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -283,8 +281,7 @@ export default {
             };
             const incidents = await IncidentService.findBy({
                 query: findquery,
-                select:
-                    'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                select: 'slug _id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
                 populate: [
                     { path: 'acknowledgedBy', select: 'name' },
                     { path: 'resolvedBy', select: 'name' },
@@ -313,7 +310,7 @@ export default {
         }
     },
 
-    createIncident: async function(monitors: $TSFixMe) {
+    createIncident: async function (monitors: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -381,7 +378,7 @@ export default {
         return zapierResponse;
     },
 
-    acknowledgeLastIncident: async function(monitors: $TSFixMe) {
+    acknowledgeLastIncident: async function (monitors: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -432,7 +429,7 @@ export default {
         return zapierResponse;
     },
 
-    acknowledgeAllIncidents: async function(monitors: $TSFixMe) {
+    acknowledgeAllIncidents: async function (monitors: $TSFixMe) {
         const zapierResponse = {};
         let incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -487,7 +484,7 @@ export default {
         return zapierResponse;
     },
 
-    acknowledgeIncident: async function(incidents: $TSFixMe) {
+    acknowledgeIncident: async function (incidents: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         const populate = [
@@ -555,7 +552,7 @@ export default {
         return zapierResponse;
     },
 
-    resolveLastIncident: async function(monitors: $TSFixMe) {
+    resolveLastIncident: async function (monitors: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         const populate = [
@@ -629,7 +626,7 @@ export default {
         return zapierResponse;
     },
 
-    resolveAllIncidents: async function(monitors: $TSFixMe) {
+    resolveAllIncidents: async function (monitors: $TSFixMe) {
         const zapierResponse = {};
         let incidentArr: $TSFixMe = [];
         const populate = [
@@ -707,7 +704,7 @@ export default {
         return zapierResponse;
     },
 
-    resolveIncident: async function(incidents: $TSFixMe) {
+    resolveIncident: async function (incidents: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         const populate = [
@@ -775,7 +772,7 @@ export default {
         return zapierResponse;
     },
 
-    mapIncidentToResponse: async function(
+    mapIncidentToResponse: async function (
         incident: $TSFixMe,
         incidentObj: $TSFixMe,
         incidentNote: $TSFixMe,
@@ -830,7 +827,7 @@ export default {
         return incidentObj;
     },
 
-    subscribe: async function(
+    subscribe: async function (
         projectId: $TSFixMe,
         url: $TSFixMe,
         type: $TSFixMe,
@@ -849,7 +846,7 @@ export default {
         return { id: zap._id };
     },
 
-    unsubscribe: async function(id: $TSFixMe) {
+    unsubscribe: async function (id: $TSFixMe) {
         await ZapierModel.findOneAndUpdate(
             { _id: id },
             {
@@ -862,7 +859,7 @@ export default {
         return;
     },
 
-    pushToZapier: async function(
+    pushToZapier: async function (
         type: $TSFixMe,
         incident: $TSFixMe,
         incidentNote: $TSFixMe
@@ -934,7 +931,7 @@ export default {
         }
     },
 
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await ZapierModel.deleteMany(query);
         return 'Zapier(s) removed successfully';
     },

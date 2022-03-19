@@ -26,7 +26,7 @@ class IncomingListener {
         function override(module) {
             const emit = module.Server.prototype.emit;
 
-            module.Server.prototype.emit = function(type, req, res) {
+            module.Server.prototype.emit = function (type, req, res) {
                 if (type === 'request') {
                     const path = req.pathname || req.path || req.url || '/';
                     const method = req.method;

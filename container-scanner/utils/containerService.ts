@@ -19,12 +19,12 @@ const {
 import flattenArray from '../utils/flattenArray';
 
 export default {
-    scan: async function(security) {
+    scan: async function (security) {
         const decryptedSecurity = await this.decryptPassword(security);
         await this.scanContainerSecurity(decryptedSecurity);
     },
 
-    decryptPassword: async function(security) {
+    decryptPassword: async function (security) {
         try {
             const values = [];
             for (let i = 0; i <= 15; i++) {
@@ -264,13 +264,12 @@ export default {
                             ...lowArr,
                         ];
 
-                        const securityLog = await updateContainerSecurityLogService(
-                            {
+                        const securityLog =
+                            await updateContainerSecurityLogService({
                                 securityId: security._id,
                                 componentId: security.componentId._id,
                                 data: auditData,
-                            }
-                        );
+                            });
 
                         await Promise.all([
                             await updateContainerSecurityScanTime({
@@ -306,7 +305,7 @@ function createDir(dirPath) {
 function readFileContent(filePath) {
     return new Promise((resolve, reject) => {
         if (fs.existsSync(filePath)) {
-            fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
+            fs.readFile(filePath, { encoding: 'utf8' }, function (error, data) {
                 if (error) {
                     reject(error);
                 }

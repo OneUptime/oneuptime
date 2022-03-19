@@ -7,7 +7,7 @@ export default {
      * @param {string} alertPhoneNumber phone number of the recipient
      * @returns { (Promise<{error : (string) }> | Promise< {closingBalance : number, chargeAmount:number}>} an object containing error or closing balance and charge amount
      */
-    chargeAlertAndGetProjectBalance: async function(
+    chargeAlertAndGetProjectBalance: async function (
         userId,
 
         project,
@@ -146,7 +146,7 @@ export default {
      * @param {*} alertType type of alert
      * @returns {{success : boolean, message : string}} whether the balance is recharged successfully
      */
-    checkAndRechargeProjectBalance: async function(
+    checkAndRechargeProjectBalance: async function (
         project,
 
         userId,
@@ -198,7 +198,7 @@ export default {
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
 
-    checkPaymentIntent: async function(paymentIntent) {
+    checkPaymentIntent: async function (paymentIntent) {
         const processedPaymentIntent = await stripe.paymentIntents.retrieve(
             paymentIntent.id
         );
@@ -211,7 +211,7 @@ export default {
     //Param 2: user: User details
     //Returns: promise
 
-    createCustomer: async function(email, companyName) {
+    createCustomer: async function (email, companyName) {
         const customer = await stripe.customers.create({
             email: email,
             description: companyName,
@@ -220,7 +220,7 @@ export default {
     },
 
     // eslint-disable-next-line no-unused-vars
-    addPayment: async function(customerId, stripeToken) {
+    addPayment: async function (customerId, stripeToken) {
         const card = await stripe.customers.createSource(customerId);
         return card;
     },
@@ -231,7 +231,7 @@ export default {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
 
-    subscribePlan: async function(stripePlanId, stripeCustomerId, coupon) {
+    subscribePlan: async function (stripePlanId, stripeCustomerId, coupon) {
         const items = [];
         items.push({
             plan: stripePlanId,
@@ -267,7 +267,7 @@ export default {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
 
-    changeSeats: async function(subscriptionId, seats) {
+    changeSeats: async function (subscriptionId, seats) {
         if (subscriptionId === null) return;
 
         let subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -325,7 +325,7 @@ export default {
         }
     },
 
-    createSubscription: async function(stripeCustomerId, amount) {
+    createSubscription: async function (stripeCustomerId, amount) {
         const productId = Plans.getReserveNumberProductId();
 
         const subscriptions = await stripe.subscriptions.create({
@@ -346,14 +346,14 @@ export default {
         return subscriptions;
     },
 
-    removeSubscription: async function(stripeSubscriptionId) {
+    removeSubscription: async function (stripeSubscriptionId) {
         const confirmations = [];
 
         confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
         return confirmations;
     },
 
-    changePlan: async function(subscriptionId, planId, seats) {
+    changePlan: async function (subscriptionId, planId, seats) {
         let subscriptionObj = {};
 
         const subscription = await stripe.subscriptions.retrieve(
@@ -390,7 +390,7 @@ export default {
         return subscriptions.id;
     },
 
-    chargeAlert: async function(userId, projectId, chargeAmount) {
+    chargeAlert: async function (userId, projectId, chargeAmount) {
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance alertOptions _id',
@@ -454,7 +454,7 @@ export default {
     //Params:
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
-    chargeExtraUser: async function(
+    chargeExtraUser: async function (
         stripeCustomerId,
 
         extraUserPlanId,

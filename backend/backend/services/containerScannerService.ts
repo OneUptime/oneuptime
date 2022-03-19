@@ -1,5 +1,5 @@
 export default {
-    create: async function(data) {
+    create: async function (data) {
         const _this = this;
         let containerScannerKey;
         if (data.containerScannerKey) {
@@ -31,7 +31,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -47,7 +47,7 @@ export default {
         return containerScanner;
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function (query) {
         if (!query) {
             query = {};
         }
@@ -59,7 +59,7 @@ export default {
         return containerScanner;
     },
 
-    updateContainerScannerStatus: async function(containerScannerId) {
+    updateContainerScannerStatus: async function (containerScannerId) {
         const containerScanner = await ContainerScannerModel.findOneAndUpdate(
             { _id: containerScannerId },
             { $set: { lastAlive: Date.now() } },

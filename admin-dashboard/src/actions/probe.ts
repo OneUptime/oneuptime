@@ -37,21 +37,21 @@ export function getProbes(skip = 0, limit = 10) {
 
     limit = parseInt(limit);
 
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
 
         promise = getApi(`probe/?skip=${skip}&limit=${limit}`);
         dispatch(probeRequest(promise));
 
         promise.then(
-            function(probes) {
+            function (probes) {
                 probes.data.skip = skip || 0;
 
                 probes.data.limit = limit || 10;
 
                 dispatch(probeSuccess(probes.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -96,30 +96,29 @@ export const deleteProbeError = (error: $TSFixMe) => {
 };
 
 // Calls the API to delete a probe
-export const deleteProbe = (probeId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(deleteProbeRequest());
+export const deleteProbe =
+    (probeId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(deleteProbeRequest());
 
-    try {
-        const response = await deleteApi(`probe/${probeId}`);
-        dispatch(deleteProbeSuccess(probeId));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+        try {
+            const response = await deleteApi(`probe/${probeId}`);
+            dispatch(deleteProbeSuccess(probeId));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteProbeError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteProbeError(errors(errorMsg)));
-    }
-};
+    };
 
 //Delete project
 export const addProbeRequest = () => {
@@ -149,39 +148,38 @@ export const addProbeError = (error: $TSFixMe) => {
 };
 
 export function resetAddProbe() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(addProbeReset());
     };
 }
 
 // Calls the API to add a probe
-export const addProbe = (probeKey: $TSFixMe, probeName: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(addProbeRequest());
+export const addProbe =
+    (probeKey: $TSFixMe, probeName: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(addProbeRequest());
 
-    try {
-        const response = await postApi('probe/', { probeKey, probeName });
+        try {
+            const response = await postApi('probe/', { probeKey, probeName });
 
-        const data = response.data;
-        dispatch(addProbeSuccess(data));
-        return 'ok';
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const data = response.data;
+            dispatch(addProbeSuccess(data));
+            return 'ok';
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(addProbeError(errors(errorMsg)));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(addProbeError(errors(errorMsg)));
-        return 'error';
-    }
-};
+    };
 
 //Update Probe
 export const updateProbeRequest = () => {

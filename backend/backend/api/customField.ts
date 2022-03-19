@@ -17,143 +17,155 @@ import CustomFieldService from '../services/customFieldService';
 
 const router = express.getRouter();
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId } = req.params;
-        const { fieldName, fieldType, uniqueField } = req.body;
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId } = req.params;
+            const { fieldName, fieldType, uniqueField } = req.body;
 
-        if (!fieldName || !fieldName.trim()) {
-            const error = new Error('Field name is required');
+            if (!fieldName || !fieldName.trim()) {
+                const error = new Error('Field name is required');
 
-            error.code = 400;
-            throw error;
-        }
+                error.code = 400;
+                throw error;
+            }
 
-        if (!fieldType || !fieldType.trim()) {
-            const error = new Error('Field type is required');
+            if (!fieldType || !fieldType.trim()) {
+                const error = new Error('Field type is required');
 
-            error.code = 400;
-            throw error;
-        }
+                error.code = 400;
+                throw error;
+            }
 
-        const populateCustomField = [{ path: 'projectId', select: 'name' }];
-        const selectCustomField = 'fieldName fieldType projectId uniqueField';
-        let customField = await CustomFieldService.findOneBy({
-            query: { projectId, fieldName },
-            populate: populateCustomField,
-            select: selectCustomField,
-        });
-        if (customField) {
-            const error = new Error(
-                'Custom field with this name already exist'
-            );
-
-            error.code = 400;
-            throw error;
-        }
-
-        customField = await CustomFieldService.create({
-            projectId,
-            fieldName,
-            fieldType,
-            uniqueField,
-        });
-        return sendItemResponse(req, res, customField);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const { projectId } = req.params;
-        const { limit, skip } = req.query;
-        const populateCustomField = [{ path: 'projectId', select: 'name' }];
-        const selectCustomField = 'fieldName fieldType projectId uniqueField';
-        const [customFields, count] = await Promise.all([
-            CustomFieldService.findBy({
-                query: {
-                    projectId,
-                },
-                limit,
-                skip,
+            const populateCustomField = [{ path: 'projectId', select: 'name' }];
+            const selectCustomField =
+                'fieldName fieldType projectId uniqueField';
+            let customField = await CustomFieldService.findOneBy({
+                query: { projectId, fieldName },
                 populate: populateCustomField,
                 select: selectCustomField,
-            }),
-            CustomFieldService.countBy({
+            });
+            if (customField) {
+                const error = new Error(
+                    'Custom field with this name already exist'
+                );
+
+                error.code = 400;
+                throw error;
+            }
+
+            customField = await CustomFieldService.create({
                 projectId,
-            }),
-        ]);
-
-        return sendListResponse(req, res, customFields, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { projectId, customFieldId } = req.params;
-        const { fieldName, fieldType, uniqueField } = req.body;
-
-        if (!fieldName || !fieldName.trim()) {
-            const error = new Error('Field name is required');
-
-            error.code = 400;
-            throw error;
-        }
-
-        if (!fieldType || !fieldType.trim()) {
-            const error = new Error('Field type is required');
-
-            error.code = 400;
-            throw error;
-        }
-
-        const populateCustomField = [{ path: 'projectId', select: 'name' }];
-        const selectCustomField = 'fieldName fieldType projectId uniqueField';
-        let customField = await CustomFieldService.findOneBy({
-            query: { projectId, fieldName },
-            select: selectCustomField,
-            populate: populateCustomField,
-        });
-        if (customField && String(customField._id) !== String(customFieldId)) {
-            const error = new Error(
-                'Custom field with this name already exist'
-            );
-
-            error.code = 400;
-            throw error;
-        }
-
-        customField = await CustomFieldService.updateOneBy(
-            { _id: customFieldId, projectId },
-            {
                 fieldName,
                 fieldType,
                 uniqueField,
-            }
-        );
-        return sendItemResponse(req, res, customField);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            });
+            return sendItemResponse(req, res, customField);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
+
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const { projectId } = req.params;
+            const { limit, skip } = req.query;
+            const populateCustomField = [{ path: 'projectId', select: 'name' }];
+            const selectCustomField =
+                'fieldName fieldType projectId uniqueField';
+            const [customFields, count] = await Promise.all([
+                CustomFieldService.findBy({
+                    query: {
+                        projectId,
+                    },
+                    limit,
+                    skip,
+                    populate: populateCustomField,
+                    select: selectCustomField,
+                }),
+                CustomFieldService.countBy({
+                    projectId,
+                }),
+            ]);
+
+            return sendListResponse(req, res, customFields, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.put(
+    '/:projectId/:customFieldId',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const { projectId, customFieldId } = req.params;
+            const { fieldName, fieldType, uniqueField } = req.body;
+
+            if (!fieldName || !fieldName.trim()) {
+                const error = new Error('Field name is required');
+
+                error.code = 400;
+                throw error;
+            }
+
+            if (!fieldType || !fieldType.trim()) {
+                const error = new Error('Field type is required');
+
+                error.code = 400;
+                throw error;
+            }
+
+            const populateCustomField = [{ path: 'projectId', select: 'name' }];
+            const selectCustomField =
+                'fieldName fieldType projectId uniqueField';
+            let customField = await CustomFieldService.findOneBy({
+                query: { projectId, fieldName },
+                select: selectCustomField,
+                populate: populateCustomField,
+            });
+            if (
+                customField &&
+                String(customField._id) !== String(customFieldId)
+            ) {
+                const error = new Error(
+                    'Custom field with this name already exist'
+                );
+
+                error.code = 400;
+                throw error;
+            }
+
+            customField = await CustomFieldService.updateOneBy(
+                { _id: customFieldId, projectId },
+                {
+                    fieldName,
+                    fieldType,
+                    uniqueField,
+                }
+            );
+            return sendItemResponse(req, res, customField);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.delete(
     '/:projectId/:customFieldId',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const { projectId, customFieldId } = req.params;
 

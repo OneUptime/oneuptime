@@ -11,8 +11,9 @@ function logResponse(req: Request, res: Response, responsebody: $TSFixMe) {
 
     const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${
         process.env.POD_NAME
-    } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${requestEndedAt -
-        req.requestStartedAt}ms -- STATUS: ${res.statusCode}`;
+    } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${
+        requestEndedAt - req.requestStartedAt
+    }ms -- STATUS: ${res.statusCode}`;
 
     const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${
         responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'

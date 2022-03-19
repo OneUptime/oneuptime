@@ -1190,7 +1190,8 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                                                     const previousStatus =
                                                         probeStatuses
                                                             .statuses[0];
-                                                    previousStatus.endTime = new Date().toISOString();
+                                                    previousStatus.endTime =
+                                                        new Date().toISOString();
 
                                                     return {
                                                         _id: probeId,
@@ -1217,7 +1218,8 @@ export default (state = INITIAL_STATE, action: $TSFixMe) => {
                                             )
                                         ) {
                                             // add manual status to all new probes
-                                            const newProbeStatuses: $TSFixMe = [];
+                                            const newProbeStatuses: $TSFixMe =
+                                                [];
 
                                             probes.forEach(
                                                 (probe: $TSFixMe) => {

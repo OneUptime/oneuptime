@@ -22,82 +22,91 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.post('/:projectId', getUser, isAuthorized, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const projectId = req.params.projectId;
+router.post(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    async function (req: Request, res: Response) {
+        try {
+            const projectId = req.params.projectId;
 
-        const userId = req.user.id;
-        const data = req.body;
-        data.projectId = projectId;
-        const alert = await alertService.create({
-            projectId,
-            monitorId: data.monitorId,
-            alertVia: data.alertVia,
-            userId: userId,
-            incidentId: data.incidentId,
-            eventType: data.eventType,
-        });
-        return sendItemResponse(req, res, alert);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const userId = req.user.id;
+            const data = req.body;
+            data.projectId = projectId;
+            const alert = await alertService.create({
+                projectId,
+                monitorId: data.monitorId,
+                alertVia: data.alertVia,
+                userId: userId,
+                incidentId: data.incidentId,
+                eventType: data.eventType,
+            });
+            return sendItemResponse(req, res, alert);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Fetch alerts by projectId
-router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
-    req,
-    res
-) {
-    try {
-        const subProjectIds = req.user.subProjects
-            ? req.user.subProjects.map((project: $TSFixMe) => project._id)
-            : null;
-        const alerts = await alertService.getSubProjectAlerts(subProjectIds);
-        return sendItemResponse(req, res, alerts); // frontend expects sendItemResponse
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/:projectId',
+    getUser,
+    isAuthorized,
+    getSubProjects,
+    async function (req, res) {
+        try {
+            const subProjectIds = req.user.subProjects
+                ? req.user.subProjects.map((project: $TSFixMe) => project._id)
+                : null;
+            const alerts = await alertService.getSubProjectAlerts(
+                subProjectIds
+            );
+            return sendItemResponse(req, res, alerts); // frontend expects sendItemResponse
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.get('/:projectId/alert', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const projectId = req.params.projectId;
-        const populateAlert = [
-            { path: 'userId', select: 'name' },
-            { path: 'monitorId', select: 'name' },
-            { path: 'projectId', select: 'name' },
-        ];
+router.get(
+    '/:projectId/alert',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const projectId = req.params.projectId;
+            const populateAlert = [
+                { path: 'userId', select: 'name' },
+                { path: 'monitorId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+            ];
 
-        const selectColumns =
-            '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+            const selectColumns =
+                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
-        const [alerts, count] = await Promise.all([
-            alertService.findBy({
-                query: { projectId },
-                skip: req.query.skip || 0,
-                limit: req.query.limit || 10,
-                populate: populateAlert,
-                select: selectColumns,
-            }),
-            alertService.countBy({ projectId }),
-        ]);
-        return sendListResponse(req, res, alerts, count); // frontend expects sendListResponse
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const [alerts, count] = await Promise.all([
+                alertService.findBy({
+                    query: { projectId },
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
+                    populate: populateAlert,
+                    select: selectColumns,
+                }),
+                alertService.countBy({ projectId }),
+            ]);
+            return sendListResponse(req, res, alerts, count); // frontend expects sendListResponse
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/:projectId/incident/:incidentSlug',
     getUser,
     isAuthorized,
-    async function(req: Request, res: Response) {
+    async function (req: Request, res: Response) {
         try {
             const incidentSlug = req.params.incidentSlug;
             // const projectId = req.params.projectId;
@@ -146,92 +155,96 @@ router.get(
 );
 
 // Mark alert as viewed. This is for Email.
-router.get('/:projectId/:alertId/viewed', async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const alertId = req.params.alertId;
-        const projectId = req.params.projectId;
-        await alertService.updateOneBy(
-            { _id: alertId, projectId: projectId },
-            { alertStatus: 'Viewed' }
-        );
-        const filePath = path.join(
-            __dirname,
-            '..',
-            '..',
-            'views',
-            'img',
-            'vou-wb.png'
-        );
-        const img = fs.readFileSync(filePath);
+router.get(
+    '/:projectId/:alertId/viewed',
+    async function (req: Request, res: Response) {
+        try {
+            const alertId = req.params.alertId;
+            const projectId = req.params.projectId;
+            await alertService.updateOneBy(
+                { _id: alertId, projectId: projectId },
+                { alertStatus: 'Viewed' }
+            );
+            const filePath = path.join(
+                __dirname,
+                '..',
+                '..',
+                'views',
+                'img',
+                'vou-wb.png'
+            );
+            const img = fs.readFileSync(filePath);
 
-        res.set('Content-Type', 'image/png');
-        res.status(200);
-        res.end(img, 'binary');
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.delete('/:projectId', getUser, isUserOwner, async function(
-    req: Request,
-    res: Response
-) {
-    try {
-        const projectId = req.params.projectId;
-
-        const userId = req.user.id;
-        const alert = await alertService.deleteBy(
-            { projectId: projectId },
-            userId
-        );
-        if (!alert) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Alert not found',
-            });
+            res.set('Content-Type', 'image/png');
+            res.status(200);
+            res.end(img, 'binary');
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        return sendItemResponse(req, res, alert);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
-router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const projectId = req.params.projectId;
+router.delete(
+    '/:projectId',
+    getUser,
+    isUserOwner,
+    async function (req: Request, res: Response) {
+        try {
+            const projectId = req.params.projectId;
 
-        //Important! Always pass required field(s)
-        const populate = [
-            { path: 'alertId', select: 'alertVia' },
-            { path: 'subscriberAlertId', select: 'alertVia' },
-            { path: 'monitorId', select: 'name slug' },
-            { path: 'incidentId', select: 'idNumber slug' },
-        ];
-
-        const select =
-            'alertId subscriberAlertId monitorId incidentId closingAccountBalance chargeAmount';
-
-        const [alertCharges, count] = await Promise.all([
-            alertChargeService.findBy({
-                query: { projectId },
-                skip: req.query.skip,
-                limit: req.query.limit,
-                sort: false,
-                populate,
-                select,
-            }),
-            alertChargeService.countBy({ projectId }),
-        ]);
-        return sendListResponse(req, res, alertCharges, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const userId = req.user.id;
+            const alert = await alertService.deleteBy(
+                { projectId: projectId },
+                userId
+            );
+            if (!alert) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Alert not found',
+                });
+            }
+            return sendItemResponse(req, res, alert);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
+
+router.get(
+    '/:projectId/alert/charges',
+    getUser,
+    isAuthorized,
+    async function (req, res) {
+        try {
+            const projectId = req.params.projectId;
+
+            //Important! Always pass required field(s)
+            const populate = [
+                { path: 'alertId', select: 'alertVia' },
+                { path: 'subscriberAlertId', select: 'alertVia' },
+                { path: 'monitorId', select: 'name slug' },
+                { path: 'incidentId', select: 'idNumber slug' },
+            ];
+
+            const select =
+                'alertId subscriberAlertId monitorId incidentId closingAccountBalance chargeAmount';
+
+            const [alertCharges, count] = await Promise.all([
+                alertChargeService.findBy({
+                    query: { projectId },
+                    skip: req.query.skip,
+                    limit: req.query.limit,
+                    sort: false,
+                    populate,
+                    select,
+                }),
+                alertChargeService.countBy({ projectId }),
+            ]);
+            return sendListResponse(req, res, alertCharges, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 export default router;

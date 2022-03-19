@@ -9,7 +9,7 @@ export function fetchResourceCategories(
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
@@ -23,12 +23,12 @@ export function fetchResourceCategories(
         dispatch(fetchResourceCategoriesRequest());
 
         promise.then(
-            function(resourceCategories) {
+            function (resourceCategories) {
                 dispatch(
                     fetchResourceCategoriesSuccess(resourceCategories.data)
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -67,15 +67,15 @@ export function fetchResourceCategoriesFailure(error: $TSFixMe) {
 }
 
 export function createResourceCategory(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`resourceCategory/${projectId}`, values);
         dispatch(createResourceCategoryRequest());
 
         promise.then(
-            function(resourceCategory) {
+            function (resourceCategory) {
                 dispatch(createResourceCategorySuccess(resourceCategory.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -99,7 +99,7 @@ export function updateResourceCategory(
     resourceCategoryId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`,
             values
@@ -107,12 +107,12 @@ export function updateResourceCategory(
         dispatch(updateResourceCategoryRequest());
 
         promise.then(
-            function(updatedResourceCategory) {
+            function (updatedResourceCategory) {
                 dispatch(
                     updateResourceCategorySuccess(updatedResourceCategory.data)
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -177,19 +177,19 @@ export function deleteResourceCategory(
     resourceCategoryId: $TSFixMe,
     projectId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`
         );
         dispatch(deleteResourceCategoryRequest(resourceCategoryId));
 
         promise.then(
-            function(resourceCategory) {
+            function (resourceCategory) {
                 dispatch(
                     deleteResourceCategorySuccess(resourceCategory.data._id)
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -233,19 +233,19 @@ export function deleteResourceCategoryFailure(error: $TSFixMe) {
 }
 
 export function fetchResourceCategoriesForNewResource(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 
         promise.then(
-            function(resourceCategories) {
+            function (resourceCategories) {
                 dispatch(
                     fetchResourceCategoriesForNewResourceSuccess(
                         resourceCategories.data
                     )
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

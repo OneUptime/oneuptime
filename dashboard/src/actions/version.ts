@@ -29,17 +29,17 @@ export const resetGetVersion = () => {
 };
 
 export function getVersion() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         promise = getApi('version');
 
         dispatch(getVersionRequest(promise));
 
         promise.then(
-            function(versions) {
+            function (versions) {
                 dispatch(getVersionSuccess(versions.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

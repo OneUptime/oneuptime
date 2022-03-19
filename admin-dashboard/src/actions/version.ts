@@ -29,7 +29,7 @@ export const resetGetVersion = () => {
 };
 
 export function getVersion() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         let promise = null;
         let backendPromise = null;
         let helmChartPromise = null;
@@ -51,7 +51,7 @@ export function getVersion() {
         dispatch(getVersionRequest(promise));
 
         promise.then(
-            function(versions) {
+            function (versions) {
                 let versionsObject = {};
                 versions.forEach(version => {
                     versionsObject = { ...versionsObject, ...version.data };
@@ -59,7 +59,7 @@ export function getVersion() {
 
                 dispatch(getVersionSuccess(versionsObject));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

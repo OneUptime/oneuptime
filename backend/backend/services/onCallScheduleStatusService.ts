@@ -1,5 +1,5 @@
 export default {
-    findBy: async function({
+    findBy: async function ({
         query,
         skip,
         limit,
@@ -43,7 +43,7 @@ export default {
         return items;
     },
 
-    create: async function({
+    create: async function ({
         project,
         incident,
         activeEscalation,
@@ -69,7 +69,7 @@ export default {
         return item;
     },
 
-    countBy: async function({ query }: $TSFixMe) {
+    countBy: async function ({ query }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -79,7 +79,7 @@ export default {
         return count;
     },
 
-    updateOneBy: async function({ query, data }: $TSFixMe) {
+    updateOneBy: async function ({ query, data }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -97,7 +97,7 @@ export default {
         return item;
     },
 
-    updateBy: async function({ query, data }: $TSFixMe) {
+    updateBy: async function ({ query, data }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -128,7 +128,7 @@ export default {
         return items;
     },
 
-    deleteBy: async function({ query, userId }: $TSFixMe) {
+    deleteBy: async function ({ query, userId }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -150,7 +150,7 @@ export default {
         return items;
     },
 
-    hardDeleteBy: async function({ query }: $TSFixMe) {
+    hardDeleteBy: async function ({ query }: $TSFixMe) {
         await OnCallScheduleStatusModel.deleteMany(query);
     },
 };

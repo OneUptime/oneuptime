@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 export default {
-    calculateHumanReadableDownTime: function(comparedTime: $TSFixMe) {
+    calculateHumanReadableDownTime: function (comparedTime: $TSFixMe) {
         const downTime =
             (new Date().getTime() - new Date(comparedTime).getTime()) /
             (1000 * 60);
@@ -23,7 +23,7 @@ export default {
         return downTimeString;
     },
 
-    getIncidentLength: function(
+    getIncidentLength: function (
         createdAt: $TSFixMe,
         actionPerformedAt: $TSFixMe
     ) {

@@ -27,19 +27,20 @@ export function fetchIncidentPriorities(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
-            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${limit ||
-                10}`
+            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${
+                limit || 10
+            }`
         );
         dispatch(fetchIncidentPrioritiesRequest());
         promise.then(
-            function(incidentsPriorities) {
+            function (incidentsPriorities) {
                 dispatch(
                     fetchIncidentPrioritiesSuccess(incidentsPriorities.data)
                 );
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -57,14 +58,14 @@ export function fetchIncidentPriorities(
 }
 
 export function createIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`incidentPriorities/${projectId}`, data);
         dispatch(createIncidentPriorityRequest());
         promise.then(
-            function(incidentPriority) {
+            function (incidentPriority) {
                 dispatch(createIncidentPrioritySuccess(incidentPriority.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -103,14 +104,14 @@ function createIncidentPriorityFailure(data: $TSFixMe) {
 }
 
 export function updateIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`incidentPriorities/${projectId}`, data);
         dispatch(updateIncidentPriorityRequest());
         promise.then(
-            function(incidentPriority) {
+            function (incidentPriority) {
                 dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -149,14 +150,14 @@ function updateIncidentPriorityFailure(data: $TSFixMe) {
 }
 
 export function deleteIncidentPriority(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`incidentPriorities/${projectId}`, data);
         dispatch(deleteIncidentPriorityRequest());
         promise.then(
-            function(incidentPriority) {
+            function (incidentPriority) {
                 dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

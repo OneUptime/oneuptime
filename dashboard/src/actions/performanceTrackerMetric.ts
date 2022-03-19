@@ -18,40 +18,37 @@ export const fetchTimeMetricsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchTimeMetrics = ({
-    appId,
-    key,
-    startDate,
-    endDate,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    dispatch(fetchTimeMetricsRequest());
+export const fetchTimeMetrics =
+    ({ appId, key, startDate, endDate }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(fetchTimeMetricsRequest());
 
-    startDate = encode(moment(startDate).format());
-    endDate = encode(moment(endDate).format());
+        startDate = encode(moment(startDate).format());
+        endDate = encode(moment(endDate).format());
 
-    const promise = getApi(
-        `performanceMetric/${appId}/key/${key}/time?startDate=${startDate}&endDate=${endDate}`
-    );
+        const promise = getApi(
+            `performanceMetric/${appId}/key/${key}/time?startDate=${startDate}&endDate=${endDate}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(fetchTimeMetricsSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(fetchTimeMetricsFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(fetchTimeMetricsSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchTimeMetricsFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 // fetch performance tracker metrics - THROUGHPUT
 export const fetchThroughputMetricsRequest = () => ({
@@ -68,40 +65,37 @@ export const fetchThroughputMetricsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchThroughputMetrics = ({
-    appId,
-    key,
-    startDate,
-    endDate,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    dispatch(fetchThroughputMetricsRequest());
+export const fetchThroughputMetrics =
+    ({ appId, key, startDate, endDate }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(fetchThroughputMetricsRequest());
 
-    startDate = encode(moment(startDate).format());
-    endDate = encode(moment(endDate).format());
+        startDate = encode(moment(startDate).format());
+        endDate = encode(moment(endDate).format());
 
-    const promise = getApi(
-        `performanceMetric/${appId}/key/${key}/throughput?startDate=${startDate}&endDate=${endDate}`
-    );
+        const promise = getApi(
+            `performanceMetric/${appId}/key/${key}/throughput?startDate=${startDate}&endDate=${endDate}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(fetchThroughputMetricsSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(fetchThroughputMetricsFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(fetchThroughputMetricsSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchThroughputMetricsFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 // fetch performance tracker metrics - ERROR
 export const fetchErrorMetricsRequest = () => ({
@@ -118,40 +112,37 @@ export const fetchErrorMetricsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchErrorMetrics = ({
-    appId,
-    key,
-    startDate,
-    endDate,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    dispatch(fetchErrorMetricsRequest());
+export const fetchErrorMetrics =
+    ({ appId, key, startDate, endDate }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(fetchErrorMetricsRequest());
 
-    startDate = encode(moment(startDate).format());
-    endDate = encode(moment(endDate).format());
+        startDate = encode(moment(startDate).format());
+        endDate = encode(moment(endDate).format());
 
-    const promise = getApi(
-        `performanceMetric/${appId}/key/${key}/error?startDate=${startDate}&endDate=${endDate}`
-    );
+        const promise = getApi(
+            `performanceMetric/${appId}/key/${key}/error?startDate=${startDate}&endDate=${endDate}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(fetchErrorMetricsSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(fetchErrorMetricsFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(fetchErrorMetricsSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchErrorMetricsFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 // handle setting startDate/endDate - (TIME || THROUGHPUT || ERROR)
 export const setTimeStartDate = (date: $TSFixMe) => ({
@@ -240,42 +231,37 @@ export const fetchIncomingMetricsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchIncomingMetrics = ({
-    appId,
-    key,
-    skip,
-    limit,
-    startDate,
-    endDate,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    dispatch(fetchIncomingMetricsRequest());
+export const fetchIncomingMetrics =
+    ({ appId, key, skip, limit, startDate, endDate }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(fetchIncomingMetricsRequest());
 
-    startDate = encode(moment(startDate).format());
-    endDate = encode(moment(endDate).format());
+        startDate = encode(moment(startDate).format());
+        endDate = encode(moment(endDate).format());
 
-    const promise = getApi(
-        `performanceMetric/${appId}/key/${key}?type=incoming&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
-    );
+        const promise = getApi(
+            `performanceMetric/${appId}/key/${key}?type=incoming&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(fetchIncomingMetricsSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(fetchIncomingMetricsFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(fetchIncomingMetricsSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchIncomingMetricsFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 export const fetchOutgoingMetricsRequest = () => ({
     type: types.FETCH_OUTGOING_METRICS_REQUEST,
@@ -291,42 +277,37 @@ export const fetchOutgoingMetricsFailing = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const fetchOutgoingMetrics = ({
-    appId,
-    key,
-    skip,
-    limit,
-    startDate,
-    endDate,
-}: $TSFixMe) => (dispatch: $TSFixMe) => {
-    dispatch(fetchOutgoingMetricsRequest());
+export const fetchOutgoingMetrics =
+    ({ appId, key, skip, limit, startDate, endDate }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(fetchOutgoingMetricsRequest());
 
-    startDate = encode(moment(startDate).format());
-    endDate = encode(moment(endDate).format());
+        startDate = encode(moment(startDate).format());
+        endDate = encode(moment(endDate).format());
 
-    const promise = getApi(
-        `performanceMetric/${appId}/key/${key}?type=outgoing&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
-    );
+        const promise = getApi(
+            `performanceMetric/${appId}/key/${key}?type=outgoing&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(fetchOutgoingMetricsSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(fetchOutgoingMetricsFailing(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(fetchOutgoingMetricsSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchOutgoingMetricsFailing(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 export const setIncomingStartDate = (payload: $TSFixMe) => ({
     type: types.SET_INCOMING_STARTDATE,
@@ -367,34 +348,34 @@ export const resetIncomingDelete = () => ({
     type: types.RESET_INCOMING_DELETE,
 });
 
-export const deleteIncomingMetrics = ({ appId, key, metricId }: $TSFixMe) => (
-    dispatch: $TSFixMe
-) => {
-    dispatch(deleteIncomingMetricsRequest());
+export const deleteIncomingMetrics =
+    ({ appId, key, metricId }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(deleteIncomingMetricsRequest());
 
-    const promise = deleteApi(
-        `performanceMetric/${appId}/key/${key}/${metricId}`
-    );
+        const promise = deleteApi(
+            `performanceMetric/${appId}/key/${key}/${metricId}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(deleteIncomingMetricsSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(deleteIncomingMetricsFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(deleteIncomingMetricsSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(deleteIncomingMetricsFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };
 
 export const deleteOutgoingMetricsRequest = () => ({
     type: types.DELETE_OUTGOING_METRICS_REQUEST,
@@ -414,31 +395,31 @@ export const resetOutgoingDelete = () => ({
     type: types.RESET_OUTGOING_DELETE,
 });
 
-export const deleteOutgoingMetrics = ({ appId, key, metricId }: $TSFixMe) => (
-    dispatch: $TSFixMe
-) => {
-    dispatch(deleteOutgoingMetricsRequest());
+export const deleteOutgoingMetrics =
+    ({ appId, key, metricId }: $TSFixMe) =>
+    (dispatch: $TSFixMe) => {
+        dispatch(deleteOutgoingMetricsRequest());
 
-    const promise = deleteApi(
-        `performanceMetric/${appId}/key/${key}/${metricId}`
-    );
+        const promise = deleteApi(
+            `performanceMetric/${appId}/key/${key}/${metricId}`
+        );
 
-    promise.then(
-        function(response) {
-            dispatch(deleteOutgoingMetricsSuccess(response.data));
-        },
-        function(error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(deleteOutgoingMetricsFailure(errorMsg));
-        }
-    );
+        promise.then(
+            function (response) {
+                dispatch(deleteOutgoingMetricsSuccess(response.data));
+            },
+            function (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(deleteOutgoingMetricsFailure(errorMsg));
+            }
+        );
 
-    return promise;
-};
+        return promise;
+    };

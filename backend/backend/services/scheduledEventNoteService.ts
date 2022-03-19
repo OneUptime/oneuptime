@@ -6,7 +6,7 @@ import handlePopulate from '../utils/populate';
 import handleSelect from '../utils/select';
 
 export default {
-    create: async function(data: $TSFixMe, projectId: $TSFixMe) {
+    create: async function (data: $TSFixMe, projectId: $TSFixMe) {
         let scheduledEventMessage = await ScheduledEventNoteModel.create(data);
 
         const populate = [
@@ -60,7 +60,7 @@ export default {
 
         return scheduledEventMessage;
     },
-    updateOneBy: async function(
+    updateOneBy: async function (
         query: $TSFixMe,
         data: $TSFixMe,
         projectId: $TSFixMe
@@ -116,7 +116,7 @@ export default {
 
         return eventMessage;
     },
-    findOneBy: async function({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
@@ -128,7 +128,13 @@ export default {
         const eventMessage = await eventMessageQuery;
         return eventMessage;
     },
-    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -155,14 +161,14 @@ export default {
         const eventMessage = await eventMessageQuery;
         return eventMessage;
     },
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
         const count = await ScheduledEventNoteModel.countDocuments(query);
         return count;
     },
-    deleteBy: async function(
+    deleteBy: async function (
         query: $TSFixMe,
         userId: $TSFixMe,
         projectId: $TSFixMe
@@ -196,7 +202,7 @@ export default {
 
         return deletedEventMessage;
     },
-    hardDelete: async function(query: $TSFixMe) {
+    hardDelete: async function (query: $TSFixMe) {
         await ScheduledEventNoteModel.deleteMany(query);
         return 'Scheduled Event Note(s) removed successfully!';
     },

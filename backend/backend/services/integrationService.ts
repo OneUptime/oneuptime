@@ -1,5 +1,11 @@
 export default {
-    findBy: async function({ query, skip, limit, select, populate }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        skip,
+        limit,
+        select,
+        populate,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -24,7 +30,7 @@ export default {
     },
 
     // create a new integration
-    create: async function(
+    create: async function (
         projectId: $TSFixMe,
         userId: $TSFixMe,
         data: $TSFixMe,
@@ -74,7 +80,7 @@ export default {
         return integration;
     },
 
-    countBy: async function(query: $TSFixMe) {
+    countBy: async function (query: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -84,7 +90,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function(query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -99,7 +105,7 @@ export default {
         return integration;
     },
 
-    findOneBy: async function({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) query = {};
 
         if (query.deleted) query.deleted = false;
@@ -113,7 +119,7 @@ export default {
         return result;
     },
 
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
@@ -171,7 +177,7 @@ export default {
         }
     },
 
-    updateBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -195,7 +201,7 @@ export default {
         return updatedData;
     },
 
-    removeMonitor: async function(monitorId: $TSFixMe, userId: $TSFixMe) {
+    removeMonitor: async function (monitorId: $TSFixMe, userId: $TSFixMe) {
         let query = {};
         if (monitorId) {
             query = { monitorId: monitorId };
@@ -212,7 +218,7 @@ export default {
         return integrations;
     },
 
-    restoreBy: async function(query: $TSFixMe) {
+    restoreBy: async function (query: $TSFixMe) {
         const _this = this;
         query.deleted = true;
         const select =
@@ -247,7 +253,7 @@ export default {
             return integrations;
         }
     },
-    hardDeleteBy: async function(query: $TSFixMe) {
+    hardDeleteBy: async function (query: $TSFixMe) {
         await IntegrationModel.deleteMany(query);
         return 'Integration(s) Removed Successfully!';
     },

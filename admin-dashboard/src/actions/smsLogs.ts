@@ -23,37 +23,38 @@ export const fetchSmsLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const fetchSmsLogs = (skip: $TSFixMe, limit: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
+export const fetchSmsLogs =
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
 
-    dispatch(fetchSmsLogsRequest());
+        dispatch(fetchSmsLogsRequest());
 
-    try {
-        const response = await getApi(`sms-logs?skip=${skip}&limit=${limit}`);
+        try {
+            const response = await getApi(
+                `sms-logs?skip=${skip}&limit=${limit}`
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(fetchSmsLogsSuccess(data));
+            dispatch(fetchSmsLogsSuccess(data));
 
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchSmsLogsError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchSmsLogsError(errors(errorMsg)));
-    }
-};
+    };
 
 // Search Sms Logs.
 export const searchSmsLogsRequest = () => {
@@ -76,42 +77,40 @@ export const searchSmsLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const searchSmsLogs = (
-    filter: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    const values = {
-        filter,
+export const searchSmsLogs =
+    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        const values = {
+            filter,
+        };
+
+        dispatch(searchSmsLogsRequest());
+
+        try {
+            const response = await postApi(
+                `sms-logs/search?skip=${skip}&limit=${limit}`,
+                values
+            );
+
+            const data = response.data;
+
+            dispatch(searchSmsLogsSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(searchSmsLogsError(errors(errorMsg)));
+        }
     };
-
-    dispatch(searchSmsLogsRequest());
-
-    try {
-        const response = await postApi(
-            `sms-logs/search?skip=${skip}&limit=${limit}`,
-            values
-        );
-
-        const data = response.data;
-
-        dispatch(searchSmsLogsSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
-        }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(searchSmsLogsError(errors(errorMsg)));
-    }
-};
 
 // Delete All Sms Logs
 export const deleteSmsLogsRequest = () => {
@@ -244,32 +243,31 @@ export const resetConfirmSmsLogStatus = () => {
 };
 
 // Calls the API to change smsLogStatus
-export const smsLogStatusChange = (values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(changeSmsLogStatusRequest());
+export const smsLogStatusChange =
+    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(changeSmsLogStatusRequest());
 
-    try {
-        const response = await postApi('globalConfig/', [
-            { name: 'smsLogMonitoringStatus', value: values.status },
-        ]);
+        try {
+            const response = await postApi('globalConfig/', [
+                { name: 'smsLogMonitoringStatus', value: values.status },
+            ]);
 
-        const data = response.data;
-        dispatch(changeSmsLogStatusSuccess(data));
-        return data;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const data = response.data;
+            dispatch(changeSmsLogStatusSuccess(data));
+            return data;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(changeSmsLogStatusError(errors(errorMsg)));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(changeSmsLogStatusError(errors(errorMsg)));
-        return 'error';
-    }
-};
+    };

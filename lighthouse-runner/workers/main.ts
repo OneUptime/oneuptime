@@ -3,7 +3,7 @@ import UrlMonitors from './urlMonitors';
 import ErrorService from '../utils/errorService';
 
 export default {
-    runJob: async function() {
+    runJob: async function () {
         try {
             let monitors = await getApi('lighthouse/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data

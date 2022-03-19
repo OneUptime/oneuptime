@@ -19,7 +19,7 @@ import {
 //                                                   jwtAccessToken: token.accessToken,
 //                                                   jwtRefreshToken: token.refreshToken,
 //                                               }
-router.post('/new', async function(req: Request, res: Response) {
+router.post('/new', async function (req: Request, res: Response) {
     try {
         const jwtRefreshToken = req.body.refreshToken;
 

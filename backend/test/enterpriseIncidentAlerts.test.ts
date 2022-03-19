@@ -48,118 +48,119 @@ let authorization: $TSFixMe,
     monitorId: $TSFixMe,
     scheduleId;
 
-describe('Incident Alerts', function() {
+describe('Incident Alerts', function () {
     this.timeout(30000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(() => {
-            createEnterpriseUser(request, userData.user, async function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userId = res.body.id;
+            createEnterpriseUser(
+                request,
+                userData.user,
+                async function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userId = res.body.id;
 
-                await UserModel.updateOne(
-                    { _id: userId },
-                    { alertPhoneNumber: '+19173976235' }
-                );
-                request
-                    .post('/user/login')
-                    .send({
-                        email: userData.user.email,
-                        password: userData.user.password,
-                    })
-                    .end(async function(err: $TSFixMe, res: Response) {
-                        token = res.body.tokens.jwtAccessToken;
-                        authorization = `Basic ${token}`;
+                    await UserModel.updateOne(
+                        { _id: userId },
+                        { alertPhoneNumber: '+19173976235' }
+                    );
+                    request
+                        .post('/user/login')
+                        .send({
+                            email: userData.user.email,
+                            password: userData.user.password,
+                        })
+                        .end(async function (err: $TSFixMe, res: Response) {
+                            token = res.body.tokens.jwtAccessToken;
+                            authorization = `Basic ${token}`;
 
-                        const component = await request
-                            .post(`/component/${projectId}`)
-                            .set('Authorization', authorization)
-                            .send({
-                                projectId,
-                                name: 'test',
-                                criteria: {},
-                                data: {},
-                            });
-                        componentId = component.body._id;
+                            const component = await request
+                                .post(`/component/${projectId}`)
+                                .set('Authorization', authorization)
+                                .send({
+                                    projectId,
+                                    name: 'test',
+                                    criteria: {},
+                                    data: {},
+                                });
+                            componentId = component.body._id;
 
-                        const monitor = await request
-                            .post(`/monitor/${projectId}`)
-                            .set('Authorization', authorization)
-                            .send({
-                                componentId,
-                                projectId,
-                                type: 'ip',
-                                name: 'test monitor ',
-                                data: { IPAddress: '216.58.223.196' }, // www.google.com
-                                // deviceId: "abcdef", IOT device has been replaced with IP
-                                criteria: {},
-                            });
-                        monitorId = monitor.body._id;
+                            const monitor = await request
+                                .post(`/monitor/${projectId}`)
+                                .set('Authorization', authorization)
+                                .send({
+                                    componentId,
+                                    projectId,
+                                    type: 'ip',
+                                    name: 'test monitor ',
+                                    data: { IPAddress: '216.58.223.196' }, // www.google.com
+                                    // deviceId: "abcdef", IOT device has been replaced with IP
+                                    criteria: {},
+                                });
+                            monitorId = monitor.body._id;
 
-                        await request
-                            .post(
-                                `/subscriber/${projectId}/subscribe/${monitorId}`
-                            )
-                            .set('Authorization', authorization)
-                            .send({
-                                alertVia: 'sms',
-                                contactPhone: '9173976235',
-                                countryCode: 'us',
-                            });
+                            await request
+                                .post(
+                                    `/subscriber/${projectId}/subscribe/${monitorId}`
+                                )
+                                .set('Authorization', authorization)
+                                .send({
+                                    alertVia: 'sms',
+                                    contactPhone: '9173976235',
+                                    countryCode: 'us',
+                                });
 
-                        const schedule = await request
-                            .post(`/schedule/${projectId}`)
-                            .set('Authorization', authorization)
-                            .send({ name: 'test schedule' });
-                        scheduleId = schedule.body._id;
+                            const schedule = await request
+                                .post(`/schedule/${projectId}`)
+                                .set('Authorization', authorization)
+                                .send({ name: 'test schedule' });
+                            scheduleId = schedule.body._id;
 
-                        await request
-                            .put(`/schedule/${projectId}/${scheduleId}`)
-                            .set('Authorization', authorization)
-                            .send({ monitorIds: [monitorId] });
+                            await request
+                                .put(`/schedule/${projectId}/${scheduleId}`)
+                                .set('Authorization', authorization)
+                                .send({ monitorIds: [monitorId] });
 
-                        await request
-                            .post(
-                                `/schedule/${projectId}/${scheduleId}/addescalation`
-                            )
-                            .set('Authorization', authorization)
-                            .send([
-                                {
-                                    callReminders: '3',
-                                    smsReminders: '3',
-                                    emailReminders: '3',
-                                    pushReminders: '3',
-                                    email: false,
-                                    sms: true,
-                                    call: true,
-                                    push: false,
-                                    teams: [
-                                        {
-                                            teamMembers: [
-                                                {
-                                                    member: '',
-                                                    timezone: '',
-                                                    startTime: '',
-                                                    endTime: '',
-                                                    userId,
-                                                },
-                                            ],
-                                        },
-                                    ],
-                                },
-                            ]);
-                        done();
-                    });
-            });
+                            await request
+                                .post(
+                                    `/schedule/${projectId}/${scheduleId}/addescalation`
+                                )
+                                .set('Authorization', authorization)
+                                .send([
+                                    {
+                                        callReminders: '3',
+                                        smsReminders: '3',
+                                        emailReminders: '3',
+                                        pushReminders: '3',
+                                        email: false,
+                                        sms: true,
+                                        call: true,
+                                        push: false,
+                                        teams: [
+                                            {
+                                                teamMembers: [
+                                                    {
+                                                        member: '',
+                                                        timezone: '',
+                                                        startTime: '',
+                                                        endTime: '',
+                                                        userId,
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                ]);
+                            done();
+                        });
+                }
+            );
         });
     });
 
-    after(async function() {
+    after(async function () {
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
@@ -191,7 +192,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings (SMS/Call) enable : true
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async function() {
+        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -276,7 +277,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings Call enable : false
          */
 
-        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function() {
+        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -369,7 +370,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings Call enable : true
          */
 
-        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function() {
+        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -467,7 +468,7 @@ describe('Incident Alerts', function() {
          * Global twilio settings Call enable : false
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async function() {
+        it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async function () {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -573,7 +574,7 @@ describe('Incident Alerts', function() {
          * Custom twilio settings: not set
          */
 
-        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function() {
+        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function () {
             await GlobalConfigModel.deleteMany({
                 name: 'twilio',
             });

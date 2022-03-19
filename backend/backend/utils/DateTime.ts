@@ -5,7 +5,7 @@ import differenceInMonths from 'date-fns/differenceInMonths';
 
 const _this = {
     // This function will strip
-    changeDateTimezone: function(date: $TSFixMe, timezone: $TSFixMe) {
+    changeDateTimezone: function (date: $TSFixMe, timezone: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -13,14 +13,15 @@ const _this = {
         // eg. moment.tz("2013-11-18 11:55", "Asia/Taipei");
         return moment
             .tz(
-                `${date.getFullYear()}-${date.getMonth() +
-                    1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`,
+                `${date.getFullYear()}-${
+                    date.getMonth() + 1
+                }-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`,
                 timezone
             )
             .toDate();
     },
 
-    compareDate: function(
+    compareDate: function (
         startTime: $TSFixMe,
         endTime: $TSFixMe,
         currentTime: $TSFixMe
@@ -60,27 +61,23 @@ const _this = {
         return false;
     },
 
-    convertToTimezone: function(date: $TSFixMe, timezone: $TSFixMe) {
+    convertToTimezone: function (date: $TSFixMe, timezone: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
 
-        return moment(date)
-            .tz(timezone)
-            .toDate();
+        return moment(date).tz(timezone).toDate();
     },
 
-    convertToCurrentTimezone: function(date: $TSFixMe) {
+    convertToCurrentTimezone: function (date: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
 
-        return moment(date)
-            .tz(moment.tz.guess())
-            .toDate();
+        return moment(date).tz(moment.tz.guess()).toDate();
     },
 
-    format: function(date: $TSFixMe, formatString: $TSFixMe) {
+    format: function (date: $TSFixMe, formatString: $TSFixMe) {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -88,11 +85,11 @@ const _this = {
         return moment(date).format(formatString);
     },
 
-    getCurrentTimezoneAbbr: function() {
+    getCurrentTimezoneAbbr: function () {
         return moment.tz(moment.tz.guess()).zoneAbbr();
     },
 
-    getCurrentTimezone: function() {
+    getCurrentTimezone: function () {
         return moment.tz.guess();
     },
 
@@ -209,8 +206,9 @@ const _this = {
 
         return moment
             .tz(
-                `${today.getFullYear()}-${today.getMonth() +
-                    1}-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`,
+                `${today.getFullYear()}-${
+                    today.getMonth() + 1
+                }-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`,
                 _this.getCurrentTimezone()
             )
             .toDate();
@@ -222,9 +220,7 @@ const _this = {
         }
 
         const current = new Date();
-        date = moment(date)
-            .add(1, 'minutes')
-            .toDate();
+        date = moment(date).add(1, 'minutes').toDate();
 
         return _this.lessThan(date, current);
     },

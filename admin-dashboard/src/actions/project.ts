@@ -25,36 +25,35 @@ export const fetchProjectsError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch all projects.
-export const fetchProjects = (skip: $TSFixMe, limit: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    skip = skip || 0;
-    limit = limit || 10;
+export const fetchProjects =
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        skip = skip || 0;
+        limit = limit || 10;
 
-    dispatch(fetchProjectsRequest());
+        dispatch(fetchProjectsRequest());
 
-    try {
-        const response = await getApi(
-            `project/projects/allProjects?skip=${skip}&limit=${limit}`
-        );
+        try {
+            const response = await getApi(
+                `project/projects/allProjects?skip=${skip}&limit=${limit}`
+            );
 
-        dispatch(fetchProjectsSuccess(response.data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchProjectsSuccess(response.data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchProjectsError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchProjectsError(errors(errorMsg)));
-    }
-};
+    };
 
 export const fetchProjectRequest = () => {
     return {
@@ -126,18 +125,18 @@ export function userCreateError(error: $TSFixMe) {
 
 // Calls the API to add users to project.
 export function userCreate(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`team/${projectId}`, values);
         dispatch(userCreateRequest());
         promise.then(
-            function(response) {
+            function (response) {
                 const data = response.data;
                 const projectUsers = data.filter(
                     (team: $TSFixMe) => team.projectId === projectId
                 )[0];
                 dispatch(userCreateSuccess(projectUsers.team));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -177,34 +176,33 @@ export const fetchUserProjectsError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch users belonging to a particular project
-export const fetchProjectTeam = (projectId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(fetchProjectTeamRequest());
-    try {
-        const response = await getApi(`team/${projectId}/teamMembers`);
+export const fetchProjectTeam =
+    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(fetchProjectTeamRequest());
+        try {
+            const response = await getApi(`team/${projectId}/teamMembers`);
 
-        const team = response.data;
-        const projectTeam = team.filter(
-            (team: $TSFixMe) => team._id === projectId
-        )[0];
-        dispatch(fetchProjectTeamSuccess(projectTeam));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const team = response.data;
+            const projectTeam = team.filter(
+                (team: $TSFixMe) => team._id === projectId
+            )[0];
+            dispatch(fetchProjectTeamSuccess(projectTeam));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchProjectTeamError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchProjectTeamError(errors(errorMsg)));
-    }
-};
+    };
 
 export const fetchProjectTeamRequest = () => {
     return {
@@ -254,7 +252,7 @@ export function changeUserProjectRole(team: $TSFixMe) {
 }
 // Calls the API to update user role.
 export function userUpdateRole(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(
             `team/${projectId}/${values.teamMemberId}/changerole`,
             values
@@ -262,14 +260,14 @@ export function userUpdateRole(projectId: $TSFixMe, values: $TSFixMe) {
         dispatch(userUpdateRoleRequest(values.teamMemberId));
 
         promise.then(
-            function(response) {
+            function (response) {
                 const data = response.data;
                 const projectUsers = data.filter(
                     (user: $TSFixMe) => user.projectId === projectId
                 )[0];
                 dispatch(userUpdateRoleSuccess(projectUsers));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -302,42 +300,44 @@ export function paginatePrev() {
 }
 
 export function paginate(type: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
     };
 }
 
 //Add Balance to a project
-export const updateBalance = (
-    projectId: $TSFixMe,
-    rechargeBalanceAmount: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    dispatch(updateProjectBalanceRequest());
+export const updateBalance =
+    (projectId: $TSFixMe, rechargeBalanceAmount: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(updateProjectBalanceRequest());
 
-    try {
-        const response = await putApi(`project/${projectId}/updateBalance`, {
-            rechargeBalanceAmount,
-        });
+        try {
+            const response = await putApi(
+                `project/${projectId}/updateBalance`,
+                {
+                    rechargeBalanceAmount,
+                }
+            );
 
-        const data = response.data;
-        dispatch(updateProjectBalanceSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const data = response.data;
+            dispatch(updateProjectBalanceSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(updateProjectBalanceError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(updateProjectBalanceError(errors(errorMsg)));
-    }
-};
+    };
 
 export function updateProjectBalanceRequest() {
     return {
@@ -360,12 +360,12 @@ export function updateProjectBalanceError(error: $TSFixMe) {
 }
 // Calls the API to delete user from project
 export function teamDelete(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
-            function(response) {
+            function (response) {
                 const team = response.data;
                 const projectTeam = team.filter(
                     (team: $TSFixMe) => team.projectId === projectId
@@ -373,7 +373,7 @@ export function teamDelete(projectId: $TSFixMe, teamMemberId: $TSFixMe) {
                 dispatch(teamDeleteSuccess(projectTeam.team));
                 return { team };
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -419,46 +419,44 @@ export function teamDeleteReset() {
     };
 }
 export function resetTeamDelete() {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(teamDeleteReset());
     };
 }
 
 // Calls the API to fetch all user projects.
-export const fetchUserProjects = (
-    userId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
+export const fetchUserProjects =
+    (userId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
 
-    dispatch(fetchUserProjectsRequest());
+        dispatch(fetchUserProjectsRequest());
 
-    try {
-        const response = await getApi(
-            `project/projects/user/${userId}?skip=${skip}&limit=${limit}`
-        );
+        try {
+            const response = await getApi(
+                `project/projects/user/${userId}?skip=${skip}&limit=${limit}`
+            );
 
-        const users = response.data;
+            const users = response.data;
 
-        dispatch(fetchUserProjectsSuccess(users));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchUserProjectsSuccess(users));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchUserProjectsError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchUserProjectsError(errors(errorMsg)));
-    }
-};
+    };
 
 //Delete project
 export const deleteProjectRequest = () => {
@@ -488,33 +486,34 @@ export const deleteProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to delete a project
-export const deleteProject = (projectId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(deleteProjectRequest());
+export const deleteProject =
+    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(deleteProjectRequest());
 
-    try {
-        const response = await deleteApi(`project/${projectId}/deleteProject`);
+        try {
+            const response = await deleteApi(
+                `project/${projectId}/deleteProject`
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(deleteProjectSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(deleteProjectSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteProjectError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteProjectError(errors(errorMsg)));
-    }
-};
+    };
 
 //Block project
 export const blockProjectRequest = () => {
@@ -544,33 +543,32 @@ export const blockProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to block a project
-export const blockProject = (projectId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(blockProjectRequest());
+export const blockProject =
+    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(blockProjectRequest());
 
-    try {
-        const response = await putApi(`project/${projectId}/blockProject`);
+        try {
+            const response = await putApi(`project/${projectId}/blockProject`);
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(blockProjectSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(blockProjectSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(blockProjectError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(blockProjectError(errors(errorMsg)));
-    }
-};
+    };
 
 //Renew Alert Limit
 export const renewAlertLimitRequest = () => {
@@ -600,36 +598,38 @@ export const renewAlertLimitError = (error: $TSFixMe) => {
 };
 
 // Calls the API to block a project
-export const renewAlertLimit = (
-    projectId: $TSFixMe,
-    alertLimit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    dispatch(renewAlertLimitRequest());
+export const renewAlertLimit =
+    (projectId: $TSFixMe, alertLimit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(renewAlertLimitRequest());
 
-    try {
-        const response = await putApi(`project/${projectId}/renewAlertLimit`, {
-            alertLimit,
-        });
+        try {
+            const response = await putApi(
+                `project/${projectId}/renewAlertLimit`,
+                {
+                    alertLimit,
+                }
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(renewAlertLimitSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(renewAlertLimitSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(renewAlertLimitError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(renewAlertLimitError(errors(errorMsg)));
-    }
-};
+    };
 
 //Restore project
 export const restoreProjectRequest = () => {
@@ -659,33 +659,34 @@ export const restoreProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to restore a project
-export const restoreProject = (projectId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(restoreProjectRequest());
+export const restoreProject =
+    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(restoreProjectRequest());
 
-    try {
-        const response = await putApi(`project/${projectId}/restoreProject`);
+        try {
+            const response = await putApi(
+                `project/${projectId}/restoreProject`
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(restoreProjectSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(restoreProjectSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(restoreProjectError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(restoreProjectError(errors(errorMsg)));
-    }
-};
+    };
 
 //Unblock project
 export const unblockProjectRequest = () => {
@@ -715,33 +716,34 @@ export const unblockProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to un-block a project
-export const unblockProject = (projectId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(unblockProjectRequest());
+export const unblockProject =
+    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(unblockProjectRequest());
 
-    try {
-        const response = await putApi(`project/${projectId}/unblockProject`);
+        try {
+            const response = await putApi(
+                `project/${projectId}/unblockProject`
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(unblockProjectSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(unblockProjectSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(unblockProjectError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(unblockProjectError(errors(errorMsg)));
-    }
-};
+    };
 
 //Add Project Notes
 export const addProjectNoteRequest = () => {
@@ -771,33 +773,35 @@ export const addProjectNoteError = (error: $TSFixMe) => {
 };
 
 // Calls the API to add Admin Note
-export const addProjectNote = (projectId: $TSFixMe, values: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(addProjectNoteRequest());
+export const addProjectNote =
+    (projectId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(addProjectNoteRequest());
 
-    try {
-        const response = await postApi(`project/${projectId}/addNote`, values);
+        try {
+            const response = await postApi(
+                `project/${projectId}/addNote`,
+                values
+            );
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(addProjectNoteSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(addProjectNoteSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(addProjectNoteError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(addProjectNoteError(errors(errorMsg)));
-    }
-};
+    };
 
 //Search Projects
 export const searchProjectsRequest = () => {
@@ -827,42 +831,40 @@ export const searchProjectsError = (error: $TSFixMe) => {
 };
 
 // Calls the search projects api
-export const searchProjects = (
-    filter: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    const values = {
-        filter,
+export const searchProjects =
+    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        const values = {
+            filter,
+        };
+
+        dispatch(searchProjectsRequest());
+
+        try {
+            const response = await postApi(
+                `project/projects/search?skip=${skip}&limit=${limit}`,
+                values
+            );
+
+            const data = response.data;
+
+            dispatch(searchProjectsSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(searchProjectsError(errors(errorMsg)));
+        }
     };
-
-    dispatch(searchProjectsRequest());
-
-    try {
-        const response = await postApi(
-            `project/projects/search?skip=${skip}&limit=${limit}`,
-            values
-        );
-
-        const data = response.data;
-
-        dispatch(searchProjectsSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
-        }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(searchProjectsError(errors(errorMsg)));
-    }
-};
 
 // Upgrade a Project
 export const changePlanRequest = () => {
@@ -885,36 +887,41 @@ export const changePlanFailure = (error: $TSFixMe) => {
     };
 };
 
-export const changePlan = (
-    projectId: $TSFixMe,
-    planId: $TSFixMe,
-    projectName: $TSFixMe,
-    oldPlan: $TSFixMe,
-    newPlan: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    dispatch(changePlanRequest());
+export const changePlan =
+    (
+        projectId: $TSFixMe,
+        planId: $TSFixMe,
+        projectName: $TSFixMe,
+        oldPlan: $TSFixMe,
+        newPlan: $TSFixMe
+    ) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(changePlanRequest());
 
-    try {
-        const response = await putApi(`project/${projectId}/admin/changePlan`, {
-            projectName,
-            planId,
-            oldPlan,
-            newPlan,
-        });
+        try {
+            const response = await putApi(
+                `project/${projectId}/admin/changePlan`,
+                {
+                    projectName,
+                    planId,
+                    oldPlan,
+                    newPlan,
+                }
+            );
 
-        dispatch(changePlanSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(changePlanFailure(errorMsg));
-    }
-};
+            dispatch(changePlanSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(changePlanFailure(errorMsg));
+        }
+    };
 
 export function fetchProjectDomainsRequest() {
     return {
@@ -937,7 +944,7 @@ export function fetchProjectDomainsFailure(error: $TSFixMe) {
 }
 
 export function fetchProjectDomains(projectId: $TSFixMe, skip = 0, limit = 10) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(fetchProjectDomainsRequest());
 
         try {
@@ -989,19 +996,19 @@ export function resetDeleteProjectDomain() {
 }
 
 export function deleteProjectDomain({ projectId, domainId }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(deleteProjectDomainRequest());
 
         const promise = deleteApi(
             `domainVerificationToken/${projectId}/domain/${domainId}`
         );
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(deleteProjectDomainSuccess(response.data));
 
                 return response.data;
             },
-            function(error) {
+            function (error) {
                 const errorMessage =
                     error.response && error.response.data
                         ? error.response.data
@@ -1044,7 +1051,7 @@ export function resetVerifyProjectDomain() {
 }
 
 export function verifyProjectDomain({ projectId, domainId }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(verifyProjectDomainRequest());
 
         try {
@@ -1096,17 +1103,17 @@ export function resetUnverifyProjectDomain() {
 }
 
 export function unVerifyProjectDomain(projectId: $TSFixMe, domainId: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(unVerifyProjectDomainRequest());
 
         const promise = putApi(
             `domainVerificationToken/${projectId}/unverify/${domainId}`
         );
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(unVerifyProjectDomainSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 const errorMessage =
                     error.response && error.response.data
                         ? error.response.data
@@ -1149,17 +1156,17 @@ export function resetProjectDomainOnMount() {
 }
 
 export function resetProjectDomain(projectId: $TSFixMe, domainId: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(resetProjectDomainRequest());
 
         const promise = putApi(
             `domainVerificationToken/${projectId}/resetDomain/${domainId}`
         );
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(resetProjectDomainSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 const errorMessage =
                     error.response && error.response.data
                         ? error.response.data

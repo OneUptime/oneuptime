@@ -38,7 +38,7 @@ export function createSubscriber(
     monitorId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `subscriber/${projectId}/subscribe/${monitorId}`,
             data
@@ -47,10 +47,10 @@ export function createSubscriber(
         dispatch(createSubscriberRequest(promise));
 
         promise.then(
-            function(createSubscriber) {
+            function (createSubscriber) {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -106,7 +106,7 @@ export function exportCSV(
     limit: $TSFixMe,
     csv: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`
         );
@@ -114,12 +114,12 @@ export function exportCSV(
         dispatch(exportCsvRequest(promise));
 
         promise.then(
-            function(csvData) {
+            function (csvData) {
                 saveFile(csvData.data.data, 'subscriber.csv');
 
                 dispatch(exportCsvSuccess(csvData.data.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -169,7 +169,7 @@ export const resetDeleteSubscriber = () => {
 
 // Calls the API to delete a subscriber.
 export function deleteSubscriber(projectId: $TSFixMe, subscriberId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `subscriber/${projectId}/${subscriberId}`,
             {}
@@ -178,7 +178,7 @@ export function deleteSubscriber(projectId: $TSFixMe, subscriberId: $TSFixMe) {
         dispatch(deleteSubscriberRequest(promise));
 
         promise.then(
-            function(subscriber) {
+            function (subscriber) {
                 dispatch(deleteSubscriberSuccess(subscriber.data));
                 dispatch({
                     type: 'REMOVE_MONITORS_SUBSCRIBERS',
@@ -186,7 +186,7 @@ export function deleteSubscriber(projectId: $TSFixMe, subscriberId: $TSFixMe) {
                     payload: subscriber.data,
                 });
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -231,7 +231,7 @@ export const downloadCsvTemplateSuccess = () => {
 export function downloadCsvTemplate() {
     const fields =
         'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,585-364-1200,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,https://sample.com/webhook';
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(downloadCsvTemplateRequest());
         try {
             saveFile(fields, 'subscribers.csv');
@@ -253,7 +253,7 @@ export function importSubscribersFromCsvFile(
     projectId: $TSFixMe,
     monitorId: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(
             `subscriber/${projectId}/${monitorId}/csv`,
             data
@@ -262,10 +262,10 @@ export function importSubscribersFromCsvFile(
         dispatch(createSubscriberRequest(promise));
 
         promise.then(
-            function(createSubscriber) {
+            function (createSubscriber) {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

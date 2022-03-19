@@ -18,31 +18,32 @@ let projectId: $TSFixMe,
     userRole: $TSFixMe,
     token: $TSFixMe;
 
-describe('Enterprise User API', function() {
+describe('Enterprise User API', function () {
     this.timeout(20000);
 
-    before(function(done: $TSFixMe) {
+    before(function (done: $TSFixMe) {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function() {
-            createEnterpriseUser(request, data.user, function(
-                err: $TSFixMe,
-                res: Response
-            ) {
-                const project = res.body.project;
-                projectId = project._id;
-                userRole = res.body.role;
+        GlobalConfig.initTestConfig().then(function () {
+            createEnterpriseUser(
+                request,
+                data.user,
+                function (err: $TSFixMe, res: Response) {
+                    const project = res.body.project;
+                    projectId = project._id;
+                    userRole = res.body.role;
 
-                request
-                    .post('/user/login')
-                    .send({
-                        email: data.user.email,
-                        password: data.user.password,
-                    })
-                    .end(function(err: $TSFixMe, res: Response) {
-                        token = res.body.tokens.jwtAccessToken;
-                        done();
-                    });
-            });
+                    request
+                        .post('/user/login')
+                        .send({
+                            email: data.user.email,
+                            password: data.user.password,
+                        })
+                        .end(function (err: $TSFixMe, res: Response) {
+                            token = res.body.tokens.jwtAccessToken;
+                            done();
+                        });
+                }
+            );
         });
     });
 
@@ -61,14 +62,14 @@ describe('Enterprise User API', function() {
         });
     });
 
-    it('should sign up initial user as `master-admin`', function() {
+    it('should sign up initial user as `master-admin`', function () {
         expect(userRole).to.equal('master-admin');
     });
 
-    it('should confirm that `master-admin` exists', function(done: $TSFixMe) {
+    it('should confirm that `master-admin` exists', function (done: $TSFixMe) {
         request
             .get('/user/masterAdminExists')
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).have.property('result');
                 expect(res.body.result).to.eql(true);
@@ -78,30 +79,31 @@ describe('Enterprise User API', function() {
 
     // 'post /user/signup'
 
-    it('should register `user` without stripeToken, stripePlanId', function(done: $TSFixMe) {
-        createEnterpriseUser(request, data.newUser, function(
-            err: $TSFixMe,
-            res: Response
-        ) {
-            const project = res.body.project;
-            newProjectId = project._id;
-            expect(res).to.have.status(200);
-            expect(res.body.email).to.equal(
-                data.newUser.email.toLocaleLowerCase()
-            );
-            expect(res.body.role).to.equal('user');
-            done();
-        });
+    it('should register `user` without stripeToken, stripePlanId', function (done: $TSFixMe) {
+        createEnterpriseUser(
+            request,
+            data.newUser,
+            function (err: $TSFixMe, res: Response) {
+                const project = res.body.project;
+                newProjectId = project._id;
+                expect(res).to.have.status(200);
+                expect(res.body.email).to.equal(
+                    data.newUser.email.toLocaleLowerCase()
+                );
+                expect(res.body.role).to.equal('user');
+                done();
+            }
+        );
     });
 
-    it('should login with valid credentials', function(done: $TSFixMe) {
+    it('should login with valid credentials', function (done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(
                     data.newUser.email.toLocaleLowerCase()
@@ -111,7 +113,7 @@ describe('Enterprise User API', function() {
             });
     });
 
-    it('should login with valid credentials, and return sent redirect url', function(done: $TSFixMe) {
+    it('should login with valid credentials, and return sent redirect url', function (done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
@@ -119,7 +121,7 @@ describe('Enterprise User API', function() {
                 password: data.newUser.password,
                 redirect: 'http://oneuptime.com',
             })
-            .end(function(err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(
                     data.newUser.email.toLocaleLowerCase()
@@ -130,12 +132,12 @@ describe('Enterprise User API', function() {
             });
     });
 
-    it('should get list of users without their hashed passwords', function(done: $TSFixMe) {
+    it('should get list of users without their hashed passwords', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
             .get('/user/users')
             .set('Authorization', authorization)
-            .end(async function(err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -150,14 +152,14 @@ describe('Enterprise User API', function() {
             });
     });
 
-    it('should turn off 2fa for a user', function(done: $TSFixMe) {
+    it('should turn off 2fa for a user', function (done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .then(function(res: Response) {
+            .then(function (res: Response) {
                 const jwtToken = res.body.tokens.jwtAccessToken;
                 request
                     .put('/user/profile')
@@ -166,16 +168,16 @@ describe('Enterprise User API', function() {
                         twoFactorAuthEnabled: true,
                         email: data.newUser.email,
                     })
-                    .then(function(res: Response) {
+                    .then(function (res: Response) {
                         request
                             .put(`/user/${res.body._id}/2fa`)
                             .set('Authorization', `Basic ${token}`)
                             .send({
                                 email: data.newUser.email.toLocaleLowerCase(),
-                                twoFactorAuthEnabled: !res.body
-                                    .twoFactorAuthEnabled,
+                                twoFactorAuthEnabled:
+                                    !res.body.twoFactorAuthEnabled,
                             })
-                            .end(function(err: $TSFixMe, res: Response) {
+                            .end(function (err: $TSFixMe, res: Response) {
                                 expect(res.body.twoFactorAuthEnabled).to.eql(
                                     false
                                 );
@@ -185,14 +187,14 @@ describe('Enterprise User API', function() {
             });
     });
 
-    it('should not turn off 2fa for a user if loged in user is not admin', function(done: $TSFixMe) {
+    it('should not turn off 2fa for a user if loged in user is not admin', function (done: $TSFixMe) {
         request
             .post('/user/login')
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .then(function(res: Response) {
+            .then(function (res: Response) {
                 const jwtToken = res.body.tokens.jwtAccessToken;
                 request
                     .put('/user/profile')
@@ -201,16 +203,16 @@ describe('Enterprise User API', function() {
                         twoFactorAuthEnabled: true,
                         email: data.newUser.email,
                     })
-                    .then(function(res: Response) {
+                    .then(function (res: Response) {
                         request
                             .put(`/user/${res.body._id}/2fa`)
                             .set('Authorization', `Basic ${jwtToken}`)
                             .send({
                                 email: data.newUser.email,
-                                twoFactorAuthEnabled: !res.body
-                                    .twoFactorAuthEnabled,
+                                twoFactorAuthEnabled:
+                                    !res.body.twoFactorAuthEnabled,
                             })
-                            .end(function(err: $TSFixMe, result: $TSFixMe) {
+                            .end(function (err: $TSFixMe, result: $TSFixMe) {
                                 expect(result).to.have.status(400);
                                 done();
                             });

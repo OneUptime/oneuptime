@@ -124,7 +124,7 @@ export const resetProjects = () => {
 };
 
 export function getProjects(switchToProjectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(
             `project/projects?skip=${0}&limit=${9999}`,
 
@@ -133,7 +133,7 @@ export function getProjects(switchToProjectId: $TSFixMe) {
         dispatch(projectsRequest(promise));
 
         promise.then(
-            function(projects) {
+            function (projects) {
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
 
@@ -174,7 +174,7 @@ export function getProjects(switchToProjectId: $TSFixMe) {
                         dispatch(switchProject(dispatch, projects[0]));
                 }
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -212,16 +212,16 @@ export function getProjectBalanceSuccess(project: $TSFixMe) {
 }
 
 export function getProjectBalance(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`project/${projectId}/balance`, null);
 
         dispatch(getProjectBalanceRequest(promise));
 
         promise.then(
-            function(balance) {
+            function (balance) {
                 dispatch(getProjectBalanceSuccess(balance.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -264,13 +264,13 @@ export const resetCreateProject = () => {
 };
 
 export function createProject(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('project/create', values);
 
         dispatch(createProjectRequest());
 
         return promise.then(
-            function(project) {
+            function (project) {
                 if (IS_SAAS_SERVICE) {
                     User.setCardRegistered(true);
                 }
@@ -279,7 +279,7 @@ export function createProject(values: $TSFixMe) {
 
                 return project.data;
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -301,7 +301,7 @@ export function switchToProjectViewerNav(
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch({
             type: types.SHOW_VIEWER_MENU,
             payload: isMainProjectViewer(userId, subProjects, currentProject),
@@ -473,17 +473,17 @@ export function resetProjectTokenError(error: $TSFixMe) {
 }
 
 export function resetProjectToken(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`project/${projectId}/resetToken`);
 
         dispatch(resetProjectTokenRequest());
 
         promise
             .then(
-                function(project) {
+                function (project) {
                     dispatch(resetProjectTokenSuccess(project));
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -497,7 +497,7 @@ export function resetProjectToken(projectId: $TSFixMe) {
                     dispatch(resetProjectTokenError(errors(error)));
                 }
             )
-            .then(function() {
+            .then(function () {
                 dispatch(resetProjectTokenReset());
             });
 
@@ -532,7 +532,7 @@ export function renameProjectError(error: $TSFixMe) {
 }
 
 export function renameProject(projectId: $TSFixMe, projectName: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`project/${projectId}/renameProject`, {
             projectName,
         });
@@ -541,11 +541,11 @@ export function renameProject(projectId: $TSFixMe, projectName: $TSFixMe) {
 
         promise
             .then(
-                function(project) {
+                function (project) {
                     dispatch(renameProjectSuccess(project));
                     return project;
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -559,7 +559,7 @@ export function renameProject(projectId: $TSFixMe, projectName: $TSFixMe) {
                     dispatch(renameProjectError(errors(error)));
                 }
             )
-            .then(function() {
+            .then(function () {
                 dispatch(renameProjectReset());
             });
 
@@ -588,7 +588,7 @@ export function deleteProjectError(error: $TSFixMe) {
 }
 
 export function deleteProject(projectId: $TSFixMe, feedback: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`project/${projectId}/deleteProject`, {
             projectId,
             feedback,
@@ -597,14 +597,14 @@ export function deleteProject(projectId: $TSFixMe, feedback: $TSFixMe) {
         dispatch(deleteProjectRequest());
 
         promise.then(
-            function() {
+            function () {
                 dispatch(deleteProjectSuccess(projectId));
                 dispatch(deleteProjectIncidents(projectId));
                 dispatch(deleteProjectSchedules(projectId));
                 dispatch(deleteProjectMonitors(projectId));
                 dispatch(deleteProjectStatusPages(projectId));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -656,7 +656,7 @@ export function changePlan(
     oldPlan: $TSFixMe,
     newPlan: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`project/${projectId}/changePlan`, {
             projectName,
             planId,
@@ -668,10 +668,10 @@ export function changePlan(
 
         promise
             .then(
-                function(project) {
+                function (project) {
                     dispatch(changePlanSuccess(project));
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -685,7 +685,7 @@ export function changePlan(
                     dispatch(changePlanError(errors(error)));
                 }
             )
-            .then(function() {
+            .then(function () {
                 dispatch(changePlanReset());
             });
 
@@ -698,7 +698,7 @@ export function upgradeToEnterpriseMail(
     projectName: $TSFixMe,
     oldPlan: $TSFixMe
 ) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`project/${projectId}/upgradeToEnterprise`, {
             projectName,
             oldPlan,
@@ -708,10 +708,10 @@ export function upgradeToEnterpriseMail(
 
         promise
             .then(
-                function(project) {
+                function (project) {
                     dispatch(changePlanSuccess(project));
                 },
-                function(error) {
+                function (error) {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -725,7 +725,7 @@ export function upgradeToEnterpriseMail(
                     dispatch(changePlanError(error));
                 }
             )
-            .then(function() {
+            .then(function () {
                 dispatch(changePlanReset());
             });
 
@@ -756,7 +756,7 @@ export function exitProjectError(error: $TSFixMe) {
 }
 
 export function exitProject(projectId: $TSFixMe, userId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(
             `project/${projectId}/user/${userId}/exitProject`,
             null
@@ -764,10 +764,10 @@ export function exitProject(projectId: $TSFixMe, userId: $TSFixMe) {
         dispatch(exitProjectRequest());
 
         promise.then(
-            function() {
+            function () {
                 dispatch(exitProjectSuccess({ projectId, userId }));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -815,7 +815,7 @@ export function markProjectForDeleteError(error: $TSFixMe) {
 }
 
 export function markProjectForDelete(projectId: $TSFixMe, feedback: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`project/${projectId}/deleteProject`, {
             projectId,
             feedback,
@@ -824,10 +824,10 @@ export function markProjectForDelete(projectId: $TSFixMe, feedback: $TSFixMe) {
         dispatch(markProjectForDeleteRequest());
 
         promise.then(
-            function() {
+            function () {
                 dispatch(markProjectForDeleteSuccess(projectId));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -867,16 +867,16 @@ export function alertOptionsUpdateError(error: $TSFixMe) {
 }
 
 export function alertOptionsUpdate(projectId: $TSFixMe, alertData: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = putApi(`project/${projectId}/alertOptions`, alertData);
 
         dispatch(alertOptionsUpdateRequest());
 
         promise.then(
-            function(project) {
+            function (project) {
                 dispatch(alertOptionsUpdateSuccess(project));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -915,16 +915,16 @@ export function addBalanceError(error: $TSFixMe) {
 }
 
 export function addBalance(projectId: $TSFixMe, data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`stripe/${projectId}/addBalance`, data);
 
         dispatch(addBalanceRequest());
 
         promise.then(
-            function(pi) {
+            function (pi) {
                 dispatch(addBalanceSuccess(pi));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -962,30 +962,29 @@ export function updateProjectBalanceFailure(error: $TSFixMe) {
     };
 }
 
-export const updateProjectBalance = ({
-    projectId,
-    intentId,
-}: $TSFixMe) => async (dispatch: $TSFixMe) => {
-    dispatch(updateProjectBalanceRequest());
+export const updateProjectBalance =
+    ({ projectId, intentId }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(updateProjectBalanceRequest());
 
-    try {
-        const response = await getApi(
-            `stripe/${projectId}/updateBalance/${intentId}`
-        );
+        try {
+            const response = await getApi(
+                `stripe/${projectId}/updateBalance/${intentId}`
+            );
 
-        dispatch(updateProjectBalanceSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(updateProjectBalanceFailure(errorMsg));
-    }
-};
+            dispatch(updateProjectBalanceSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateProjectBalanceFailure(errorMsg));
+        }
+    };
 
 export function checkCardRequest(promise: $TSFixMe) {
     return {
@@ -1009,16 +1008,16 @@ export function checkCardSuccess(card: $TSFixMe) {
 }
 
 export function checkCard(data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('stripe/checkCard', data);
 
         dispatch(checkCardRequest(promise));
 
         promise.then(
-            function(card) {
+            function (card) {
                 dispatch(checkCardSuccess(card.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1057,7 +1056,7 @@ export function setEmailNotificationFailure(error: $TSFixMe) {
 }
 
 export function setEmailNotification({ projectId, data }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(setEmailNotificationRequest());
 
         try {
@@ -1102,7 +1101,7 @@ export function setSmsNotificationFailure(error: $TSFixMe) {
 }
 
 export function setSmsNotification({ projectId, data }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(setSmsNotificationRequest());
 
         try {
@@ -1148,7 +1147,7 @@ export function setWebhookNotificationSettingsFailure(error: $TSFixMe) {
 }
 
 export function setWebhookNotificationSettings({ projectId, data }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(setWebhookNotificationSettingsRequest());
 
         try {
@@ -1200,7 +1199,7 @@ export function resetCreateProjectDomain() {
 }
 
 export function createProjectDomain({ projectId, data }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(createProjectDomainRequest());
 
         try {
@@ -1247,7 +1246,7 @@ export function fetchProjectDomainsFailure(error: $TSFixMe) {
 }
 
 export function fetchProjectDomains(projectId: $TSFixMe, skip = 0, limit = 10) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(fetchProjectDomainsRequest());
 
         try {
@@ -1299,7 +1298,7 @@ export function resetUpdateProjectDomain() {
 }
 
 export function updateProjectDomain({ projectId, domainId, data }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(updateProjectDomainRequest());
 
         try {
@@ -1352,7 +1351,7 @@ export function resetVerifyProjectDomain() {
 }
 
 export function verifyProjectDomain({ projectId, domainId, data }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(verifyProjectDomainRequest());
 
         try {
@@ -1405,7 +1404,7 @@ export function resetDeleteProjectDomain() {
 }
 
 export function deleteProjectDomain({ projectId, domainId }: $TSFixMe) {
-    return async function(dispatch: $TSFixMe) {
+    return async function (dispatch: $TSFixMe) {
         dispatch(deleteProjectDomainRequest());
 
         try {
@@ -1457,16 +1456,16 @@ export function fetchTrialError(error: $TSFixMe) {
 }
 
 export function fetchTrial(projectId: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`stripe/${projectId}/getTrial`);
 
         dispatch(fetchTrialRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchTrialSuccess(response));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -1506,16 +1505,16 @@ export function fetchProjectSlugFailure(error: $TSFixMe) {
 }
 
 export function fetchProjectSlug(slug: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`project/project-slug/${slug}`);
 
         dispatch(fetchProjectSlugRequest());
 
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(fetchProjectSlugSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

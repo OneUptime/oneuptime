@@ -3,7 +3,7 @@ import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 
 export default {
-    create: async function({ securityId, componentId, data }: $TSFixMe) {
+    create: async function ({ securityId, componentId, data }: $TSFixMe) {
         if (!securityId) {
             const error = new Error('Security ID is required');
 
@@ -45,14 +45,13 @@ export default {
 
         return securityLog;
     },
-    findOneBy: async function({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
 
-        let securityLogQuery = ApplicationSecurityLogModel.findOne(
-            query
-        ).lean();
+        let securityLogQuery =
+            ApplicationSecurityLogModel.findOne(query).lean();
 
         securityLogQuery = handleSelect(select, securityLogQuery);
         securityLogQuery = handlePopulate(populate, securityLogQuery);
@@ -60,7 +59,13 @@ export default {
         const securityLog = await securityLogQuery;
         return securityLog;
     },
-    findBy: async function({ query, limit, skip, populate, select }: $TSFixMe) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+    }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -85,18 +90,19 @@ export default {
         const securityLogs = await securityLogsQuery;
         return securityLogs;
     },
-    updateOneBy: async function(query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query.deleted) query.deleted = false;
 
-        const applicationSecurityLog = await ApplicationSecurityLogModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            { new: true }
-        );
+        const applicationSecurityLog =
+            await ApplicationSecurityLogModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                { new: true }
+            );
 
         if (!applicationSecurityLog) {
             const error = new Error(
@@ -109,7 +115,7 @@ export default {
 
         return applicationSecurityLog;
     },
-    deleteBy: async function(query: $TSFixMe) {
+    deleteBy: async function (query: $TSFixMe) {
         let securityLog = this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
@@ -128,7 +134,7 @@ export default {
 
         return securityLog;
     },
-    hardDelete: async function(query: $TSFixMe) {
+    hardDelete: async function (query: $TSFixMe) {
         await ApplicationSecurityLogModel.deleteMany(query);
         return 'Application Security logs deleted successfully';
     },

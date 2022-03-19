@@ -1261,11 +1261,12 @@ export default function incident(state = initialState, action: $TSFixMe) {
                         incidents: [
                             {
                                 ...state.incidents.incidents[0],
-                                incidents: state.incidents.incidents[0].incidents.filter(
-                                    incident =>
-                                        String(incident._id) !==
-                                        String(action.payload._id)
-                                ),
+                                incidents:
+                                    state.incidents.incidents[0].incidents.filter(
+                                        incident =>
+                                            String(incident._id) !==
+                                            String(action.payload._id)
+                                    ),
                             },
                         ],
                     },

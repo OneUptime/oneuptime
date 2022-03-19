@@ -55,20 +55,14 @@ const INIT_SCRIPT_URL = process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
 
 function generateRandomBusinessEmail() {
     return (
-        Math.random()
-            .toString(36)
-            .substring(8) +
+        Math.random().toString(36).substring(8) +
         '@' +
-        Math.random()
-            .toString(24)
-            .substring(8) +
+        Math.random().toString(24).substring(8) +
         '.com'
     );
 }
 function generatePassword() {
-    return Math.random()
-        .toString(36)
-        .substring(7);
+    return Math.random().toString(36).substring(7);
 }
 
 /** The previous generates a mixture of numbers and alphabets
@@ -97,25 +91,15 @@ function parseBoolean(val: $TSFixMe) {
 
 function generateWrongEmail() {
     return (
-        Math.random()
-            .toString(36)
-            .substring(8) +
+        Math.random().toString(36).substring(8) +
         '@' +
-        Math.random()
-            .toString(24)
-            .substring(8) +
+        Math.random().toString(24).substring(8) +
         '.com'
     );
 }
 
 function generateRandomWebsite() {
-    return (
-        'http://' +
-        Math.random()
-            .toString(36)
-            .substring(10) +
-        '.com'
-    );
+    return 'http://' + Math.random().toString(36).substring(10) + '.com';
 }
 
 function capitalize(words: $TSFixMe) {

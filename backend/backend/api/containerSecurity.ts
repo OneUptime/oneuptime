@@ -129,11 +129,10 @@ router.put(
             if (!resourceCategory || resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             } else {
-                const resourceCategoryCount = await ResourceCategoryService.countBy(
-                    {
+                const resourceCategoryCount =
+                    await ResourceCategoryService.countBy({
                         _id: resourceCategory,
-                    }
-                );
+                    });
                 if (resourceCategoryCount && resourceCategoryCount > 0) {
                     data.resourceCategory = resourceCategory;
                 } else {
@@ -141,12 +140,13 @@ router.put(
                 }
             }
 
-            const containerSecurity = await ContainerSecurityService.updateOneBy(
-                { _id: containerSecurityId, componentId },
-                data,
+            const containerSecurity =
+                await ContainerSecurityService.updateOneBy(
+                    { _id: containerSecurityId, componentId },
+                    data,
 
-                unsetData
-            );
+                    unsetData
+                );
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -171,8 +171,7 @@ router.get(
                 { path: 'resourceCategory', select: 'name' },
                 {
                     path: 'dockerCredential',
-                    select:
-                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                    select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
                 },
             ];
             const select =
@@ -212,8 +211,7 @@ router.get(
                 { path: 'resourceCategory', select: 'name' },
                 {
                     path: 'dockerCredential',
-                    select:
-                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                    select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
                 },
             ];
             const select =
@@ -254,8 +252,7 @@ router.get(
                 { path: 'resourceCategory', select: 'name' },
                 {
                     path: 'dockerCredential',
-                    select:
-                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                    select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
                 },
             ];
             const select =
@@ -292,9 +289,10 @@ router.delete(
         try {
             const { containerSecurityId } = req.params;
 
-            const deletedContainerSecurity = await ContainerSecurityService.deleteBy(
-                { _id: containerSecurityId }
-            );
+            const deletedContainerSecurity =
+                await ContainerSecurityService.deleteBy({
+                    _id: containerSecurityId,
+                });
             return sendItemResponse(req, res, deletedContainerSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -340,8 +338,7 @@ router.get(
                 { path: 'resourceCategory', select: 'name' },
                 {
                     path: 'dockerCredential',
-                    select:
-                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                    select: 'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
                 },
             ];
             const select =
@@ -384,10 +381,11 @@ router.post(
                 return sendErrorResponse(req, res, error);
             }
 
-            const updatedContainerSecurity = await ContainerSecurityService.updateOneBy(
-                { _id: containerSecurityId },
-                { scanned: false }
-            ); //This helps the container scanner to pull the container
+            const updatedContainerSecurity =
+                await ContainerSecurityService.updateOneBy(
+                    { _id: containerSecurityId },
+                    { scanned: false }
+                ); //This helps the container scanner to pull the container
 
             try {
                 RealTimeService.handleScanning({

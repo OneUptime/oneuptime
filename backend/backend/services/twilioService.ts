@@ -12,7 +12,7 @@ import AlertService from './alertService';
 import { IS_TESTING } from '../config/server';
 
 const _this = {
-    findByOne: async function({ query, select, populate }: $TSFixMe) {
+    findByOne: async function ({ query, select, populate }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -51,7 +51,7 @@ const _this = {
         throw error;
     },
 
-    sendIncidentCreatedMessage: async function(
+    sendIncidentCreatedMessage: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -77,8 +77,7 @@ const _this = {
             smsBody = options.body;
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select:
-                    'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
+                select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
             });
             if (customTwilioSettings) {
@@ -187,7 +186,7 @@ const _this = {
         }
     },
 
-    sendIncidentCreatedMessageToSubscriber: async function(
+    sendIncidentCreatedMessageToSubscriber: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -219,8 +218,7 @@ const _this = {
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select:
-                    'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
+                select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
             });
 
@@ -318,7 +316,7 @@ const _this = {
         }
     },
 
-    sendInvestigationNoteToSubscribers: async function(
+    sendInvestigationNoteToSubscribers: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -449,7 +447,7 @@ const _this = {
         }
     },
 
-    sendIncidentAcknowledgedMessageToSubscriber: async function(
+    sendIncidentAcknowledgedMessageToSubscriber: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -484,8 +482,7 @@ const _this = {
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select:
-                    'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
+                select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
             });
 
@@ -582,7 +579,7 @@ const _this = {
         }
     },
 
-    sendIncidentResolvedMessageToSubscriber: async function(
+    sendIncidentResolvedMessageToSubscriber: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -617,8 +614,7 @@ const _this = {
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select:
-                    'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
+                select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
             });
             if (customTwilioSettings) {
@@ -715,7 +711,7 @@ const _this = {
         }
     },
 
-    test: async function(data: $TSFixMe) {
+    test: async function (data: $TSFixMe) {
         try {
             const options = {
                 body: 'This is a test SMS from OneUptime',
@@ -752,7 +748,7 @@ const _this = {
         }
     },
 
-    sendScheduledMaintenanceCreatedToSubscriber: async function(
+    sendScheduledMaintenanceCreatedToSubscriber: async function (
         incidentTime: $TSFixMe,
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
@@ -875,7 +871,7 @@ const _this = {
             throw error;
         }
     },
-    sendScheduledMaintenanceNoteCreatedToSubscriber: async function(
+    sendScheduledMaintenanceNoteCreatedToSubscriber: async function (
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
         scheduleName: $TSFixMe,
@@ -999,7 +995,7 @@ const _this = {
         }
     },
 
-    sendScheduledMaintenanceResolvedToSubscriber: async function(
+    sendScheduledMaintenanceResolvedToSubscriber: async function (
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
         schedule: $TSFixMe,
@@ -1118,7 +1114,7 @@ const _this = {
             throw error;
         }
     },
-    sendScheduledMaintenanceCancelledToSubscriber: async function(
+    sendScheduledMaintenanceCancelledToSubscriber: async function (
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
         schedule: $TSFixMe,
@@ -1238,7 +1234,7 @@ const _this = {
         }
     },
 
-    sendAnnouncementNotificationToSubscriber: async function(
+    sendAnnouncementNotificationToSubscriber: async function (
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
         title: $TSFixMe,
@@ -1359,7 +1355,7 @@ const _this = {
         }
     },
 
-    sendIncidentCreatedCall: async function(
+    sendIncidentCreatedCall: async function (
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -1482,7 +1478,7 @@ const _this = {
         }
     },
 
-    getProgressText: async function(number: $TSFixMe) {
+    getProgressText: async function (number: $TSFixMe) {
         const special = [
             'zeroth',
             'first',
@@ -1522,7 +1518,7 @@ const _this = {
         return deca[Math.floor(number / 10) - 2] + 'y-' + special[number % 10];
     },
 
-    getTemplate: async function(
+    getTemplate: async function (
         smsTemplate: $TSFixMe,
         smsTemplateType: $TSFixMe
     ) {
@@ -1540,7 +1536,7 @@ const _this = {
         const template = await Handlebars.compile(smsContent);
         return { template };
     },
-    sendVerificationSMS: async function(
+    sendVerificationSMS: async function (
         to: $TSFixMe,
         userId: $TSFixMe,
         projectId: $TSFixMe,
@@ -1557,9 +1553,7 @@ const _this = {
             }
             const alertPhoneVerificationCode = IS_TESTING
                 ? '123456'
-                : Math.random()
-                      .toString(10)
-                      .substr(2, 6);
+                : Math.random().toString(10).substr(2, 6);
             if (customTwilioSettings) {
                 const template = `Your verification code: ${alertPhoneVerificationCode}`;
                 smsBody = template;
@@ -1626,7 +1620,8 @@ const _this = {
                             {
                                 tempAlertPhoneNumber: to,
                                 alertPhoneVerificationCode,
-                                alertPhoneVerificationCodeRequestTime: Date.now(),
+                                alertPhoneVerificationCodeRequestTime:
+                                    Date.now(),
                             }
                         ),
                     ]);
@@ -1848,7 +1843,7 @@ const _this = {
         return price;
     },
 
-    hasCustomSettings: async function(projectId: $TSFixMe) {
+    hasCustomSettings: async function (projectId: $TSFixMe) {
         return await _this.findByOne({
             query: { projectId, enabled: true },
             select: '_id',

@@ -9,12 +9,12 @@ import {
 import { postApi } from '../api';
 import errors from '../errors';
 
-export const showSearchBar = function() {
+export const showSearchBar = function () {
     return {
         type: SHOW_SEARCH_BAR,
     };
 };
-export const closeSearchBar = function() {
+export const closeSearchBar = function () {
     return {
         type: CLOSE_SEARCH_BAR,
     };
@@ -41,15 +41,15 @@ export function searchFailure(payload: $TSFixMe) {
     };
 }
 export function search(projectId: $TSFixMe, values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         dispatch(searchRequest());
         const promise = postApi(`search/${projectId}`, values);
         promise.then(
-            function(result) {
+            function (result) {
                 const search = result.data;
                 dispatch(searchSuccess(search.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

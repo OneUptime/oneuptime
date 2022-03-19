@@ -78,11 +78,11 @@ export function signupUser(values: $TSFixMe) {
     if (redirectSource) {
         values.source = redirectSource;
     }
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi(`user/signup?token=${values.token}`, values);
         dispatch(signUpRequest(promise));
         promise.then(
-            function(user) {
+            function (user) {
                 dispatch(signupSuccess(user.data));
 
                 if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
@@ -97,7 +97,7 @@ export function signupUser(values: $TSFixMe) {
                     dispatch(loginSuccess(user.data));
                 }
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -173,14 +173,14 @@ export const resetIsUserInvited = () => {
 
 // Calls the API to register a user.
 export function isUserInvited(values: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('user/isInvited', values);
         dispatch(isUserInvitedRequest(promise));
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(isUserInvitedSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -221,16 +221,16 @@ export function addCardSuccess(card: $TSFixMe) {
 }
 
 export function addCard(data: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = postApi('stripe/checkCard', data);
 
         dispatch(addCardRequest(promise));
 
         promise.then(
-            function(card) {
+            function (card) {
                 dispatch(addCardSuccess(card.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {
@@ -256,13 +256,13 @@ export function getEmailSuccess(email: $TSFixMe) {
 }
 
 export function getEmailFromToken(token: $TSFixMe) {
-    return function(dispatch: $TSFixMe) {
+    return function (dispatch: $TSFixMe) {
         const promise = getApi(`user/${token}/email`);
         promise.then(
-            function(response) {
+            function (response) {
                 dispatch(getEmailSuccess(response.data));
             },
-            function(error) {
+            function (error) {
                 if (error && error.response && error.response.data)
                     error = error.response.data;
                 if (error && error.data) {

@@ -96,57 +96,61 @@ class SocketApp extends Component {
 
         if (this.props.project && this.props.activeProjectId) {
             const projectId = this.props.activeProjectId;
-            socket.on(`incidentResolved-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.incidentresolvedbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            socket.on(
+                `incidentResolved-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.incidentresolvedbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+
+                        if (isUserInSubProject)
+                            thisObj.props.incidentresolvedbysocket(data);
+                    }
                 }
-            });
-            socket.on(`incidentAcknowledged-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.incidentacknowledgedbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `incidentAcknowledged-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.incidentacknowledgedbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+
+                        if (isUserInSubProject)
+                            thisObj.props.incidentacknowledgedbysocket(data);
+                    }
                 }
-            });
-            socket.on(`createMonitor-${projectId}`, function(data: $TSFixMe) {
+            );
+            socket.on(`createMonitor-${projectId}`, function (data: $TSFixMe) {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
@@ -170,7 +174,7 @@ class SocketApp extends Component {
                         thisObj.props.createmonitorbysocket(data);
                 }
             });
-            socket.on(`updateMonitor-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`updateMonitor-${projectId}`, function (data: $TSFixMe) {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
@@ -192,7 +196,7 @@ class SocketApp extends Component {
                         thisObj.props.updatemonitorbysocket(data);
                 }
             });
-            socket.on(`deleteMonitor-${projectId}`, function(data: $TSFixMe) {
+            socket.on(`deleteMonitor-${projectId}`, function (data: $TSFixMe) {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
@@ -214,160 +218,174 @@ class SocketApp extends Component {
                         thisObj.props.deletemonitorbysocket(data);
                 }
             });
-            socket.on(`incidentCreated-${projectId}`, function(data: $TSFixMe) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-
-                if (isUserInProject) {
-                    thisObj.props.incidentcreatedbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            socket.on(
+                `incidentCreated-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
 
-                    if (isUserInSubProject) {
+                    if (isUserInProject) {
                         thisObj.props.incidentcreatedbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+
+                        if (isUserInSubProject) {
+                            thisObj.props.incidentcreatedbysocket(data);
+                        }
                     }
                 }
-            });
-            socket.on(`updateMonitorLog-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updatemonitorlogbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `updateMonitorLog-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.updatemonitorlogbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updatemonitorlogbysocket(data);
+                    }
                 }
-            });
-            socket.on(`updateMonitorStatus-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updatemonitorstatusbysocket(
-                        data,
-
-                        thisObj.props.probes
-                    );
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `updateMonitorStatus-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.updatemonitorstatusbysocket(
                             data,
 
                             thisObj.props.probes
                         );
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updatemonitorstatusbysocket(
+                                data,
+
+                                thisObj.props.probes
+                            );
+                    }
                 }
-            });
-            socket.on(`updateIncidentTimeline-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updateincidenttimelinebysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `updateIncidentTimeline-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.updateincidenttimelinebysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updateincidenttimelinebysocket(data);
+                    }
                 }
-            });
-            socket.on(`updateLighthouseLog-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updatelighthouselogbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `updateLighthouseLog-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.updatelighthouselogbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updatelighthouselogbysocket(data);
+                    }
                 }
-            });
-            socket.on(`updateAllLighthouseLog-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updateAlllighthouselogbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `updateAllLighthouseLog-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.updateAlllighthouselogbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updateAlllighthouselogbysocket(data);
+                    }
                 }
-            });
-            socket.on(`updateProbe`, function(data: $TSFixMe) {
+            );
+            socket.on(`updateProbe`, function (data: $TSFixMe) {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
@@ -389,135 +407,158 @@ class SocketApp extends Component {
                         return thisObj.props.updateprobebysocket(data);
                 }
             });
-            socket.on(`NewNotification-${projectId}`, function(data: $TSFixMe) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.addnotifications(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            socket.on(
+                `NewNotification-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.addnotifications(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+
+                        if (isUserInSubProject)
+                            thisObj.props.addnotifications(data);
+                    }
                 }
-            });
-            socket.on(`TeamMemberRoleUpdate-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.teamMemberRoleUpdate(data.response);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `TeamMemberRoleUpdate-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.teamMemberRoleUpdate(data.response);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.teamMemberRoleUpdate(data.response);
+                    }
                 }
-            });
-            socket.on(`TeamMemberCreate-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.teamMemberCreate(data.users);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) => subProject._id === projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `TeamMemberCreate-${projectId}`,
+                function (data: $TSFixMe) {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.teamMemberCreate(data.users);
-                }
-            });
-            socket.on(`TeamMemberDelete-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                if (data.projectId === thisObj.props.project._id) {
-                    const projectUser = data.teamMembers.find(
-                        (member: $TSFixMe) => member.userId === User.getUserId()
-                    );
-                    if (!projectUser) {
-                        thisObj.props.openModal({
-                            id: uuidv4(),
-                            onClose: () => '',
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
 
-                            onConfirm: () => new Promise(resolve => resolve()),
-                            content: RemovedFromProjectModal,
-                        });
-                    }
-                } else {
-                    const subProjectUser = data.teamMembers.find(
-                        (member: $TSFixMe) => member.userId === User.getUserId()
-                    );
-
-                    const mainUser = thisObj.props.project?.users.find(
-                        (user: $TSFixMe) =>
-                            (user.userId._id || user.userId) ===
-                                User.getUserId() &&
-                            (user.role === 'Owner' ||
-                                user.role === 'Administrator')
-                    );
-
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const subProjectName = subProject ? subProject.name : '';
-                    if (!subProjectUser && !mainUser) {
-                        thisObj.props.openModal({
-                            id: uuidv4(),
-                            onClose: () => '',
-
-                            onConfirm: () => new Promise(resolve => resolve()),
-                            content: DataPathHoC(RemovedFromSubProjectModal, {
-                                name: subProjectName,
-                            }),
-                        });
+                        if (isUserInSubProject)
+                            thisObj.props.teamMemberCreate(data.users);
                     }
                 }
+            );
+            socket.on(
+                `TeamMemberDelete-${projectId}`,
+                function (data: $TSFixMe) {
+                    if (data.projectId === thisObj.props.project._id) {
+                        const projectUser = data.teamMembers.find(
+                            (member: $TSFixMe) =>
+                                member.userId === User.getUserId()
+                        );
+                        if (!projectUser) {
+                            thisObj.props.openModal({
+                                id: uuidv4(),
+                                onClose: () => '',
 
-                thisObj.props.teamMemberDelete(data.response);
-            });
-            socket.on(`addIncidentNote-${projectId}`, function(data: $TSFixMe) {
-                thisObj.props.addIncidentNote(data);
-            });
-            socket.on(`incidentTimeline-${projectId}`, function(
-                data: $TSFixMe
-            ) {
-                thisObj.props.updateTimelineBySocket(data);
-            });
-            socket.on(`createMonitor-${projectId}`, function(data: $TSFixMe) {
+                                onConfirm: () =>
+                                    new Promise(resolve => resolve()),
+                                content: RemovedFromProjectModal,
+                            });
+                        }
+                    } else {
+                        const subProjectUser = data.teamMembers.find(
+                            (member: $TSFixMe) =>
+                                member.userId === User.getUserId()
+                        );
+
+                        const mainUser = thisObj.props.project?.users.find(
+                            (user: $TSFixMe) =>
+                                (user.userId._id || user.userId) ===
+                                    User.getUserId() &&
+                                (user.role === 'Owner' ||
+                                    user.role === 'Administrator')
+                        );
+
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const subProjectName = subProject
+                            ? subProject.name
+                            : '';
+                        if (!subProjectUser && !mainUser) {
+                            thisObj.props.openModal({
+                                id: uuidv4(),
+                                onClose: () => '',
+
+                                onConfirm: () =>
+                                    new Promise(resolve => resolve()),
+                                content: DataPathHoC(
+                                    RemovedFromSubProjectModal,
+                                    {
+                                        name: subProjectName,
+                                    }
+                                ),
+                            });
+                        }
+                    }
+
+                    thisObj.props.teamMemberDelete(data.response);
+                }
+            );
+            socket.on(
+                `addIncidentNote-${projectId}`,
+                function (data: $TSFixMe) {
+                    thisObj.props.addIncidentNote(data);
+                }
+            );
+            socket.on(
+                `incidentTimeline-${projectId}`,
+                function (data: $TSFixMe) {
+                    thisObj.props.updateTimelineBySocket(data);
+                }
+            );
+            socket.on(`createMonitor-${projectId}`, function (data: $TSFixMe) {
                 thisObj.props.createMonitor(data);
             });
 

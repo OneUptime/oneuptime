@@ -1,5 +1,5 @@
 export default {
-    create: async function(data) {
+    create: async function (data) {
         try {
             const _this = this;
             let probeKey;
@@ -46,7 +46,7 @@ export default {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -66,7 +66,7 @@ export default {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -87,7 +87,7 @@ export default {
         }
     },
 
-    saveLighthouseLog: async function(data) {
+    saveLighthouseLog: async function (data) {
         try {
             const log = await LighthouseLogService.create(data);
             return log;
@@ -97,7 +97,7 @@ export default {
         }
     },
 
-    createMonitorDisabledStatus: async function(data) {
+    createMonitorDisabledStatus: async function (data) {
         try {
             let monitorStatus = await MonitorStatusService.findBy({
                 query: {
@@ -126,7 +126,7 @@ export default {
         }
     },
 
-    saveMonitorLog: async function(data) {
+    saveMonitorLog: async function (data) {
         try {
             const _this = this;
 
@@ -236,7 +236,7 @@ export default {
         }
     },
 
-    getMonitorLog: async function(data) {
+    getMonitorLog: async function (data) {
         try {
             const date = new Date(moment().format());
             const log = await MonitorLogService.findOneBy({
@@ -251,7 +251,7 @@ export default {
         }
     },
 
-    incidentCreateOrUpdate: async function(data) {
+    incidentCreateOrUpdate: async function (data) {
         try {
             const [monitor, incidents] = await Promise.all([
                 MonitorService.findOneBy({
@@ -539,7 +539,7 @@ export default {
         }
     },
 
-    incidentResolveOrAcknowledge: async function(data, allCriteria) {
+    incidentResolveOrAcknowledge: async function (data, allCriteria) {
         try {
             const [incidents, monitor] = await Promise.all([
                 IncidentService.findBy({
@@ -706,7 +706,7 @@ export default {
         }
     },
 
-    updateProbeStatus: async function(probeId) {
+    updateProbeStatus: async function (probeId) {
         try {
             const now = new Date(moment().format());
             await probeCollection.updateOne(
@@ -941,7 +941,7 @@ export default {
         return { eventOccurred, matchedCriterion };
     },
 
-    probeHttpRequest: async function(monitor, probeId) {
+    probeHttpRequest: async function (monitor, probeId) {
         try {
             const _this = this;
             let status, reason;
@@ -1813,13 +1813,15 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         }
                     } else if (
@@ -1839,13 +1841,15 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         }
                     }
@@ -3706,13 +3710,15 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         }
                     } else if (
@@ -3729,13 +3735,15 @@ const checkAnd = (
                         ) {
                             validity = false;
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         } else {
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         }
                     }
@@ -4149,13 +4157,15 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         } else {
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         }
                     } else if (
@@ -4173,13 +4183,15 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         } else {
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         }
                     }
@@ -5956,13 +5968,15 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         } else {
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         }
                     } else if (
@@ -5977,13 +5991,15 @@ const checkOr = (
                         ) {
                             validity = true;
                             successReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Offline`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Offline`
                             );
                         } else {
                             failedReasons.push(
-                                `${criteriaStrings[type] ||
-                                    'Monitor was'} Online`
+                                `${
+                                    criteriaStrings[type] || 'Monitor was'
+                                } Online`
                             );
                         }
                     }

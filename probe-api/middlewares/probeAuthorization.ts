@@ -6,7 +6,7 @@ import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
 global.probes = {};
 
-export const isAuthorizedProbe = async function(
+export const isAuthorizedProbe = async function (
     req: Request,
     res: Response,
     next: NextFunction

@@ -17,30 +17,29 @@ export const addGroupFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const createGroup = (projectId: $TSFixMe, data: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(addGroupRequest());
+export const createGroup =
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(addGroupRequest());
 
-    try {
-        const response = await postApi(`group/${projectId}`, data);
+        try {
+            const response = await postApi(`group/${projectId}`, data);
 
-        dispatch(addGroupSuccess(response.data));
-        dispatch(getGroups());
-        return response;
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(addGroupFailure(errorMsg));
-        return { error: errorMsg };
-    }
-};
+            dispatch(addGroupSuccess(response.data));
+            dispatch(getGroups());
+            return response;
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(addGroupFailure(errorMsg));
+            return { error: errorMsg };
+        }
+    };
 
 // Edit and update Groups
 export const updateGroupRequest = (payload: $TSFixMe) => ({
@@ -58,31 +57,32 @@ export const updateGroupFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const updateGroup = (
-    projectId: $TSFixMe,
-    groupId: $TSFixMe,
-    data: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    dispatch(updateGroupRequest(groupId));
+export const updateGroup =
+    (projectId: $TSFixMe, groupId: $TSFixMe, data: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(updateGroupRequest(groupId));
 
-    try {
-        const response = await putApi(`group/${projectId}/${groupId}`, data);
+        try {
+            const response = await putApi(
+                `group/${projectId}/${groupId}`,
+                data
+            );
 
-        dispatch(updateGroupSuccess(response.data));
-        return response;
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(updateGroupFailure(errorMsg));
-        return { error: errorMsg };
-    }
-};
+            dispatch(updateGroupSuccess(response.data));
+            return response;
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(updateGroupFailure(errorMsg));
+            return { error: errorMsg };
+        }
+    };
 
 // Get all project and subproject groups
 export const getGroupsRequest = () => ({
@@ -134,30 +134,28 @@ export const getProjectGroupsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getProjectGroups = (
-    projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
-) => async (dispatch: $TSFixMe) => {
-    dispatch(getProjectGroupsRequest());
-    try {
-        const response = await getApi(
-            `group/${projectId}?skip=${skip}&limit=${limit}`
-        );
+export const getProjectGroups =
+    (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(getProjectGroupsRequest());
+        try {
+            const response = await getApi(
+                `group/${projectId}?skip=${skip}&limit=${limit}`
+            );
 
-        dispatch(getProjectGroupsSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getProjectGroupsFailure(errorMsg));
-    }
-};
+            dispatch(getProjectGroupsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getProjectGroupsFailure(errorMsg));
+        }
+    };
 
 // Delete Group
 export const deleteGroupRequest = () => ({
@@ -174,31 +172,30 @@ export const deleteGroupFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const deleteGroup = (projectId: $TSFixMe, groupId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(deleteGroupRequest());
+export const deleteGroup =
+    (projectId: $TSFixMe, groupId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(deleteGroupRequest());
 
-    try {
-        const response = await deleteApi(`group/${projectId}/${groupId}`);
+        try {
+            const response = await deleteApi(`group/${projectId}/${groupId}`);
 
-        dispatch(deleteGroupSuccess(response.data));
-        dispatch(getGroups());
-        return response;
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+            dispatch(deleteGroupSuccess(response.data));
+            dispatch(getGroups());
+            return response;
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
 
-        dispatch(deleteGroupFailure(errorMsg));
-        return errorMsg;
-    }
-};
+            dispatch(deleteGroupFailure(errorMsg));
+            return errorMsg;
+        }
+    };
 
 //Reset error message
 export const resetErrorMessage = () => ({

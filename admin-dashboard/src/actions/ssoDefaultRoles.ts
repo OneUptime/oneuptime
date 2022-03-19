@@ -22,33 +22,32 @@ export const fetchSsoDefaultRolesError = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchSsoDefaultRoles = (skip: $TSFixMe, limit: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    skip = skip ? parseInt(skip) : 0;
-    limit = limit ? parseInt(limit) : 10;
-    dispatch(fetchSsoDefaultRolesRequest());
-    try {
-        const response = await getApi(
-            `ssoDefaultRoles/?skip=${skip}&limit=${limit}`
-        );
+export const fetchSsoDefaultRoles =
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
+        dispatch(fetchSsoDefaultRolesRequest());
+        try {
+            const response = await getApi(
+                `ssoDefaultRoles/?skip=${skip}&limit=${limit}`
+            );
 
-        return dispatch(fetchSsoDefaultRolesSuccess(response.data));
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            return dispatch(fetchSsoDefaultRolesSuccess(response.data));
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            return dispatch(fetchSsoDefaultRolesError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        return dispatch(fetchSsoDefaultRolesError(errors(errorMsg)));
-    }
-};
+    };
 
 export const fetchSsoDefaultRoleRequest = () => {
     return {
@@ -70,29 +69,30 @@ export const fetchSsoDefaultRoleError = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchSsoDefaultRole = (ssoDefaultRoleId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(fetchSsoDefaultRoleRequest());
-    try {
-        const response = await getApi(`ssoDefaultRoles/${ssoDefaultRoleId}`);
+export const fetchSsoDefaultRole =
+    (ssoDefaultRoleId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(fetchSsoDefaultRoleRequest());
+        try {
+            const response = await getApi(
+                `ssoDefaultRoles/${ssoDefaultRoleId}`
+            );
 
-        dispatch(fetchSsoDefaultRoleSuccess(response.data));
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchSsoDefaultRoleSuccess(response.data));
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchSsoDefaultRoleError(errors(errorMsg)));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchSsoDefaultRoleError(errors(errorMsg)));
-    }
-};
+    };
 
 export const deleteSsoDefaultRoleRequest = () => {
     return {
@@ -114,31 +114,30 @@ export const deleteSsoDefaultRoleError = (payload: $TSFixMe) => {
     };
 };
 
-export const deleteSsoDefaultRole = (ssoId: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(deleteSsoDefaultRoleRequest());
-    try {
-        const response = await deleteApi(`ssoDefaultRoles/${ssoId}`);
+export const deleteSsoDefaultRole =
+    (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+        dispatch(deleteSsoDefaultRoleRequest());
+        try {
+            const response = await deleteApi(`ssoDefaultRoles/${ssoId}`);
 
-        dispatch(deleteSsoDefaultRoleSuccess(response.data));
+            dispatch(deleteSsoDefaultRoleSuccess(response.data));
 
-        dispatch(fetchSsoDefaultRoles());
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchSsoDefaultRoles());
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteSsoDefaultRoleError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteSsoDefaultRoleError(errorMsg));
-    }
-};
+    };
 
 export const addSsoDefaultRoleRequest = () => {
     return {
@@ -159,30 +158,30 @@ export const addSsoDefaultRoleError = (payload: $TSFixMe) => {
     };
 };
 
-export const addSsoDefaultRole = ({ data }: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(addSsoDefaultRoleRequest());
-    try {
-        await postApi(`ssoDefaultRoles/`, data);
-        dispatch(addSsoDefaultRoleSuccess());
-        return true;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+export const addSsoDefaultRole =
+    ({ data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(addSsoDefaultRoleRequest());
+        try {
+            await postApi(`ssoDefaultRoles/`, data);
+            dispatch(addSsoDefaultRoleSuccess());
+            return true;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(addSsoDefaultRoleError(errorMsg));
+            return false;
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(addSsoDefaultRoleError(errorMsg));
-        return false;
-    }
-};
+    };
 
 export const updateSsoDefaultRoleRequest = () => {
     return {
@@ -203,30 +202,30 @@ export const updateSsoDefaultRoleError = (payload: $TSFixMe) => {
     };
 };
 
-export const updateSsoDefaultRole = ({ id, data }: $TSFixMe) => async (
-    dispatch: $TSFixMe
-) => {
-    dispatch(updateSsoDefaultRoleRequest());
-    try {
-        await putApi(`ssoDefaultRoles/${id}`, data);
-        dispatch(updateSsoDefaultRoleSuccess());
-        return true;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+export const updateSsoDefaultRole =
+    ({ id, data }: $TSFixMe) =>
+    async (dispatch: $TSFixMe) => {
+        dispatch(updateSsoDefaultRoleRequest());
+        try {
+            await putApi(`ssoDefaultRoles/${id}`, data);
+            dispatch(updateSsoDefaultRoleSuccess());
+            return true;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(updateSsoDefaultRoleError(errorMsg));
+            return false;
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(updateSsoDefaultRoleError(errorMsg));
-        return false;
-    }
-};
+    };
 
 export const paginate = (type: $TSFixMe) => {
     if (type === 'next') {

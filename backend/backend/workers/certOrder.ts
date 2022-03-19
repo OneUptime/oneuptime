@@ -38,7 +38,7 @@ async function handleFetchingDomains() {
     return domainsWithoutCert;
 }
 
-export default async function() {
+export default async function () {
     try {
         const domains = await handleFetchingDomains();
 
