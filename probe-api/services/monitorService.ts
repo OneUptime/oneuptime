@@ -5,7 +5,7 @@ import Database from 'common-server/utils/database';
 const monitorCollection = Database.getDatabase().collection('monitors');
 
 export default {
-    async getProbeMonitors(probeId: $TSFixMe, limit = 10) {
+    async getProbeMonitors(probeId: String, limit: Number = 10) {
         //get monitors that have not been pinged for the last minute.
         const date = new Date(new Date().getTime() - 60 * 1000);
 

@@ -7,7 +7,7 @@ import LogService from '../services/logService';
 import ErrorService from 'common-server/utils/error';
 import NotificationService from '../services/notificationService';
 
-const router = express.Router();
+const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 const isApplicationLogValid = require('../middlewares/applicationLog')
     .isApplicationLogValid;

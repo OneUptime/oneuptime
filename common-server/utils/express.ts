@@ -2,19 +2,30 @@ import express from 'express';
 import cors from 'cors';
 import logger from './logger';
 
-export type Request = express.Request;
 export type Response = express.Response;
 export type RequestHandler = express.RequestHandler;
 
+type Probe = {
+    id: String
+}
+
+export interface Request extends express.Request {
+    probe?: Probe // or any other type
+}
+
 class Express {
-    static app: express.Application;
+    private static app: express.Application;
+
+    static getRouter() {
+        return express.Router();
+    }
 
     static setupExpress() {
         this.app = express();
         this.app.set('port', process.env.PORT);
 
         this.app.use(cors());
-        this.app.use(function(req: Request, res: Response, next: Function) {
+        this.app.use((req: Request, res: Response, next: Function) => {
             if (typeof req.body === 'string') {
                 req.body = JSON.parse(req.body);
             }
@@ -37,7 +48,7 @@ class Express {
         this.app.use(express.urlencoded({ limit: '10mb', extended: true }));
         this.app.use(express.json({ limit: '10mb' }));
 
-        this.app.use(function(req: Request, res: Response, next: Function) {
+        this.app.use((req: Request, res: Response, next: Function) => {
             const current_datetime = new Date();
             const formatted_date =
                 current_datetime.getFullYear() +

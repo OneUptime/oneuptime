@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'common-server/utils/express';
 
-const router = express.Router();
+const router = express.getRouter();
 import TeamService from '../services/teamService';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import RealTimeService from '../services/realTimeService';

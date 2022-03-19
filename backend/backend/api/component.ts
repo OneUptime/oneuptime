@@ -16,7 +16,7 @@ import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import ErrorService from 'common-server/utils/error';
 
-const router = express.Router();
+const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
@@ -490,12 +490,12 @@ router.get(
                     _id: elem._id,
                     name: elem.name,
                     type: `${elem.type === 'server-monitor'
-                            ? 'server monitor'
-                            : elem.type === 'url'
-                                ? 'website monitor'
-                                : elem.type === 'ip'
-                                    ? 'IP monitor'
-                                    : elem.type + ` monitor`
+                        ? 'server monitor'
+                        : elem.type === 'url'
+                            ? 'website monitor'
+                            : elem.type === 'ip'
+                                ? 'IP monitor'
+                                : elem.type + ` monitor`
                         }`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',

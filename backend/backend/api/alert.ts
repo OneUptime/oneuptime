@@ -5,7 +5,7 @@ import alertChargeService from '../services/alertChargeService';
 import path from 'path';
 import fs from 'fs';
 
-const router = express.Router();
+const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;

@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'common-server/utils/express';
 import ScheduleService from '../services/scheduleService';
-const router = express.Router();
+const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;

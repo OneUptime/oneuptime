@@ -7,7 +7,7 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 import { sendErrorResponse } from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
-const router = express.Router();
+const router = express.getRouter();
 
 /**
  * @Routes

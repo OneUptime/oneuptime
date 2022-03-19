@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'common-server/utils/express';
-const router = express.Router();
+const router = express.getRouter();
 
 import SubscriberService from '../services/subscriberService';
 import MonitorService from '../services/monitorService';

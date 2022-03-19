@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'common-server/utils/express';
 import MonitorService from '../services/monitorService';
-const router = express.Router();
+const router = express.getRouter();
 const isAuthorizedProbe = require('../middlewares/probeAuthorization')
     .isAuthorizedProbe;
 import { sendErrorResponse } from 'common-server/utils/response';
@@ -12,10 +12,10 @@ router.get('/monitors', isAuthorizedProbe, async function (
     res: Response
 ) {
     try {
-        const { limit = 10 } = req.query;
+        const { limit = "10" } = req.query;
         const monitors = await MonitorService.getProbeMonitors(
-            req.probe.id,
-            limit
+            req.probe?.id,
+            parseInt(limit)
         );
 
         return sendListResponse(

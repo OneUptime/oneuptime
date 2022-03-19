@@ -10,7 +10,7 @@ import {
 import { sendListResponse } from 'common-server/utils/response';
 import IncomingRequestService from '../services/incomingRequestService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.get(
     '/:projectId/all-incoming-request',

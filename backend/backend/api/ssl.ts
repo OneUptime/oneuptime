@@ -6,7 +6,7 @@ import {
 
 import SslService from '../services/sslService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // store acme challenge to the db
 router.post('/challenge', async (req: Request, res: Response) => {

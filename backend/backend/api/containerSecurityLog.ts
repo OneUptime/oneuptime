@@ -9,7 +9,7 @@ import {
 
 import ContainerSecurityLogService from '../services/containerSecurityLogService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 //Route: GET
 //Description: get a particular container security log

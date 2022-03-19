@@ -6,7 +6,7 @@ import {
 
 import DefaultManagerService from '../services/defaultManagerService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // store default details to the db
 router.put('/default', async (req: Request, res: Response) => {

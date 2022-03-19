@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'common-server/utils/express';
-const router = express.Router();
+const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isScaleOrMasterAdmin = require('../middlewares/user')

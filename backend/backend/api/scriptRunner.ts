@@ -10,7 +10,7 @@ import ProbeService from '../services/probeService';
 
 import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // get all script monitors for script-runner
 router.get(

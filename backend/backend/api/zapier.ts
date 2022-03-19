@@ -11,7 +11,7 @@ import {
 
 import { sendEmptyResponse } from 'common-server/utils/response';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.get('/test', isAuthorized, async function (req: Request, res: Response) {
     try {

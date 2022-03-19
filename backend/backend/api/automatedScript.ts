@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'common-server/utils/express';
-const router = express.Router();
+const router = express.getRouter();
 
 import AutomatedScriptService from '../services/automatedScriptService';
 import { sendErrorResponse } from 'common-server/utils/response';

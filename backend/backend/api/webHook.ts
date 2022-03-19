@@ -8,7 +8,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.post('/:projectId/create', getUser, isUserAdmin, async function (
     req,

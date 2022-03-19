@@ -6,7 +6,7 @@ import {
 
 import SiteManagerService from '../services/siteManagerService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // store site details to the db
 router.post('/site', async (req: Request, res: Response) => {

@@ -3,7 +3,7 @@ import SubscriberAlertService from '../services/subscriberAlertService';
 import path from 'path';
 import fs from 'fs';
 
-const router = express.Router();
+const router = express.getRouter();
 
 import {
     sendErrorResponse,

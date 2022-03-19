@@ -12,7 +12,7 @@ import ComponentService from '../services/componentService';
 import ErrorService from 'common-server/utils/error';
 import Api from '../utils/api';
 
-const router = express.Router();
+const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;

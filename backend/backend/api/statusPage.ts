@@ -7,7 +7,7 @@ import RealTimeService from '../services/realTimeService';
 import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 import validUrl from 'valid-url';
 import multer from 'multer';

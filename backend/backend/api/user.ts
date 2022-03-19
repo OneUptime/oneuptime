@@ -18,7 +18,7 @@ import {
 } from 'common-server/utils/response';
 
 import { sendListResponse } from 'common-server/utils/response';
-const router = express.Router();
+const router = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 import winston from 'winston';

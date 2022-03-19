@@ -13,7 +13,7 @@ import RealTimeService from '../services/realTimeService';
 import ResourceCategoryService from '../services/resourceCategoryService';
 import ErrorService from 'common-server/utils/error';
 
-const router = express.Router();
+const router = express.getRouter();
 
 //Route: POST
 //Description: creates a new application security

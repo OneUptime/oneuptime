@@ -9,7 +9,7 @@ import {
 
 import GitCredentialService from '../services/gitCredentialService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.post(
     '/:projectId/gitCredential',

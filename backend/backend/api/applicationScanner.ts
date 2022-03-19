@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'common-server/utils/express';
 import ApplicationSecurityService from '../services/applicationSecurityService';
 import ApplicationSecurityLogService from '../services//applicationSecurityLogService';
-const router = express.Router();
+const router = express.getRouter();
 const isAuthorizedApplicationScanner = require('../middlewares/applicationScannerAuthorization')
     .isAuthorizedApplicationScanner;
 import {

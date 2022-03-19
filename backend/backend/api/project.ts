@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'common-server/utils/express';
 import ProjectService from '../services/projectService';
 
-const router = express.Router();
+const router = express.getRouter();
 import PaymentService from '../services/paymentService';
 import UserService from '../services/userService';
 import MailService from '../services/mailService';

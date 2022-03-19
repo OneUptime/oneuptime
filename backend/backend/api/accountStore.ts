@@ -6,7 +6,7 @@ import {
 
 import AccountStoreService from '../services/accountStoreService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // store account details to the db
 router.post('/store', async (req: Request, res: Response) => {

@@ -17,7 +17,7 @@ import PerformanceTracker from '../services/performanceTrackerService';
 
 import { getSubProjects } from '../middlewares/subProject';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.post('/:projectId', getUser, getSubProjects, async function (
     req: Request,

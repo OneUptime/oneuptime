@@ -9,7 +9,7 @@ import {
 
 import DockerCredentialService from '../services/dockerCredentialService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.post(
     '/:projectId/dockerCredential',

@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'common-server/utils/express';
 import EmailTemplateService from '../services/emailTemplateService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 import createDOMPurify from 'dompurify';
 const jsdom = require('jsdom').jsdom;

@@ -15,7 +15,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-const router = express.Router();
+const router = express.getRouter();
 import SmsCountService from '../services/smsCountService';
 
 /**

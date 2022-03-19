@@ -2,7 +2,7 @@ import express, { Request, Response } from 'common-server/utils/express';
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
-const router = express.Router();
+const router = express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,

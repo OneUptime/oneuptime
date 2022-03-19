@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'common-server/utils/express';
 import http from 'http';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.get('/settings', function (req: Request, res: Response) {
     res.status(200).render('settings.ejs', {

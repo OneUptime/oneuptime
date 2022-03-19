@@ -16,7 +16,7 @@ import { isUserOwner } from '../middlewares/project';
 import { isAuthorized } from '../middlewares/authorization';
 import ProjectService from '../services/projectService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // Route
 // Description: Getting events from stripe via webhooks.

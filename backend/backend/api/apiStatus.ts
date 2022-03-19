@@ -6,7 +6,7 @@ import {
 
 import ApiStatusService from '../services/apiStatusService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // store account details to the db
 router.get('/', async (req: Request, res: Response) => {

@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'common-server/utils/express';
 
-const router = express.Router();
+const router = express.getRouter();
 import NotificationService from '../services/notificationService';
 
 import { isAuthorized } from '../middlewares/authorization';

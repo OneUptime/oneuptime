@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'common-server/utils/express';
 
 import { sendErrorResponse, sendSuccessResponse } from '../utils/response';
-const router = express.Router();
+const router = express.getRouter();
 import jsScript from '../utils/scriptSandbox';
 
 import bashScript from '../utils/bash';

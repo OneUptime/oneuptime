@@ -8,7 +8,7 @@ import CertificateStoreService from '../services/certificateStoreService';
 import StatusPageService from '../services/statusPageService';
 import SiteManagerService from '../services/siteManagerService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // store certificate details to the db
 router.post('/store', async (req: Request, res: Response) => {

@@ -12,7 +12,7 @@ import GroupService from '../services/groupService';
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 import EscalationService from '../services/escalationService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.post(
     '/:projectId',

@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'common-server/utils/express';
 import EmailSmtpService from '../services/emailSmtpService';
 import MailService from '../services/mailService';
-const router = express.Router();
+const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;

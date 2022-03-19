@@ -16,7 +16,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.get('/auth/redirect', function (req: Request, res: Response) {
     // get oneuptime project id from slack auth state query params

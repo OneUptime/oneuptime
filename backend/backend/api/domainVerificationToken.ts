@@ -18,7 +18,7 @@ import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';
 import errorService from 'common-server/utils/error';
 
-const router = express.Router();
+const router = express.getRouter();
 
 // Route Description: Verifies a domain
 // req.params -> {projectId, domainId}; req.body -> {domain, verificationToken}

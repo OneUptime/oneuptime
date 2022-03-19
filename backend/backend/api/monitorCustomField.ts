@@ -11,7 +11,7 @@ import {
 
 import MonitorCustomFieldService from '../services/monitorCustomField';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.post('/:projectId', getUser, isAuthorized, async function (
     req: Request,

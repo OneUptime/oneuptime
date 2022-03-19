@@ -10,7 +10,7 @@ import {
 import { sendListResponse } from 'common-server/utils/response';
 import MonitorSlaService from '../services/monitorSlaService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 router.get('/:projectId', getUser, isAuthorized, async function (
     req: Request,

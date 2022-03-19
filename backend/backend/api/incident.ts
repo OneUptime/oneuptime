@@ -10,7 +10,7 @@ import IncidentMessageService from '../services/incidentMessageService';
 import AlertService from '../services/alertService';
 import UserService from '../services/userService';
 import MonitorService from '../services/monitorService';
-const router = express.Router();
+const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 import errorService from 'common-server/utils/error';

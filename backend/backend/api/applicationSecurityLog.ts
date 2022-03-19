@@ -9,7 +9,7 @@ import {
 
 import ApplicationSecurityLogService from '../services/applicationSecurityLogService';
 
-const router = express.Router();
+const router = express.getRouter();
 
 //Route: GET
 //Description: get an application security log
