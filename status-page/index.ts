@@ -134,7 +134,7 @@ async function handleCustomDomain(
     domain: $TSFixMe
 ) {
     const statusPage = await client
-        .db(process.env.DB_NAME)
+        .db(process.env['DB_NAME'])
         .collection(collection)
         .findOne({
             domains: { $elemMatch: { domain } },
@@ -170,7 +170,7 @@ async function handleCertificate(
     domain: $TSFixMe
 ) {
     const certificate = await client
-        .db(process.env.DB_NAME)
+        .db(process.env['DB_NAME'])
         .collection(collection)
         .findOne({ id: domain });
 

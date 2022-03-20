@@ -39,8 +39,8 @@ router.get(
     isAuthorizedAdmin,
     async function (req: Request, res: Response) {
         try {
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 0;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 0;
             const selectProbe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
             const [probe, count] = await Promise.all([
@@ -199,65 +199,65 @@ router.post(
                         failedReasons: upFailedReasons,
                         matchedCriterion: matchedUpCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.up
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.up,
-                              res,
-                              resp,
-                              rawResp
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.up
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                monitor.criteria.up,
+                                res,
+                                resp,
+                                rawResp
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
                     const {
                         stat: validDegraded,
                         successReasons: degradedSuccessReasons,
                         failedReasons: degradedFailedReasons,
                         matchedCriterion: matchedDegradedCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.degraded
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.degraded,
-                              res,
-                              resp,
-                              rawResp
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.degraded
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                monitor.criteria.degraded,
+                                res,
+                                resp,
+                                rawResp
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
                     const {
                         stat: validDown,
                         successReasons: downSuccessReasons,
                         failedReasons: downFailedReasons,
                         matchedCriterion: matchedDownCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.down
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              [
-                                  ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
-                                  ),
-                              ],
-                              res,
-                              resp,
-                              rawResp
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.down
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                [
+                                    ...monitor.criteria.down.filter(
+                                        (criterion: $TSFixMe) =>
+                                            criterion.default !== true
+                                    ),
+                                ],
+                                res,
+                                resp,
+                                rawResp
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
 
                     if (validUp) {
                         status = 'online';
@@ -304,45 +304,45 @@ router.post(
                         failedReasons: upFailedReasons,
                         matchedCriterion: matchedUpCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.up
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.up,
-                              res,
-                              resp,
-                              rawResp
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.up
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                monitor.criteria.up,
+                                res,
+                                resp,
+                                rawResp
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
                     const {
                         stat: validDown,
                         successReasons: downSuccessReasons,
                         failedReasons: downFailedReasons,
                         matchedCriterion: matchedDownCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.down
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              [
-                                  ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
-                                  ),
-                              ],
-                              res,
-                              resp,
-                              rawResp
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.down
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                [
+                                    ...monitor.criteria.down.filter(
+                                        (criterion: $TSFixMe) =>
+                                            criterion.default !== true
+                                    ),
+                                ],
+                                res,
+                                resp,
+                                rawResp
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
                     if (validUp) {
                         status = 'online';
                         reason = upSuccessReasons;
@@ -381,17 +381,17 @@ router.post(
                         failedReasons: upFailedReasons,
                         matchedCriterion: matchedUpCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.up
-                        ? ProbeService.scriptConditions(
-                              resp,
-                              monitor.criteria.up
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.up
+                            ? ProbeService.scriptConditions(
+                                resp,
+                                monitor.criteria.up
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
 
                     const {
                         stat: validDown,
@@ -399,19 +399,19 @@ router.post(
                         failedReasons: downFailedReasons,
                         matchedCriterion: matchedDownCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.down
-                        ? ProbeService.scriptConditions(resp, [
-                              ...monitor.criteria.down.filter(
-                                  (criterion: $TSFixMe) =>
-                                      criterion.default !== true
-                              ),
-                          ])
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.down
+                            ? ProbeService.scriptConditions(resp, [
+                                ...monitor.criteria.down.filter(
+                                    (criterion: $TSFixMe) =>
+                                        criterion.default !== true
+                                ),
+                            ])
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
 
                     const {
                         stat: validDegraded,
@@ -419,17 +419,17 @@ router.post(
                         failedReasons: degradedFailedReasons,
                         matchedCriterion: matchedDegradedCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.degraded
-                        ? ProbeService.scriptConditions(
-                              resp,
-                              monitor.criteria.degraded
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.degraded
+                            ? ProbeService.scriptConditions(
+                                resp,
+                                monitor.criteria.degraded
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
 
                     if (validUp) {
                         status = 'online';
@@ -474,59 +474,59 @@ router.post(
                         failedReasons: upFailedReasons,
                         matchedCriterion: matchedUpCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.up
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.up,
-                              data
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.up
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                monitor.criteria.up,
+                                data
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
                     const {
                         stat: validDegraded,
                         successReasons: degradedSuccessReasons,
                         failedReasons: degradedFailedReasons,
                         matchedCriterion: matchedDegradedCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.degraded
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.degraded,
-                              data
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.degraded
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                monitor.criteria.degraded,
+                                data
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
                     const {
                         stat: validDown,
                         successReasons: downSuccessReasons,
                         failedReasons: downFailedReasons,
                         matchedCriterion: matchedDownCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.down
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              [
-                                  ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
-                                  ),
-                              ],
-                              data
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                        monitor.criteria &&
+                        monitor.criteria.down
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                [
+                                    ...monitor.criteria.down.filter(
+                                        (criterion: $TSFixMe) =>
+                                            criterion.default !== true
+                                    ),
+                                ],
+                                data
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
 
                     if (validUp) {
                         data.status = 'online';
@@ -618,19 +618,19 @@ router.post(
                         failedReasons: upFailedReasons,
                         matchedCriterion: matchedUpCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.up
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.up,
+                        monitor.criteria &&
+                        monitor.criteria.up
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                monitor.criteria.up,
 
-                              data.kubernetesData
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                                data.kubernetesData
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
 
                     const {
                         stat: validDegraded,
@@ -638,19 +638,19 @@ router.post(
                         failedReasons: degradedFailedReasons,
                         matchedCriterion: matchedDegradedCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.degraded
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              monitor.criteria.degraded,
+                        monitor.criteria &&
+                        monitor.criteria.degraded
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                monitor.criteria.degraded,
 
-                              data.kubernetesData
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                                data.kubernetesData
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
 
                     const {
                         stat: validDown,
@@ -658,24 +658,24 @@ router.post(
                         failedReasons: downFailedReasons,
                         matchedCriterion: matchedDownCriterion,
                     }: $TSFixMe = monitor &&
-                    monitor.criteria &&
-                    monitor.criteria.down
-                        ? ProbeService.conditions(
-                              monitor.type,
-                              [
-                                  ...monitor.criteria.down.filter(
-                                      (criterion: $TSFixMe) =>
-                                          criterion.default !== true
-                                  ),
-                              ],
+                        monitor.criteria &&
+                        monitor.criteria.down
+                            ? ProbeService.conditions(
+                                monitor.type,
+                                [
+                                    ...monitor.criteria.down.filter(
+                                        (criterion: $TSFixMe) =>
+                                            criterion.default !== true
+                                    ),
+                                ],
 
-                              data.kubernetesData
-                          )
-                        : {
-                              stat: false,
-                              successReasons: [],
-                              failedReasons: [],
-                          };
+                                data.kubernetesData
+                            )
+                            : {
+                                stat: false,
+                                successReasons: [],
+                                failedReasons: [],
+                            };
 
                     if (validUp) {
                         data.status = 'online';
@@ -740,9 +740,9 @@ router.post(
                 data.reason =
                     data && data.reason && data.reason.length
                         ? data.reason.filter(
-                              (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
-                                  self.indexOf(item) === pos
-                          )
+                            (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
+                                self.indexOf(item) === pos
+                        )
                         : data.reason;
                 const index =
                     data.reason && data.reason.indexOf('Request Timed out');
@@ -750,9 +750,9 @@ router.post(
                     data.reason =
                         data && data.reason && data.reason.length
                             ? data.reason.filter(
-                                  (item: $TSFixMe) =>
-                                      !item.includes('Response Time is')
-                              )
+                                (item: $TSFixMe) =>
+                                    !item.includes('Response Time is')
+                            )
                             : data.reason;
                 }
 
@@ -857,8 +857,8 @@ router.get(
     isAuthorized,
     async function (req, res) {
         try {
-            const limit = req.query.limit || null;
-            const skip = req.query.skip || null;
+            const limit = req.query['limit'] || null;
+            const skip = req.query['skip'] || null;
             const selectProbe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
             const [probe, count] = await Promise.all([

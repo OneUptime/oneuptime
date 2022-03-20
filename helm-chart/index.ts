@@ -33,7 +33,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // set the server port
-app.set('port', process.env.PORT || 3423);
+app.set('port', process.env['PORT'] || 3423);
 
 // set the view engine to ejs
 app.set('views', path.join(__dirname, 'views'));

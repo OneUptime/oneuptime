@@ -3,7 +3,7 @@ import winston from 'winston';
 import Slack from 'winston-slack-transport';
 
 if (
-    process.env.PORT &&
+    process.env['PORT'] &&
     process.env.SLACK_ERROR_LOG_WEBHOOK &&
     process.env.SLACK_ERROR_LOG_CHANNEL
 ) {

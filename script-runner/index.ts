@@ -35,7 +35,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     return next();
 });
 
-app.set('port', process.env.PORT || 3009);
+app.set('port', process.env['PORT'] || 3009);
 
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));

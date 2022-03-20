@@ -74,7 +74,7 @@ app.get('/*', function (req: Request, res: Response) {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-const PORT = process.env.PORT || 3003;
+const PORT = process.env['PORT'] || 3003;
 
 logger.info(`This project is running on port ${PORT}`);
 app.listen(PORT);

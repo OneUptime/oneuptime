@@ -1,6 +1,6 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 
-process.env.IS_SAAS_SERVICE = true;
+process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
 const expect = chai.expect;
 import userData from './data/user';

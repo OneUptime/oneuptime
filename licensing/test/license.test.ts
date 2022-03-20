@@ -1,4 +1,4 @@
-process.env.PORT = 3021;
+process.env['PORT'] = 3021;
 const expect = require('chai').expect;
 const {
     validLicense,

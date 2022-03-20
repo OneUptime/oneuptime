@@ -1,6 +1,6 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 
-process.env.IS_SAAS_SERVICE = true;
+process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
 const expect = chai.expect;
 import userData from './data/user';
@@ -28,9 +28,9 @@ describe('Monitor Custom Field API', function () {
         monitorCustomFieldId: $TSFixMe;
 
     const monitorFieldText = {
-            fieldName: 'textField',
-            fieldType: 'text',
-        },
+        fieldName: 'textField',
+        fieldType: 'text',
+    },
         monitorFieldNumber = {
             fieldName: 'numField',
             fieldType: 'number',

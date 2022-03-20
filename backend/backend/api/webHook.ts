@@ -305,8 +305,8 @@ router.get(
                     projectId: projectId,
                     integrationType: integrationType,
                 },
-                skip: req.query.skip || 0,
-                limit: req.query.limit || 10,
+                skip: req.query['skip'] || 0,
+                limit: req.query['limit'] || 10,
                 select,
                 populate,
             });
@@ -347,8 +347,8 @@ router.get(
                     'monitors.monitorId': { $in: [monitorId] },
                     integrationType: integrationType,
                 },
-                skip: req.query.skip || 0,
-                limit: req.query.limit || 10,
+                skip: req.query['skip'] || 0,
+                limit: req.query['limit'] || 10,
                 select,
                 populate,
             });

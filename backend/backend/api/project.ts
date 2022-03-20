@@ -262,8 +262,8 @@ router.get('/projects', getUser, async function (req: Request, res: Response) {
         const [response, count] = await Promise.all([
             ProjectService.findBy({
                 query,
-                limit: req.query.limit || 10,
-                skip: req.query.skip || 0,
+                limit: req.query['limit'] || 10,
+                skip: req.query['skip'] || 0,
                 populate,
                 select,
             }),
@@ -956,8 +956,8 @@ router.get(
             const parentProjectId = req.params.projectId;
 
             const userId = req.user ? req.user.id : null;
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
             const populate = [{ path: 'parentProjectId', select: 'name' }];
             const select =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes createdAt';
@@ -988,8 +988,8 @@ router.get(
     async function (req, res) {
         try {
             const userId = req.params.userId;
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
             const { projects, count } = await ProjectService.getUserProjects(
                 userId,
                 skip,
@@ -1008,8 +1008,8 @@ router.get(
     isUserMasterAdmin,
     async function (req, res) {
         try {
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
             const [projects, count] = await Promise.all([
                 ProjectService.getAllProjects(skip, limit),
                 ProjectService.countBy({
@@ -1267,8 +1267,8 @@ router.post(
     async function (req, res) {
         try {
             const filter = req.body.filter;
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
             const [users, count] = await Promise.all([
                 ProjectService.searchProjects(
                     {

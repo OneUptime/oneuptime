@@ -111,7 +111,7 @@ app.get(
 
 app.use(['/probe', '/api/probe'], require('./api/probe'));
 
-app.set('port', process.env.PORT || 3200);
+app.set('port', process.env['PORT'] || 3200);
 
 http.listen(app.get('port'), function () {
     // eslint-disable-next-line

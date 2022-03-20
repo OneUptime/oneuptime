@@ -18,8 +18,8 @@ router.get(
     async function (req: Request, res: Response) {
         try {
             const query = {};
-            const skip = req.query.skip;
-            const limit = req.query.limit;
+            const skip = req.query['skip'];
+            const limit = req.query['limit'];
             const selectEmailStatus =
                 'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
@@ -180,8 +180,8 @@ router.post(
     async function (req: Request, res: Response) {
         try {
             const filter = req.body.filter;
-            const skip = req.query.skip;
-            const limit = req.query.limit;
+            const skip = req.query['skip'];
+            const limit = req.query['limit'];
 
             const { searchedEmailLogs, totalSearchCount } =
                 await EmailLogsService.search({ filter, skip, limit });

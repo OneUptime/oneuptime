@@ -9,4 +9,4 @@ export interface JSONObject {
     [x: string]: JSONValue;
 }
 
-export interface JSONArray extends Array<JSONObject> {}
+export interface JSONArray extends Array<JSONObject> { }

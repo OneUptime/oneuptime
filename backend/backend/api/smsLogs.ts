@@ -20,8 +20,8 @@ router.get(
             const selectSmsCount =
                 'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
             const query = {};
-            const skip = req.query.skip;
-            const limit = req.query.limit;
+            const skip = req.query['skip'];
+            const limit = req.query['limit'];
             const [smsLogs, count] = await Promise.all([
                 SmsLogsService.findBy({
                     query,
@@ -101,8 +101,8 @@ router.post(
     async function (req: Request, res: Response) {
         try {
             const filter = req.body.filter;
-            const skip = req.query.skip;
-            const limit = req.query.limit;
+            const skip = req.query['skip'];
+            const limit = req.query['limit'];
 
             const { searchedSmsLogs, totalSearchCount } =
                 await SmsLogsService.search({ filter, skip, limit });

@@ -18,8 +18,8 @@ router.get(
     async function (req: Request, res: Response) {
         try {
             const query = {};
-            const skip = req.query.skip;
-            const limit = req.query.limit;
+            const skip = req.query['skip'];
+            const limit = req.query['limit'];
             const populate = [{ path: 'projectId', select: 'name' }];
             const select = 'from to projectId content status error';
             const [callLogs, count] = await Promise.all([
@@ -102,8 +102,8 @@ router.post(
     async function (req: Request, res: Response) {
         try {
             const filter = req.body.filter;
-            const skip = req.query.skip;
-            const limit = req.query.limit;
+            const skip = req.query['skip'];
+            const limit = req.query['limit'];
 
             const { searchedCallLogs, totalSearchCount } =
                 await CallLogsService.search({ filter, skip, limit });

@@ -1,4 +1,4 @@
-process.env.PORT = 3424;
+process.env['PORT'] = 3424;
 const expect = require('chai').expect;
 import chai from 'chai';
 import chaihttp from 'chai-http';

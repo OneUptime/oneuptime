@@ -360,8 +360,8 @@ router.get(
             const incident = await IncidentService.getProjectComponentIncidents(
                 projectId,
                 componentId,
-                req.query.limit || 10,
-                req.query.skip || 0
+                req.query['limit'] || 10,
+                req.query['skip'] || 0
             );
             return sendListResponse(req, res, incident); // frontend expects sendListResponse
         } catch (error) {
@@ -415,8 +415,8 @@ router.get(
             const [incident, count] = await Promise.all([
                 IncidentService.findBy({
                     query,
-                    limit: req.query.limit || 10,
-                    skip: req.query.skip || 0,
+                    limit: req.query['limit'] || 10,
+                    skip: req.query['skip'] || 0,
                     select,
                     populate,
                 }),
@@ -500,8 +500,8 @@ router.get(
             const [timeline, count] = await Promise.all([
                 IncidentTimelineService.findBy({
                     query: { incidentId },
-                    skip: req.query.skip || 0,
-                    limit: req.query.limit || 10,
+                    skip: req.query['skip'] || 0,
+                    limit: req.query['limit'] || 10,
                     populate: populateIncTimeline,
                     select: selectIncTimeline,
                 }),
@@ -1136,9 +1136,8 @@ router.post(
                         error
                     );
                 });
-                const status = `${incidentMessage.type} notes ${
-                    data.id ? 'updated' : 'added'
-                }`;
+                const status = `${incidentMessage.type} notes ${data.id ? 'updated' : 'added'
+                    }`;
 
                 const user = await UserService.findOneBy({
                     query: { _id: userId },
@@ -1320,9 +1319,9 @@ router.get(
                     await StatusPageService.getStatusPagesForIncident(
                         incident._id,
 
-                        parseInt(req.query.skip) || 0,
+                        parseInt(req.query['skip']) || 0,
 
-                        parseInt(req.query.limit) || 10
+                        parseInt(req.query['limit']) || 10
                     );
                 return sendListResponse(req, res, statusPages, count);
             } else {
@@ -1541,9 +1540,9 @@ router.get(
                 let skip = 0,
                     limit = 0;
                 if (type === 'investigation') {
-                    skip = req.query.skip || 0;
+                    skip = req.query['skip'] || 0;
 
-                    limit = req.query.limit || 10;
+                    limit = req.query['limit'] || 10;
                 }
 
                 const populateIncidentMessage = [

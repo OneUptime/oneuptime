@@ -1,6 +1,6 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 
-process.env.IS_SAAS_SERVICE = true;
+process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
 const expect = chai.expect;
 import userData from './data/user';
@@ -28,9 +28,9 @@ describe('Incident Custom Field API', function () {
         customFieldId: $TSFixMe;
 
     const incidentFieldText = {
-            fieldName: 'inTextField',
-            fieldType: 'text',
-        },
+        fieldName: 'inTextField',
+        fieldType: 'text',
+    },
         incidentFieldNumber = {
             fieldName: 'inNumField',
             fieldType: 'number',

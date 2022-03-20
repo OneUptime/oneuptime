@@ -18,8 +18,8 @@ router.get(
     async function (req: Request, res: Response) {
         try {
             const query = {};
-            const skip = req.query.skip;
-            const limit = req.query.limit;
+            const skip = req.query['skip'];
+            const limit = req.query['limit'];
 
             const populateAuditLog = [
                 { path: 'userId', select: 'name' },
@@ -53,8 +53,8 @@ router.post(
     async function (req: Request, res: Response) {
         try {
             const filter = req.body.filter;
-            const skip = req.query.skip;
-            const limit = req.query.limit;
+            const skip = req.query['skip'];
+            const limit = req.query['limit'];
 
             const { searchedAuditLogs, totalSearchCount } =
                 await AuditLogsService.search({ filter, skip, limit });

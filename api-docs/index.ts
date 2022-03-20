@@ -48,7 +48,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // set the server port
-app.set('port', process.env.PORT || 1445);
+app.set('port', process.env['PORT'] || 1445);
 
 //version
 app.get(['/docs/version', '/version'], version);

@@ -1,4 +1,4 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 const expect = require('chai').expect;
 import chai from 'chai';
 import chaihttp from 'chai-http';
@@ -245,7 +245,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -272,7 +272,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName2,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -283,7 +283,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -295,7 +295,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -306,7 +306,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName2,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -318,7 +318,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -329,7 +329,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName2,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -356,7 +356,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -367,7 +367,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName2,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -379,7 +379,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -390,7 +390,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName2,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -402,7 +402,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);
@@ -413,7 +413,7 @@ describe('Probe API', function () {
             probeServerRequestHeader({
                 probeName: probeServerName2,
                 probeKey,
-                clusterKey: process.env.CLUSTER_KEY,
+                clusterKey: process.env['CLUSTER_KEY'],
             })
         );
         expect(res).to.have.status(200);

@@ -1,4 +1,4 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 import userData from './data/user';
 import chai from 'chai';
 const expect = require('chai').expect;
@@ -1128,9 +1128,8 @@ describe('SMS/Calls Incident Alerts', function () {
 
             const randomId = uuid.v4();
 
-            const link = `http://localhost:${
-                process.env.PORT || 3002
-            }/api/incomingHttpRequest/${randomId}`;
+            const link = `http://localhost:${process.env['PORT'] || 3002
+                }/api/incomingHttpRequest/${randomId}`;
 
             // create a new incomingHttp monitor, with a resource that will fail
             const newMonitor = await createMonitor({
@@ -1917,7 +1916,7 @@ describe('SMS/Calls Incident Alerts', function () {
                     (subscriberAlert: $TSFixMe) =>
                         subscriberAlert.alertVia === 'sms' &&
                         subscriberAlert.errorMessage ===
-                            'Investigation Note SMS Notification Disabled'
+                        'Investigation Note SMS Notification Disabled'
                 );
             expect(statusPageNoteNotificationAlert).to.be.an('object');
         });
@@ -3105,7 +3104,7 @@ describe('Email Incident Alerts', function () {
             (subscriberAlert: $TSFixMe) =>
                 subscriberAlert.alertVia === 'email' &&
                 subscriberAlert.errorMessage ===
-                    'Investigation Note Email Notification Disabled'
+                'Investigation Note Email Notification Disabled'
         );
         expect(statusPageNoteNotificationAlert).to.be.an('object');
     });
@@ -3507,7 +3506,7 @@ describe('Webhook Incident Alerts', function () {
             (subscriberAlert: $TSFixMe) =>
                 subscriberAlert.alertVia === 'webhook' &&
                 subscriberAlert.errorMessage ===
-                    'Investigation Note Webhook Notification Disabled'
+                'Investigation Note Webhook Notification Disabled'
         );
         expect(statusPageNoteNotificationAlert).to.be.an('object');
     });

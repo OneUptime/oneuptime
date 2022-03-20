@@ -48,7 +48,7 @@ app.use('/', express.static(path.join(__dirname, 'views', 'img')));
 
 // Routes(API)
 app.use('/license/validate', require('./src/api/license'));
-app.set('port', process.env.PORT || 3004);
+app.set('port', process.env['PORT'] || 3004);
 
 const server = http.listen(app.get('port'), function () {
     // eslint-disable-next-line

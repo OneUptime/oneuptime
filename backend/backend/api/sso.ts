@@ -16,8 +16,8 @@ router.get(
     getUser,
     isUserMasterAdmin,
     async function (req: Request, res: Response) {
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 10;
+        const skip = req.query['skip'] || 0;
+        const limit = req.query['limit'] || 10;
 
         const selectSso =
             '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
@@ -96,8 +96,8 @@ router.get(
     isScaleOrMasterAdmin,
     async function (req, res) {
         try {
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
             const { projectId } = req.params;
 
             const selectSso =

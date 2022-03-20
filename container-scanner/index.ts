@@ -16,7 +16,7 @@ import config from './utils/config';
 const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
-app.set('port', process.env.PORT || 3055);
+app.set('port', process.env['PORT'] || 3055);
 
 app.get(
     ['/container/status', '/status'],

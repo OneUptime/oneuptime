@@ -14,8 +14,8 @@ router.get(
     getUser,
     isUserMasterAdmin,
     async function (req: Request, res: Response) {
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 10;
+        const skip = req.query['skip'] || 0;
+        const limit = req.query['limit'] || 10;
 
         const populateDefaultRoleSso = [
             { path: 'domain', select: '_id domain' },

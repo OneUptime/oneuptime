@@ -847,7 +847,7 @@ app.get('/*', function (req: Request, res: Response) {
     });
 });
 
-app.set('port', process.env.PORT || 1444);
+app.set('port', process.env['PORT'] || 1444);
 
 app.listen(app.get('port'), function () {
     logger.info('Server running on port : ' + app.get('port'));

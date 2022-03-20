@@ -78,8 +78,8 @@ router.get(
 router.get('/:projectId', async (req: Request, res: Response) => {
     try {
         const projectId = req.params.projectId;
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 10;
+        const skip = req.query['skip'] || 0;
+        const limit = req.query['limit'] || 10;
         const populate = [
             { path: 'incidentId', select: 'name' },
             { path: 'projectId', select: 'name' },
@@ -121,8 +121,8 @@ router.get(
                 query: { slug: incidentSlug },
                 select: '_id',
             });
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
 
             let subscriberAlerts = [],
                 count = 0;

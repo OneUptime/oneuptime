@@ -84,8 +84,8 @@ router.get(
             const [alerts, count] = await Promise.all([
                 alertService.findBy({
                     query: { projectId },
-                    skip: req.query.skip || 0,
-                    limit: req.query.limit || 10,
+                    skip: req.query['skip'] || 0,
+                    limit: req.query['limit'] || 10,
                     populate: populateAlert,
                     select: selectColumns,
                 }),
@@ -111,8 +111,8 @@ router.get(
                 query: { slug: incidentSlug },
                 select: '_id',
             });
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
 
             let alerts = [],
                 count = 0;
@@ -228,8 +228,8 @@ router.get(
             const [alertCharges, count] = await Promise.all([
                 alertChargeService.findBy({
                     query: { projectId },
-                    skip: req.query.skip,
-                    limit: req.query.limit,
+                    skip: req.query['skip'],
+                    limit: req.query['limit'],
                     sort: false,
                     populate,
                     select,

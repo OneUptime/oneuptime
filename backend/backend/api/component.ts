@@ -235,8 +235,8 @@ router.get(
             const [components, count] = await Promise.all([
                 ComponentService.findBy({
                     query,
-                    limit: req.query.limit || 10,
-                    skip: req.query.skip || 0,
+                    limit: req.query['limit'] || 10,
+                    skip: req.query['skip'] || 0,
                     populate: populateComponent,
                     select: selectComponent,
                 }),
@@ -427,7 +427,7 @@ router.get(
             }
             const totalResources: $TSFixMe = [];
             const limit = 1000;
-            const skip = req.query.skip || 0;
+            const skip = req.query['skip'] || 0;
 
             const populateApplicationSecurity = [
                 {
@@ -500,15 +500,14 @@ router.get(
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: `${
-                        elem.type === 'server-monitor'
-                            ? 'server monitor'
-                            : elem.type === 'url'
+                    type: `${elem.type === 'server-monitor'
+                        ? 'server monitor'
+                        : elem.type === 'url'
                             ? 'website monitor'
                             : elem.type === 'ip'
-                            ? 'IP monitor'
-                            : elem.type + ` monitor`
-                    }`,
+                                ? 'IP monitor'
+                                : elem.type + ` monitor`
+                        }`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                     slug: elem.slug,
@@ -713,8 +712,8 @@ router.get(
             const components =
                 await ComponentService.getComponentsBySubprojects(
                     subProjectIds,
-                    req.query.limit || 0,
-                    req.query.skip || 0
+                    req.query['limit'] || 0,
+                    req.query['skip'] || 0
                 );
             let allComponents: $TSFixMe = [];
 

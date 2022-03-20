@@ -104,7 +104,7 @@ app.use('/*', function (req: Request, res: Response) {
     res.status(404).render('notFound.ejs', {});
 });
 
-app.set('port', process.env.PORT || 3010);
+app.set('port', process.env['PORT'] || 3010);
 
 app.listen(app.get('port'), function () {
     logger.info('Server running on port : ' + app.get('port'));

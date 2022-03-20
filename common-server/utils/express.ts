@@ -11,8 +11,10 @@ type Probe = {
 };
 
 export interface Request extends express.Request {
-    probe?: Probe; // or any other type
+    probe?: Probe;
     id: string;
+    requestStartedAt: Date;
+    requestEndedAt: Date;
 }
 
 export interface Response extends express.Response {
@@ -28,7 +30,7 @@ class Express {
 
     static setupExpress() {
         this.app = express();
-        this.app.set('port', process.env.PORT);
+        this.app.set('port', process.env['PORT']);
 
         const logRequest = (
             req: Request,

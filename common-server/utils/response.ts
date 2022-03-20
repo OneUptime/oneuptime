@@ -8,19 +8,16 @@ import { Exception } from '../types/error';
 import { ListData } from '../types/list';
 
 function logResponse(req: Request, res: Response, responsebody: JSONValue) {
-    const requestEndedAt = Date.now();
+    const requestEndedAt = Date();
     const method = req.method;
     const url = req.url;
 
-    const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${
-        process.env.POD_NAME
-    } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${
-        requestEndedAt - req.requestStartedAt
-    }ms -- STATUS: ${res.statusCode}`;
+    const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${process.env['POD_NAME']
+        } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${requestEndedAt.getTime() - req.requestStartedAt.getTime()
+        }ms -- STATUS: ${res.statusCode}`;
 
-    const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${
-        responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
-    }`;
+    const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
+        }`;
 
     if (res.statusCode > 299) {
         logger.error(duration_info);
@@ -33,7 +30,7 @@ function logResponse(req: Request, res: Response, responsebody: JSONValue) {
 
 export const sendEmptyResponse = (req: Request, res: Response) => {
     res.set('Request-Id', req.id);
-    res.set('Pod-Id', process.env.POD_NAME);
+    res.set('Pod-Id', process.env['POD_NAME']);
 
     res.status(200).send();
 
@@ -63,40 +60,16 @@ export const sendErrorResponse = (
     res: Response,
     error: Exception
 ) => {
-    let status, message;
-    if (error.statusCode && error.message) {
-        res.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
-        status = error.statusCode;
-        message = error.message;
-    } else if (error.code && error.message && typeof error.code === 'number') {
-        status = error.code;
-        if (
-            error.code &&
-            error.status &&
-            typeof error.code === 'number' &&
-            typeof error.status === 'number' &&
-            error.code > 600
-        ) {
-            status = error.status;
-        }
-        res.logBody = { message: error.message };
-        message = error.message;
-    } else {
-        res.logBody = { message: 'Server Error.' };
-        status = 500;
-        message = 'Server Error.';
-    }
+    let status: Number, message: string;
 
-    if (!req.logdata) {
-        req.logdata = {};
-    }
+    res.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
+    status = error.code || 500;
+    message = error.message || 'Server Error';
 
-    req.logdata.errorCode = status;
-
-    logger.error(message);
+    logger.error(error);
 
     res.set('Request-Id', req.id);
-    res.set('Pod-Id', process.env.POD_NAME);
+    res.set('Pod-Id', process.env['POD_NAME']);
 
     res.status(status).send({ message });
     return logResponse(req, res, { message });
@@ -106,12 +79,12 @@ export const sendListResponse = async (
     req: Request,
     res: Response,
     list: JSONArray,
-    count: Number
+    count: number
 ) => {
     res.set('Request-Id', req.id);
-    res.set('Pod-Id', process.env.POD_NAME);
+    res.set('Pod-Id', process.env['POD_NAME']);
 
-    const response: ListData = {
+    const listData: ListData = {
         data: [],
         count: 0,
         skip: 0,
@@ -123,31 +96,31 @@ export const sendListResponse = async (
     }
 
     if (list) {
-        response.data = list;
+        listData.data = list;
     }
 
     if (count) {
-        response.count = count;
+        listData.count = count;
     } else {
-        if (list) response.count = list.length;
+        if (list) listData.count = list.length;
     }
 
-    if (req.query.skip) {
-        response.skip = parseInt(req.query.skip.toString());
+    if (req.query['skip']) {
+        listData.skip = parseInt(req.query['skip'].toString());
     }
 
-    if (req.query.limit) {
-        response.limit = parseInt(req.query.limit.toString());
+    if (req.query['limit']) {
+        listData.limit = parseInt(req.query['limit'].toString());
     }
 
     if (req.query['output-type'] === 'csv') {
-        const csv = await JsonToCsv.ToCsv(response.data);
+        const csv = await JsonToCsv.ToCsv(listData.data);
         res.status(200).send(csv);
     } else {
-        res.status(200).send(response);
-        res.logBody = response; // To be used in 'auditLog' middleware to log reponse data;
-        res.status(200).send(response);
-        return logResponse(req, res, response);
+        res.status(200).send(listData);
+        res.logBody = listData.toJSONValue(); // To be used in 'auditLog' middleware to log reponse data;
+        res.status(200).send(listData);
+        return logResponse(req, res, listData.toJSONValue());
     }
 };
 
@@ -157,7 +130,7 @@ export const sendItemResponse = async (
     item: JSONObject
 ) => {
     res.set('Request-Id', req.id);
-    res.set('Pod-Id', process.env.POD_NAME);
+    res.set('Pod-Id', process.env['POD_NAME']);
 
     if (req.query['output-type'] === 'csv') {
         const csv = JsonToCsv.ToCsv([item]);

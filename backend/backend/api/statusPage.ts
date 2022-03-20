@@ -816,8 +816,8 @@ router.get(
             const [statusPages, count] = await Promise.all([
                 StatusPageService.findBy({
                     query: { projectId: projectId },
-                    skip: req.query.skip || 0,
-                    limit: req.query.limit || 10,
+                    skip: req.query['skip'] || 0,
+                    limit: req.query['limit'] || 10,
                     select: selectStatusPage,
                     populate: populateStatusPage,
                 }),
@@ -841,8 +841,8 @@ router.get(
             const { data, count } =
                 await StatusPageService.getStatusPagesByProjectId({
                     projectId: req.params.projectId,
-                    skip: req.query.skip,
-                    limit: req.query.limit,
+                    skip: req.query['skip'],
+                    limit: req.query['limit'],
                 });
             return sendListResponse(req, res, data, count); // frontend expects sendItemResponse
         } catch (error) {
@@ -885,8 +885,8 @@ router.get(
             const [statusPage, count] = await Promise.all([
                 StatusPageService.findBy({
                     query: { projectId },
-                    skip: req.query.skip || 0,
-                    limit: req.query.limit || 10,
+                    skip: req.query['skip'] || 0,
+                    limit: req.query['limit'] || 10,
                     select: selectStatusPage,
                     populate: populateStatusPage,
                 }),
@@ -1056,17 +1056,14 @@ router.get(
 
                             guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
                             pubDate: new Date(incident.createdAt).toUTCString(),
-                            description: `<![CDATA[Description: ${
-                                incident.description
-                            }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
-                                incident.monitors
-                            )}<br>Acknowledge Time: ${
-                                incident.acknowledgedAt
-                            }<br>Resolve Time: ${incident.resolvedAt}<br>${
-                                incident.investigationNote
+                            description: `<![CDATA[Description: ${incident.description
+                                }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
+                                    incident.monitors
+                                )}<br>Acknowledge Time: ${incident.acknowledgedAt
+                                }<br>Resolve Time: ${incident.resolvedAt}<br>${incident.investigationNote
                                     ? `Investigation Note: ${incident.investigationNote}`
                                     : ''
-                            }]]>`,
+                                }]]>`,
                         },
                     });
                 }
@@ -1121,8 +1118,8 @@ router.get(
     async function (req: Request, res: Response) {
         let result;
         const statusPageSlug = req.params.statusPageSlug;
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 10;
+        const skip = req.query['skip'] || 0;
+        const limit = req.query['limit'] || 10;
         const days = req.query.days || 14;
         const newTheme = req.query.newTheme;
 
@@ -1247,8 +1244,8 @@ router.get(
             59
         );
 
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 5;
+        const skip = req.query['skip'] || 0;
+        const limit = req.query['limit'] || 5;
         const query = {
             'monitors.monitorId': req.params.monitorId,
             deleted: false,
@@ -1302,8 +1299,8 @@ router.get(
     ipWhitelist,
     async function (req: Request, res: Response) {
         const statusPageSlug = req.params.statusPageSlug;
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 5;
+        const skip = req.query['skip'] || 0;
+        const limit = req.query['limit'] || 5;
         const theme = req.query.theme;
         try {
             // Call the StatusPageService.
@@ -1435,8 +1432,8 @@ router.get(
 
         date = moment(date).endOf('day').format();
 
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 5;
+        const skip = req.query['skip'] || 0;
+        const limit = req.query['limit'] || 5;
         const theme = req.query.theme;
 
         const currentDate = moment().format();
@@ -1572,8 +1569,8 @@ router.get(
     checkUser,
     async function (req: Request, res: Response) {
         try {
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 0;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 0;
             const selectProbe =
                 'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
             const [probes, count] = await Promise.all([
@@ -1683,8 +1680,8 @@ router.get(
     async function (req, res) {
         try {
             const { statusPageId } = req.params;
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
             const populateStatusPage = [
                 { path: 'monitors.monitor', select: '_id' },
             ];
@@ -2346,9 +2343,8 @@ function handleMonitorList(monitors: $TSFixMe) {
         return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
     }
     if (monitors.length > 3) {
-        return `${monitors[0].monitorId.name}, ${
-            monitors[1].monitorId.name
-        } and ${monitors.length - 2} others`;
+        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
+            } and ${monitors.length - 2} others`;
     }
 }
 
@@ -2746,8 +2742,8 @@ async function getPastEvents(req: Request, statusPageSlug: $TSFixMe) {
     return response;
 }
 async function getProbes(req: $TSFixMe) {
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 0;
+    const skip = req.query['skip'] || 0;
+    const limit = req.query['limit'] || 0;
     const selectProbe =
         'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
 
@@ -2873,8 +2869,8 @@ async function getStatusPageNote(
     theme: $TSFixMe
 ) {
     let result;
-    const skip = req.query.skip || 0;
-    const limit = req.query.limit || 10;
+    const skip = req.query['skip'] || 0;
+    const limit = req.query['limit'] || 10;
     const days = req.query.days || 14;
     const newTheme = theme === 'Clean Theme';
     // Call the StatusPageService.
@@ -2996,18 +2992,18 @@ const filterProbeData = (
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
-                      return (
-                          probeStatuses._id === null ||
-                          String(probeStatuses._id) === String(probe._id)
-                      );
-                  })
+                    return (
+                        probeStatuses._id === null ||
+                        String(probeStatuses._id) === String(probe._id)
+                    );
+                })
                 : monitorStatuses
             : [];
     const statuses =
         probesStatus &&
-        probesStatus[0] &&
-        probesStatus[0].statuses &&
-        probesStatus[0].statuses.length > 0
+            probesStatus[0] &&
+            probesStatus[0].statuses &&
+            probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
 

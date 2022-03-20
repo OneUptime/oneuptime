@@ -25,7 +25,7 @@ app.get(
         if (req.host.includes('localhost')) {
             if (req.get('host').includes('localhost:')) {
                 global.dashboardHost =
-                    'http://' + req.host + ':' + (process.env.PORT || 3002);
+                    'http://' + req.host + ':' + (process.env['PORT'] || 3002);
 
                 global.accountsHost = 'http://' + req.host + ':' + 3003;
 

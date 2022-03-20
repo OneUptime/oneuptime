@@ -326,8 +326,8 @@ router.post(
 router.get('/:projectId', async function (req: Request, res: Response) {
     try {
         const projectId = req.params.projectId;
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 10;
+        const skip = req.query['skip'] || 0;
+        const limit = req.query['limit'] || 10;
         const select =
             'monitorId projectId statusPageId alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod notificationType createdAt subscribed';
 
@@ -349,8 +349,8 @@ router.get(
     async function (req: Request, res: Response) {
         try {
             const monitorId = req.params.monitorId;
-            const skip = req.query.skip || 0;
-            const limit = req.query.limit || 10;
+            const skip = req.query['skip'] || 0;
+            const limit = req.query['limit'] || 10;
             const populate = [
                 { path: 'projectId', select: 'name _id' },
                 { path: 'monitorId', select: 'name _id' },

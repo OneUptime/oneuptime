@@ -1,6 +1,6 @@
-process.env.PORT = 3020;
+process.env['PORT'] = 3020;
 
-process.env.IS_SAAS_SERVICE = true;
+process.env['IS_SAAS_SERVICE'] = true;
 const expect = require('chai').expect;
 import userData from './data/user';
 import chai from 'chai';
@@ -464,7 +464,7 @@ describe('Monitor API', function () {
     });
 });
 
-const BACKEND_URL = `http://localhost:${process.env.PORT}/api`;
+const BACKEND_URL = `http://localhost:${process.env['PORT']}/api`;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 
 const testServer = chai.request(HTTP_TEST_SERVER_URL);

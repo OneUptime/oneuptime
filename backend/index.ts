@@ -89,13 +89,11 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
     req.logdata = logdata;
 
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${
-            process.env.POD_NAME
+        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${process.env['POD_NAME']
         } -- RECEIVED AT: ${new Date()} -- METHOD: ${method} -- URL: ${url}`
     );
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${
-            req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
         }`
     );
 
@@ -140,7 +138,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
                 'http://' +
                 req.hostname +
                 ':' +
-                (process.env.PORT || 3002) +
+                (process.env['PORT'] || 3002) +
                 '/api';
 
             global.accountsHost =
@@ -476,7 +474,7 @@ app.use('/*', function (req: Request, res: Response) {
 //attach cron jobs
 require('./backend/workers/main');
 
-app.set('port', process.env.PORT || 3002);
+app.set('port', process.env['PORT'] || 3002);
 
 const server = http.listen(app.get('port'), function () {
     logger.info('Server Started on port ' + app.get('port'));

@@ -43,8 +43,8 @@ router.get(
             const [notifications, count] = await Promise.all([
                 NotificationService.findBy({
                     query: { projectId: { $in: subProjectIds } },
-                    skip: req.query.skip || 0,
-                    limit: req.query.limit || 20,
+                    skip: req.query['skip'] || 0,
+                    limit: req.query['limit'] || 20,
                     populate: populateNotification,
                     select: selectNotification,
                 }),
