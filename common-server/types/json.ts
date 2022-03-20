@@ -5,7 +5,7 @@ export type JSONValue =
     | { [x: string]: JSONValue }
     | Array<JSONValue>;
 
-export class JSONObject {
+export interface JSONObject {
     [x: string]: JSONValue;
 }
 

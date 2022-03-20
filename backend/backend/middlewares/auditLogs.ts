@@ -78,7 +78,7 @@ export default {
                     );
                     const modifiedRes = _.omit(res, blackListedResObjectPaths);
                     if (Array.isArray(res.logBody)) {
-                        modifiedres.logBody = res.logBody.map(
+                        modifiedRes.logBody = res.logBody.map(
                             (element: $TSFixMe) =>
                                 _.omit(element, blackListedResBodyObjectPaths)
                         );
@@ -100,7 +100,7 @@ export default {
                     const apiResponseDetails = {
                         statusCode: modifiedRes.statusCode,
                         statusMessage: modifiedRes.statusMessage,
-                        resBody: modifiedres.logBody || {},
+                        resBody: modifiedRes.logBody || {},
                         headers: modifiedRes.getHeaders(),
                     };
 
