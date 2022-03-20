@@ -1136,8 +1136,9 @@ router.post(
                         error
                     );
                 });
-                const status = `${incidentMessage.type} notes ${data.id ? 'updated' : 'added'
-                    }`;
+                const status = `${incidentMessage.type} notes ${
+                    data.id ? 'updated' : 'added'
+                }`;
 
                 const user = await UserService.findOneBy({
                     query: { _id: userId },

@@ -1056,14 +1056,17 @@ router.get(
 
                             guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
                             pubDate: new Date(incident.createdAt).toUTCString(),
-                            description: `<![CDATA[Description: ${incident.description
-                                }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
-                                    incident.monitors
-                                )}<br>Acknowledge Time: ${incident.acknowledgedAt
-                                }<br>Resolve Time: ${incident.resolvedAt}<br>${incident.investigationNote
+                            description: `<![CDATA[Description: ${
+                                incident.description
+                            }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
+                                incident.monitors
+                            )}<br>Acknowledge Time: ${
+                                incident.acknowledgedAt
+                            }<br>Resolve Time: ${incident.resolvedAt}<br>${
+                                incident.investigationNote
                                     ? `Investigation Note: ${incident.investigationNote}`
                                     : ''
-                                }]]>`,
+                            }]]>`,
                         },
                     });
                 }
@@ -2343,8 +2346,9 @@ function handleMonitorList(monitors: $TSFixMe) {
         return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
     }
     if (monitors.length > 3) {
-        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
-            } and ${monitors.length - 2} others`;
+        return `${monitors[0].monitorId.name}, ${
+            monitors[1].monitorId.name
+        } and ${monitors.length - 2} others`;
     }
 }
 
@@ -2992,18 +2996,18 @@ const filterProbeData = (
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
-                    return (
-                        probeStatuses._id === null ||
-                        String(probeStatuses._id) === String(probe._id)
-                    );
-                })
+                      return (
+                          probeStatuses._id === null ||
+                          String(probeStatuses._id) === String(probe._id)
+                      );
+                  })
                 : monitorStatuses
             : [];
     const statuses =
         probesStatus &&
-            probesStatus[0] &&
-            probesStatus[0].statuses &&
-            probesStatus[0].statuses.length > 0
+        probesStatus[0] &&
+        probesStatus[0].statuses &&
+        probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
 

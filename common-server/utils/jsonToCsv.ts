@@ -9,7 +9,7 @@ export default {
                 'Cannot convert to CSV when the object length is 0'
             );
         }
-        const fields = Object.keys(json[0]);
+        const fields = Object.keys(json[0] || {});
         const opts = { fields };
         const parser = new Json2Csv.Parser(opts);
         return parser.parse(json);

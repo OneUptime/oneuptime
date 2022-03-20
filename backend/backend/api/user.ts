@@ -522,14 +522,14 @@ router.post('/sso/callback', async function (req: Request, res: Response) {
 
             return res.redirect(
                 `${global.accountsHost}` +
-                `/ssologin?id=${authUserObj.id}` +
-                `&name=${authUserObj.name}` +
-                `&email=${authUserObj.email}` +
-                `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
-                `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
-                `&role=${authUserObj.role}` +
-                `&redirect=${authUserObj.redirect}` +
-                `&cardRegistered=${authUserObj.cardRegistered}`
+                    `/ssologin?id=${authUserObj.id}` +
+                    `&name=${authUserObj.name}` +
+                    `&email=${authUserObj.email}` +
+                    `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
+                    `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
+                    `&role=${authUserObj.role}` +
+                    `&redirect=${authUserObj.redirect}` +
+                    `&cardRegistered=${authUserObj.cardRegistered}`
             );
         }
     );
@@ -1312,7 +1312,7 @@ router.get(
                 if (!token) {
                     return res.redirect(
                         global.accountsHost +
-                        '/user-verify/resend?status=link-expired'
+                            '/user-verify/resend?status=link-expired'
                     );
                 }
                 const user = await UserModel.findOne({
@@ -1351,7 +1351,7 @@ router.get(
             } else {
                 return res.redirect(
                     global.accountsHost +
-                    '/user-verify/resend?status=invalid-verification-link'
+                        '/user-verify/resend?status=invalid-verification-link'
                 );
             }
         } catch (error) {

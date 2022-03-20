@@ -6,18 +6,22 @@ import { JSONObject, JSONArray, JSONValue } from '../types/json';
 import { File } from '../types/file';
 import { Exception } from '../types/error';
 import { ListData } from '../types/list';
+import Database from './database';
 
-function logResponse(req: Request, res: Response, responsebody: JSONValue) {
-    const requestEndedAt = Date();
+function logResponse(req: Request, res: Response, responsebody?: JSONValue) {
+    const requestEndedAt: Date = new Date();
     const method = req.method;
     const url = req.url;
 
-    const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${process.env['POD_NAME']
-        } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${requestEndedAt.getTime() - req.requestStartedAt.getTime()
-        }ms -- STATUS: ${res.statusCode}`;
+    const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${
+        process.env['POD_NAME'] || 'NONE'
+    } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${(
+        requestEndedAt.getTime() - req.requestStartedAt.getTime()
+    ).toString()}ms -- STATUS: ${res.statusCode}`;
 
-    const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
-        }`;
+    const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${
+        responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
+    }`;
 
     if (res.statusCode > 299) {
         logger.error(duration_info);
@@ -34,13 +38,17 @@ export const sendEmptyResponse = (req: Request, res: Response) => {
 
     res.status(200).send();
 
-    return logResponse(req, res);
+    return logResponse(req, res, undefined);
 };
 
-export const sendFileResponse = (req: Request, res: Response, file: File) => {
+export const sendFileResponse = async (
+    req: Request,
+    res: Response,
+    file: File
+) => {
     /** create read stream */
 
-    const gfs = new GridFSBucket(global.client, {
+    const gfs = new GridFSBucket(await Database.getDatabase(), {
         bucketName: 'uploads',
     });
 
@@ -60,11 +68,9 @@ export const sendErrorResponse = (
     res: Response,
     error: Exception
 ) => {
-    let status: Number, message: string;
-
     res.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
-    status = error.code || 500;
-    message = error.message || 'Server Error';
+    const status: number = error.code || 500;
+    const message: string = error.message || 'Server Error';
 
     logger.error(error);
 
@@ -84,12 +90,12 @@ export const sendListResponse = async (
     res.set('Request-Id', req.id);
     res.set('Pod-Id', process.env['POD_NAME']);
 
-    const listData: ListData = {
+    const listData: ListData = new ListData({
         data: [],
         count: 0,
         skip: 0,
         limit: 0,
-    };
+    });
 
     if (!list) {
         list = [];

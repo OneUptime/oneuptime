@@ -33,9 +33,9 @@ class Express {
         this.app.set('port', process.env['PORT']);
 
         const logRequest = (
-            req: Request,
-            res: Response,
-            next: NextFunction
+            req: express.Request,
+            res: express.Response,
+            next: express.NextFunction
         ) => {
             const current_datetime = new Date();
             const formatted_date =
@@ -50,6 +50,7 @@ class Express {
                 current_datetime.getMinutes() +
                 ':' +
                 current_datetime.getSeconds();
+
             const method = req.method;
             const url = req.url;
             const status = res.statusCode;
@@ -60,9 +61,9 @@ class Express {
         };
 
         const setDefaultHeaders = (
-            req: Request,
-            res: Response,
-            next: NextFunction
+            req: express.Request,
+            res: express.Response,
+            next: express.NextFunction
         ) => {
             if (typeof req.body === 'string') {
                 req.body = JSON.parse(req.body);

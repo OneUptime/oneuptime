@@ -500,14 +500,15 @@ router.get(
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: `${elem.type === 'server-monitor'
-                        ? 'server monitor'
-                        : elem.type === 'url'
+                    type: `${
+                        elem.type === 'server-monitor'
+                            ? 'server monitor'
+                            : elem.type === 'url'
                             ? 'website monitor'
                             : elem.type === 'ip'
-                                ? 'IP monitor'
-                                : elem.type + ` monitor`
-                        }`,
+                            ? 'IP monitor'
+                            : elem.type + ` monitor`
+                    }`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                     slug: elem.slug,

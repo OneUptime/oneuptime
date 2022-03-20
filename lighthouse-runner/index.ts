@@ -51,7 +51,8 @@ cron.schedule('*/30 * * * *', () => {
 http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     logger.info(
-        `Lighthouse Started on port ${app.get('port')}. OneUptime API URL: ${config.serverUrl
+        `Lighthouse Started on port ${app.get('port')}. OneUptime API URL: ${
+            config.serverUrl
         }`
     );
 });

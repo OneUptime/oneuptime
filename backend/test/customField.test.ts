@@ -28,9 +28,9 @@ describe('Incident Custom Field API', function () {
         customFieldId: $TSFixMe;
 
     const incidentFieldText = {
-        fieldName: 'inTextField',
-        fieldType: 'text',
-    },
+            fieldName: 'inTextField',
+            fieldType: 'text',
+        },
         incidentFieldNumber = {
             fieldName: 'inNumField',
             fieldType: 'number',

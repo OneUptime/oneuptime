@@ -704,34 +704,34 @@ router.post(
                 successReasons: upSuccessReasons,
                 failedReasons: upFailedReasons,
             } = monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(
-                        monitor.type,
-                        monitor.criteria.up,
-                        data
-                    )
-                    : { stat: false, failedReasons: [], successReasons: [] };
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.up,
+                      data
+                  )
+                : { stat: false, failedReasons: [], successReasons: [] };
             const {
                 stat: validDegraded,
                 successReasons: degradedSuccessReasons,
                 failedReasons: degradedFailedReasons,
             } = monitor && monitor.criteria && monitor.criteria.degraded
-                    ? ProbeService.conditions(
-                        monitor.type,
-                        monitor.criteria.degraded,
-                        data
-                    )
-                    : { stat: false, failedReasons: [], successReasons: [] };
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.degraded,
+                      data
+                  )
+                : { stat: false, failedReasons: [], successReasons: [] };
             const {
                 stat: validDown,
                 successReasons: downSuccessReasons,
                 failedReasons: downFailedReasons,
             } = monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(
-                        monitor.type,
-                        monitor.criteria.down,
-                        data
-                    )
-                    : { stat: false, failedReasons: [], successReasons: [] };
+                ? ProbeService.conditions(
+                      monitor.type,
+                      monitor.criteria.down,
+                      data
+                  )
+                : { stat: false, failedReasons: [], successReasons: [] };
 
             if (validUp) {
                 data.status = 'online';

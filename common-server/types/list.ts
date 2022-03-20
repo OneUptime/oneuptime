@@ -1,11 +1,16 @@
 import { JSONArray, JSONValue } from './json';
 
 export class ListData {
-    constructor(data: JSONArray, count: number, skip: number, limit: number) {
-        this.data = data;
-        this.count = count;
-        this.skip = skip;
-        this.limit = limit;
+    constructor(obj: {
+        data: JSONArray;
+        count: number;
+        skip: number;
+        limit: number;
+    }) {
+        this.data = obj.data;
+        this.count = obj.count;
+        this.skip = obj.skip;
+        this.limit = obj.limit;
     }
 
     public data: JSONArray;
@@ -19,7 +24,7 @@ export class ListData {
             count: this.count,
             skip: this.skip,
             limit: this.limit,
-        }
+        };
 
         return json;
     }

@@ -28,9 +28,9 @@ describe('Monitor Custom Field API', function () {
         monitorCustomFieldId: $TSFixMe;
 
     const monitorFieldText = {
-        fieldName: 'textField',
-        fieldType: 'text',
-    },
+            fieldName: 'textField',
+            fieldType: 'text',
+        },
         monitorFieldNumber = {
             fieldName: 'numField',
             fieldType: 'number',
