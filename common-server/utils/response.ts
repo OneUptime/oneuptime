@@ -1,10 +1,13 @@
 import JsonToCsv from './jsonToCsv';
-import ErrorService from './error';
 import logger from './logger';
 import { GridFSBucket } from 'mongodb';
 import { Request, Response } from './express';
+import { JSONObject, JSONArray, JSONValue } from '../types/json';
+import { File } from '../types/file';
+import { Exception } from '../types/error';
+import { ListData } from '../types/list';
 
-function logResponse(req: Request, res: Response, responsebody: $TSFixMe) {
+function logResponse(req: Request, res: Response, responsebody: JSONValue) {
     const requestEndedAt = Date.now();
     const method = req.method;
     const url = req.url;
@@ -37,18 +40,14 @@ export const sendEmptyResponse = (req: Request, res: Response) => {
     return logResponse(req, res);
 };
 
-export const sendFileResponse = (
-    req: Request,
-    res: Response,
-    file: $TSFixMe
-) => {
+export const sendFileResponse = (req: Request, res: Response, file: File) => {
     /** create read stream */
 
     const gfs = new GridFSBucket(global.client, {
         bucketName: 'uploads',
     });
 
-    const readstream = gfs.openDownloadStreamByName(file.filename);
+    const readstream = gfs.openDownloadStreamByName(file.name);
 
     /** set the proper content type */
     res.set('Content-Type', file.contentType);
@@ -62,11 +61,11 @@ export const sendFileResponse = (
 export const sendErrorResponse = (
     req: Request,
     res: Response,
-    error: $TSFixMe
+    error: Exception
 ) => {
     let status, message;
     if (error.statusCode && error.message) {
-        res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
+        res.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
         status = error.statusCode;
         message = error.message;
     } else if (error.code && error.message && typeof error.code === 'number') {
@@ -80,10 +79,10 @@ export const sendErrorResponse = (
         ) {
             status = error.status;
         }
-        res.resBody = { message: error.message };
+        res.logBody = { message: error.message };
         message = error.message;
     } else {
-        res.resBody = { message: 'Server Error.' };
+        res.logBody = { message: 'Server Error.' };
         status = 500;
         message = 'Server Error.';
     }
@@ -93,7 +92,8 @@ export const sendErrorResponse = (
     }
 
     req.logdata.errorCode = status;
-    ErrorService.log('sendErrorResponse', message, req.logdata);
+
+    logger.error(message);
 
     res.set('Request-Id', req.id);
     res.set('Pod-Id', process.env.POD_NAME);
@@ -105,10 +105,18 @@ export const sendErrorResponse = (
 export const sendListResponse = async (
     req: Request,
     res: Response,
-    list: $TSFixMe,
-    count: $TSFixMe
+    list: JSONArray,
+    count: Number
 ) => {
-    const response = {};
+    res.set('Request-Id', req.id);
+    res.set('Pod-Id', process.env.POD_NAME);
+
+    const response: ListData = {
+        data: [],
+        count: 0,
+        skip: 0,
+        limit: 0,
+    };
 
     if (!list) {
         list = [];
@@ -125,112 +133,40 @@ export const sendListResponse = async (
     }
 
     if (req.query.skip) {
-        response.skip = parseInt(req.query.skip);
+        response.skip = parseInt(req.query.skip.toString());
     }
 
     if (req.query.limit) {
-        response.limit = parseInt(req.query.limit);
+        response.limit = parseInt(req.query.limit.toString());
     }
 
     if (req.query['output-type'] === 'csv') {
-        if (!Array.isArray(response.data)) {
-            const properties = Object.keys(response.data);
-            const newObj = {};
-            properties.forEach(prop => {
-                if (
-                    typeof response.data[[prop]] === 'object' &&
-                    response.data[[prop]] !== null
-                ) {
-                    if (response.data[[prop]].name)
-                        response.data[[prop]] = response.data[[prop]].name;
-                    else if (response.data[[prop]].title)
-                        response.data[[prop]] = response.data[[prop]].title;
-                    else if (response.data[[prop]]._id)
-                        response.data[[prop]] = response.data[[prop]]._id;
-                }
-
-                newObj[[prop]] = response.data[[prop]];
-            });
-
-            response.data = JSON.parse(JSON.stringify(newObj));
-
-            response.data = [response.data];
-        } else {
-            response.data = response.data.map((i: $TSFixMe) => {
-                i = i._doc ? i._doc : i;
-                const properties = Object.keys(i);
-                const newObj = {};
-                properties.forEach(prop => {
-                    if (typeof i[[prop]] === 'object' && i[[prop]] !== null) {
-                        if (i[[prop]].name) i[[prop]] = i[[prop]].name;
-                        else if (i[[prop]].title) i[[prop]] = i[[prop]].title;
-                        else if (i[[prop]]._id) i[[prop]] = i[[prop]]._id;
-                    }
-
-                    newObj[[prop]] = i[[prop]];
-                });
-                return JSON.parse(JSON.stringify(newObj));
-            });
-        }
-
-        response.data = await JsonToCsv.ToCsv(response.data);
+        const csv = await JsonToCsv.ToCsv(response.data);
+        res.status(200).send(csv);
+    } else {
+        res.status(200).send(response);
+        res.logBody = response; // To be used in 'auditLog' middleware to log reponse data;
+        res.status(200).send(response);
+        return logResponse(req, res, response);
     }
-
-    res.resBody = response; // To be used in 'auditLog' middleware to log reponse data;
-    res.set('Request-Id', req.id);
-    res.set('Pod-Id', process.env.POD_NAME);
-    res.status(200).send(response);
-
-    return logResponse(req, res, response);
 };
 
 export const sendItemResponse = async (
     req: Request,
     res: Response,
-    item: $TSFixMe
+    item: JSONObject
 ) => {
-    if (req.query['output-type'] === 'csv') {
-        if (!Array.isArray(item)) {
-            const properties = Object.keys(item);
-            const newObj = {};
-            properties.forEach(prop => {
-                if (typeof item[[prop]] === 'object' && item[[prop]] !== null) {
-                    if (item[[prop]].name) item[[prop]] = item[[prop]].name;
-                    else if (item[[prop]].title)
-                        item[[prop]] = item[[prop]].title;
-                    else if (item[[prop]]._id) item[[prop]] = item[[prop]]._id;
-                }
-
-                newObj[[prop]] = item[[prop]];
-            });
-            item = JSON.parse(JSON.stringify(newObj));
-            item = [item];
-        } else {
-            item = item.map(i => {
-                i = i._doc ? i._doc : i;
-                const properties = Object.keys(i);
-                const newObj = {};
-                properties.forEach(prop => {
-                    if (typeof i[[prop]] === 'object' && i[[prop]] !== null) {
-                        if (i[[prop]].name) i[[prop]] = i[[prop]].name;
-                        else if (i[[prop]].title) i[[prop]] = i[[prop]].title;
-                        else if (i[[prop]]._id) i[[prop]] = i[[prop]]._id;
-                    }
-
-                    newObj[[prop]] = i[[prop]];
-                });
-                return JSON.parse(JSON.stringify(newObj));
-            });
-        }
-        item = await JsonToCsv.ToCsv(item);
-    }
-
-    res.resBody = item; // To be used in 'auditLog' middleware to log reponse data;
-
     res.set('Request-Id', req.id);
     res.set('Pod-Id', process.env.POD_NAME);
 
-    res.status(200).send(item);
+    if (req.query['output-type'] === 'csv') {
+        const csv = JsonToCsv.ToCsv([item]);
+        res.logBody = csv;
+        res.status(200).send(csv);
+        return logResponse(req, res, csv);
+    }
 
+    res.logBody = item;
+    res.status(200).send(item);
     return logResponse(req, res, item);
 };

@@ -27,7 +27,7 @@ export default {
 
             // Audit logging is attached to res 'finish' event, because of below reasons.
             //    - To get 'projectId' value if available. (Mostly passed as route parameter)
-            //    - To access 'res.resBody' which is added in 'response' middlewares.
+            //    - To access 'res.logBody' which is added in 'response' middlewares.
             //    - Also for some resason when run inside docker container only req.end and res.finish get emmited.
             res.on('finish', async () => {
                 let userId = req.user && req.user.id ? req.user.id : null;
@@ -77,8 +77,8 @@ export default {
                         blackListedReqObjectPaths
                     );
                     const modifiedRes = _.omit(res, blackListedResObjectPaths);
-                    if (Array.isArray(res.resBody)) {
-                        modifiedRes.resBody = res.resBody.map(
+                    if (Array.isArray(res.logBody)) {
+                        modifiedres.logBody = res.logBody.map(
                             (element: $TSFixMe) =>
                                 _.omit(element, blackListedResBodyObjectPaths)
                         );
@@ -100,7 +100,7 @@ export default {
                     const apiResponseDetails = {
                         statusCode: modifiedRes.statusCode,
                         statusMessage: modifiedRes.statusMessage,
-                        resBody: modifiedRes.resBody || {},
+                        resBody: modifiedres.logBody || {},
                         headers: modifiedRes.getHeaders(),
                     };
 

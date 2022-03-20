@@ -1,28 +1,17 @@
-const replacer = (key: $TSFixMe, value: $TSFixMe) =>
-    value === null ? '' : value; // specify how you want to handle null values here
+import { JSONArray } from '../types/json';
+
+import Json2Csv from 'json2csv';
 
 export default {
-    ToCsv: (json: $TSFixMe) => {
-        return new Promise((resolve, reject) => {
-            try {
-                if (json.length > 0) {
-                    const header = Object.keys(json[0]);
-                    let csv = json.map((row: $TSFixMe) =>
-                        header
-                            .map(fieldName =>
-                                JSON.stringify(row[fieldName], replacer)
-                            )
-                            .join(',')
-                    );
-                    csv.unshift(header.join(','));
-                    csv = csv.join('\r\n');
-                    resolve(csv);
-                } else {
-                    resolve('');
-                }
-            } catch (error) {
-                reject(error);
-            }
-        });
+    ToCsv: (json: JSONArray) => {
+        if (json.length === 0) {
+            throw new Error(
+                'Cannot convert to CSV when the object length is 0'
+            );
+        }
+        const fields = Object.keys(json[0]);
+        const opts = { fields };
+        const parser = new Json2Csv.Parser(opts);
+        return parser.parse(json);
     },
 };
