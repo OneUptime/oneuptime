@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 const jwtSecretKey = process.env['JWT_SECRET'];
@@ -296,22 +299,25 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
     }
 });
 
-router.get('/masterAdminExists', async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const masterAdmin = await UserService.findBy({
-            query: { role: 'master-admin' },
-            select: '_id',
-        });
+router.get(
+    '/masterAdminExists',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const masterAdmin = await UserService.findBy({
+                query: { role: 'master-admin' },
+                select: '_id',
+            });
 
-        if (masterAdmin && masterAdmin.length > 0) {
-            return sendItemResponse(req, res, { result: true });
-        } else {
-            return sendItemResponse(req, res, { result: false });
+            if (masterAdmin && masterAdmin.length > 0) {
+                return sendItemResponse(req, res, { result: true });
+            } else {
+                return sendItemResponse(req, res, { result: false });
+            }
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Route
 // Description: SSO login function for  user
@@ -385,155 +391,160 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
 // Route
 // Description: Callback function after SSO authentication page
 // param: query->{domain}
-router.post('/sso/callback', async (req: ExpressRequest, res: ExpressResponse) => {
-    const options = {
-        request_body: req.body,
-        allow_unencrypted_assertion: true,
-        ignore_signature: true,
-    };
+router.post(
+    '/sso/callback',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        const options = {
+            request_body: req.body,
+            allow_unencrypted_assertion: true,
+            ignore_signature: true,
+        };
 
-    // grab the email from the xml response
-    const email = SsoService.getEmail(decode(req.body.SAMLResponse));
-    const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
-    const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
+        // grab the email from the xml response
+        const email = SsoService.getEmail(decode(req.body.SAMLResponse));
+        const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+        const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
 
-    if (!matchedTokens) {
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Invalid email.',
-        });
-    }
-
-    const domain = matchedTokens[1];
-
-    const sso = await SsoService.findOneBy({
-        query: { domain },
-        select: '_id samlSsoUrl entityId',
-    });
-    if (!sso) {
-        return sendErrorResponse(req, res, {
-            code: 404,
-            message: 'Domain not found.',
-        });
-    }
-
-    const sp = new saml2.ServiceProvider({
-        entity_id: sso.entityId,
-    });
-
-    const idp = new saml2.IdentityProvider({
-        sso_login_url: sso.samlSsoUrl,
-    });
-
-    sp.post_assert(
-        idp,
-        options,
-        async function (err: $TSFixMe, saml_response: $TSFixMe) {
-            if (err != null)
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Invalid request',
-                });
-
-            // The structure of the saml_response is not the same from the different servers.
-            const email =
-                saml_response.user.email ||
-                saml_response.user.attributes.email[0];
-
-            const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
-            const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
-
-            if (!matchedTokens) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Invalid email.',
-                });
-            }
-
-            const domain = matchedTokens[1];
-
-            const sso = await SsoService.findOneBy({
-                query: { domain },
-                select: '_id domain saml-enabled',
+        if (!matchedTokens) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Invalid email.',
             });
+        }
 
-            if (!sso)
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'SSO not defined for the domain.',
-                });
+        const domain = matchedTokens[1];
 
-            if (!sso['saml-enabled'])
-                return sendErrorResponse(req, res, {
-                    code: 401,
-                    message: 'SSO is disabled for the domain.',
-                });
-
-            let user = await UserService.findOneBy({
-                query: { email },
-                select: '_id name email stripeCustomerId jwtRefreshToken role',
+        const sso = await SsoService.findOneBy({
+            query: { domain },
+            select: '_id samlSsoUrl entityId',
+        });
+        if (!sso) {
+            return sendErrorResponse(req, res, {
+                code: 404,
+                message: 'Domain not found.',
             });
+        }
 
-            if (!user) {
-                // User is not create yet
-                try {
-                    user = await UserService.create({
-                        email,
-                        sso: sso._id,
-                    });
-                    if (!user) {
-                        return sendErrorResponse(req, res, {
-                            code: 401,
-                            message: 'USER creation failed.',
-                        });
-                    }
-                    const { _id: userId } = user;
-                    const { _id: domain } = sso;
-                    await SsoDefaultRolesService.addUserToDefaultProjects({
-                        domain,
-                        userId,
-                    });
-                } catch (error) {
+        const sp = new saml2.ServiceProvider({
+            entity_id: sso.entityId,
+        });
+
+        const idp = new saml2.IdentityProvider({
+            sso_login_url: sso.samlSsoUrl,
+        });
+
+        sp.post_assert(
+            idp,
+            options,
+            async function (err: $TSFixMe, saml_response: $TSFixMe) {
+                if (err != null)
                     return sendErrorResponse(req, res, {
                         code: 400,
-                        message: error,
+                        message: 'Invalid request',
+                    });
+
+                // The structure of the saml_response is not the same from the different servers.
+                const email =
+                    saml_response.user.email ||
+                    saml_response.user.attributes.email[0];
+
+                const domainRegex = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+                const matchedTokens = email
+                    .toLocaleLowerCase()
+                    .match(domainRegex);
+
+                if (!matchedTokens) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Invalid email.',
                     });
                 }
+
+                const domain = matchedTokens[1];
+
+                const sso = await SsoService.findOneBy({
+                    query: { domain },
+                    select: '_id domain saml-enabled',
+                });
+
+                if (!sso)
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'SSO not defined for the domain.',
+                    });
+
+                if (!sso['saml-enabled'])
+                    return sendErrorResponse(req, res, {
+                        code: 401,
+                        message: 'SSO is disabled for the domain.',
+                    });
+
+                let user = await UserService.findOneBy({
+                    query: { email },
+                    select: '_id name email stripeCustomerId jwtRefreshToken role',
+                });
+
+                if (!user) {
+                    // User is not create yet
+                    try {
+                        user = await UserService.create({
+                            email,
+                            sso: sso._id,
+                        });
+                        if (!user) {
+                            return sendErrorResponse(req, res, {
+                                code: 401,
+                                message: 'USER creation failed.',
+                            });
+                        }
+                        const { _id: userId } = user;
+                        const { _id: domain } = sso;
+                        await SsoDefaultRolesService.addUserToDefaultProjects({
+                            domain,
+                            userId,
+                        });
+                    } catch (error) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: error,
+                        });
+                    }
+                }
+
+                const authUserObj = {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    redirect: null,
+                    cardRegistered: user.stripeCustomerId ? true : false,
+                    tokens: {
+                        jwtAccessToken: `${jwt.sign(
+                            {
+                                id: user._id,
+                            },
+                            jwtSecretKey,
+                            { expiresIn: 8640000 }
+                        )}`,
+                        jwtRefreshToken: user.jwtRefreshToken,
+                    },
+                    role: user.role || null,
+                };
+
+                return res.redirect(
+                    `${global.accountsHost}` +
+                        `/ssologin?id=${authUserObj.id}` +
+                        `&name=${authUserObj.name}` +
+                        `&email=${authUserObj.email}` +
+                        `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
+                        `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
+                        `&role=${authUserObj.role}` +
+                        `&redirect=${authUserObj.redirect}` +
+                        `&cardRegistered=${authUserObj.cardRegistered}`
+                );
             }
-
-            const authUserObj = {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                redirect: null,
-                cardRegistered: user.stripeCustomerId ? true : false,
-                tokens: {
-                    jwtAccessToken: `${jwt.sign(
-                        {
-                            id: user._id,
-                        },
-                        jwtSecretKey,
-                        { expiresIn: 8640000 }
-                    )}`,
-                    jwtRefreshToken: user.jwtRefreshToken,
-                },
-                role: user.role || null,
-            };
-
-            return res.redirect(
-                `${global.accountsHost}` +
-                `/ssologin?id=${authUserObj.id}` +
-                `&name=${authUserObj.name}` +
-                `&email=${authUserObj.email}` +
-                `&jwtAccessToken=${authUserObj.tokens.jwtAccessToken}` +
-                `&jwtRefreshToken=${authUserObj.tokens.jwtRefreshToken}` +
-                `&role=${authUserObj.role}` +
-                `&redirect=${authUserObj.redirect}` +
-                `&cardRegistered=${authUserObj.cardRegistered}`
-            );
-        }
-    );
-});
+        );
+    }
+);
 
 // Route
 // Description: login function for  user
@@ -617,150 +628,156 @@ router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
 // Params:
 // Param 1: req.body-> {token}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/totp/verifyToken', async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const data = req.body;
-        const token = data.token;
-        let userId = data.userId;
-        if (data.email && !data.userId) {
-            const foundUser = await UserService.findOneBy({
-                query: { email: data.email },
-                select: '_id',
-            });
-            userId = foundUser._id;
-        }
-        const user = await UserService.verifyAuthToken(token, userId);
-        if (!user || !user._id) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Invalid token.',
-            });
-        }
+router.post(
+    '/totp/verifyToken',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const data = req.body;
+            const token = data.token;
+            let userId = data.userId;
+            if (data.email && !data.userId) {
+                const foundUser = await UserService.findOneBy({
+                    query: { email: data.email },
+                    select: '_id',
+                });
+                userId = foundUser._id;
+            }
+            const user = await UserService.verifyAuthToken(token, userId);
+            if (!user || !user._id) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Invalid token.',
+                });
+            }
 
-        // create access token and refresh token.
-        const userObj = {
-            id: user._id,
-            name: user.name ? user.name : '',
-            email: user.email ? user.email : '',
-            password: user.password,
-            companyName: user.companyName,
-            companyRole: user.companyRole,
-            companySize: user.companySize,
-            referral: user.referral,
-            isVerified: user.isVerified,
-            twoFactorAuthEnabled: user.twoFactorAuthEnabled,
-            companyPhoneNumber: user.companyPhoneNumber
-                ? user.companyPhoneNumber
-                : '',
-            alertPhoneNumber: user.alertPhoneNumber
-                ? user.alertPhoneNumber
-                : '',
-            profilePic: user.profilePic,
-            backupCodes: user.backupCodes,
-            timezone: user.timezone ? user.timezone : '',
-            tokens: {
-                jwtAccessToken: `${jwt.sign(
-                    {
-                        id: user._id,
-                    },
-                    jwtSecretKey,
-                    { expiresIn: 8640000 }
-                )}`,
-                jwtRefreshToken: user.jwtRefreshToken,
-            },
-            tempEmail: user.tempEmail || null,
-            tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
-            role: user.role || null,
-        };
-        return sendItemResponse(req, res, userObj);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            // create access token and refresh token.
+            const userObj = {
+                id: user._id,
+                name: user.name ? user.name : '',
+                email: user.email ? user.email : '',
+                password: user.password,
+                companyName: user.companyName,
+                companyRole: user.companyRole,
+                companySize: user.companySize,
+                referral: user.referral,
+                isVerified: user.isVerified,
+                twoFactorAuthEnabled: user.twoFactorAuthEnabled,
+                companyPhoneNumber: user.companyPhoneNumber
+                    ? user.companyPhoneNumber
+                    : '',
+                alertPhoneNumber: user.alertPhoneNumber
+                    ? user.alertPhoneNumber
+                    : '',
+                profilePic: user.profilePic,
+                backupCodes: user.backupCodes,
+                timezone: user.timezone ? user.timezone : '',
+                tokens: {
+                    jwtAccessToken: `${jwt.sign(
+                        {
+                            id: user._id,
+                        },
+                        jwtSecretKey,
+                        { expiresIn: 8640000 }
+                    )}`,
+                    jwtRefreshToken: user.jwtRefreshToken,
+                },
+                tempEmail: user.tempEmail || null,
+                tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
+                role: user.role || null,
+            };
+            return sendItemResponse(req, res, userObj);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: verify function for user backup code.
 // Params:
 // Param 1: req.body-> {code}
 // Returns: 400: Error; 500: Server Error; 200: user
-router.post('/verify/backupCode', async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const data = req.body;
-        // Call the UserService
-        let user;
-        user = await UserService.findOneBy({
-            query: { email: data.email },
-            select: 'backupCodes',
-        });
-        if (!user) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'User not found',
+router.post(
+    '/verify/backupCode',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const data = req.body;
+            // Call the UserService
+            let user;
+            user = await UserService.findOneBy({
+                query: { email: data.email },
+                select: 'backupCodes',
             });
-        }
-        const backupCode = user.backupCodes.filter(
-            (code: $TSFixMe) => code.code === data.code
-        );
-        if (backupCode.length > 0 && backupCode[0].used) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message:
-                    'This backup code was used once, use another backup code.',
-            });
-        }
-        if (backupCode.length > 0)
-            user = await UserService.verifyUserBackupCode(
-                data.code,
-                user.twoFactorSecretCode,
-                backupCode[0].counter
+            if (!user) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'User not found',
+                });
+            }
+            const backupCode = user.backupCodes.filter(
+                (code: $TSFixMe) => code.code === data.code
             );
-        if (backupCode.length === 0 || !user || !user._id) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Invalid backup code.',
-            });
-        }
+            if (backupCode.length > 0 && backupCode[0].used) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'This backup code was used once, use another backup code.',
+                });
+            }
+            if (backupCode.length > 0)
+                user = await UserService.verifyUserBackupCode(
+                    data.code,
+                    user.twoFactorSecretCode,
+                    backupCode[0].counter
+                );
+            if (backupCode.length === 0 || !user || !user._id) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Invalid backup code.',
+                });
+            }
 
-        // create access token and refresh token.
-        const userObj = {
-            id: user._id,
-            name: user.name ? user.name : '',
-            email: user.email ? user.email : '',
-            password: user.password,
-            companyName: user.companyName,
-            companyRole: user.companyRole,
-            companySize: user.companySize,
-            referral: user.referral,
-            isVerified: user.isVerified,
-            twoFactorAuthEnabled: user.twoFactorAuthEnabled,
-            companyPhoneNumber: user.companyPhoneNumber
-                ? user.companyPhoneNumber
-                : '',
-            alertPhoneNumber: user.alertPhoneNumber
-                ? user.alertPhoneNumber
-                : '',
-            profilePic: user.profilePic,
-            backupCodes: user.backupCodes,
-            timezone: user.timezone ? user.timezone : '',
-            tokens: {
-                jwtAccessToken: `${jwt.sign(
-                    {
-                        id: user._id,
-                    },
-                    jwtSecretKey,
-                    { expiresIn: 8640000 }
-                )}`,
-                jwtRefreshToken: user.jwtRefreshToken,
-            },
-            tempEmail: user.tempEmail || null,
-            tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
-            role: user.role || null,
-        };
-        return sendItemResponse(req, res, userObj);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            // create access token and refresh token.
+            const userObj = {
+                id: user._id,
+                name: user.name ? user.name : '',
+                email: user.email ? user.email : '',
+                password: user.password,
+                companyName: user.companyName,
+                companyRole: user.companyRole,
+                companySize: user.companySize,
+                referral: user.referral,
+                isVerified: user.isVerified,
+                twoFactorAuthEnabled: user.twoFactorAuthEnabled,
+                companyPhoneNumber: user.companyPhoneNumber
+                    ? user.companyPhoneNumber
+                    : '',
+                alertPhoneNumber: user.alertPhoneNumber
+                    ? user.alertPhoneNumber
+                    : '',
+                profilePic: user.profilePic,
+                backupCodes: user.backupCodes,
+                timezone: user.timezone ? user.timezone : '',
+                tokens: {
+                    jwtAccessToken: `${jwt.sign(
+                        {
+                            id: user._id,
+                        },
+                        jwtSecretKey,
+                        { expiresIn: 8640000 }
+                    )}`,
+                    jwtRefreshToken: user.jwtRefreshToken,
+                },
+                tempEmail: user.tempEmail || null,
+                tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
+                role: user.role || null,
+            };
+            return sendItemResponse(req, res, userObj);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: generate a new set of backup code.
@@ -857,101 +874,116 @@ router.post(
 // Param 1: req.body-> {email}; req.headers-> {host}
 // Returns: 400: Error; 500: Server Error: 200: User password has been reset successfully.
 
-router.post('/forgot-password', async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const data = req.body;
-
-        if (!data.email) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email must be present.',
-            });
-        }
-
-        if (typeof data.email !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email is not in string format.',
-            });
-        }
-        // Call the UserService.
-        const user = await UserService.forgotPassword(data.email);
-
-        const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
+router.post(
+    '/forgot-password',
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // Call the MailService.
-            MailService.sendForgotPasswordMail(forgotPasswordURL, user.email);
-        } catch (error) {
-            ErrorService.log('mailService.sendForgetPasswordMail', error);
-        }
+            const data = req.body;
 
-        return sendItemResponse(req, res, {
-            message: 'User received mail succcessfully.',
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            if (!data.email) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email must be present.',
+                });
+            }
+
+            if (typeof data.email !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Email is not in string format.',
+                });
+            }
+            // Call the UserService.
+            const user = await UserService.forgotPassword(data.email);
+
+            const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
+            try {
+                // Call the MailService.
+                MailService.sendForgotPasswordMail(
+                    forgotPasswordURL,
+                    user.email
+                );
+            } catch (error) {
+                ErrorService.log('mailService.sendForgetPasswordMail', error);
+            }
+
+            return sendItemResponse(req, res, {
+                message: 'User received mail succcessfully.',
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: reset password function for user
 // Params:
 // Param 1: req.body-> {password}; req.params-> {token}
 // Returns: 400: Error; 500: Server Error; 200: User password has been reset successfully.
-router.post('/reset-password', async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const data = req.body;
-
-        if (!data.password) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password must be present.',
-            });
-        }
-
-        if (typeof data.password !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password is not in string format.',
-            });
-        }
-
-        if (!data.token) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Token must be present.',
-            });
-        }
-
-        if (typeof data.token !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Token is not in string format.',
-            });
-        }
-        // Call the UserService
-        const user = await UserService.resetPassword(data.password, data.token);
-        if (!user) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message:
-                    'Reset password token has expired or token is invalid.',
-            });
-        }
-
+router.post(
+    '/reset-password',
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            // Call the MailService.
-            MailService.sendResetPasswordConfirmMail(user.email);
+            const data = req.body;
+
+            if (!data.password) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Password must be present.',
+                });
+            }
+
+            if (typeof data.password !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Password is not in string format.',
+                });
+            }
+
+            if (!data.token) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Token must be present.',
+                });
+            }
+
+            if (typeof data.token !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Token is not in string format.',
+                });
+            }
+            // Call the UserService
+            const user = await UserService.resetPassword(
+                data.password,
+                data.token
+            );
+            if (!user) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message:
+                        'Reset password token has expired or token is invalid.',
+                });
+            }
+
+            try {
+                // Call the MailService.
+                MailService.sendResetPasswordConfirmMail(user.email);
+            } catch (error) {
+                ErrorService.log(
+                    'mailService.sendResetPasswordConfirmMail',
+                    error
+                );
+            }
+            return sendItemResponse(req, res, {
+                message: 'User password has been reset successfully.',
+            });
         } catch (error) {
-            ErrorService.log('mailService.sendResetPasswordConfirmMail', error);
+            return sendErrorResponse(req, res, error);
         }
-        return sendItemResponse(req, res, {
-            message: 'User password has been reset successfully.',
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Route
 // Description: login function for  user
@@ -1002,51 +1034,58 @@ router.post(
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/profile', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const upload = multer({
-            storage,
-        }).fields([
-            {
-                name: 'profilePic',
-                maxCount: 1,
-            },
-        ]);
-        upload(req, res, async function (error: $TSFixMe) {
-            const userId = req.user ? req.user.id : null;
-            const data = req.body;
+router.put(
+    '/profile',
+    getUser,
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const upload = multer({
+                storage,
+            }).fields([
+                {
+                    name: 'profilePic',
+                    maxCount: 1,
+                },
+            ]);
+            upload(req, res, async function (error: $TSFixMe) {
+                const userId = req.user ? req.user.id : null;
+                const data = req.body;
 
-            if (error) {
-                return sendErrorResponse(req, res, error);
-            }
-            if (
-                req.files &&
-                req.files.profilePic &&
-                req.files.profilePic[0].filename
-            ) {
-                data.profilePic = req.files.profilePic[0].filename;
-            }
-            const userData = await UserService.findOneBy({
-                query: { _id: userId },
-                select: 'email tempEmail alertPhoneNumber isVerified name _id',
-            });
-            if (data.email !== userData.email) {
-                if (data.email === userData.tempEmail) delete data.email;
-                else {
-                    await UserService.sendToken(userData, data.email);
-                    delete data.email;
+                if (error) {
+                    return sendErrorResponse(req, res, error);
                 }
-            }
-            if (data.alertPhoneNumber !== userData.alertPhoneNumber)
-                delete data.alertPhoneNumber;
-            // Call the UserService
-            const user = await UserService.updateOneBy({ _id: userId }, data);
-            return sendItemResponse(req, res, user);
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+                if (
+                    req.files &&
+                    req.files.profilePic &&
+                    req.files.profilePic[0].filename
+                ) {
+                    data.profilePic = req.files.profilePic[0].filename;
+                }
+                const userData = await UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'email tempEmail alertPhoneNumber isVerified name _id',
+                });
+                if (data.email !== userData.email) {
+                    if (data.email === userData.tempEmail) delete data.email;
+                    else {
+                        await UserService.sendToken(userData, data.email);
+                        delete data.email;
+                    }
+                }
+                if (data.alertPhoneNumber !== userData.alertPhoneNumber)
+                    delete data.alertPhoneNumber;
+                // Call the UserService
+                const user = await UserService.updateOneBy(
+                    { _id: userId },
+                    data
+                );
+                return sendItemResponse(req, res, user);
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // Route
 // Description: Turns on or off Push Notification
@@ -1244,62 +1283,66 @@ router.put(
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.get('/profile', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const userId = req.user ? req.user.id : null;
+router.get(
+    '/profile',
+    getUser,
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const userId = req.user ? req.user.id : null;
 
-        if (!userId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'UserId must be present.',
+            if (!userId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'UserId must be present.',
+                });
+            }
+            // Call the UserService
+            const select =
+                'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timezone role alertPhoneNumber tempAlertPhoneNumber identification';
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select,
             });
+            const userObj = {
+                id: user._id,
+                name: user.name ? user.name : '',
+                email: user.email ? user.email : '',
+                companyName: user.companyName,
+                companyRole: user.companyRole,
+                companySize: user.companySize,
+                referral: user.referral,
+                isVerified: user.isVerified,
+                twoFactorAuthEnabled: user.twoFactorAuthEnabled,
+                backupCodes: user.backupCodes,
+                companyPhoneNumber: user.companyPhoneNumber
+                    ? user.companyPhoneNumber
+                    : '',
+                alertPhoneNumber: user.alertPhoneNumber
+                    ? user.alertPhoneNumber
+                    : '',
+                profilePic: user.profilePic,
+                timezone: user.timezone ? user.timezone : '',
+                tokens: {
+                    jwtAccessToken: `${jwt.sign(
+                        {
+                            id: user._id,
+                        },
+                        jwtSecretKey,
+                        { expiresIn: 8640000 }
+                    )}`,
+                    jwtRefreshToken: user.jwtRefreshToken,
+                },
+                tempEmail: user.tempEmail || null,
+                tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
+                role: user.role || null,
+                identification: user.identification,
+            };
+            return sendItemResponse(req, res, userObj);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        // Call the UserService
-        const select =
-            'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timezone role alertPhoneNumber tempAlertPhoneNumber identification';
-        const user = await UserService.findOneBy({
-            query: { _id: userId },
-            select,
-        });
-        const userObj = {
-            id: user._id,
-            name: user.name ? user.name : '',
-            email: user.email ? user.email : '',
-            companyName: user.companyName,
-            companyRole: user.companyRole,
-            companySize: user.companySize,
-            referral: user.referral,
-            isVerified: user.isVerified,
-            twoFactorAuthEnabled: user.twoFactorAuthEnabled,
-            backupCodes: user.backupCodes,
-            companyPhoneNumber: user.companyPhoneNumber
-                ? user.companyPhoneNumber
-                : '',
-            alertPhoneNumber: user.alertPhoneNumber
-                ? user.alertPhoneNumber
-                : '',
-            profilePic: user.profilePic,
-            timezone: user.timezone ? user.timezone : '',
-            tokens: {
-                jwtAccessToken: `${jwt.sign(
-                    {
-                        id: user._id,
-                    },
-                    jwtSecretKey,
-                    { expiresIn: 8640000 }
-                )}`,
-                jwtRefreshToken: user.jwtRefreshToken,
-            },
-            tempEmail: user.tempEmail || null,
-            tempAlertPhoneNumber: user.tempAlertPhoneNumber || null,
-            role: user.role || null,
-            identification: user.identification,
-        };
-        return sendItemResponse(req, res, userObj);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 router.get(
     '/confirmation/:token',
@@ -1312,7 +1355,7 @@ router.get(
                 if (!token) {
                     return res.redirect(
                         global.accountsHost +
-                        '/user-verify/resend?status=link-expired'
+                            '/user-verify/resend?status=link-expired'
                     );
                 }
                 const user = await UserModel.findOne({
@@ -1351,7 +1394,7 @@ router.get(
             } else {
                 return res.redirect(
                     global.accountsHost +
-                    '/user-verify/resend?status=invalid-verification-link'
+                        '/user-verify/resend?status=invalid-verification-link'
                 );
             }
         } catch (error) {
@@ -1820,16 +1863,19 @@ router.delete(
     }
 );
 
-router.get('/:token/email', async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const token = await VerificationTokenModel.findOne({
-            token: req.params.token,
-        }).populate('userId', 'email');
+router.get(
+    '/:token/email',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const token = await VerificationTokenModel.findOne({
+                token: req.params.token,
+            }).populate('userId', 'email');
 
-        return sendItemResponse(req, res, { token });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, { token });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 export default router;

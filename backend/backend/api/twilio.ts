@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import IncidentService from '../services/incidentService';
 import UserService from '../services/userService';
 const {

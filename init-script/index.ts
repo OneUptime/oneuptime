@@ -5,7 +5,10 @@ import fs from 'fs';
 import util from './util/db';
 import scripts from './scripts';
 
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 const app = express.getExpressApp();
 
 import { find, save, update, removeMany } from './util/db';
@@ -42,13 +45,19 @@ if (process.env['NODE_ENV'] === 'development') {
         logger.info('Server running on: 1447');
     });
 
-    app.get('/:dbFunction', async (req: ExpressRequest, res: ExpressResponse) => {
-        return await interactWithDB(req, res);
-    });
+    app.get(
+        '/:dbFunction',
+        async (req: ExpressRequest, res: ExpressResponse) => {
+            return await interactWithDB(req, res);
+        }
+    );
 
-    app.post('/:dbFunction', async (req: ExpressRequest, res: ExpressResponse) => {
-        return await interactWithDB(req, res);
-    });
+    app.post(
+        '/:dbFunction',
+        async (req: ExpressRequest, res: ExpressResponse) => {
+            return await interactWithDB(req, res);
+        }
+    );
 }
 
 async function run() {

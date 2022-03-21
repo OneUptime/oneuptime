@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import ScheduleService from '../services/scheduleService';
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -268,7 +271,7 @@ router.post(
                             'Please select how should OneUptime alert your team - SMS, Email, Call OR Push notification ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -280,7 +283,7 @@ router.post(
                             'Number of Email Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -292,7 +295,7 @@ router.post(
                             'Number of Call Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -304,7 +307,7 @@ router.post(
                             'Number of SMS Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -316,7 +319,7 @@ router.post(
                             'Number of Push notification Reminders is required ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -328,7 +331,7 @@ router.post(
                             'Please specify Rotation Interval ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -344,7 +347,7 @@ router.post(
                             'Please specify "First rotation happens on" ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -361,7 +364,7 @@ router.post(
                             'You must specify timezone for "First rotation happens on" ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -373,7 +376,7 @@ router.post(
                             'You need more than one team for rotations ' +
                             (req.body.length > 1
                                 ? ' in Escalation Policy ' +
-                                escalationPolicyCount
+                                  escalationPolicyCount
                                 : ''),
                     });
                 }
@@ -455,7 +458,7 @@ router.post(
                                 'Team Members are required ' +
                                 (req.body.length > 1
                                     ? ' in Escalation Policy ' +
-                                    escalationPolicyCount
+                                      escalationPolicyCount
                                     : ''),
                         });
                     }
@@ -473,7 +476,7 @@ router.post(
                                     'Please add team members or group to your on-call schedule ' +
                                     (req.body.length > 1
                                         ? ' in Escalation Policy ' +
-                                        escalationPolicyCount
+                                          escalationPolicyCount
                                         : ''),
                             });
                         }
@@ -491,7 +494,7 @@ router.post(
                                     'Please remove duplicate team members from your on-call schedule' +
                                     (req.body.length > 1
                                         ? ' in Escalation Policy ' +
-                                        escalationPolicyCount
+                                          escalationPolicyCount
                                         : ''),
                             });
                         }

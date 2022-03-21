@@ -2,8 +2,8 @@ import 'common-server/utils/env';
 import 'common-server/utils/process';
 
 import express, {
-    Request,
-    Response,
+    ExpressRequest,
+    ExpressResponse,
     NextFunction,
 } from 'common-server/utils/express';
 const app = express.getExpressApp();
@@ -40,16 +40,19 @@ app.set('port', process.env['PORT'] || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-app.get(['/script/status', '/status'], (req: ExpressRequest, res: ExpressResponse) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            status: 200,
-            message: 'Service Status - OK',
-            serviceType: 'oneuptime-script-runner',
-        })
-    );
-});
+app.get(
+    ['/script/status', '/status'],
+    (req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(
+            JSON.stringify({
+                status: 200,
+                message: 'Service Status - OK',
+                serviceType: 'oneuptime-script-runner',
+            })
+        );
+    }
+);
 
 app.use('/script', require('./api/script'));
 

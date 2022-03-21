@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
@@ -147,9 +150,9 @@ router.post(
                                     desc.description.split(/\[Learn more\]/i);
                                 const url = splitDescription[1]
                                     ? splitDescription[1].replace(
-                                        /^\(|\)|\.$/gi,
-                                        ''
-                                    )
+                                          /^\(|\)|\.$/gi,
+                                          ''
+                                      )
                                     : '';
                                 desc.description = splitDescription[0];
                                 desc.url = url;
@@ -165,9 +168,9 @@ router.post(
                                     desc.description.split(/\[Learn more\]/i);
                                 const url = splitDescription[1]
                                     ? splitDescription[1].replace(
-                                        /^\(|\)|\.$/gi,
-                                        ''
-                                    )
+                                          /^\(|\)|\.$/gi,
+                                          ''
+                                      )
                                     : '';
                                 desc.description = splitDescription[0];
                                 desc.url = url;
@@ -184,9 +187,9 @@ router.post(
                                 desc.description.split(/\[Learn more\]/i);
                             const url = splitDescription[1]
                                 ? splitDescription[1].replace(
-                                    /^\(|\)|\.$/gi,
-                                    ''
-                                )
+                                      /^\(|\)|\.$/gi,
+                                      ''
+                                  )
                                 : '';
                             desc.description = splitDescription[0];
                             desc.url = url;
@@ -201,9 +204,9 @@ router.post(
                                 desc.description.split(/\[Learn more\]/i);
                             const url = splitDescription[1]
                                 ? splitDescription[1].replace(
-                                    /^\(|\)|\.$/gi,
-                                    ''
-                                )
+                                      /^\(|\)|\.$/gi,
+                                      ''
+                                  )
                                 : '';
                             desc.description = splitDescription[0];
                             desc.url = url;
@@ -218,9 +221,9 @@ router.post(
                                 desc.description.split(/\[Learn more\]/i);
                             const url = splitDescription[1]
                                 ? splitDescription[1].replace(
-                                    /^\(|\)|\.$/gi,
-                                    ''
-                                )
+                                      /^\(|\)|\.$/gi,
+                                      ''
+                                  )
                                 : '';
                             desc.description = splitDescription[0];
                             desc.url = url;

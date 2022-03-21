@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 
 const router = express.getRouter();
 import TeamService from '../services/teamService';
@@ -176,8 +179,8 @@ router.post(
                 const teamMembers = await TeamService.getTeamMembers(projectId);
                 const withoutViewers = teamMembers
                     ? teamMembers.filter(
-                        teamMember => teamMember.role !== 'Viewer'
-                    )
+                          teamMember => teamMember.role !== 'Viewer'
+                      )
                     : [];
                 const totalTeamMembers =
                     withoutViewers.length + emailArray.length;

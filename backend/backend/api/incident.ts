@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import moment from 'moment';
 import Handlebars from 'handlebars';
 import IncidentService from '../services/incidentService';
@@ -1136,8 +1139,9 @@ router.post(
                         error
                     );
                 });
-                const status = `${incidentMessage.type} notes ${data.id ? 'updated' : 'added'
-                    }`;
+                const status = `${incidentMessage.type} notes ${
+                    data.id ? 'updated' : 'added'
+                }`;
 
                 const user = await UserService.findOneBy({
                     query: { _id: userId },

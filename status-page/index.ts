@@ -1,6 +1,6 @@
 import express, {
-    Request,
-    Response,
+    ExpressRequest,
+    ExpressResponse,
     NextFunction,
 } from 'common-server/utils/express';
 import logger from 'common-server/utils/logger';

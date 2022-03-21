@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
@@ -423,55 +426,58 @@ router.post(
 
 // fetch details about a custom domain
 // to be consumed by the status page
-router.get('/tlsCredential', async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const { domain } = req.query;
+router.get(
+    '/tlsCredential',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const { domain } = req.query;
 
-        const user = req.user;
+            const user = req.user;
 
-        if (!domain) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'No domain is specified',
+            if (!domain) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'No domain is specified',
+                });
+            }
+
+            const statusPage = await StatusPageService.getStatusPage({
+                query: { domains: { $elemMatch: { domain } } },
+                userId: user,
+                select: 'domains',
+                populate: [
+                    {
+                        path: 'domains.domainVerificationToken',
+                        select: 'domain',
+                    },
+                ],
             });
+
+            let domainObj = {};
+            statusPage &&
+                statusPage.domains &&
+                statusPage.domains.forEach((eachDomain: $TSFixMe) => {
+                    if (eachDomain.domain === domain) {
+                        domainObj = eachDomain;
+                    }
+                });
+
+            return sendItemResponse(req, res, {
+                cert: domainObj.cert,
+
+                privateKey: domainObj.privateKey,
+
+                autoProvisioning: domainObj.autoProvisioning,
+
+                enableHttps: domainObj.enableHttps,
+
+                domain: domainObj.domain,
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const statusPage = await StatusPageService.getStatusPage({
-            query: { domains: { $elemMatch: { domain } } },
-            userId: user,
-            select: 'domains',
-            populate: [
-                {
-                    path: 'domains.domainVerificationToken',
-                    select: 'domain',
-                },
-            ],
-        });
-
-        let domainObj = {};
-        statusPage &&
-            statusPage.domains &&
-            statusPage.domains.forEach((eachDomain: $TSFixMe) => {
-                if (eachDomain.domain === domain) {
-                    domainObj = eachDomain;
-                }
-            });
-
-        return sendItemResponse(req, res, {
-            cert: domainObj.cert,
-
-            privateKey: domainObj.privateKey,
-
-            autoProvisioning: domainObj.autoProvisioning,
-
-            enableHttps: domainObj.enableHttps,
-
-            domain: domainObj.domain,
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 /**
  * @description deletes a particular domain from statuspage collection
@@ -704,78 +710,81 @@ router.put(
     }
 );
 
-router.get('/statusBubble', async (req: ExpressRequest, res: ExpressResponse) => {
-    const statusPageId = req.query.statusPageId;
-    const statusBubbleId = req.query.statusBubbleId;
-    try {
-        const selectProbe =
-            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+router.get(
+    '/statusBubble',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        const statusPageId = req.query.statusPageId;
+        const statusBubbleId = req.query.statusBubbleId;
+        try {
+            const selectProbe =
+                'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
 
-        const probes = await ProbeService.findBy({
-            query: {},
-            limit: 0,
-            skip: 0,
-            select: selectProbe,
-        });
-        if (!statusPageId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'StatusPage Id is required',
+            const probes = await ProbeService.findBy({
+                query: {},
+                limit: 0,
+                skip: 0,
+                select: selectProbe,
             });
-        }
-        if (!statusBubbleId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'StatusBubble Id is required',
+            if (!statusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'StatusPage Id is required',
+                });
+            }
+            if (!statusBubbleId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'StatusBubble Id is required',
+                });
+            }
+
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+                {
+                    path: 'monitors.statusPageCategory',
+                    select: 'name',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
+            const statusPages = await StatusPageService.findBy({
+                query: { _id: statusPageId, statusBubbleId },
+                populate: populateStatusPage,
+                select: selectStatusPage,
             });
+
+            if (!(statusPages && statusPages.length)) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'There are no statuspages attached to this Id',
+                });
+            }
+            // Call the StatusPageService.
+
+            const statusPage = await StatusPageService.getStatusBubble(
+                statusPages,
+                probes
+            );
+            return sendItemResponse(req, res, statusPage);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        const populateStatusPage = [
-            {
-                path: 'projectId',
-                select: 'name parentProjectId',
-                populate: { path: 'parentProjectId', select: '_id' },
-            },
-            {
-                path: 'domains.domainVerificationToken',
-                select: 'domain verificationToken verified ',
-            },
-            {
-                path: 'monitors.monitor',
-                select: 'name',
-            },
-            {
-                path: 'monitors.statusPageCategory',
-                select: 'name',
-            },
-        ];
-
-        const selectStatusPage =
-            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotificationTypes hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
-
-        const statusPages = await StatusPageService.findBy({
-            query: { _id: statusPageId, statusBubbleId },
-            populate: populateStatusPage,
-            select: selectStatusPage,
-        });
-
-        if (!(statusPages && statusPages.length)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'There are no statuspages attached to this Id',
-            });
-        }
-        // Call the StatusPageService.
-
-        const statusPage = await StatusPageService.getStatusBubble(
-            statusPages,
-            probes
-        );
-        return sendItemResponse(req, res, statusPage);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Route Description: Gets status pages of a project.
 // Params:
@@ -1056,14 +1065,17 @@ router.get(
 
                             guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
                             pubDate: new Date(incident.createdAt).toUTCString(),
-                            description: `<![CDATA[Description: ${incident.description
-                                }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
-                                    incident.monitors
-                                )}<br>Acknowledge Time: ${incident.acknowledgedAt
-                                }<br>Resolve Time: ${incident.resolvedAt}<br>${incident.investigationNote
+                            description: `<![CDATA[Description: ${
+                                incident.description
+                            }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
+                                incident.monitors
+                            )}<br>Acknowledge Time: ${
+                                incident.acknowledgedAt
+                            }<br>Resolve Time: ${incident.resolvedAt}<br>${
+                                incident.investigationNote
                                     ? `Investigation Note: ${incident.investigationNote}`
                                     : ''
-                                }]]>`,
+                            }]]>`,
                         },
                     });
                 }
@@ -2343,8 +2355,9 @@ function handleMonitorList(monitors: $TSFixMe) {
         return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
     }
     if (monitors.length > 3) {
-        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
-            } and ${monitors.length - 2} others`;
+        return `${monitors[0].monitorId.name}, ${
+            monitors[1].monitorId.name
+        } and ${monitors.length - 2} others`;
     }
 }
 
@@ -2992,18 +3005,18 @@ const filterProbeData = (
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
-                    return (
-                        probeStatuses._id === null ||
-                        String(probeStatuses._id) === String(probe._id)
-                    );
-                })
+                      return (
+                          probeStatuses._id === null ||
+                          String(probeStatuses._id) === String(probe._id)
+                      );
+                  })
                 : monitorStatuses
             : [];
     const statuses =
         probesStatus &&
-            probesStatus[0] &&
-            probesStatus[0].statuses &&
-            probesStatus[0].statuses.length > 0
+        probesStatus[0] &&
+        probesStatus[0].statuses &&
+        probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
 

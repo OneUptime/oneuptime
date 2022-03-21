@@ -1,7 +1,10 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 import logger from 'common-server/utils/logger';
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import path from 'path';
 const app = express.getExpressApp();
 

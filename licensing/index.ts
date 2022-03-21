@@ -1,6 +1,6 @@
 import express, {
-    Request,
-    Response,
+    ExpressRequest,
+    ExpressResponse,
     NextFunction,
 } from 'common-server/utils/express';
 const app = express.getExpressApp();

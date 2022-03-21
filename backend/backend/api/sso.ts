@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
@@ -40,14 +43,18 @@ router.get(
     }
 );
 
-router.delete('/:id', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const sso = await SsoService.deleteBy({ _id: req.params.id });
-        return sendItemResponse(req, res, sso);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.delete(
+    '/:id',
+    getUser,
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const sso = await SsoService.deleteBy({ _id: req.params.id });
+            return sendItemResponse(req, res, sso);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.post(
     '/',
@@ -64,30 +71,38 @@ router.post(
     }
 );
 
-router.get('/:id', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const selectSso =
-            '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
+router.get(
+    '/:id',
+    getUser,
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const selectSso =
+                '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
 
-        const sso = await SsoService.findOneBy({
-            query: { _id: req.params.id },
-            select: selectSso,
-        });
-        return sendItemResponse(req, res, sso);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const sso = await SsoService.findOneBy({
+                query: { _id: req.params.id },
+                select: selectSso,
+            });
+            return sendItemResponse(req, res, sso);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.put('/:id', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const data = req.body;
-        const sso = await SsoService.updateBy({ _id: req.params.id }, data);
-        return sendItemResponse(req, res, sso);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.put(
+    '/:id',
+    getUser,
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const data = req.body;
+            const sso = await SsoService.updateBy({ _id: req.params.id }, data);
+            return sendItemResponse(req, res, sso);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // USER API ENDPOINT TO GET SSO INTEGRATION
 router.get(

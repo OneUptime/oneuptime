@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import ZapierService from '../services/zapierService';
 import MonitorService from '../services/monitorService';
 import ProjectService from '../services/projectService';
@@ -13,16 +16,20 @@ import { sendEmptyResponse } from 'common-server/utils/response';
 
 const router = express.getRouter();
 
-router.get('/test', isAuthorized, async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const apiKey = req.query.apiKey;
-        const projectId = req.query.projectId;
-        const response = await ZapierService.test(projectId, apiKey);
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.get(
+    '/test',
+    isAuthorized,
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const apiKey = req.query.apiKey;
+            const projectId = req.query.projectId;
+            const response = await ZapierService.test(projectId, apiKey);
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 router.get(
     '/monitors',

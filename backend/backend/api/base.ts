@@ -1,4 +1,8 @@
-import { Request, Response, NextFunction } from 'common-server/utils/express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from 'common-server/utils/express';
 
 import {
     sendErrorResponse,
@@ -23,7 +27,10 @@ export default ({
     friendlyResourceName,
     service,
 }: $TSFixMe) => {
-    const getItemMiddleware = async (req: ExpressRequest, res: ExpressResponse) => {
+    const getItemMiddleware = async (
+        req: ExpressRequest,
+        res: ExpressResponse
+    ) => {
         try {
             let item = null;
 
@@ -59,7 +66,10 @@ export default ({
         }
     };
 
-    const listItemMiddleware = async (req: ExpressRequest, res: ExpressResponse) => {
+    const listItemMiddleware = async (
+        req: ExpressRequest,
+        res: ExpressResponse
+    ) => {
         try {
             let query = req.data.query;
             let skip = req.data.skip;
@@ -138,7 +148,10 @@ export default ({
         }
     };
 
-    const createItemMiddleware = async (req: ExpressRequest, res: ExpressResponse) => {
+    const createItemMiddleware = async (
+        req: ExpressRequest,
+        res: ExpressResponse
+    ) => {
         try {
             const data = req.body;
 
@@ -154,7 +167,10 @@ export default ({
         }
     };
 
-    const deleteItemMiddleware = async (req: ExpressRequest, res: ExpressResponse) => {
+    const deleteItemMiddleware = async (
+        req: ExpressRequest,
+        res: ExpressResponse
+    ) => {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {

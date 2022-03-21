@@ -1,11 +1,7 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 import logger from 'common-server/utils/logger';
-import express, {
-    Request,
-    Response,
-    NextFunction,
-} from 'common-server/utils/express';
+import express, { NextFunction } from 'common-server/utils/express';
 const app = express.getExpressApp();
 import path from 'path';
 import version from './api/version';

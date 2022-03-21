@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 const getUser = require('../middlewares/user').getUser;

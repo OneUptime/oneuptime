@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express from 'common-server/utils/express';
 const router = express.getRouter();
 import {
     sendErrorResponse,

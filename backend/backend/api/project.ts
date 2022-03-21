@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import ProjectService from '../services/projectService';
 
 const router = express.getRouter();
@@ -28,228 +31,243 @@ import ErrorService from 'common-server/utils/error';
 // Params:
 // Param 1: req.body-> {project_name}; req.headers-> {token}
 // Returns: 200: Project Details; 400: Error.
-router.post('/create', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const data = req.body;
-        data.name = data.projectName;
+router.post(
+    '/create',
+    getUser,
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const data = req.body;
+            data.name = data.projectName;
 
-        // Sanitize
-        if (!data.projectName) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project name must be present.',
-            });
-        }
-
-        if (typeof data.projectName !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project name is not in string format.',
-            });
-        }
-
-        let stripePlanId;
-
-        if (IS_SAAS_SERVICE) {
-            if (!data.planId) {
+            // Sanitize
+            if (!data.projectName) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Stripe Plan Id must be present.',
+                    message: 'Project name must be present.',
                 });
             }
 
-            if (typeof data.planId !== 'string') {
+            if (typeof data.projectName !== 'string') {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Stripe Plan Id is not in string format.',
+                    message: 'Project name is not in string format.',
                 });
             }
 
-            stripePlanId = data.planId;
+            let stripePlanId;
 
-            if (!data.stripePlanId) {
-                data.stripePlanId = stripePlanId;
+            if (IS_SAAS_SERVICE) {
+                if (!data.planId) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Stripe Plan Id must be present.',
+                    });
+                }
+
+                if (typeof data.planId !== 'string') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Stripe Plan Id is not in string format.',
+                    });
+                }
+
+                stripePlanId = data.planId;
+
+                if (!data.stripePlanId) {
+                    data.stripePlanId = stripePlanId;
+                }
             }
-        }
 
-        const projectName = data.projectName;
+            const projectName = data.projectName;
 
-        const userId = req.user ? req.user.id : null;
-        data.userId = userId;
+            const userId = req.user ? req.user.id : null;
+            data.userId = userId;
 
-        // check if user has a project with provided name already
-        const countProject = await ProjectService.countBy({
-            name: projectName,
-            'users.userId': userId,
-        });
-
-        if (countProject < 1) {
-            let user = await UserService.findOneBy({
-                query: { _id: userId },
-                select: 'stripeCustomerId email name',
+            // check if user has a project with provided name already
+            const countProject = await ProjectService.countBy({
+                name: projectName,
+                'users.userId': userId,
             });
-            if (!user.stripeCustomerId && IS_SAAS_SERVICE) {
-                if (!data.paymentIntent) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Payment intent is not present.',
-                    });
-                }
 
-                if (typeof data.paymentIntent !== 'string') {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Payment intent is not in string format.',
-                    });
-                }
-
-                const paymentIntent = {
-                    id: data.paymentIntent,
-                };
-                const checkedPaymentIntent =
-                    await PaymentService.checkPaymentIntent(paymentIntent);
-                if (checkedPaymentIntent.status !== 'succeeded') {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Unsuccessful attempt to charge card',
-                    });
-                }
-
-                const [updatedUser, subscriptionnew] = await Promise.all([
-                    UserService.updateOneBy(
-                        { _id: userId },
-                        { stripeCustomerId: checkedPaymentIntent.customer }
-                    ),
-
-                    PaymentService.subscribePlan(
-                        stripePlanId,
-                        checkedPaymentIntent.customer
-                    ),
-                ]);
-
-                user = updatedUser;
-
-                if (!data.stripeSubscriptionId) {
-                    data.stripeSubscriptionId =
-                        subscriptionnew.stripeSubscriptionId;
-                }
-                const project = await ProjectService.create(data);
-                try {
-                    MailService.sendCreateProjectMail(projectName, user.email);
-                } catch (error) {
-                    ErrorService.log(
-                        'mailService.sendCreateProjectMail',
-                        error
-                    );
-                }
-                return sendItemResponse(req, res, project);
-            } else {
-                if (IS_SAAS_SERVICE) {
-                    const subscription = await PaymentService.subscribePlan(
-                        stripePlanId,
-                        user.stripeCustomerId
-                    );
-                    if (
-                        subscription.subscriptionPaymentStatus === 'canceled' ||
-                        subscription.subscriptionPaymentStatus === 'unpaid'
-                    ) {
-                        user = await UserService.findOneBy({
-                            query: { _id: userId },
-                            select: 'email name',
+            if (countProject < 1) {
+                let user = await UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'stripeCustomerId email name',
+                });
+                if (!user.stripeCustomerId && IS_SAAS_SERVICE) {
+                    if (!data.paymentIntent) {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'Payment intent is not present.',
                         });
-                        try {
-                            MailService.sendPaymentFailedEmail(
-                                projectName,
-                                user.email,
-                                user.name
-                            );
-                        } catch (error) {
-                            ErrorService.log(
-                                'mailService.sendPaymentFailedEmail',
-                                error
-                            );
-                        }
                     }
+
+                    if (typeof data.paymentIntent !== 'string') {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'Payment intent is not in string format.',
+                        });
+                    }
+
+                    const paymentIntent = {
+                        id: data.paymentIntent,
+                    };
+                    const checkedPaymentIntent =
+                        await PaymentService.checkPaymentIntent(paymentIntent);
+                    if (checkedPaymentIntent.status !== 'succeeded') {
+                        return sendErrorResponse(req, res, {
+                            code: 400,
+                            message: 'Unsuccessful attempt to charge card',
+                        });
+                    }
+
+                    const [updatedUser, subscriptionnew] = await Promise.all([
+                        UserService.updateOneBy(
+                            { _id: userId },
+                            { stripeCustomerId: checkedPaymentIntent.customer }
+                        ),
+
+                        PaymentService.subscribePlan(
+                            stripePlanId,
+                            checkedPaymentIntent.customer
+                        ),
+                    ]);
+
+                    user = updatedUser;
+
                     if (!data.stripeSubscriptionId) {
                         data.stripeSubscriptionId =
-                            subscription.stripeSubscriptionId;
+                            subscriptionnew.stripeSubscriptionId;
                     }
+                    const project = await ProjectService.create(data);
+                    try {
+                        MailService.sendCreateProjectMail(
+                            projectName,
+                            user.email
+                        );
+                    } catch (error) {
+                        ErrorService.log(
+                            'mailService.sendCreateProjectMail',
+                            error
+                        );
+                    }
+                    return sendItemResponse(req, res, project);
+                } else {
+                    if (IS_SAAS_SERVICE) {
+                        const subscription = await PaymentService.subscribePlan(
+                            stripePlanId,
+                            user.stripeCustomerId
+                        );
+                        if (
+                            subscription.subscriptionPaymentStatus ===
+                                'canceled' ||
+                            subscription.subscriptionPaymentStatus === 'unpaid'
+                        ) {
+                            user = await UserService.findOneBy({
+                                query: { _id: userId },
+                                select: 'email name',
+                            });
+                            try {
+                                MailService.sendPaymentFailedEmail(
+                                    projectName,
+                                    user.email,
+                                    user.name
+                                );
+                            } catch (error) {
+                                ErrorService.log(
+                                    'mailService.sendPaymentFailedEmail',
+                                    error
+                                );
+                            }
+                        }
+                        if (!data.stripeSubscriptionId) {
+                            data.stripeSubscriptionId =
+                                subscription.stripeSubscriptionId;
+                        }
+                    }
+
+                    const [project, foundUser] = await Promise.all([
+                        ProjectService.create(data),
+                        UserService.findOneBy({
+                            query: { _id: userId },
+                            select: 'email',
+                        }),
+                    ]);
+
+                    user = foundUser;
+
+                    try {
+                        MailService.sendCreateProjectMail(
+                            projectName,
+                            user.email
+                        );
+                    } catch (error) {
+                        ErrorService.log(
+                            'mailService.sendCreateProjectMail',
+                            error
+                        );
+                    }
+                    return sendItemResponse(req, res, project);
                 }
-
-                const [project, foundUser] = await Promise.all([
-                    ProjectService.create(data),
-                    UserService.findOneBy({
-                        query: { _id: userId },
-                        select: 'email',
-                    }),
-                ]);
-
-                user = foundUser;
-
-                try {
-                    MailService.sendCreateProjectMail(projectName, user.email);
-                } catch (error) {
-                    ErrorService.log(
-                        'mailService.sendCreateProjectMail',
-                        error
-                    );
-                }
-                return sendItemResponse(req, res, project);
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'You already have project with same name.',
+                });
             }
-        } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'You already have project with same name.',
-            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Description: Fetching project records.
 // Params:
 // Param 1: req.headers-> {token};
 // Returns: 200: [{project}]; 400: Error.
-router.get('/projects', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
-    try {
-        const userId = req.user ? req.user.id : null;
-        // find user subprojects and parent projects
+router.get(
+    '/projects',
+    getUser,
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const userId = req.user ? req.user.id : null;
+            // find user subprojects and parent projects
 
-        const userProjects = await ProjectService.findBy({
-            query: { 'users.userId': userId },
-            select: 'parentProjectId _id',
-        });
-        let parentProjectIds = [];
-        let projectIds = [];
-        if (userProjects.length > 0) {
-            const subProjects = userProjects
-                .map((project: $TSFixMe) =>
-                    project.parentProjectId ? project : null
-                )
-                .filter((subProject: $TSFixMe) => subProject !== null);
-            parentProjectIds = subProjects.map(
-                (subProject: $TSFixMe) =>
-                    subProject.parentProjectId._id || subProject.parentProjectId
-            );
-            const projects = userProjects
-                .map((project: $TSFixMe) =>
-                    project.parentProjectId ? null : project
-                )
-                .filter((project: $TSFixMe) => project !== null);
-            projectIds = projects.map((project: $TSFixMe) => project._id);
-        }
+            const userProjects = await ProjectService.findBy({
+                query: { 'users.userId': userId },
+                select: 'parentProjectId _id',
+            });
+            let parentProjectIds = [];
+            let projectIds = [];
+            if (userProjects.length > 0) {
+                const subProjects = userProjects
+                    .map((project: $TSFixMe) =>
+                        project.parentProjectId ? project : null
+                    )
+                    .filter((subProject: $TSFixMe) => subProject !== null);
+                parentProjectIds = subProjects.map(
+                    (subProject: $TSFixMe) =>
+                        subProject.parentProjectId._id ||
+                        subProject.parentProjectId
+                );
+                const projects = userProjects
+                    .map((project: $TSFixMe) =>
+                        project.parentProjectId ? null : project
+                    )
+                    .filter((project: $TSFixMe) => project !== null);
+                projectIds = projects.map((project: $TSFixMe) => project._id);
+            }
 
-        // query data
-        const query = {
-            $or: [
-                { _id: { $in: parentProjectIds } },
-                { _id: { $in: projectIds } },
-            ],
-        };
+            // query data
+            const query = {
+                $or: [
+                    { _id: { $in: parentProjectIds } },
+                    { _id: { $in: projectIds } },
+                ],
+            };
 
-        const populate = [{ path: 'parentProjectId', select: 'name' }];
-        const select = `_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes
+            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const select = `_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes
              sendCreatedIncidentNotificationSms sendAcknowledgedIncidentNotificationSms sendResolvedIncidentNotificationSms
              sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
              sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
@@ -259,22 +277,23 @@ router.get('/projects', getUser, async (req: ExpressRequest, res: ExpressRespons
              sendNewScheduledEventInvestigationNoteNotificationEmail sendScheduledEventCancelledNotificationSms sendScheduledEventCancelledNotificationEmail
              enableInvestigationNoteNotificationWebhook unpaidSubscriptionNotifications`; // All these are needed upon page reload
 
-        const [response, count] = await Promise.all([
-            ProjectService.findBy({
-                query,
-                limit: req.query['limit'] || 10,
-                skip: req.query['skip'] || 0,
-                populate,
-                select,
-            }),
-            ProjectService.countBy(query),
-        ]);
+            const [response, count] = await Promise.all([
+                ProjectService.findBy({
+                    query,
+                    limit: req.query['limit'] || 10,
+                    skip: req.query['skip'] || 0,
+                    populate,
+                    select,
+                }),
+                ProjectService.countBy(query),
+            ]);
 
-        return sendListResponse(req, res, response, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendListResponse(req, res, response, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 //Description: Get project balance of a project
 // Param 1: req.headers-> {token}; req.params-> {projectId};

@@ -2,8 +2,8 @@ import 'common-server/utils/env';
 import 'common-server/utils/process';
 
 import express, {
-    Request,
-    Response,
+    ExpressRequest,
+    ExpressResponse,
     NextFunction,
 } from 'common-server/utils/express';
 import logger from 'common-server/utils/logger';
@@ -89,11 +89,13 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
     req.logdata = logdata;
 
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${process.env['POD_NAME']
+        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${
+            process.env['POD_NAME']
         } -- RECEIVED AT: ${new Date()} -- METHOD: ${method} -- URL: ${url}`
     );
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${
+            req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
         }`
     );
 

@@ -1,4 +1,7 @@
-import express, { Request, Response } from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 import NotificationService from '../services/notificationService';
@@ -500,14 +503,15 @@ router.get(
                 const newElement = {
                     _id: elem._id,
                     name: elem.name,
-                    type: `${elem.type === 'server-monitor'
+                    type: `${
+                        elem.type === 'server-monitor'
                             ? 'server monitor'
                             : elem.type === 'url'
-                                ? 'website monitor'
-                                : elem.type === 'ip'
-                                    ? 'IP monitor'
-                                    : elem.type + ` monitor`
-                        }`,
+                            ? 'website monitor'
+                            : elem.type === 'ip'
+                            ? 'IP monitor'
+                            : elem.type + ` monitor`
+                    }`,
                     createdAt: elem.createdAt,
                     icon: 'monitor',
                     slug: elem.slug,
