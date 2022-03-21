@@ -1,5 +1,7 @@
-export default (product: $TSFixMe) => {
-    const products = {
+import { JSONObject } from 'common-server/types/json';
+
+export default (product: string) => {
+    const products: JSONObject = {
         pagerduty: {
             productName: 'PagerDuty',
             iconUrl: '/img/pagerduty.jpeg',

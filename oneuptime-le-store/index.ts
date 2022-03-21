@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}`;
+const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}`;
 
 // make api call to designated endpoints
 // to make the necessary updates to the db

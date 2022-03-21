@@ -1,7 +1,11 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 import logger from 'common-server/utils/logger';
-import Express, { ExpressRequest, ExpressResponse } from 'common-server/utils/express';
+import Express, {
+    ExpressRequest,
+    ExpressResponse,
+    ExpressStatic,
+} from 'common-server/utils/express';
 const app = Express.getExpressApp();
 
 import bodyParser from 'body-parser';
@@ -34,7 +38,7 @@ app.set('view engine', 'ejs');
  */
 
 //Routes
-app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('index', {
         support: false,
         footerCards: true,
@@ -44,7 +48,7 @@ app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/support', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/support', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('support', {
         support: true,
         footerCards: true,
@@ -54,7 +58,7 @@ app.get('/support', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/pricing', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('pricing', {
         support: false,
         footerCards: true,
@@ -64,7 +68,7 @@ app.get('/pricing', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/enterprise/demo', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/enterprise/demo', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('demo', {
         support: false,
         footerCards: false,
@@ -74,89 +78,110 @@ app.get('/enterprise/demo', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/product/status-page', (req: ExpressRequest, res: ExpressResponse) => {
+app.get(
+    '/product/status-page',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/public-status-page');
+    }
+);
+
+app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/public-status-page');
 });
 
-app.get('/status-page', (req: ExpressRequest, res: ExpressResponse) => {
+app.get(
+    '/product/public-status-page',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('public-status-page', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+            footerCtaText:
+                'Start with Status Pages, expand into everything else. Sign up today.',
+        });
+    }
+);
+
+app.get('/public-status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/public-status-page');
 });
 
-app.get('/product/public-status-page', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('public-status-page', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-        footerCtaText:
-            'Start with Status Pages, expand into everything else. Sign up today.',
-    });
-});
+app.get(
+    '/product/private-status-page',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('private-status-page', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+            footerCtaText:
+                'Start with Status Pages, expand into everything else. Sign up today.',
+        });
+    }
+);
 
-app.get('/public-status-page', (req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/public-status-page');
-});
+app.get(
+    '/private-status-page',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/private-status-page');
+    }
+);
 
-app.get('/product/private-status-page', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('private-status-page', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-        footerCtaText:
-            'Start with Status Pages, expand into everything else. Sign up today.',
-    });
-});
-
-app.get('/private-status-page', (req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/private-status-page');
-});
-
-app.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('https://status.oneuptime.com');
 });
 
-app.get('/product/uptime-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('uptime-monitoring', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/product/uptime-monitoring',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('uptime-monitoring', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/uptime-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/uptime-monitoring', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/uptime-monitoring');
 });
 
-app.get('/product/logs-management', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('logs-management', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/product/logs-management',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('logs-management', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/logs-management', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/logs-management', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/logs-management');
 });
 
-app.get('/product/error-tracking', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('error-tracking', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/product/error-tracking',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('error-tracking', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/error-tracking', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/error-tracking', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/error-tracking');
 });
 
@@ -165,8 +190,8 @@ app.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { monitorId, subscriberId } = req.params;
         let apiHost;
-        if (process.env.ONEUPTIME_HOST) {
-            apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
+        if (process.env['ONEUPTIME_HOST']) {
+            apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
         } else {
             apiHost = 'http://localhost:3002/api';
         }
@@ -197,9 +222,9 @@ app.get(
 );
 
 app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
-    let apiHost: $TSFixMe;
-    if (process.env.ONEUPTIME_HOST) {
-        apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
+    let apiHost: string;
+    if (process.env['ONEUPTIME_HOST']) {
+        apiHost = 'https://' + process.env['ONEUPTIME_HOST'] + '/api';
     } else {
         apiHost = 'http://localhost:3002/api';
     }
@@ -223,7 +248,7 @@ app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
                 message: 'No monitor was selected',
             });
         } else {
-            monitors.forEach(async (monitorId: $TSFixMe) => {
+            monitors.forEach(async (monitorId: string) => {
                 await axios({
                     method: 'PUT',
                     url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${email}`,
@@ -244,7 +269,7 @@ app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
 
 app.get(
     '/product/docker-container-security',
-    (req: ExpressRequest, res: ExpressResponse) => {
+    (_req: ExpressRequest, res: ExpressResponse) => {
         res.render('container-security', {
             support: false,
             footerCards: true,
@@ -255,43 +280,52 @@ app.get(
     }
 );
 
-app.get('/docker-container-security', (req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/docker-container-security');
-});
+app.get(
+    '/docker-container-security',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/docker-container-security');
+    }
+);
 
-app.get('/product/app-security', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('app-security', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/product/app-security',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('app-security', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/app-security', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/app-security', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/app-security');
 });
 
-app.get('/product/api-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('api-monitoring', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-        footerCtaText:
-            'Start with API monitoring, expand into everything else. Sign up today.',
-    });
-});
+app.get(
+    '/product/api-monitoring',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('api-monitoring', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+            footerCtaText:
+                'Start with API monitoring, expand into everything else. Sign up today.',
+        });
+    }
+);
 
-app.get('/api-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/api-monitoring', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/api-monitoring');
 });
 
 app.get(
     '/product/kubernetes-monitoring',
-    (req: ExpressRequest, res: ExpressResponse) => {
+    (_req: ExpressRequest, res: ExpressResponse) => {
         res.render('kubernetes-monitoring', {
             support: false,
             footerCards: true,
@@ -302,13 +336,16 @@ app.get(
     }
 );
 
-app.get('/kubernetes-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/kubernetes-monitoring');
-});
+app.get(
+    '/kubernetes-monitoring',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/kubernetes-monitoring');
+    }
+);
 
 app.get(
     '/product/performance-monitoring',
-    (req: ExpressRequest, res: ExpressResponse) => {
+    (_req: ExpressRequest, res: ExpressResponse) => {
         res.render('performance-monitoring', {
             support: false,
             footerCards: true,
@@ -319,41 +356,50 @@ app.get(
     }
 );
 
-app.get('/performance-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/performance-monitoring');
-});
+app.get(
+    '/performance-monitoring',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/performance-monitoring');
+    }
+);
 
-app.get('/product/server-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('server-monitoring', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/product/server-monitoring',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('server-monitoring', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/server-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/server-monitoring', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/server-monitoring');
 });
 
-app.get('/product/website-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('website-monitoring', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/product/website-monitoring',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('website-monitoring', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/website-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/website-monitoring', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/website-monitoring');
 });
 
 app.get(
     '/product/iot-device-monitoring',
-    (req: ExpressRequest, res: ExpressResponse) => {
+    (_req: ExpressRequest, res: ExpressResponse) => {
         res.render('iot-device-monitoring', {
             support: false,
             footerCards: true,
@@ -364,39 +410,51 @@ app.get(
     }
 );
 
-app.get('/iot-device-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/iot-device-monitoring');
-});
+app.get(
+    '/iot-device-monitoring',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/iot-device-monitoring');
+    }
+);
 
-app.get('/product/incident-management', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('incident-management', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/product/incident-management',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('incident-management', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/incident-management', (req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/incident-management');
-});
+app.get(
+    '/incident-management',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/incident-management');
+    }
+);
 
-app.get('/product/oncall-management', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('oncall-management', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/product/oncall-management',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('oncall-management', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/oncall-management', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/oncall-management', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/oncall-management');
 });
 
-app.get('/customers', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/customers', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('customers', {
         support: false,
         footerCards: true,
@@ -406,27 +464,33 @@ app.get('/customers', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/enterprise/resources', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('resources', {
-        support: false,
-        footerCards: false,
-        cta: true,
-        blackLogo: true,
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/enterprise/resources',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('resources', {
+            support: false,
+            footerCards: false,
+            cta: true,
+            blackLogo: true,
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/enterprise/overview', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('enterprise-overview.ejs', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: true,
-    });
-});
+app.get(
+    '/enterprise/overview',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('enterprise-overview.ejs', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            requestDemoCta: true,
+        });
+    }
+);
 
-app.get('/legal', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -437,7 +501,7 @@ app.get('/legal', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/terms', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/terms', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -448,7 +512,7 @@ app.get('/legal/terms', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/privacy', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/privacy', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -459,7 +523,7 @@ app.get('/legal/privacy', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/contact', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/contact', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -470,18 +534,21 @@ app.get('/legal/contact', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/subprocessors', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('legal.ejs', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        section: 'subprocessors',
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/legal/subprocessors',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('legal.ejs', {
+            support: false,
+            footerCards: true,
+            cta: true,
+            blackLogo: false,
+            section: 'subprocessors',
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/legal/ccpa', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/ccpa', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -492,7 +559,7 @@ app.get('/legal/ccpa', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/hipaa', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/hipaa', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -503,7 +570,7 @@ app.get('/legal/hipaa', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/dmca', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/dmca', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -514,7 +581,7 @@ app.get('/legal/dmca', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/pci', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/pci', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -525,7 +592,7 @@ app.get('/legal/pci', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/iso-27001', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/iso-27001', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -536,7 +603,7 @@ app.get('/legal/iso-27001', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/iso-27017', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/iso-27017', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -547,7 +614,7 @@ app.get('/legal/iso-27017', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/iso-27018', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/iso-27018', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -558,7 +625,7 @@ app.get('/legal/iso-27018', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/iso-27017', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/iso-27017', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -569,7 +636,7 @@ app.get('/legal/iso-27017', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/iso-27018', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/iso-27018', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -580,7 +647,7 @@ app.get('/legal/iso-27018', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/soc-2', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/soc-2', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -591,7 +658,7 @@ app.get('/legal/soc-2', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/soc-3', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/soc-3', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -602,18 +669,21 @@ app.get('/legal/soc-3', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/data-residency', (req: ExpressRequest, res: ExpressResponse) => {
-    res.render('legal.ejs', {
-        footerCards: true,
-        support: false,
-        cta: true,
-        blackLogo: false,
-        section: 'data-residency',
-        requestDemoCta: false,
-    });
-});
+app.get(
+    '/legal/data-residency',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.render('legal.ejs', {
+            footerCards: true,
+            support: false,
+            cta: true,
+            blackLogo: false,
+            section: 'data-residency',
+            requestDemoCta: false,
+        });
+    }
+);
 
-app.get('/legal/gdpr', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/gdpr', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -624,7 +694,7 @@ app.get('/legal/gdpr', (req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/legal/sla', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/legal/sla', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -637,7 +707,7 @@ app.get('/legal/sla', (req: ExpressRequest, res: ExpressResponse) => {
 
 app.get(
     '/enterprise/download-resource/:resourceName',
-    (req: ExpressRequest, res: ExpressResponse) => {
+    (_req: ExpressRequest, res: ExpressResponse) => {
         res.render('download-resource.ejs', {
             footerCards: false,
             support: false,
@@ -649,7 +719,7 @@ app.get(
 );
 
 app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig = productCompare(req.params.product);
+    const productConfig = productCompare(req.params['product'] as string);
 
     if (!productConfig) {
         res.status(404);
@@ -674,7 +744,7 @@ app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig = productCompare(req.params.product);
+    const productConfig = productCompare(req.params['product'] as string);
 
     if (!productConfig) {
         res.status(404);
@@ -699,44 +769,56 @@ app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 // minify default.js
-app.get('/js/default.js', async (req: ExpressRequest, res: ExpressResponse) => {
-    res.setHeader('Content-Type', 'text/javascript');
-    const [error, data] = await tryToCatch(minify, './public/js/default.js');
+app.get(
+    '/js/default.js',
+    async (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader('Content-Type', 'text/javascript');
+        const [error, data] = await tryToCatch(
+            minify,
+            './public/js/default.js'
+        );
 
-    if (error) {
-        return res.status(500).send();
+        if (error) {
+            res.status(500).send();
+            return;
+        }
+
+        res.send(data);
     }
-
-    res.send(data);
-});
+);
 
 // minify
-app.get('/css/home.css', async (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/css/home.css', async (_req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'text/css');
     const [error, data] = await tryToCatch(minify, './public/css/home.css');
     if (error) {
-        return res.status(500).send();
+        res.status(500).send();
+        return;
     }
     res.send(data);
 });
 
 // minify
-app.get('/css/comparision.css', async (req: ExpressRequest, res: ExpressResponse) => {
-    res.setHeader('Content-Type', 'text/css');
-    const [error, data] = await tryToCatch(
-        minify,
-        './public/css/comparision.css'
-    );
+app.get(
+    '/css/comparision.css',
+    async (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader('Content-Type', 'text/css');
+        const [error, data] = await tryToCatch(
+            minify,
+            './public/css/comparision.css'
+        );
 
-    if (error) {
-        return res.status(500).send();
+        if (error) {
+            res.status(500).send();
+            return;
+        }
+
+        res.send(data);
     }
-
-    res.send(data);
-});
+);
 
 // generate sitemap
-app.get('/sitemap.xml', async (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
     const siteUrls = [
         'https://oneuptime.com/',
         'https://oneuptime.com/pricing',
@@ -829,14 +911,14 @@ app.get('/sitemap.xml', async (req: ExpressRequest, res: ExpressResponse) => {
 // cache policy for static contents
 // loads up the site faster
 app.use(
-    express.static(path.join(__dirname, 'public'), {
-        setHeaders(res: Response) {
+    ExpressStatic(path.join(__dirname, 'public'), {
+        setHeaders(res: ExpressResponse) {
             res.setHeader('Cache-Control', 'public,max-age=31536000,immutable');
         },
     })
 );
 
-app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(404);
     res.render('notFound.ejs', {
         footerCards: false,

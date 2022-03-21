@@ -5,6 +5,7 @@ import { JSONValue } from '../types/json';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
+export const ExpressStatic = express.static;
 
 type Probe = {
     id: String;
@@ -13,14 +14,14 @@ type Probe = {
 export type ExpressRequest = express.Request;
 export type ExpressResponse = express.Response;
 
-export interface Request extends express.Request {
+export interface OneUptimeRequest extends express.Request {
     probe?: Probe;
     id: string;
     requestStartedAt: Date;
     requestEndedAt: Date;
 }
 
-export interface Response extends express.Response {
+export interface OneUptimeResponse extends express.Response {
     logBody: JSONValue;
 }
 

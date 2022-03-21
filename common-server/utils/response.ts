@@ -1,14 +1,18 @@
 import JsonToCsv from './jsonToCsv';
 import logger from './logger';
 import { GridFSBucket } from 'mongodb';
-import { Request, Response } from './express';
+import { OneUptimeRequest, OneUptimeResponse } from './express';
 import { JSONObject, JSONArray, JSONValue } from '../types/json';
 import { File } from '../types/file';
 import { Exception } from '../types/error';
 import { ListData } from '../types/list';
 import Database from './database';
 
-function logResponse(req: Request, res: Response, responsebody?: JSONValue) {
+function logResponse(
+    req: OneUptimeRequest,
+    res: OneUptimeResponse,
+    responsebody?: JSONValue
+) {
     const requestEndedAt: Date = new Date();
     const method = req.method;
     const url = req.url;
@@ -32,8 +36,11 @@ function logResponse(req: Request, res: Response, responsebody?: JSONValue) {
     }
 }
 
-export const sendEmptyResponse = (req: Request, res: Response) => {
-    res.set('Request-Id', req.id);
+export const sendEmptyResponse = (
+    req: OneUptimeRequest,
+    res: OneUptimeResponse
+) => {
+    res.set('OneUptimeRequest-Id', req.id);
     res.set('Pod-Id', process.env['POD_NAME']);
 
     res.status(200).send();
@@ -42,8 +49,8 @@ export const sendEmptyResponse = (req: Request, res: Response) => {
 };
 
 export const sendFileResponse = async (
-    req: Request,
-    res: Response,
+    req: OneUptimeRequest,
+    res: OneUptimeResponse,
     file: File
 ) => {
     /** create read stream */
@@ -64,8 +71,8 @@ export const sendFileResponse = async (
 };
 
 export const sendErrorResponse = (
-    req: Request,
-    res: Response,
+    req: OneUptimeRequest,
+    res: OneUptimeResponse,
     error: Exception
 ) => {
     res.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
@@ -74,7 +81,7 @@ export const sendErrorResponse = (
 
     logger.error(error);
 
-    res.set('Request-Id', req.id);
+    res.set('OneUptimeRequest-Id', req.id);
     res.set('Pod-Id', process.env['POD_NAME']);
 
     res.status(status).send({ message });
@@ -82,12 +89,12 @@ export const sendErrorResponse = (
 };
 
 export const sendListResponse = async (
-    req: Request,
-    res: Response,
+    req: OneUptimeRequest,
+    res: OneUptimeResponse,
     list: JSONArray,
     count: number
 ) => {
-    res.set('Request-Id', req.id);
+    res.set('OneUptimeRequest-Id', req.id);
     res.set('Pod-Id', process.env['POD_NAME']);
 
     const listData: ListData = new ListData({
@@ -131,11 +138,11 @@ export const sendListResponse = async (
 };
 
 export const sendItemResponse = async (
-    req: Request,
-    res: Response,
+    req: OneUptimeRequest,
+    res: OneUptimeResponse,
     item: JSONObject
 ) => {
-    res.set('Request-Id', req.id);
+    res.set('OneUptimeRequest-Id', req.id);
     res.set('Pod-Id', process.env['POD_NAME']);
 
     if (req.query['output-type'] === 'csv') {

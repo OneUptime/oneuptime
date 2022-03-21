@@ -56,10 +56,10 @@ let apiHost = 'http://localhost:3002/api';
 if (process.env.BACKEND_URL) {
     apiHost = 'http://' + process.env.BACKEND_URL + '/api';
 }
-if (process.env.ONEUPTIME_HOST) {
+if (process.env['ONEUPTIME_HOST']) {
     apiHost = process.env.BACKEND_PROTOCOL
-        ? `${process.env.BACKEND_PROTOCOL}://${process.env.ONEUPTIME_HOST}/api`
-        : `http://${process.env.ONEUPTIME_HOST}/api`;
+        ? `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}/api`
+        : `http://${process.env['ONEUPTIME_HOST']}/api`;
 }
 
 app.get(
@@ -67,10 +67,10 @@ app.get(
     function (req: Request, res: Response) {
         let REACT_APP_ONEUPTIME_HOST = null;
         let REACT_APP_BACKEND_PROTOCOL = null;
-        if (!process.env.ONEUPTIME_HOST) {
+        if (!process.env['ONEUPTIME_HOST']) {
             REACT_APP_ONEUPTIME_HOST = req.hostname;
         } else {
-            REACT_APP_ONEUPTIME_HOST = process.env.ONEUPTIME_HOST;
+            REACT_APP_ONEUPTIME_HOST = process.env['ONEUPTIME_HOST'];
             if (REACT_APP_ONEUPTIME_HOST.includes('*.')) {
                 REACT_APP_ONEUPTIME_HOST = REACT_APP_ONEUPTIME_HOST.replace(
                     '*.',
