@@ -9,7 +9,7 @@ import { sendListResponse } from 'common-server/utils/response';
 // Params:
 // Param 1: req.headers-> {token}; req.params-> {userId}
 // Returns: 200: "Invoice received"; 400: "Error"
-router.post('/:userId', async function (req: Request, res: Response) {
+router.post('/:userId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const userId = req.params.userId;
         let startingAfter = req.query.startingAfter;

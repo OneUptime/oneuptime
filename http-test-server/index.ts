@@ -43,7 +43,7 @@ app.use(bodyParser.json());
 
 app.use(require('./backend/api/settings'));
 
-app.get('/status', function (req: Request, res: Response) {
+app.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -54,7 +54,7 @@ app.get('/status', function (req: Request, res: Response) {
     );
 });
 
-app.get('/', function (req: Request, res: Response) {
+app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
     if (http.STATUS_CODES[global.httpServerResponse.statusCode]) {
         res.status(global.httpServerResponse.statusCode);
     } else {
@@ -85,14 +85,14 @@ app.get('/', function (req: Request, res: Response) {
 
 const hook = {};
 
-app.post('/api/webhooks/:id', function (req: Request, res: Response) {
+app.post('/api/webhooks/:id', (req: ExpressRequest, res: ExpressResponse) => {
     const { id } = req.params;
 
     hook[id] = req.body;
     return res.status(200).json(req.body);
 });
 
-app.get('/api/webhooks/:id', function (req: Request, res: Response) {
+app.get('/api/webhooks/:id', (req: ExpressRequest, res: ExpressResponse) => {
     const { id } = req.params;
 
     if (hook[id] === undefined) return res.status(404).json({});
@@ -100,7 +100,7 @@ app.get('/api/webhooks/:id', function (req: Request, res: Response) {
     return res.status(200).json(hook[id]);
 });
 
-app.use('/*', function (req: Request, res: Response) {
+app.use('/*', (req: ExpressRequest, res: ExpressResponse) => {
     res.status(404).render('notFound.ejs', {});
 });
 

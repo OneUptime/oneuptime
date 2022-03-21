@@ -23,7 +23,7 @@ const router = express.getRouter();
 // Params:
 // Param 1: webhookURL
 // Returns: 200: Event object with various status.
-router.post('/events', async function (req: Request, res: Response) {
+router.post('/events', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const event = req.body;
         const customerId = event.data.object.customer;
@@ -68,7 +68,7 @@ router.post('/events', async function (req: Request, res: Response) {
 router.get(
     '/:userId/charges',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const userId = req.user.id;
             if (userId) {
@@ -88,7 +88,7 @@ router.get(
 router.post(
     '/:userId/creditCard/:token/pi',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { token } = req.params;
 
@@ -113,7 +113,7 @@ router.post(
 router.put(
     '/:userId/creditCard/:cardId',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { cardId } = req.params;
 
@@ -138,7 +138,7 @@ router.put(
 router.delete(
     '/:userId/creditCard/:cardId',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { cardId } = req.params;
 
@@ -163,7 +163,7 @@ router.delete(
 router.get(
     '/:userId/creditCard',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const userId = req.user.id;
             if (userId) {
@@ -183,7 +183,7 @@ router.get(
 router.get(
     '/:userId/creditCard/:cardId',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { cardId } = req.params;
 
@@ -207,7 +207,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const userId = req.user ? req.user.id : null;
             const { projectId } = req.params;
@@ -232,7 +232,7 @@ router.post(
     }
 );
 
-router.post('/checkCard', async function (req: Request, res: Response) {
+router.post('/checkCard', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { tokenId, email, companyName } = req.body;
         const paymentIntent = await StripeService.makeTestCharge(
@@ -251,7 +251,7 @@ router.get(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { intentId } = req.params;
 
@@ -281,7 +281,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
 

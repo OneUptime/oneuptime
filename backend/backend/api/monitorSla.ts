@@ -16,7 +16,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
@@ -51,7 +51,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
             const { name, frequency, monitorUptime } = req.body;
@@ -209,7 +209,7 @@ router.delete(
     '/:projectId/:monitorSlaId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, monitorSlaId } = req.params;
 
@@ -228,7 +228,7 @@ router.get(
     '/:projectId/defaultMonitorSla',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
             const selectMonSla =

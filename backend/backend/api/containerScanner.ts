@@ -57,7 +57,7 @@ router.post(
 router.post(
     '/failed',
     isAuthorizedContainerScanner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security = req.body;
             const containerSecurity =
@@ -76,7 +76,7 @@ router.post(
 router.post(
     '/log',
     isAuthorizedContainerScanner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security = req.body;
             const securityLog = await ContainerSecurityLogService.create({
@@ -167,7 +167,7 @@ router.post(
 router.post(
     '/time',
     isAuthorizedContainerScanner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security = req.body;
             const updatedTime = await ContainerSecurityService.updateScanTime({

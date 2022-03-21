@@ -9,7 +9,7 @@ import { sendListResponse } from 'common-server/utils/response';
 router.get(
     '/monitors',
     isAuthorizedProbe,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { limit = '10' } = req.query;
             const monitors = await MonitorService.getProbeMonitors(

@@ -20,7 +20,7 @@ app.set('port', process.env['PORT'] || 3055);
 
 app.get(
     ['/container/status', '/status'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(
             JSON.stringify({
@@ -36,7 +36,7 @@ app.get(
 
 app.get(
     ['/container/version', '/version'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send({ containerScannerVersion: process.env.npm_package_version });
     }

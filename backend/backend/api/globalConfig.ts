@@ -19,7 +19,7 @@ router.post(
     '/',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             let configs;
 
@@ -111,7 +111,7 @@ router.post(
     '/configs',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const names = req.body;
 
@@ -143,7 +143,7 @@ router.get(
     '/:name',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const selectConfig = 'name value createdAt';
             const { name } = req.params;

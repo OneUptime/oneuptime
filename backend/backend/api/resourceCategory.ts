@@ -78,7 +78,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const resourceCategoryId = req.params.resourceCategoryId;
             const projectId = req.params.projectId;
@@ -134,7 +134,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const resourceCategoryId = req.params.resourceCategoryId;
             const projectId = req.params.projectId;
@@ -185,7 +185,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const { limit, skip } = req.query;

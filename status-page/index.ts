@@ -64,7 +64,7 @@ if (process.env['ONEUPTIME_HOST']) {
 
 app.get(
     ['/env.js', '/status-page/env.js'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         let REACT_APP_ONEUPTIME_HOST = null;
         let REACT_APP_BACKEND_PROTOCOL = null;
         if (!process.env['ONEUPTIME_HOST']) {
@@ -118,7 +118,7 @@ app.get(
 
 app.use(
     '/.well-known/acme-challenge/:token',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         // make api call to backend and fetch keyAuthorization
         const { token } = req.params;
         const url = `${apiHost}/ssl/challenge/authorization/${token}`;
@@ -219,7 +219,7 @@ app.use('/', async function (req: Request, res: Response, next: NextFunction) {
 
 app.get(
     ['/status-page/status', '/status'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(
             JSON.stringify({
@@ -238,7 +238,7 @@ app.use(
     express.static(path.join(__dirname, 'build/static/js'))
 );
 
-app.get('/*', function (req: Request, res: Response) {
+app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

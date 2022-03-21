@@ -21,7 +21,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -46,7 +46,7 @@ router.get(
     '/:projectId/:templateId/reset',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const templateId = req.params.templateId;
@@ -63,7 +63,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const templates = await SmsTemplateService.getTemplates(projectId);
@@ -78,7 +78,7 @@ router.get(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const smsTemplateId = req.params.smsTemplateId;
             const populate = [{ path: 'projectId', select: 'name' }];
@@ -99,7 +99,7 @@ router.put(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             const smsTemplateId = req.params.smsTemplateId;
@@ -120,7 +120,7 @@ router.put(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = [];
             const { projectId } = req.params;
@@ -171,7 +171,7 @@ router.delete(
     '/:projectId/smsTemplate/:smsTemplateId',
     getUser,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const smsTemplateId = req.params.smsTemplateId;
 

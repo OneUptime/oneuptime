@@ -27,7 +27,7 @@ router.post(
     '/:projectId/:componentId/create',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             const { componentId } = req.params;
@@ -109,7 +109,7 @@ router.get(
     '/:projectId/tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { performanceTrackerId } = req.params;
         const { slug } = req.query;
         try {
@@ -157,7 +157,7 @@ router.delete(
     '/:projectId/tracker/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { performanceTrackerId } = req.params;
         try {
             const performanceTracker = await PerformanceTrackerService.deleteBy(
@@ -187,7 +187,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { performanceTrackerId } = req.params;
 
         const select = 'componentId name slug key showQuickStart createdById';
@@ -234,7 +234,7 @@ router.put(
     '/:projectId/remove-quickstart/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { performanceTrackerId } = req.params;
 
         const currentPerformanceTracker =
@@ -272,7 +272,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { performanceTrackerId, componentId } = req.params;
         const data = req.body;
 

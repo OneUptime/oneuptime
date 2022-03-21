@@ -11,7 +11,7 @@ import { sendFileResponse } from 'common-server/utils/response';
 // Param1: req.params-> {filename};
 // Returns: response uploaded files, error message
 
-router.get('/:filename', async function (req: Request, res: Response) {
+router.get('/:filename', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const file = await FileService.findOneBy({
             filename: req.params.filename,

@@ -18,7 +18,7 @@ import {
 
 const router = express.getRouter();
 
-router.get('/auth/redirect', function (req: Request, res: Response) {
+router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
     // get oneuptime project id from slack auth state query params
     let state = req.query.state;
     const slackCode = req.query.code;
@@ -67,7 +67,7 @@ router.post(
     '/:projectId/link',
     getUser,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const projectId = req.params.projectId;
         const code = req.query.code;
 
@@ -142,7 +142,7 @@ router.delete(
     '/:projectId/unLink/:teamId',
     getUser,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const projectId = req.params.projectId;
         const teamId = req.params.teamId;
 
@@ -170,7 +170,7 @@ router.delete(
 router.get(
     '/:projectId/teams',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const projectId = req.params.projectId;
         const integrationType = 'slack';
 

@@ -141,7 +141,7 @@ router.post(
     '/sms/verify',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { to, code } = req.body;
 
@@ -196,7 +196,7 @@ router.post(
     '/sms/test',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
 

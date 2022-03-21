@@ -3,13 +3,13 @@ import http from 'http';
 
 const router = express.getRouter();
 
-router.get('/settings', function (req: Request, res: Response) {
+router.get('/settings', (req: ExpressRequest, res: ExpressResponse) => {
     res.status(200).render('settings.ejs', {
         data: global.httpServerResponse,
     });
 });
 
-router.post('/api/settings', function (req: Request, res: Response) {
+router.post('/api/settings', (req: ExpressRequest, res: ExpressResponse) => {
     const { responseTime, statusCode, responseType, header, body } = req.body;
 
     let { httpServerResponse } = global;

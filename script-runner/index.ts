@@ -40,7 +40,7 @@ app.set('port', process.env['PORT'] || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-app.get(['/script/status', '/status'], function (req: Request, res: Response) {
+app.get(['/script/status', '/status'], (req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({

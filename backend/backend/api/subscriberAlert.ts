@@ -44,7 +44,7 @@ router.post(
 // Mark alert as viewed
 router.get(
     '/:projectId/:alertId/viewed',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const alertId = req.params.alertId;
             const projectId = req.params.projectId;

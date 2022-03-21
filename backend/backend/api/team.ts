@@ -25,7 +25,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const projectId = req.params.projectId;
 
         try {
@@ -45,7 +45,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => project._id)
             : null;
@@ -176,8 +176,8 @@ router.post(
                 const teamMembers = await TeamService.getTeamMembers(projectId);
                 const withoutViewers = teamMembers
                     ? teamMembers.filter(
-                          teamMember => teamMember.role !== 'Viewer'
-                      )
+                        teamMember => teamMember.role !== 'Viewer'
+                    )
                     : [];
                 const totalTeamMembers =
                     withoutViewers.length + emailArray.length;
@@ -228,7 +228,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const userId = req.user ? req.user.id : null;
         const teamMemberUserId = req.params.teamMemberId;
         const projectId = req.params.projectId;
@@ -273,7 +273,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const data = req.body;
         const projectId = req.params.projectId;
         data.teamMemberId = req.params.teamMemberId;

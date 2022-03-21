@@ -19,7 +19,7 @@ app.set('port', process.env['PORT'] || 3015);
 
 app.get(
     ['/lighthouse/status', '/status'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(
             JSON.stringify({
@@ -35,7 +35,7 @@ app.get(
 
 app.get(
     ['/lighthouse/version', '/version'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send({ lighthouseVersion: process.env.npm_package_version });
     }
@@ -51,8 +51,7 @@ cron.schedule('*/30 * * * *', () => {
 http.listen(app.get('port'), function () {
     // eslint-disable-next-line
     logger.info(
-        `Lighthouse Started on port ${app.get('port')}. OneUptime API URL: ${
-            config.serverUrl
+        `Lighthouse Started on port ${app.get('port')}. OneUptime API URL: ${config.serverUrl
         }`
     );
 });

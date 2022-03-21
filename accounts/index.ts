@@ -11,7 +11,7 @@ app.use(compression());
 
 app.get(
     ['/env.js', '/accounts/env.js'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         const env = {
             REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
             REACT_APP_DISABLE_SIGNUP: process.env.DISABLE_SIGNUP,
@@ -70,7 +70,7 @@ app.use(
 
 app.use('/accounts', express.static(path.join(__dirname, 'build')));
 
-app.get('/*', function (req: Request, res: Response) {
+app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 

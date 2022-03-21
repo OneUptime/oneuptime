@@ -24,7 +24,7 @@ import ErrorService from 'common-server/utils/error';
 router.get(
     '/applicationSecurities',
     isAuthorizedApplicationScanner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const response =
                 await ApplicationSecurityService.getSecuritiesToScan();
@@ -84,7 +84,7 @@ router.post(
 router.post(
     '/log',
     isAuthorizedApplicationScanner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security = req.body;
             const securityLog = await ApplicationSecurityLogService.create({
@@ -276,7 +276,7 @@ router.post(
 router.post(
     '/time',
     isAuthorizedApplicationScanner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security = req.body;
             const updatedTime = await ApplicationSecurityService.updateScanTime(

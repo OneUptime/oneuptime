@@ -96,7 +96,7 @@ app.use(express.json({ limit: '50mb' }));
 
 app.get(
     ['/realtime/status', '/status'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(
             JSON.stringify({

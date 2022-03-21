@@ -42,11 +42,11 @@ if (process.env['NODE_ENV'] === 'development') {
         logger.info('Server running on: 1447');
     });
 
-    app.get('/:dbFunction', async function (req: Request, res: Response) {
+    app.get('/:dbFunction', async (req: ExpressRequest, res: ExpressResponse) => {
         return await interactWithDB(req, res);
     });
 
-    app.post('/:dbFunction', async function (req: Request, res: Response) {
+    app.post('/:dbFunction', async (req: ExpressRequest, res: ExpressResponse) => {
         return await interactWithDB(req, res);
     });
 }

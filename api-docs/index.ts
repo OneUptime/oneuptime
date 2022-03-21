@@ -66,7 +66,7 @@ app.use(
 );
 
 // index page
-app.get(['/', '/docs'], function (req: Request, res: Response) {
+app.get(['/', '/docs'], (req: ExpressRequest, res: ExpressResponse) => {
     res.render('pages/index');
 });
 

@@ -17,7 +17,7 @@ import { isValidAPIKey } from '../middlewares/performanceTracker';
 router.post(
     '/:appId/key/:key',
     isValidAPIKey,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId } = req.params;
             const { incoming, outgoing, sentAt } = req.body;
@@ -48,7 +48,7 @@ router.post(
 router.get(
     '/:appId/key/:key/time',
     isValidAPIKey,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId } = req.params;
             let { startDate, endDate } = req.query;
@@ -183,7 +183,7 @@ router.get(
 router.get(
     '/:appId/key/:key/error',
     isValidAPIKey,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId } = req.params;
             let { startDate, endDate } = req.query;
@@ -252,7 +252,7 @@ router.get(
 router.get(
     '/:appId/key/:key',
     isValidAPIKey,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId } = req.params;
             const { type, skip, limit } = req.query;

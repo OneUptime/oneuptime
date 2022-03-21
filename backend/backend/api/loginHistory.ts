@@ -14,7 +14,7 @@ router.get(
     '/:userId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const userId = req.params.userId;
             let { skip, limit } = req.query;

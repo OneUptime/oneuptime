@@ -14,7 +14,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId } = req.params;
         const { skip = 0, limit = 10 } = req.query;
         if (!projectId) {
@@ -46,7 +46,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId } = req.params;
         const { name, color } = req.body;
         if (!projectId) {
@@ -85,7 +85,7 @@ router.put(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId } = req.params;
         const { _id, name, color } = req.body;
 
@@ -134,7 +134,7 @@ router.delete(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId } = req.params;
         const { _id } = req.body;
 

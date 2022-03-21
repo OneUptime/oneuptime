@@ -9,7 +9,7 @@ const app = express.getExpressApp();
 
 app.get(
     ['/env.js', '/dashboard/env.js'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         const isClustLocal = req.get('host').includes('cluster.local');
         if (!isClustLocal) {
             global.dashboardHost = 'https://' + req.host + '/dashboard';
@@ -73,7 +73,7 @@ app.get(
 //APP VERSION
 app.use(
     ['/dashboard/api/version', '/dashboard/version'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.json({ dashboardVersion: process.env.npm_package_version });
     }
@@ -81,7 +81,7 @@ app.use(
 
 app.get(
     ['/dashboard/status', '/status'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(
             JSON.stringify({
@@ -133,6 +133,6 @@ app.use('/dashboard', express.static(path.join(__dirname, 'build')));
 //     }
 // });
 
-app.get('/*', function (req: Request, res: Response) {
+app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });

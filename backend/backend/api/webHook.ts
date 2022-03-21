@@ -264,7 +264,7 @@ router.delete(
     '/:projectId/delete/:integrationId',
     getUser,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const integrationId = req.params.integrationId;
@@ -285,7 +285,7 @@ router.delete(
 router.get(
     '/:projectId/hooks',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const integrationType = req.query.type || 'webhook';
@@ -325,7 +325,7 @@ router.get(
 router.get(
     '/:projectId/hooks/:monitorId',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             // const projectId = req.params.projectId;
             const integrationType = req.query.type || 'webhook';

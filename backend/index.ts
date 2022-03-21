@@ -89,13 +89,11 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
     req.logdata = logdata;
 
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${
-            process.env['POD_NAME']
+        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${process.env['POD_NAME']
         } -- RECEIVED AT: ${new Date()} -- METHOD: ${method} -- URL: ${url}`
     );
     logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${
-            req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
         }`
     );
 
@@ -469,7 +467,7 @@ app.use(
 
 app.use(['/api'], require('./backend/api/apiStatus'));
 
-app.use('/*', function (req: Request, res: Response) {
+app.use('/*', (req: ExpressRequest, res: ExpressResponse) => {
     res.status(404).send('Endpoint not found.');
 });
 

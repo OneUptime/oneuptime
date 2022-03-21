@@ -8,7 +8,7 @@ import {
 
 import { isValidMonitor } from '../middlewares/api';
 
-const incomingHttpRequest = async function (req: Request, res: Response) {
+const incomingHttpRequest = async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const monitor = req.monitor;
         const body = req.body;

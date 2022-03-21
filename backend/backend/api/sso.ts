@@ -15,7 +15,7 @@ router.get(
     '/',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const skip = req.query['skip'] || 0;
         const limit = req.query['limit'] || 10;
 
@@ -40,7 +40,7 @@ router.get(
     }
 );
 
-router.delete('/:id', getUser, async function (req: Request, res: Response) {
+router.delete('/:id', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const sso = await SsoService.deleteBy({ _id: req.params.id });
         return sendItemResponse(req, res, sso);
@@ -53,7 +53,7 @@ router.post(
     '/',
     getUser,
     isScaleOrMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const data = req.body;
         try {
             const sso = await SsoService.create(data);
@@ -64,7 +64,7 @@ router.post(
     }
 );
 
-router.get('/:id', getUser, async function (req: Request, res: Response) {
+router.get('/:id', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const selectSso =
             '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl projectId';
@@ -79,7 +79,7 @@ router.get('/:id', getUser, async function (req: Request, res: Response) {
     }
 });
 
-router.put('/:id', getUser, async function (req: Request, res: Response) {
+router.put('/:id', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data = req.body;
         const sso = await SsoService.updateBy({ _id: req.params.id }, data);

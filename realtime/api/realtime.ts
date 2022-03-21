@@ -11,7 +11,7 @@ import RealtimeService from '../services/realtimeService';
 router.post(
     '/send-created-incident',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, incident } = req.body;
 
@@ -26,7 +26,7 @@ router.post(
 router.post(
     '/send-incident-timeline',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, data } = req.body;
 
@@ -41,7 +41,7 @@ router.post(
 router.post(
     '/send-sla-countdown',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, incident, countDown } = req.body;
 
@@ -60,7 +60,7 @@ router.post(
 router.post(
     '/delete-incident',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, incident } = req.body;
 
@@ -75,7 +75,7 @@ router.post(
 router.post(
     '/add-incident-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, incidentNote } = req.body;
 
@@ -90,7 +90,7 @@ router.post(
 router.post(
     '/update-incident-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, incidentNote } = req.body;
 
@@ -105,7 +105,7 @@ router.post(
 router.post(
     '/update-incident-timeline',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { incidentTimeline, projectId } = req.body;
 
@@ -123,7 +123,7 @@ router.post(
 router.post(
     '/update-incident',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { incident, projectId } = req.body;
 
@@ -138,7 +138,7 @@ router.post(
 router.post(
     '/delete-incident-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { incidentNote, projectId } = req.body;
 
@@ -153,7 +153,7 @@ router.post(
 router.post(
     '/add-scheduled-event',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { event, projectId } = req.body;
 
@@ -168,7 +168,7 @@ router.post(
 router.post(
     '/delete-scheduled-event',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { event, projectId } = req.body;
 
@@ -183,7 +183,7 @@ router.post(
 router.post(
     '/update-scheduled-event',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { event, projectId } = req.body;
 
@@ -198,7 +198,7 @@ router.post(
 router.post(
     '/resolve-scheduled-event',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { event, projectId } = req.body;
 
@@ -213,7 +213,7 @@ router.post(
 router.post(
     '/add-scheduled-event-internal-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -231,7 +231,7 @@ router.post(
 router.post(
     '/add-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -250,7 +250,7 @@ router.post(
 router.post(
     '/delete-scheduled-event-internal-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -268,7 +268,7 @@ router.post(
 router.post(
     '/delete-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -287,7 +287,7 @@ router.post(
 router.post(
     '/update-scheduled-event-investigation-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { note, scheduledEventId, projectId } = req.body;
 
@@ -306,7 +306,7 @@ router.post(
 router.post(
     '/update-scheduled-event-internal-note',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { note, scheduledEventId } = req.body;
 
@@ -324,7 +324,7 @@ router.post(
 router.post(
     '/send-component-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { component, projectId } = req.body;
 
@@ -339,7 +339,7 @@ router.post(
 router.post(
     '/send-monitor-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitor, projectId } = req.body;
 
@@ -354,7 +354,7 @@ router.post(
 router.post(
     '/send-monitor-delete',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitor, projectId } = req.body;
 
@@ -369,7 +369,7 @@ router.post(
 router.post(
     '/send-component-delete',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { component, projectId } = req.body;
 
@@ -384,7 +384,7 @@ router.post(
 router.post(
     '/incident-resolved',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { incident, projectId } = req.body;
 
@@ -399,7 +399,7 @@ router.post(
 router.post(
     '/incident-acknowledged',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { incident, projectId } = req.body;
 
@@ -414,7 +414,7 @@ router.post(
 router.post(
     '/status-page-edit',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPage, projectId } = req.body;
 
@@ -429,7 +429,7 @@ router.post(
 router.post(
     '/component-edit',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { component, projectId } = req.body;
 
@@ -444,7 +444,7 @@ router.post(
 router.post(
     '/monitor-edit',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitor, projectId } = req.body;
 
@@ -459,7 +459,7 @@ router.post(
 router.post(
     '/update-monitor-log',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { data, logData, projectId, parentProjectId, monitorId } =
                 req.body;
@@ -481,7 +481,7 @@ router.post(
 router.post(
     '/update-lighthouse-log',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const body = req.body;
             const { data, projectId, monitorId, parentProjectId } = body;
@@ -502,7 +502,7 @@ router.post(
 router.post(
     '/update-all-lighthouse-log',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, data, parentProjectId, monitorId } = req.body;
 
@@ -522,7 +522,7 @@ router.post(
 router.post(
     '/update-monitor-status',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { data, projectId, monitorId, parentProjectId } = req.body;
 
@@ -542,7 +542,7 @@ router.post(
 router.post(
     '/update-probe',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { data } = req.body;
 
@@ -557,7 +557,7 @@ router.post(
 router.post(
     '/send-notification',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { data, projectId } = req.body;
 
@@ -572,7 +572,7 @@ router.post(
 router.post(
     '/update-team-member-role',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, data } = req.body;
 
@@ -587,7 +587,7 @@ router.post(
 router.post(
     '/create-team-member',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, data } = req.body;
 
@@ -602,7 +602,7 @@ router.post(
 router.post(
     '/delete-team-member',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, data } = req.body;
 
@@ -617,7 +617,7 @@ router.post(
 router.post(
     '/send-application-log-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationLog, componentId } = req.body;
 
@@ -635,7 +635,7 @@ router.post(
 router.post(
     '/send-application-log-delete',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationLog, componentId } = req.body;
 
@@ -653,7 +653,7 @@ router.post(
 router.post(
     '/send-log-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { contentLog, applicationLogId } = req.body;
 
@@ -668,7 +668,7 @@ router.post(
 router.post(
     '/application-log-key-reset',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationLog, componentId } = req.body;
 
@@ -686,7 +686,7 @@ router.post(
 router.post(
     '/send-container-security-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { containerSecurity, componentId } = req.body;
 
@@ -704,7 +704,7 @@ router.post(
 router.post(
     '/send-application-security-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationSecurity, componentId } = req.body;
 
@@ -722,7 +722,7 @@ router.post(
 router.post(
     '/send-error-tracker-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { errorTracker, componentId } = req.body;
 
@@ -740,7 +740,7 @@ router.post(
 router.post(
     '/send-error-tracker-delete',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { errorTracker, componentId } = req.body;
 
@@ -758,7 +758,7 @@ router.post(
 router.post(
     '/error-tracker-key-reset',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { errorTracker, componentId } = req.body;
 
@@ -773,7 +773,7 @@ router.post(
 router.post(
     '/send-error-event-created',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { data, errorTrackerId } = req.body;
 
@@ -788,7 +788,7 @@ router.post(
 router.post(
     '/send-issue-status-change',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { issue, type, errorTrackerId } = req.body;
 
@@ -807,7 +807,7 @@ router.post(
 router.post(
     '/send-error-tracker-issue-delete',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { issue, errorTrackerId } = req.body;
 
@@ -825,7 +825,7 @@ router.post(
 router.post(
     '/send-time-metrics',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId, data } = req.body;
 
@@ -840,7 +840,7 @@ router.post(
 router.post(
     '/send-throughput-metrics',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId, data } = req.body;
 
@@ -855,7 +855,7 @@ router.post(
 router.post(
     '/send-error-metrics',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { appId, data } = req.body;
 
@@ -870,7 +870,7 @@ router.post(
 router.post(
     '/handle-scanning',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { security } = req.body;
 
@@ -885,7 +885,7 @@ router.post(
 router.post(
     '/handle-log',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { securityId, securityLog } = req.body;
 
@@ -900,7 +900,7 @@ router.post(
 router.post(
     '/status-page-update-tweets',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { tweets, statusPageId, _projectId } = req.body;
 

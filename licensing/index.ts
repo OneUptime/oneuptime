@@ -55,7 +55,7 @@ const server = http.listen(app.get('port'), function () {
     logger.info('Server Started on port ' + app.get('port'));
 });
 
-app.get(['/', '/license'], function (req: Request, res: Response) {
+app.get(['/', '/license'], (req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -66,7 +66,7 @@ app.get(['/', '/license'], function (req: Request, res: Response) {
     );
 });
 
-app.use('/*', function (req: Request, res: Response) {
+app.use('/*', (req: ExpressRequest, res: ExpressResponse) => {
     res.status(404).render('notFound.ejs', {});
 });
 

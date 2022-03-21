@@ -26,7 +26,7 @@ import ErrorService from 'common-server/utils/error';
 router.get(
     '/monitors',
     isAuthorizedLighthouse,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const monitors =
                 await MonitorService.getUrlMonitorsNotScannedByLightHouseInPastOneDay();
@@ -147,9 +147,9 @@ router.post(
                                     desc.description.split(/\[Learn more\]/i);
                                 const url = splitDescription[1]
                                     ? splitDescription[1].replace(
-                                          /^\(|\)|\.$/gi,
-                                          ''
-                                      )
+                                        /^\(|\)|\.$/gi,
+                                        ''
+                                    )
                                     : '';
                                 desc.description = splitDescription[0];
                                 desc.url = url;
@@ -165,9 +165,9 @@ router.post(
                                     desc.description.split(/\[Learn more\]/i);
                                 const url = splitDescription[1]
                                     ? splitDescription[1].replace(
-                                          /^\(|\)|\.$/gi,
-                                          ''
-                                      )
+                                        /^\(|\)|\.$/gi,
+                                        ''
+                                    )
                                     : '';
                                 desc.description = splitDescription[0];
                                 desc.url = url;
@@ -184,9 +184,9 @@ router.post(
                                 desc.description.split(/\[Learn more\]/i);
                             const url = splitDescription[1]
                                 ? splitDescription[1].replace(
-                                      /^\(|\)|\.$/gi,
-                                      ''
-                                  )
+                                    /^\(|\)|\.$/gi,
+                                    ''
+                                )
                                 : '';
                             desc.description = splitDescription[0];
                             desc.url = url;
@@ -201,9 +201,9 @@ router.post(
                                 desc.description.split(/\[Learn more\]/i);
                             const url = splitDescription[1]
                                 ? splitDescription[1].replace(
-                                      /^\(|\)|\.$/gi,
-                                      ''
-                                  )
+                                    /^\(|\)|\.$/gi,
+                                    ''
+                                )
                                 : '';
                             desc.description = splitDescription[0];
                             desc.url = url;
@@ -218,9 +218,9 @@ router.post(
                                 desc.description.split(/\[Learn more\]/i);
                             const url = splitDescription[1]
                                 ? splitDescription[1].replace(
-                                      /^\(|\)|\.$/gi,
-                                      ''
-                                  )
+                                    /^\(|\)|\.$/gi,
+                                    ''
+                                )
                                 : '';
                             desc.description = splitDescription[0];
                             desc.url = url;

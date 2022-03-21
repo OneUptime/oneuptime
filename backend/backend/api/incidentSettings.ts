@@ -14,7 +14,7 @@ import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
 import { variables } from '../config/incidentDefaultSettings';
 
-router.get('/variables', async function (req: Request, res: Response) {
+router.get('/variables', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         return sendItemResponse(req, res, variables);
     } catch (error) {
@@ -57,7 +57,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
             const { skip, limit } = req.query;
@@ -97,7 +97,7 @@ router.put(
     '/:projectId/:templateId/setDefault',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId, templateId } = req.params;
         if (!projectId)
             return sendErrorResponse(req, res, {
@@ -232,7 +232,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
             // description is optional

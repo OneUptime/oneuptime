@@ -21,7 +21,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -60,7 +60,7 @@ router.get(
     '/:projectId/:templateId/reset',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const templateId = req.params.templateId;
@@ -79,7 +79,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const templates = await EmailTemplateService.getTemplates(
@@ -96,7 +96,7 @@ router.get(
     '/:projectId/emailTemplate/:emailTemplateId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const emailTemplateId = req.params.emailTemplateId;
             const select = 'projectId subject body emailType allowedVariables';
@@ -116,7 +116,7 @@ router.put(
     '/:projectId/emailTemplate/:emailTemplateId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             const Id = req.params.emailTemplateId;
@@ -136,7 +136,7 @@ router.put(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = [];
             const { projectId } = req.params;
@@ -199,7 +199,7 @@ router.delete(
     '/:projectId/emailTemplate/:emailTemplateId',
     getUser,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const emailTemplateId = req.params.emailTemplateId;
 

@@ -13,7 +13,7 @@ router.get(
     '/',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const skip = req.query['skip'] || 0;
         const limit = req.query['limit'] || 10;
 
@@ -47,7 +47,7 @@ router.delete(
     '/:id',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             if (!req.params.id) throw new Error('Id must be defined');
             const sso = await SsoDefaultRolesService.deleteBy({
@@ -64,7 +64,7 @@ router.post(
     '/',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const data = req.body;
         try {
             const ssoDefaultRole = await SsoDefaultRolesService.create(data);
@@ -79,7 +79,7 @@ router.get(
     '/:id',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const populateDefaultRoleSso = [
                 { path: 'domain', select: '_id domain' },
@@ -110,7 +110,7 @@ router.put(
     '/:id',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const id = req.params.id;
             const ssoDefaultRole = await SsoDefaultRolesService.updateById(

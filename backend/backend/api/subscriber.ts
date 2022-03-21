@@ -18,7 +18,7 @@ import {
 
 router.post(
     '/:projectId/:statusPageId',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const body = req.body;
             const data = {};
@@ -167,7 +167,7 @@ router.post(
 
 router.post(
     '/:projectId/subscribe/:monitorId',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -323,7 +323,7 @@ router.post(
 // get subscribers by projectId
 // req.params-> {projectId};
 // Returns: response subscriber, error message
-router.get('/:projectId', async function (req: Request, res: Response) {
+router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const projectId = req.params.projectId;
         const skip = req.query['skip'] || 0;
@@ -346,7 +346,7 @@ router.get('/:projectId', async function (req: Request, res: Response) {
 // Returns: response subscriber, error message
 router.get(
     '/:projectId/monitor/:monitorId',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const monitorId = req.params.monitorId;
             const skip = req.query['skip'] || 0;
@@ -380,7 +380,7 @@ router.get(
 // Returns: response subscriber, error message
 router.get(
     '/monitorList/:subscriberId',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const subscriberId = req.params.subscriberId;
 
@@ -436,7 +436,7 @@ router.get(
 // Returns: response subscriber, error message
 router.get(
     '/:projectId/:subscriberId',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const subscriberId = req.params.subscriberId;
@@ -463,7 +463,7 @@ router.get(
 // Returns: response subscriber, error message
 router.put(
     '/unsubscribe/:monitorId/:email',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { email, monitorId } = req.params;
             const subscriber = await SubscriberService.updateOneBy(
@@ -482,7 +482,7 @@ router.put(
 router.delete(
     '/:projectId/:subscriberId',
     getUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const subscriberId = req.params.subscriberId;
 
@@ -500,7 +500,7 @@ router.delete(
 
 router.post(
     '/:projectId/:monitorId/csv',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             data.projectId = req.params.projectId;

@@ -97,7 +97,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.get(
     ['/data-ingestor/status', '/status'],
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(
             JSON.stringify({

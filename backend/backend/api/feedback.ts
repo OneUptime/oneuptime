@@ -15,7 +15,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             if (!req.body.feedback && !req.body.page) {
                 return sendErrorResponse(req, res, {

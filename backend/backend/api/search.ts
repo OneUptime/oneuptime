@@ -23,7 +23,7 @@ router.post(
     '/:projectId',
     getUser,
     getSubProjects,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const val = req.body.search;
             const parentProjectId = req.params.projectId;

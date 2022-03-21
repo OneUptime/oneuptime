@@ -10,7 +10,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 
-router.get('/', getUser, function (req: Request, res: Response) {
+router.get('/', getUser, (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const criteria = MonitorCriteriaService.getCriteria();
         return sendItemResponse(req, res, criteria);

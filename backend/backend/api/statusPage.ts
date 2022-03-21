@@ -362,7 +362,7 @@ router.put(
 
 router.post(
     '/:projectId/certFile',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const upload = multer({
                 storage,
@@ -391,7 +391,7 @@ router.post(
 
 router.post(
     '/:projectId/privateKeyFile',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const upload = multer({
                 storage,
@@ -423,7 +423,7 @@ router.post(
 
 // fetch details about a custom domain
 // to be consumed by the status page
-router.get('/tlsCredential', async function (req: Request, res: Response) {
+router.get('/tlsCredential', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { domain } = req.query;
 
@@ -704,7 +704,7 @@ router.put(
     }
 );
 
-router.get('/statusBubble', async function (req: Request, res: Response) {
+router.get('/statusBubble', async (req: ExpressRequest, res: ExpressResponse) => {
     const statusPageId = req.query.statusPageId;
     const statusBubbleId = req.query.statusBubbleId;
     try {
@@ -974,7 +974,7 @@ router.post(
     '/:projectId/:statusPageSlug/duplicateStatusPage',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, statusPageSlug } = req.params;
             const { subProjectId } = req.query;
@@ -1011,7 +1011,7 @@ router.post(
 router.get(
     '/:statusPageId/rss',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const statusPageId = req.params.statusPageId;
         const url = req.query.url;
 
@@ -1056,17 +1056,14 @@ router.get(
 
                             guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
                             pubDate: new Date(incident.createdAt).toUTCString(),
-                            description: `<![CDATA[Description: ${
-                                incident.description
-                            }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
-                                incident.monitors
-                            )}<br>Acknowledge Time: ${
-                                incident.acknowledgedAt
-                            }<br>Resolve Time: ${incident.resolvedAt}<br>${
-                                incident.investigationNote
+                            description: `<![CDATA[Description: ${incident.description
+                                }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
+                                    incident.monitors
+                                )}<br>Acknowledge Time: ${incident.acknowledgedAt
+                                }<br>Resolve Time: ${incident.resolvedAt}<br>${incident.investigationNote
                                     ? `Investigation Note: ${incident.investigationNote}`
                                     : ''
-                            }]]>`,
+                                }]]>`,
                         },
                     });
                 }
@@ -1118,7 +1115,7 @@ router.get(
     '/:projectId/:statusPageSlug/notes',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         let result;
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query['skip'] || 0;
@@ -1300,7 +1297,7 @@ router.get(
     '/:projectId/:statusPageSlug/events',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query['skip'] || 0;
         const limit = req.query['limit'] || 5;
@@ -1332,7 +1329,7 @@ router.get(
     '/:projectId/:statusPageSlug/futureEvents',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
             const { skip = 0, limit = 5, theme } = req.query;
@@ -1357,7 +1354,7 @@ router.get(
     '/:projectId/:statusPageSlug/pastEvents',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
             const { skip = 0, limit = 5, theme } = req.query;
@@ -1487,7 +1484,7 @@ router.get(
 router.get(
     '/:projectId/scheduledEvent/:scheduledEventId',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { scheduledEventId } = req.params;
 
         try {
@@ -1570,7 +1567,7 @@ router.post(
 router.get(
     '/:projectId/probes',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const skip = req.query['skip'] || 0;
             const limit = req.query['limit'] || 0;
@@ -1597,7 +1594,7 @@ router.delete(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const statusPageSlug = req.params.statusPageSlug;
 
         const userId = req.user ? req.user.id : null;
@@ -1656,7 +1653,7 @@ router.get(
     '/:projectId/:statusPageSlug/timelines',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -1735,7 +1732,7 @@ router.get(
 router.post(
     '/:projectId/createExternalstatus-page/:statusPageId',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, statusPageId } = req.params;
             const { name, url } = req.body;
@@ -1848,7 +1845,7 @@ router.post(
 router.post(
     '/:projectId/updateExternalstatus-page/:externalStatusPageId',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, externalStatusPageId } = req.params;
             const { name, url } = req.body;
@@ -1942,7 +1939,7 @@ router.post(
 router.get(
     '/:projectId/fetchExternalStatusPages/:statusPageId',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, statusPageId } = req.params;
 
@@ -1976,7 +1973,7 @@ router.get(
 router.post(
     '/:projectId/deleteExternalstatus-page/:externalStatusPageId',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, externalStatusPageId } = req.params;
 
@@ -2063,7 +2060,7 @@ router.post(
 router.put(
     '/:projectId/announcement/:statusPageId/:announcementId',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, statusPageId, announcementId } = req.params;
             const { data } = req.body;
@@ -2149,7 +2146,7 @@ router.put(
 router.get(
     '/:projectId/announcementLogs/:statusPageId',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageId } = req.params;
             const { skip, limit, theme } = req.query;
@@ -2220,7 +2217,7 @@ router.get(
 router.get(
     '/:projectId/announcement/:statusPageSlug/single/:announcementSlug',
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, statusPageSlug, announcementSlug } = req.params;
 
@@ -2243,7 +2240,7 @@ router.get(
 router.delete(
     `/:projectId/announcement/:announcementId/delete`,
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, announcementId } = req.params;
 
@@ -2265,7 +2262,7 @@ router.delete(
 router.delete(
     `/:projectId/announcementLog/:announcementLogId/delete`,
     checkUser,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { announcementLogId } = req.params;
 
@@ -2346,9 +2343,8 @@ function handleMonitorList(monitors: $TSFixMe) {
         return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
     }
     if (monitors.length > 3) {
-        return `${monitors[0].monitorId.name}, ${
-            monitors[1].monitorId.name
-        } and ${monitors.length - 2} others`;
+        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
+            } and ${monitors.length - 2} others`;
     }
 }
 
@@ -2356,7 +2352,7 @@ router.get(
     '/resources/:statusPageSlug/ongoing-events',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2384,7 +2380,7 @@ router.get(
     '/resources/:statusPageSlug/future-events',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2408,7 +2404,7 @@ router.get(
     '/resources/:statusPageSlug/past-events',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2432,7 +2428,7 @@ router.get(
     '/resources/:statusPageSlug/probes',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2456,7 +2452,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-logs',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2480,7 +2476,7 @@ router.get(
     '/resources/:statusPageSlug/announcements',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2510,7 +2506,7 @@ router.get(
     '/resources/:statusPageSlug/announcement-logs',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2534,7 +2530,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-timelines',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2558,7 +2554,7 @@ router.get(
     '/resources/:statusPageSlug/statuspage-notes',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
 
@@ -2588,7 +2584,7 @@ router.get(
     '/resources/:statusPageSlug/monitor-statuses',
     checkUser,
     ipWhitelist,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { statusPageSlug } = req.params;
             const { range } = req.query;
@@ -2996,18 +2992,18 @@ const filterProbeData = (
         monitorStatuses && monitorStatuses.length > 0
             ? probe
                 ? monitorStatuses.filter((probeStatuses: $TSFixMe) => {
-                      return (
-                          probeStatuses._id === null ||
-                          String(probeStatuses._id) === String(probe._id)
-                      );
-                  })
+                    return (
+                        probeStatuses._id === null ||
+                        String(probeStatuses._id) === String(probe._id)
+                    );
+                })
                 : monitorStatuses
             : [];
     const statuses =
         probesStatus &&
-        probesStatus[0] &&
-        probesStatus[0].statuses &&
-        probesStatus[0].statuses.length > 0
+            probesStatus[0] &&
+            probesStatus[0].statuses &&
+            probesStatus[0].statuses.length > 0
             ? probesStatus[0].statuses
             : [];
 

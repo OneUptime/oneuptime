@@ -40,7 +40,7 @@ router.get(
 router.post(
     '/ping/:monitorId',
     isAuthorizedService,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitor, resp } = req.body;
 
@@ -56,8 +56,8 @@ router.post(
                 failedReasons: upFailedReasons,
                 matchedCriterion: matchedUpCriterion,
             }: $TSFixMe = monitor && monitor.criteria && monitor.criteria.up
-                ? await ProbeService.scriptConditions(resp, monitor.criteria.up)
-                : { stat: false, successReasons: [], failedReasons: [] };
+                    ? await ProbeService.scriptConditions(resp, monitor.criteria.up)
+                    : { stat: false, successReasons: [], failedReasons: [] };
 
             // determine if monitor is down and reasons therefore
             const {
@@ -66,12 +66,12 @@ router.post(
                 failedReasons: downFailedReasons,
                 matchedCriterion: matchedDownCriterion,
             }: $TSFixMe = monitor && monitor.criteria && monitor.criteria.down
-                ? await ProbeService.scriptConditions(resp, [
-                      ...monitor.criteria.down.filter(
-                          (criterion: $TSFixMe) => criterion.default !== true
-                      ),
-                  ])
-                : { stat: false, successReasons: [], failedReasons: [] };
+                    ? await ProbeService.scriptConditions(resp, [
+                        ...monitor.criteria.down.filter(
+                            (criterion: $TSFixMe) => criterion.default !== true
+                        ),
+                    ])
+                    : { stat: false, successReasons: [], failedReasons: [] };
 
             // determine if monitor is degraded and reasons therefore
             const {
@@ -80,13 +80,13 @@ router.post(
                 failedReasons: degradedFailedReasons,
                 matchedCriterion: matchedDegradedCriterion,
             }: $TSFixMe = monitor &&
-            monitor.criteria &&
-            monitor.criteria.degraded
-                ? await ProbeService.scriptConditions(
-                      resp,
-                      monitor.criteria.degraded
-                  )
-                : { stat: false, successReasons: [], failedReasons: [] };
+                monitor.criteria &&
+                monitor.criteria.degraded
+                    ? await ProbeService.scriptConditions(
+                        resp,
+                        monitor.criteria.degraded
+                    )
+                    : { stat: false, successReasons: [], failedReasons: [] };
 
             // normalize response
             if (validUp) {
@@ -146,9 +146,9 @@ router.post(
             data.reason =
                 data && data.reason && data.reason.length
                     ? data.reason.filter(
-                          (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
-                              self.indexOf(item) === pos
-                      )
+                        (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) =>
+                            self.indexOf(item) === pos
+                    )
                     : data.reason;
 
             data.matchedUpCriterion =

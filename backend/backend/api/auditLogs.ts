@@ -15,7 +15,7 @@ router.get(
     '/',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const query = {};
             const skip = req.query['skip'];
@@ -50,7 +50,7 @@ router.post(
     '/search',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const filter = req.body.filter;
             const skip = req.query['skip'];
@@ -75,7 +75,7 @@ router.delete(
     '/',
     getUser,
     isUserMasterAdmin,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const query = {};
 

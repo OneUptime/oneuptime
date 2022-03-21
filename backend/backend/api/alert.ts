@@ -22,7 +22,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
 
@@ -102,7 +102,7 @@ router.get(
     '/:projectId/incident/:incidentSlug',
     getUser,
     isAuthorized,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const incidentSlug = req.params.incidentSlug;
             // const projectId = req.params.projectId;
@@ -153,7 +153,7 @@ router.get(
 // Mark alert as viewed. This is for Email.
 router.get(
     '/:projectId/:alertId/viewed',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const alertId = req.params.alertId;
             const projectId = req.params.projectId;
@@ -184,7 +184,7 @@ router.delete(
     '/:projectId',
     getUser,
     isUserOwner,
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
 
