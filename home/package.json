@@ -4,7 +4,7 @@
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "ts-node index.ts",
-        "build": "tsc index.ts",
+        "build": "tsc",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "test": "echo 'no tests'",
         "lighthouse-test": "jest --forceExit lighthouse-tests/test/index.test.js --env=node",
@@ -17,10 +17,11 @@
     },
     "type": "module",
     "dependencies": {
-        "common-server": "file:../common-server",
+        "@types/body-parser": "^1.19.2",
         "axios": "^0.24.0",
         "body-parser": "^1.19.1",
         "cli-table": "^0.3.11",
+        "common-server": "file:../common-server",
         "compression": "^1.7.4",
         "ejs": "^3.1.6",
         "express": "^4.17.2",

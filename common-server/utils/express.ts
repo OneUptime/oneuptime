@@ -10,6 +10,9 @@ type Probe = {
     id: String;
 };
 
+export type ExpressRequest = express.Request;
+export type ExpressResponse = express.Response;
+
 export interface Request extends express.Request {
     probe?: Probe;
     id: string;

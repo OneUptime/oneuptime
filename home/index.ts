@@ -1,8 +1,8 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 import logger from 'common-server/utils/logger';
-import express, { Request, Response } from 'common-server/utils/express';
-const app = express.getExpressApp();
+import Express, { ExpressRequest, ExpressResponse } from 'common-server/utils/express';
+const app = Express.getExpressApp();
 
 import bodyParser from 'body-parser';
 import path from 'path';
@@ -19,7 +19,7 @@ import builder from 'xmlbuilder2';
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env['NODE_ENV'] === 'production') {
     app.use(compression());
 }
 
@@ -34,7 +34,7 @@ app.set('view engine', 'ejs');
  */
 
 //Routes
-app.get('/', function (req: Request, res: Response) {
+app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('index', {
         support: false,
         footerCards: true,
@@ -44,7 +44,7 @@ app.get('/', function (req: Request, res: Response) {
     });
 });
 
-app.get('/support', function (req: Request, res: Response) {
+app.get('/support', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('support', {
         support: true,
         footerCards: true,
@@ -54,7 +54,7 @@ app.get('/support', function (req: Request, res: Response) {
     });
 });
 
-app.get('/pricing', function (req: Request, res: Response) {
+app.get('/pricing', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('pricing', {
         support: false,
         footerCards: true,
@@ -64,7 +64,7 @@ app.get('/pricing', function (req: Request, res: Response) {
     });
 });
 
-app.get('/enterprise/demo', function (req: Request, res: Response) {
+app.get('/enterprise/demo', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('demo', {
         support: false,
         footerCards: false,
@@ -74,15 +74,15 @@ app.get('/enterprise/demo', function (req: Request, res: Response) {
     });
 });
 
-app.get('/product/status-page', function (req: Request, res: Response) {
+app.get('/product/status-page', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/public-status-page');
 });
 
-app.get('/status-page', function (req: Request, res: Response) {
+app.get('/status-page', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/public-status-page');
 });
 
-app.get('/product/public-status-page', function (req: Request, res: Response) {
+app.get('/product/public-status-page', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('public-status-page', {
         support: false,
         footerCards: true,
@@ -94,11 +94,11 @@ app.get('/product/public-status-page', function (req: Request, res: Response) {
     });
 });
 
-app.get('/public-status-page', function (req: Request, res: Response) {
+app.get('/public-status-page', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/public-status-page');
 });
 
-app.get('/product/private-status-page', function (req: Request, res: Response) {
+app.get('/product/private-status-page', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('private-status-page', {
         support: false,
         footerCards: true,
@@ -110,15 +110,15 @@ app.get('/product/private-status-page', function (req: Request, res: Response) {
     });
 });
 
-app.get('/private-status-page', function (req: Request, res: Response) {
+app.get('/private-status-page', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/private-status-page');
 });
 
-app.get('/status', function (req: Request, res: Response) {
+app.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('https://status.oneuptime.com');
 });
 
-app.get('/product/uptime-monitoring', function (req: Request, res: Response) {
+app.get('/product/uptime-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('uptime-monitoring', {
         support: false,
         footerCards: true,
@@ -128,11 +128,11 @@ app.get('/product/uptime-monitoring', function (req: Request, res: Response) {
     });
 });
 
-app.get('/uptime-monitoring', function (req: Request, res: Response) {
+app.get('/uptime-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/uptime-monitoring');
 });
 
-app.get('/product/logs-management', function (req: Request, res: Response) {
+app.get('/product/logs-management', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('logs-management', {
         support: false,
         footerCards: true,
@@ -142,11 +142,11 @@ app.get('/product/logs-management', function (req: Request, res: Response) {
     });
 });
 
-app.get('/logs-management', function (req: Request, res: Response) {
+app.get('/logs-management', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/logs-management');
 });
 
-app.get('/product/error-tracking', function (req: Request, res: Response) {
+app.get('/product/error-tracking', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('error-tracking', {
         support: false,
         footerCards: true,
@@ -156,13 +156,13 @@ app.get('/product/error-tracking', function (req: Request, res: Response) {
     });
 });
 
-app.get('/error-tracking', function (req: Request, res: Response) {
+app.get('/error-tracking', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/error-tracking');
 });
 
 app.get(
     '/unsubscribe/:monitorId/:subscriberId',
-    async function (req: Request, res: Response) {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { monitorId, subscriberId } = req.params;
         let apiHost;
         if (process.env.ONEUPTIME_HOST) {
@@ -196,7 +196,7 @@ app.get(
     }
 );
 
-app.post('/unsubscribe', async function (req: Request, res: Response) {
+app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
     let apiHost: $TSFixMe;
     if (process.env.ONEUPTIME_HOST) {
         apiHost = 'https://' + process.env.ONEUPTIME_HOST + '/api';
@@ -244,7 +244,7 @@ app.post('/unsubscribe', async function (req: Request, res: Response) {
 
 app.get(
     '/product/docker-container-security',
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.render('container-security', {
             support: false,
             footerCards: true,
@@ -255,11 +255,11 @@ app.get(
     }
 );
 
-app.get('/docker-container-security', function (req: Request, res: Response) {
+app.get('/docker-container-security', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/docker-container-security');
 });
 
-app.get('/product/app-security', function (req: Request, res: Response) {
+app.get('/product/app-security', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('app-security', {
         support: false,
         footerCards: true,
@@ -269,11 +269,11 @@ app.get('/product/app-security', function (req: Request, res: Response) {
     });
 });
 
-app.get('/app-security', function (req: Request, res: Response) {
+app.get('/app-security', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/app-security');
 });
 
-app.get('/product/api-monitoring', function (req: Request, res: Response) {
+app.get('/product/api-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('api-monitoring', {
         support: false,
         footerCards: true,
@@ -285,13 +285,13 @@ app.get('/product/api-monitoring', function (req: Request, res: Response) {
     });
 });
 
-app.get('/api-monitoring', function (req: Request, res: Response) {
+app.get('/api-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/api-monitoring');
 });
 
 app.get(
     '/product/kubernetes-monitoring',
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.render('kubernetes-monitoring', {
             support: false,
             footerCards: true,
@@ -302,13 +302,13 @@ app.get(
     }
 );
 
-app.get('/kubernetes-monitoring', function (req: Request, res: Response) {
+app.get('/kubernetes-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/kubernetes-monitoring');
 });
 
 app.get(
     '/product/performance-monitoring',
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.render('performance-monitoring', {
             support: false,
             footerCards: true,
@@ -319,11 +319,11 @@ app.get(
     }
 );
 
-app.get('/performance-monitoring', function (req: Request, res: Response) {
+app.get('/performance-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/performance-monitoring');
 });
 
-app.get('/product/server-monitoring', function (req: Request, res: Response) {
+app.get('/product/server-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('server-monitoring', {
         support: false,
         footerCards: true,
@@ -333,11 +333,11 @@ app.get('/product/server-monitoring', function (req: Request, res: Response) {
     });
 });
 
-app.get('/server-monitoring', function (req: Request, res: Response) {
+app.get('/server-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/server-monitoring');
 });
 
-app.get('/product/website-monitoring', function (req: Request, res: Response) {
+app.get('/product/website-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('website-monitoring', {
         support: false,
         footerCards: true,
@@ -347,13 +347,13 @@ app.get('/product/website-monitoring', function (req: Request, res: Response) {
     });
 });
 
-app.get('/website-monitoring', function (req: Request, res: Response) {
+app.get('/website-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/website-monitoring');
 });
 
 app.get(
     '/product/iot-device-monitoring',
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.render('iot-device-monitoring', {
             support: false,
             footerCards: true,
@@ -364,11 +364,11 @@ app.get(
     }
 );
 
-app.get('/iot-device-monitoring', function (req: Request, res: Response) {
+app.get('/iot-device-monitoring', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/iot-device-monitoring');
 });
 
-app.get('/product/incident-management', function (req: Request, res: Response) {
+app.get('/product/incident-management', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('incident-management', {
         support: false,
         footerCards: true,
@@ -378,11 +378,11 @@ app.get('/product/incident-management', function (req: Request, res: Response) {
     });
 });
 
-app.get('/incident-management', function (req: Request, res: Response) {
+app.get('/incident-management', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/incident-management');
 });
 
-app.get('/product/oncall-management', function (req: Request, res: Response) {
+app.get('/product/oncall-management', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('oncall-management', {
         support: false,
         footerCards: true,
@@ -392,11 +392,11 @@ app.get('/product/oncall-management', function (req: Request, res: Response) {
     });
 });
 
-app.get('/oncall-management', function (req: Request, res: Response) {
+app.get('/oncall-management', (req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/oncall-management');
 });
 
-app.get('/customers', function (req: Request, res: Response) {
+app.get('/customers', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('customers', {
         support: false,
         footerCards: true,
@@ -406,7 +406,7 @@ app.get('/customers', function (req: Request, res: Response) {
     });
 });
 
-app.get('/enterprise/resources', function (req: Request, res: Response) {
+app.get('/enterprise/resources', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('resources', {
         support: false,
         footerCards: false,
@@ -416,7 +416,7 @@ app.get('/enterprise/resources', function (req: Request, res: Response) {
     });
 });
 
-app.get('/enterprise/overview', function (req: Request, res: Response) {
+app.get('/enterprise/overview', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('enterprise-overview.ejs', {
         support: false,
         footerCards: true,
@@ -426,7 +426,7 @@ app.get('/enterprise/overview', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal', function (req: Request, res: Response) {
+app.get('/legal', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -437,7 +437,7 @@ app.get('/legal', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/terms', function (req: Request, res: Response) {
+app.get('/legal/terms', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -448,7 +448,7 @@ app.get('/legal/terms', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/privacy', function (req: Request, res: Response) {
+app.get('/legal/privacy', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -459,7 +459,7 @@ app.get('/legal/privacy', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/contact', function (req: Request, res: Response) {
+app.get('/legal/contact', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -470,7 +470,7 @@ app.get('/legal/contact', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/subprocessors', function (req: Request, res: Response) {
+app.get('/legal/subprocessors', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -481,7 +481,7 @@ app.get('/legal/subprocessors', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/ccpa', function (req: Request, res: Response) {
+app.get('/legal/ccpa', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -492,7 +492,7 @@ app.get('/legal/ccpa', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/hipaa', function (req: Request, res: Response) {
+app.get('/legal/hipaa', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -503,7 +503,7 @@ app.get('/legal/hipaa', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/dmca', function (req: Request, res: Response) {
+app.get('/legal/dmca', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -514,7 +514,7 @@ app.get('/legal/dmca', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/pci', function (req: Request, res: Response) {
+app.get('/legal/pci', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -525,7 +525,7 @@ app.get('/legal/pci', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/iso-27001', function (req: Request, res: Response) {
+app.get('/legal/iso-27001', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         support: false,
         footerCards: true,
@@ -536,7 +536,7 @@ app.get('/legal/iso-27001', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/iso-27017', function (req: Request, res: Response) {
+app.get('/legal/iso-27017', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -547,7 +547,7 @@ app.get('/legal/iso-27017', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/iso-27018', function (req: Request, res: Response) {
+app.get('/legal/iso-27018', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -558,7 +558,7 @@ app.get('/legal/iso-27018', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/iso-27017', function (req: Request, res: Response) {
+app.get('/legal/iso-27017', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -569,7 +569,7 @@ app.get('/legal/iso-27017', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/iso-27018', function (req: Request, res: Response) {
+app.get('/legal/iso-27018', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -580,7 +580,7 @@ app.get('/legal/iso-27018', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/soc-2', function (req: Request, res: Response) {
+app.get('/legal/soc-2', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -591,7 +591,7 @@ app.get('/legal/soc-2', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/soc-3', function (req: Request, res: Response) {
+app.get('/legal/soc-3', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -602,7 +602,7 @@ app.get('/legal/soc-3', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/data-residency', function (req: Request, res: Response) {
+app.get('/legal/data-residency', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -613,7 +613,7 @@ app.get('/legal/data-residency', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/gdpr', function (req: Request, res: Response) {
+app.get('/legal/gdpr', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -624,7 +624,7 @@ app.get('/legal/gdpr', function (req: Request, res: Response) {
     });
 });
 
-app.get('/legal/sla', function (req: Request, res: Response) {
+app.get('/legal/sla', (req: ExpressRequest, res: ExpressResponse) => {
     res.render('legal.ejs', {
         footerCards: true,
         support: false,
@@ -637,7 +637,7 @@ app.get('/legal/sla', function (req: Request, res: Response) {
 
 app.get(
     '/enterprise/download-resource/:resourceName',
-    function (req: Request, res: Response) {
+    (req: ExpressRequest, res: ExpressResponse) => {
         res.render('download-resource.ejs', {
             footerCards: false,
             support: false,
@@ -648,7 +648,7 @@ app.get(
     }
 );
 
-app.get('/table/:product', function (req: Request, res: Response) {
+app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
     const productConfig = productCompare(req.params.product);
 
     if (!productConfig) {
@@ -673,7 +673,7 @@ app.get('/table/:product', function (req: Request, res: Response) {
     }
 });
 
-app.get('/compare/:product', function (req: Request, res: Response) {
+app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
     const productConfig = productCompare(req.params.product);
 
     if (!productConfig) {
@@ -699,7 +699,7 @@ app.get('/compare/:product', function (req: Request, res: Response) {
 });
 
 // minify default.js
-app.get('/js/default.js', async function (req: Request, res: Response) {
+app.get('/js/default.js', async (req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'text/javascript');
     const [error, data] = await tryToCatch(minify, './public/js/default.js');
 
@@ -711,7 +711,7 @@ app.get('/js/default.js', async function (req: Request, res: Response) {
 });
 
 // minify
-app.get('/css/home.css', async function (req: Request, res: Response) {
+app.get('/css/home.css', async (req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'text/css');
     const [error, data] = await tryToCatch(minify, './public/css/home.css');
     if (error) {
@@ -721,7 +721,7 @@ app.get('/css/home.css', async function (req: Request, res: Response) {
 });
 
 // minify
-app.get('/css/comparision.css', async function (req: Request, res: Response) {
+app.get('/css/comparision.css', async (req: ExpressRequest, res: ExpressResponse) => {
     res.setHeader('Content-Type', 'text/css');
     const [error, data] = await tryToCatch(
         minify,
@@ -736,7 +736,7 @@ app.get('/css/comparision.css', async function (req: Request, res: Response) {
 });
 
 // generate sitemap
-app.get('/sitemap.xml', async (req: Request, res: Response) => {
+app.get('/sitemap.xml', async (req: ExpressRequest, res: ExpressResponse) => {
     const siteUrls = [
         'https://oneuptime.com/',
         'https://oneuptime.com/pricing',
@@ -836,7 +836,7 @@ app.use(
     })
 );
 
-app.get('/*', function (req: Request, res: Response) {
+app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
     res.status(404);
     res.render('notFound.ejs', {
         footerCards: false,

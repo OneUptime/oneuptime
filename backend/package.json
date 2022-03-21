@@ -72,7 +72,7 @@
     },
     "scripts": {
         "start": "ts-node index.ts",
-        "build": "tsc index.ts",
+        "build": "tsc",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts --ignore greenlock.d/* -- --staging",
         "test": "cross-env NODE_ENV=development nyc --reporter=lcov --reporter=text mocha --exit test/index.ts",
         "enterprise-test": "cross-env NODE_ENV=development IS_TESTING=true nyc --reporter=lcov --reporter=text mocha --exit test/enterprise.js",

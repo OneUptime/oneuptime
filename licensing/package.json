@@ -21,7 +21,7 @@
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "ts-node index.ts",
-        "build": "tsc index.ts",
+        "build": "tsc",
         "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
         "test": "mocha --exit test/index.ts",
         "audit": "npm audit --audit-level=low",
