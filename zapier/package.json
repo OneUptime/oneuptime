@@ -19,12 +19,12 @@
     "resolutions": {},
     "type": "module",
     "dependencies": {
-        "zapier-platform-core": "^11.2.0"
+        "zapier-platform-core": "^11.3.3"
     },
     "devDependencies": {
         "babel-preset-react": "^6.24.1",
         "depcheck": "^1.4.3",
-        "mocha": "^9.1.4",
+        "mocha": "^9.2.2",
         "npm-force-resolutions": "0.0.10",
         "should": "13.2.3",
         "ts-node-dev": "^1.1.8"

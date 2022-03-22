@@ -15,16 +15,16 @@
     "license": "ISC",
     "type": "module",
     "dependencies": {
-        "axios": "^0.25.0",
+        "axios": "^0.26.1",
         "common-server": "file:../common-server",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
         "dotenv": "^16.0.0",
-        "express": "^4.17.2",
+        "express": "^4.17.3",
         "lodash": "^4.17.21",
         "socket.io": "^4.4.1",
         "uuid": "^8.3.2",
-        "winston": "^3.4.0",
+        "winston": "^3.6.0",
         "winston-slack-webhook-transport": "^2.1.0"
     },
     "devDependencies": {

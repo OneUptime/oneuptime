@@ -9,7 +9,7 @@
     },
     "resolutions": {},
     "devDependencies": {
-        "npm-force-resolutions": "0.0.3"
+        "npm-force-resolutions": "0.0.10"
     },
     "author": "",
     "license": "ISC"

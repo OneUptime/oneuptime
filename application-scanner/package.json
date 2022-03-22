@@ -13,24 +13,24 @@
     "author": "HackerBay, Inc.",
     "license": "MIT",
     "devDependencies": {
-        "depcheck": "^1.4.2",
+        "depcheck": "^1.4.3",
         "ts-node-dev": "^1.1.8"
     },
     "type": "module",
     "dependencies": {
-        "axios": "^0.21.1",
+        "axios": "^0.26.1",
         "common-server": "file:../common-server",
         "cors": "^2.8.5",
         "dotenv": "^16.0.0",
-        "express": "^4.17.1",
+        "express": "^4.17.3",
         "node-cron": "^3.0.0",
-        "node-fetch": "^2.6.1",
-        "node-ssh": "^11.1.1",
+        "node-fetch": "^3.2.3",
+        "node-ssh": "^12.0.4",
         "ping": "^0.4.1",
-        "simple-git": "^2.40.0",
-        "ssh2": "^0.8.9",
+        "simple-git": "^3.4.0",
+        "ssh2": "^1.7.0",
         "uuid": "^8.3.2",
-        "winston": "^3.3.3",
+        "winston": "^3.6.0",
         "winston-slack-transport": "^2.0.0"
     }
 }

@@ -10,6 +10,6 @@
     "license": "ISC",
     "type": "module",
     "dependencies": {
-        "oneuptime-staging": "^3.0.7862"
+        "oneuptime-staging": "^4.0.34"
     }
 }

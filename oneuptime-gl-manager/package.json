@@ -24,6 +24,6 @@
     "license": "MIT",
     "type": "module",
     "dependencies": {
-        "axios": "^0.25.0"
+        "axios": "^0.26.1"
     }
 }
