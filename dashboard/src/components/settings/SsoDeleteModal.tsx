@@ -13,10 +13,10 @@ class SsoDeleteModal extends Component {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -24,7 +24,7 @@ class SsoDeleteModal extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
         const { confirmThisDialog, closeThisDialog } = this.props;
 
         return (
@@ -84,10 +84,10 @@ class SsoDeleteModal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SsoDeleteModal.displayName = 'SsoDeleteModal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SsoDeleteModal.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func,

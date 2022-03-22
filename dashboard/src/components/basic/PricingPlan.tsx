@@ -2,7 +2,7 @@ import React, { Fragment, useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { PricingPlan, IS_SAAS_SERVICE } from '../../config';
 import PricingPlanModal from './PricingPlanModal';
@@ -30,7 +30,7 @@ const PricingPlanComponent = ({
             !isEnterprise &&
             PricingPlan.getPlanById(currentProject.stripePlanId)
         ) {
-            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
             category = PricingPlan.getPlanById(currentProject.stripePlanId)
                 .category;
         }
@@ -101,8 +101,8 @@ PricingPlanComponent.propTypes = {
 const mapStateToProps = (state: $TSFixMe) => {
     const currentPlanId =
         state.project &&
-        state.project.currentProject &&
-        state.project.currentProject.stripePlanId
+            state.project.currentProject &&
+            state.project.currentProject.stripePlanId
             ? state.project.currentProject.stripePlanId
             : '';
 

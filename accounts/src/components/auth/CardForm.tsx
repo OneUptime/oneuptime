@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import RenderCountrySelector from '../basic/CountrySelector';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import { RenderField } from '../basic/RenderField';
 import { PricingPlan, Validate, env } from '../../config';
@@ -13,7 +13,7 @@ import { ButtonSpinner } from '../basic/Loader.js';
 import { openModal, closeModal } from '../../actions/modal';
 import ExtraCharge from '../modals/ExtraCharge';
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import {
     CardNumberElement,
@@ -22,7 +22,7 @@ import {
     injectStripe,
     StripeProvider,
     Elements,
-    // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 } from '@stripe/react-stripe-js';
 import {
     addCard,
@@ -91,7 +91,7 @@ class CardForm extends Component {
 
     handleClick = () => {
         const { registerModal } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: registerModal,
             onClose: () => '',
@@ -101,20 +101,20 @@ class CardForm extends Component {
 
     handleSubmit = (values: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripe' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             stripe,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCard' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             addCard,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'signUpRequest' does not exist on type 'R... Remove this comment to see the full error message
+
             signUpRequest,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'signupUser' does not exist on type 'Read... Remove this comment to see the full error message
+
             signupUser,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'signupSuccess' does not exist on type 'R... Remove this comment to see the full error message
+
             signupSuccess,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'signupError' does not exist on type 'Rea... Remove this comment to see the full error message
+
             signupError,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { user, planId } = this.props.register;
         const { email, companyName } = user;
         if (stripe) {
@@ -165,11 +165,11 @@ class CardForm extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'planId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         this.plan = PricingPlan.getPlanById(this.props.planId);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const registerError = this.props.register.error;
         let header;
         if (registerError) {
@@ -191,7 +191,7 @@ class CardForm extends Component {
                                 <p>
                                     Your card will be charged $1.00 to check its
                                     billability.{' '}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '() => any' is not assignable to type 'Key | ... Remove this comment to see the full error message
+
                                     <span key={() => uuidv4()}></span>
                                     <span
                                         style={{
@@ -520,17 +520,17 @@ class CardForm extends Component {
                                         className="button blue medium"
                                         id="create-account-button"
                                         disabled={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                             this.props.register.requesting
                                         }
                                     >
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                         {!this.props.register.requesting && (
                                             <span>
                                                 Create OneUptime Account
                                             </span>
                                         )}
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                         {this.props.register.requesting && (
                                             <ButtonSpinner />
                                         )}
@@ -545,34 +545,34 @@ class CardForm extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CardForm.displayName = 'CardForm';
 
 const validate = function (values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.cardName)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'cardName' does not exist on type '{}'.
+
         errors.cardName = 'Name is required.';
     }
 
     if (!Validate.text(values.city)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'city' does not exist on type '{}'.
+
         errors.city = 'City is required.';
     }
 
     if (!Validate.text(values.zipCode)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'zipCode' does not exist on type '{}'.
+
         errors.zipCode = 'Zip Code or Postal Code is required.';
     }
 
     if (!Validate.text(values.country)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'country' does not exist on type '{}'.
+
         errors.country = 'Country is required.';
     }
 
     if (!Validate.postalCode(values.zipCode)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'zipCode' does not exist on type '{}'.
+
         errors.zipCode = 'Postal Code or Zip Code is invalid.';
     }
 
@@ -613,7 +613,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CardForm.propTypes = {
     openModal: PropTypes.func,
     handleSubmit: PropTypes.func.isRequired,
@@ -646,5 +646,5 @@ export default class CardFormHOC extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CardFormHOC.displayName = 'CardFormHOC';

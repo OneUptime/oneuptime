@@ -73,7 +73,7 @@ const TimeSelector = ({
                             value={value}
                             error={false}
                             invalidDateMessage={false}
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"modal"' is not assignable to type 'WrapperV... Remove this comment to see the full error message
+
                             variant="modal"
                             onChange={handleChange}
                             KeyboardButtonProps={{
@@ -118,5 +118,5 @@ TimeSelector.propTypes = {
     classes: PropTypes.object,
 };
 
-// @ts-expect-error ts-migrate(2345) FIXME: Argument of type '() => { input: { flex: string; p... Remove this comment to see the full error message
+
 export default withStyles(styles)(TimeSelector);

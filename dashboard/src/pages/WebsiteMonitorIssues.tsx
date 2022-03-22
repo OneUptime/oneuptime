@@ -1,7 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
@@ -56,7 +56,7 @@ WebsiteIssuesBox.propTypes = {
 class WebsiteMonitorIssues extends React.Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
     }
     componentDidMount() {
@@ -65,9 +65,9 @@ class WebsiteMonitorIssues extends React.Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             String(prevProps.componentSlug) !==
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             String(this.props.componentSlug) ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             prevProps.projectId !== this.props.projectId
         ) {
             this.ready();
@@ -75,22 +75,22 @@ class WebsiteMonitorIssues extends React.Component {
     }
 
     ready = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
         const { componentSlug, fetchComponent, projectId } = this.props;
         if (projectId && componentSlug) {
             fetchComponent(projectId, componentSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorIssue' does not exist on typ... Remove this comment to see the full error message
+
             this.props.fetchMonitorIssue(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 this.props.projectId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 this.props.match.params.issueId
             );
         }
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { monitorState } = this.props;
 
         let variable;
@@ -400,11 +400,11 @@ class WebsiteMonitorIssues extends React.Component {
             );
         }
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location: { pathname },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             component,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             monitor,
         } = this.props;
         const componentName =
@@ -421,9 +421,9 @@ class WebsiteMonitorIssues extends React.Component {
                 ? monitorState.monitorIssue.url
                 : 'URL';
 
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+
         const monitorDetailRoute = getParentRoute(pathname);
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+
         const componentMonitorsRoute = getParentRoute(monitorDetailRoute);
 
         return (
@@ -501,7 +501,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 WebsiteMonitorIssues.propTypes = {
     fetchMonitorIssue: PropTypes.func,
     fetchComponent: PropTypes.func,
@@ -520,7 +520,7 @@ WebsiteMonitorIssues.propTypes = {
     projectId: PropTypes.string,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 WebsiteMonitorIssues.displayName = 'WebsiteMonitorIssues';
 
 export default connect(

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
@@ -16,7 +16,7 @@ export class SidebarNavItem extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { route } = this.props;
         navKeyBind(route);
 
@@ -27,7 +27,7 @@ export class SidebarNavItem extends Component {
     }
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { route } = this.props;
         cleanBind(route);
 
@@ -52,13 +52,11 @@ export class SidebarNavItem extends Component {
                     <div className="Box-root Flex-flex Flex-alignItems--center tooltip">
                         <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
                             <span
-                                className={`db-SideNav-icon db-SideNav-icon--${
-                                    route.icon
-                                } ${
-                                    isLinkActive
+                                className={`db-SideNav-icon db-SideNav-icon--${route.icon
+                                    } ${isLinkActive
                                         ? 'db-SideNav-icon--selected'
                                         : null
-                                }`}
+                                    }`}
                             />
                         </div>
                         <span
@@ -86,7 +84,7 @@ export class SidebarNavItem extends Component {
 
     render() {
         const { RenderListItems } = this;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { route, location, match, loadPage } = this.props;
         const path = route.path;
         const isLinkActive =
@@ -105,7 +103,7 @@ export class SidebarNavItem extends Component {
         };
 
         return (
-            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ position: string; }' is not assignable to ... Remove this comment to see the full error message
+
             <div id={this.camalize(route.title)} style={routeStyle}>
                 <ShouldRender if={!route.invisible}>
                     <ShouldRender if={route.external}>
@@ -144,7 +142,7 @@ export class SidebarNavItem extends Component {
         active,
         onLoad
     }: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         return this.props.route.subRoutes.map((child: $TSFixMe, index: $TSFixMe) => {
             const routes = child.shortcut && child.shortcut.split('+');
 
@@ -154,7 +152,7 @@ export class SidebarNavItem extends Component {
             if (child.visible) {
                 const link = child.path.replace(
                     ':userId',
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                     this.props.match.params.userId
                 );
                 return (
@@ -199,14 +197,14 @@ export class SidebarNavItem extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SidebarNavItem.displayName = 'SidebarNavItem';
 
 const mapStateToProps = () => ({});
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ loadPage }, dispatch);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,

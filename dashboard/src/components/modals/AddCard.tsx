@@ -4,10 +4,10 @@ import {
     StripeProvider,
     Elements,
     injectStripe,
-    // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 } from '@stripe/react-stripe-js';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -45,7 +45,7 @@ const createOptions = (fontSize: $TSFixMe, padding: $TSFixMe) => {
 class _CardForm extends React.Component {
     setRef: $TSFixMe;
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
 
         this.setRef = (instance: $TSFixMe) => {
@@ -70,7 +70,7 @@ class _CardForm extends React.Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('addCardButtonSubmit').click();
             default:
                 return false;
@@ -78,24 +78,24 @@ class _CardForm extends React.Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'CreateCardModalId' does not exist on typ... Remove this comment to see the full error message
+
             id: this.props.CreateCardModalId,
         });
     };
 
     handleSubmit = async (e: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             userId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripe' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             stripe,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCardSuccess' does not exist on type '... Remove this comment to see the full error message
+
             addCardSuccess,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCardFailed' does not exist on type 'R... Remove this comment to see the full error message
+
             addCardFailed,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCardRequest' does not exist on type '... Remove this comment to see the full error message
+
             addCardRequest,
         } = this.props;
         e.preventDefault();
@@ -110,7 +110,7 @@ class _CardForm extends React.Component {
                 }: $TSFixMe) => {
                     if (token) {
                         tok = token;
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+
                         return postApi(
                             `stripe/${userId}/creditCard/${token.id}/pi`
                         );
@@ -132,13 +132,13 @@ class _CardForm extends React.Component {
                         After 'stripe.handleCardPayment' is called, paymentIntent.source equalled null.
                         However, the content of SOURCE prior to the handleCardPayment is 'card_1JFaaLIt5jR0TXkEUhiiuw5M' and this is the same as TOK.CARD.ID from token generated
                         */
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'card' does not exist on type '{}'.
+
                         cardId = tok.card && tok.card.id;
                         return getApi(`stripe/${userId}/creditCard/${cardId}`);
                     } else {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'card' does not exist on type '{}'.
+
                         cardId = tok.card && tok.card.id;
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+
                         deleteApi(`stripe/${userId}/creditCard/${cardId}`);
                         throw new Error(result.error.message);
                     }
@@ -147,9 +147,9 @@ class _CardForm extends React.Component {
                     data
                 }: $TSFixMe) => {
                     addCardSuccess(data);
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                     this.props.closeModal({
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'CreateCardModalId' does not exist on typ... Remove this comment to see the full error message
+
                         id: this.props.CreateCardModalId,
                     });
                 })
@@ -157,18 +157,18 @@ class _CardForm extends React.Component {
                     addCardFailed(error.message);
                 });
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCardFailed' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.addCardFailed('Network Error, please try again later.');
         }
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { requesting, error, elementFontSize } = this.props;
         return (
             <form onSubmit={this.handleSubmit}>
                 <div
                     className="ModalLayer-contents"
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                     tabIndex="-1"
                     style={{ marginTop: '40px' }}
                 >
@@ -198,7 +198,7 @@ class _CardForm extends React.Component {
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--20i">
                                         <label>
                                             <CardElement
-                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+
                                                 {...createOptions(
                                                     elementFontSize
                                                 )}
@@ -241,10 +241,10 @@ class _CardForm extends React.Component {
                                         className="bs-Button bs-DeprecatedButton btn__modal"
                                         type="button"
                                         onClick={() =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             this.props.closeModal({
                                                 id: this.props
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'CreateCardModalId' does not exist on typ... Remove this comment to see the full error message
+
                                                     .CreateCardModalId,
                                             })
                                         }
@@ -280,10 +280,10 @@ class _CardForm extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 _CardForm.displayName = '_CardForm';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 _CardForm.propTypes = {
     userId: PropTypes.string,
     stripe: PropTypes.object,
@@ -318,7 +318,7 @@ const CardForm = injectStripe(
 
 class AddCard extends React.Component {
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.state = {
             elementFontSize: window.innerWidth < 450 ? '14px' : '18px',
@@ -326,13 +326,13 @@ class AddCard extends React.Component {
         window.addEventListener('resize', () => {
             if (
                 window.innerWidth < 450 &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'elementFontSize' does not exist on type ... Remove this comment to see the full error message
+
                 this.state.elementFontSize !== '14px'
             ) {
                 this.setState({ elementFontSize: '14px' });
             } else if (
                 window.innerWidth >= 450 &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'elementFontSize' does not exist on type ... Remove this comment to see the full error message
+
                 this.state.elementFontSize !== '18px'
             ) {
                 this.setState({ elementFontSize: '18px' });
@@ -341,7 +341,7 @@ class AddCard extends React.Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'elementFontSize' does not exist on type ... Remove this comment to see the full error message
+
         const { elementFontSize } = this.state;
         return (
             <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
@@ -355,7 +355,7 @@ class AddCard extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AddCard.displayName = 'AddCard';
 
 export default AddCard;

@@ -8,16 +8,16 @@ import moment from 'moment';
 class NotificationMenu extends Component {
     render() {
         const userId = User.getUserId();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'visible' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         return this.props.visible ? (
             <div
                 className="notifications ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
                 style={{
                     top: '49px',
                     width: '450px',
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'position' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     left: this.props.position
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'position' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         ? `${this.props.position - 391.5}px`
                         : 'unset',
                     right: '40px',
@@ -65,14 +65,14 @@ class NotificationMenu extends Component {
                                     </div>
                                 </div>
                                 <div className="Box-root Padding-vertical--8">
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
                                     {this.props.notifications &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
-                                    this.props.notifications.notifications &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
-                                    this.props.notifications.notifications
-                                        .length ? (
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
+                                        this.props.notifications.notifications &&
+
+                                        this.props.notifications.notifications
+                                            .length ? (
+
                                         this.props.notifications.notifications.map(
                                             (notification: $TSFixMe, key: $TSFixMe) => {
                                                 return (
@@ -97,11 +97,10 @@ class NotificationMenu extends Component {
                                                     >
                                                         <div className="Notify-oneuptime">
                                                             <img
-                                                                src={`/dashboard/assets/img/${
-                                                                    notification.icon
+                                                                src={`/dashboard/assets/img/${notification.icon
                                                                         ? notification.icon
                                                                         : 'information'
-                                                                }.svg`}
+                                                                    }.svg`}
                                                                 className="Notify-oneuptime-row-primary"
                                                                 style={{
                                                                     height:
@@ -157,7 +156,7 @@ class NotificationMenu extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 NotificationMenu.displayName = 'NotificationMenu';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -171,7 +170,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({}, dispatch);
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 NotificationMenu.propTypes = {
     visible: PropTypes.bool,
     notifications: PropTypes.oneOfType([
@@ -183,7 +182,7 @@ NotificationMenu.propTypes = {
     position: PropTypes.number,
 };
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 NotificationMenu.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NotificationMenu);

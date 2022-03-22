@@ -1,9 +1,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
@@ -271,7 +271,7 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.email(values['test-email'])) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         errors['test-email'] = 'Email is not valid.';
     }
     return errors;

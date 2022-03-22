@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import { loadPage } from '../actions/page';
 
@@ -11,7 +11,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import _ from 'lodash';
 import moment from 'moment-timezone';
 import OnCallSchedule from '../components/onCall/OnCallSchedule';
@@ -29,7 +29,7 @@ import {
 } from '../actions/monitor';
 import { fetchDefaultMonitorSla } from '../actions/monitorSla';
 import BreachedMonitorSla from '../components/monitorSla/BreachedMonitorSla';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchErrorTrackersByProject } from '../actions/errorTracker';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
@@ -38,7 +38,7 @@ import { fetchUnresolvedIncidents } from '../actions/incident';
 class Home extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             tabIndex: 0,
@@ -49,50 +49,50 @@ class Home extends Component {
     }
     tabSelected = (index: $TSFixMe) => {
         const tabSlider = document.getElementById('tab-slider');
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
             tabIndex: index,
         });
     };
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'loadPage' does not exist on type 'Readon... Remove this comment to see the full error message
+
         this.props.loadPage('Home');
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userScheduleRequest' does not exist on t... Remove this comment to see the full error message
+
         this.props.userScheduleRequest();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
         if (this.props.currentProjectId) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUnresolvedIncidents' does not exist... Remove this comment to see the full error message
+
             this.props.fetchUnresolvedIncidents(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
                 this.props.currentProjectId,
                 true
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSmtpConfig' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.getSmtpConfig(this.props.currentProjectId);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorTrackersByProject' does not ex... Remove this comment to see the full error message
+
             this.props.fetchErrorTrackersByProject(this.props.currentProjectId);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
             if (this.props.currentProjectId && this.props.user.id) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserSchedule' does not exist on typ... Remove this comment to see the full error message
+
                 this.props.fetchUserSchedule(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
                     this.props.currentProjectId,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                     this.props.user.id
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSubProjectOngoingScheduledEvents' d... Remove this comment to see the full error message
+
                 this.props.fetchSubProjectOngoingScheduledEvents(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
                     this.props.currentProjectId
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchBreachedMonitorSla' does not exist ... Remove this comment to see the full error message
+
                 this.props.fetchBreachedMonitorSla(this.props.currentProjectId);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchDefaultMonitorSla' does not exist o... Remove this comment to see the full error message
+
                 this.props.fetchDefaultMonitorSla(this.props.currentProjectId);
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
+
             this.props.subProjectTeamLoading(this.props.currentProjectId);
         }
     }
@@ -100,39 +100,39 @@ class Home extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             (!prevProps.user.id &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
                 this.props.currentProjectId &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 this.props.user.id) ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
             (prevProps.currentProjectId !== this.props.currentProjectId &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 this.props.user.id)
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserSchedule' does not exist on typ... Remove this comment to see the full error message
+
             this.props.fetchUserSchedule(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
                 this.props.currentProjectId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 this.props.user.id
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSubProjectOngoingScheduledEvents' d... Remove this comment to see the full error message
+
             this.props.fetchSubProjectOngoingScheduledEvents(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
                 this.props.currentProjectId
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchBreachedMonitorSla' does not exist ... Remove this comment to see the full error message
+
             this.props.fetchBreachedMonitorSla(this.props.currentProjectId);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchDefaultMonitorSla' does not exist o... Remove this comment to see the full error message
+
             this.props.fetchDefaultMonitorSla(this.props.currentProjectId);
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
         if (prevProps.currentProjectId !== this.props.currentProjectId) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
+
             this.props.subProjectTeamLoading(this.props.currentProjectId);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUnresolvedIncidents' does not exist... Remove this comment to see the full error message
+
             this.props.fetchUnresolvedIncidents(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
                 this.props.currentProjectId,
                 true
             );
@@ -140,19 +140,19 @@ class Home extends Component {
     }
 
     handleClosingSla = (projectId: $TSFixMe, monitorId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeBreachedMonitorSla' does not exist ... Remove this comment to see the full error message
+
         this.props.closeBreachedMonitorSla(projectId, monitorId);
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalations' does not exist on type 'Rea... Remove this comment to see the full error message
+
             escalations,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location: { pathname },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
+
             switchToProjectViewerNav,
         } = this.props;
 
@@ -162,7 +162,7 @@ class Home extends Component {
                     .map((team: $TSFixMe) => {
                         const schedule = team.teamMembers
                             .map((teamMember: $TSFixMe) => teamMember)
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                             .filter((user: $TSFixMe) => user.userId === this.props.user.id)
                             .pop();
                         if (schedule) {
@@ -266,9 +266,9 @@ class Home extends Component {
         }
 
         let incidentslist;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
         if (this.props.incidents) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             incidentslist = this.props.incidents.map((incident: $TSFixMe, i: $TSFixMe) => {
                 return (
                     <RenderIfUserInSubProject
@@ -283,7 +283,7 @@ class Home extends Component {
                             multiple={true}
                             route={pathname}
                             multipleIncidentRequest={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'multipleIncidentRequest' does not exist ... Remove this comment to see the full error message
+
                                 this.props.multipleIncidentRequest
                             }
                             editable={false}
@@ -293,9 +293,9 @@ class Home extends Component {
             });
         }
         let errorEventList;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackers' does not exist on type 'R... Remove this comment to see the full error message
+
         if (this.props.errorTrackers) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackers' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.errorTrackers && this.props.errorTrackers.length > 0
                 ? (errorEventList = (
                     <div className="Box-root Margin-vertical--12">
@@ -304,7 +304,7 @@ class Home extends Component {
                             style={{ overflow: 'visible' }}
                         >
                             <ErrorTrackerList
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackers' does not exist on type 'R... Remove this comment to see the full error message
+
                                 errorTrackers={this.props.errorTrackers}
                                 showComponentWithIssue={true}
                             />
@@ -351,12 +351,12 @@ class Home extends Component {
 
         let ongoingEventList;
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectOngoingScheduledEvents' does n... Remove this comment to see the full error message
+
             this.props.subProjectOngoingScheduledEvents &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectOngoingScheduledEvents' does n... Remove this comment to see the full error message
+
             this.props.subProjectOngoingScheduledEvents.length > 0
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectOngoingScheduledEvents' does n... Remove this comment to see the full error message
+
             let ongoingScheduledEvents = this.props.subProjectOngoingScheduledEvents.map(
                 (eventData: $TSFixMe) => eventData.ongoingScheduledEvents
             );
@@ -367,24 +367,24 @@ class Home extends Component {
             >
                 <OngoingScheduledEvent
                     event={event}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorList' does not exist on type 'Rea... Remove this comment to see the full error message
+
                     monitorList={this.props.monitorList}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                     slug={this.props.slug}
                 />
             </RenderIfUserInSubProject>);
         }
 
         let breachedMonitorSlaList;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlaBreaches' does not exist on ty... Remove this comment to see the full error message
+
         if (this.props.monitorSlaBreaches && this.props.monitorSlaBreaches) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlaBreaches' does not exist on ty... Remove this comment to see the full error message
+
             breachedMonitorSlaList = this.props.monitorSlaBreaches.map(
                 (monitor: $TSFixMe) => !monitor.monitorSla &&
                     !this.props
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultMonitorSla' does not exist on typ... Remove this comment to see the full error message
+
                         .defaultMonitorSla ? null : !monitor.monitorSla &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultMonitorSla' does not exist on typ... Remove this comment to see the full error message
+
                             this.props.defaultMonitorSla ? (
                     <RenderIfUserInSubProject
                         key={monitor._id}
@@ -394,12 +394,12 @@ class Home extends Component {
                     >
                         <BreachedMonitorSla
                             monitor={monitor}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultMonitorSla' does not exist on typ... Remove this comment to see the full error message
+
                             sla={this.props.defaultMonitorSla}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                             userId={this.props.user.id}
                             closeSla={this.handleClosingSla}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closingSla' does not exist on type 'Read... Remove this comment to see the full error message
+
                             closingSla={this.props.closingSla}
                         />
                     </RenderIfUserInSubProject>
@@ -413,10 +413,10 @@ class Home extends Component {
                         <BreachedMonitorSla
                             monitor={monitor}
                             sla={monitor.monitorSla}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                             userId={this.props.user.id}
                             closeSla={this.handleClosingSla}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closingSla' does not exist on type 'Read... Remove this comment to see the full error message
+
                             closingSla={this.props.closingSla}
                         />
                     </RenderIfUserInSubProject>
@@ -433,15 +433,15 @@ class Home extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem route={pathname} name="Home" />
                 <ShouldRender
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     if={this.props.monitors && this.props.monitors.length > 0}
                 >
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{page: string; }' is not assignable to type... Remove this comment to see the full error message
+
                     <AlertDisabledWarning page="Home" />
                 </ShouldRender>
                 <div className="Box-root">
@@ -458,7 +458,7 @@ class Home extends Component {
                                                 onSelect={(tabIndex: $TSFixMe) => this.tabSelected(tabIndex)
                                                 }
                                                 selectedIndex={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'tabIndex' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                     this.state.tabIndex
                                                 }
                                             >
@@ -496,7 +496,7 @@ class Home extends Component {
                                                             <ShouldRender
                                                                 if={
                                                                     !this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalation' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                         .escalation
                                                                         .requesting
                                                                 }
@@ -518,7 +518,7 @@ class Home extends Component {
                                                                                 slug={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                                         .slug
                                                                                 }
                                                                             />
@@ -539,7 +539,7 @@ class Home extends Component {
                                                                                 slug={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                                         .slug
                                                                                 }
                                                                             />
@@ -561,37 +561,37 @@ class Home extends Component {
                                                                                 components={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                                         .components
                                                                                 }
                                                                                 monitors={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                                                         .monitors
                                                                                 }
                                                                                 tutorialStat={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tutorialStat' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                                         .tutorialStat
                                                                                 }
                                                                                 currentProjectId={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
                                                                                         .currentProjectId
                                                                                 }
                                                                                 projectTeamMembers={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectTeamMembers' does not exist on ty... Remove this comment to see the full error message
+
                                                                                         .projectTeamMembers
                                                                                 }
                                                                                 slug={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                                         .slug
                                                                                 }
                                                                             />
@@ -599,21 +599,21 @@ class Home extends Component {
                                                                             {/* Here, check if atleast 1 component and monitor exists before deciding on incidents */}
                                                                             {this
                                                                                 .props
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                                 .components &&
                                                                                 this
                                                                                     .props
-                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                                     .components
                                                                                     .length >
                                                                                 0 &&
                                                                                 this
                                                                                     .props
-                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                                                     .monitors &&
                                                                                 this
                                                                                     .props
-                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                                                     .monitors
                                                                                     .length >
                                                                                 0 ? (
@@ -673,7 +673,7 @@ class Home extends Component {
                                                             <ShouldRender
                                                                 if={
                                                                     this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalation' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                         .escalation
                                                                         .requesting
                                                                 }
@@ -699,10 +699,10 @@ class Home extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Home.displayName = 'Home';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Home.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     user: PropTypes.object.isRequired,
@@ -774,7 +774,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
     for (const key in tutorialStat) {
         if (projectCustomTutorial && projectCustomTutorial[key]) {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             tutorialStat[key].show = projectCustomTutorial[key].show;
         }
     }

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 
 class Search extends Component {
@@ -33,7 +33,7 @@ class Search extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Search.displayName = 'Search';
 
 const mapStateToProps = () => {

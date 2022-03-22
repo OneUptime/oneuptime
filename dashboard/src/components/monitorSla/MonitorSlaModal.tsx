@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { createMonitorSla, fetchMonitorSlas } from '../../actions/monitorSla';
 import { fetchMonitors } from '../../actions/monitor';
@@ -19,30 +19,30 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!values.name || !values.name.trim()) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Monitor SLA name is required';
     }
     if (values.customFrequency && isNaN(values.customFrequency)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFrequency' does not exist on type ... Remove this comment to see the full error message
+
         errors.customFrequency = 'Only numeric values are allowed';
     }
     if (values.customFrequency && Number(values.customFrequency) < 1) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFrequency' does not exist on type ... Remove this comment to see the full error message
+
         errors.customFrequency = 'You need atleast a single day';
     }
     if (values.customMonitorUptime && isNaN(values.customMonitorUptime)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customMonitorUptime' does not exist on t... Remove this comment to see the full error message
+
         errors.customMonitorUptime = 'Only numeric values are allowed';
     }
     if (
         values.customMonitorUptime &&
         Number(values.customMonitorUptime) > 100
     ) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customMonitorUptime' does not exist on t... Remove this comment to see the full error message
+
         errors.customMonitorUptime = 'Uptime greater than 100 is not allowed';
     }
     if (values.customMonitorUptime && Number(values.customMonitorUptime) < 1) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customMonitorUptime' does not exist on t... Remove this comment to see the full error message
+
         errors.customMonitorUptime = 'Uptime less than 1 is not allowed';
     }
     return errors;
@@ -71,17 +71,17 @@ class MonitorSlaModal extends React.Component {
 
     submitForm = (values: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createMonitorSlaModalId' does not exist ... Remove this comment to see the full error message
+
             createMonitorSlaModalId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createMonitorSla' does not exist on type... Remove this comment to see the full error message
+
             createMonitorSla,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorSlas' does not exist on type... Remove this comment to see the full error message
+
             fetchMonitorSlas,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitors' does not exist on type 'R... Remove this comment to see the full error message
+
             fetchMonitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             data,
         } = this.props;
         const { setCustomFrequency, setCustomMonitorUptime } = this.state;
@@ -92,13 +92,13 @@ class MonitorSlaModal extends React.Component {
             this.state.selectedMonitors &&
             this.state.selectedMonitors.length > 0
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
             postObj.monitors = this.state.selectedMonitors;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
         const isDuplicate = postObj.monitors
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
                 : true
@@ -111,29 +111,29 @@ class MonitorSlaModal extends React.Component {
             return;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         postObj.name = values.name;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type '{}'.
+
         postObj.isDefault = values.isDefault;
 
         if (setCustomFrequency) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'frequency' does not exist on type '{}'.
+
             postObj.frequency = values.customFrequency;
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'frequency' does not exist on type '{}'.
+
             postObj.frequency = values.frequencyOption;
         }
 
         if (setCustomMonitorUptime) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorUptime' does not exist on type '{... Remove this comment to see the full error message
+
             postObj.monitorUptime = values.customMonitorUptime;
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorUptime' does not exist on type '{... Remove this comment to see the full error message
+
             postObj.monitorUptime = values.monitorUptimeOption;
         }
 
         createMonitorSla(projectId, postObj).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slaError' does not exist on type 'Readon... Remove this comment to see the full error message
+
             if (!this.props.slaError) {
                 fetchMonitors(projectId);
                 fetchMonitorSlas(projectId, 0, 10);
@@ -149,7 +149,7 @@ class MonitorSlaModal extends React.Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('createSlaBtn').click();
             default:
                 return false;
@@ -157,24 +157,24 @@ class MonitorSlaModal extends React.Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createMonitorSlaModalId' does not exist ... Remove this comment to see the full error message
+
             id: this.props.createMonitorSlaModalId,
         });
     };
 
     formatData = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+
         const monitors = this.props.monitorsList;
         const hash = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
             const componentId = monitor.componentId._id || monitor.componentId;
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             if (!hash[projectId]) {
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                 hash[projectId] = {
                     projectName: monitor.projectId?.name,
                     projectId,
@@ -193,11 +193,11 @@ class MonitorSlaModal extends React.Component {
                 };
             } else {
                 let monitorAdded = false;
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                 hash[projectId] = {
-                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                     ...hash[projectId],
-                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
                             const newMonitor = {
@@ -228,12 +228,12 @@ class MonitorSlaModal extends React.Component {
                             },
                         ],
                     };
-                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                     hash[projectId] = {
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                         ...hash[projectId],
                         components: [
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                             ...hash[projectId].components,
                             componentData,
                         ],
@@ -256,7 +256,7 @@ class MonitorSlaModal extends React.Component {
 
     updateState = (value: $TSFixMe, key: $TSFixMe) => {
         this.setState(prevState => {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             let currentValue = prevState[key];
 
             if (currentValue.includes(value)) {
@@ -281,7 +281,7 @@ class MonitorSlaModal extends React.Component {
         if (key === 'selectedProjects' && databank.includes(id)) {
             const monitorIds: $TSFixMe = [];
             const componentIds: $TSFixMe = [];
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.projectId._id || monitor.projectId) === id) {
                     monitorIds.push(monitor._id);
@@ -293,11 +293,11 @@ class MonitorSlaModal extends React.Component {
 
             return this.setState(prevState => ({
                 selectedMonitors: Array.from(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
+
                     new Set([...prevState.selectedMonitors, ...monitorIds])
                 ),
                 selectedComponents: Array.from(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
+
                     new Set([...prevState.selectedComponents, ...componentIds])
                 ),
             }));
@@ -306,7 +306,7 @@ class MonitorSlaModal extends React.Component {
         if (key === 'selectedProjects' && !databank.includes(id)) {
             const monitorIds: $TSFixMe = [];
             const componentIds: $TSFixMe = [];
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.projectId._id || monitor.projectId) === id) {
                     monitorIds.push(monitor._id);
@@ -317,11 +317,11 @@ class MonitorSlaModal extends React.Component {
             });
 
             return this.setState(prevState => ({
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
+
                 selectedMonitors: prevState.selectedMonitors.filter(
                     (monitorId: $TSFixMe) => !monitorIds.includes(monitorId)
                 ),
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedComponents' does not exist on ty... Remove this comment to see the full error message
+
                 selectedComponents: prevState.selectedComponents.filter(
                     (componentId: $TSFixMe) => !componentIds.includes(componentId)
                 ),
@@ -330,7 +330,7 @@ class MonitorSlaModal extends React.Component {
 
         if (key === 'selectedComponents' && databank.includes(id)) {
             const monitorIds: $TSFixMe = [];
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.componentId._id || monitor.componentId) === id) {
                     monitorIds.push(monitor._id);
@@ -339,7 +339,7 @@ class MonitorSlaModal extends React.Component {
 
             return this.setState(prevState => ({
                 selectedMonitors: Array.from(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
+
                     new Set([...prevState.selectedMonitors, ...monitorIds])
                 ),
             }));
@@ -347,7 +347,7 @@ class MonitorSlaModal extends React.Component {
 
         if (key === 'selectedComponents' && !databank.includes(id)) {
             const monitorIds: $TSFixMe = [];
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsList' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.monitorsList.forEach((monitor: $TSFixMe) => {
                 if ((monitor.componentId._id || monitor.componentId) === id) {
                     monitorIds.push(monitor._id);
@@ -355,7 +355,7 @@ class MonitorSlaModal extends React.Component {
             });
 
             return this.setState(prevState => ({
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedMonitors' does not exist on type... Remove this comment to see the full error message
+
                 selectedMonitors: prevState.selectedMonitors.filter(
                     (monitorId: $TSFixMe) => !monitorIds.includes(monitorId)
                 ),
@@ -365,17 +365,17 @@ class MonitorSlaModal extends React.Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slaError' does not exist on type 'Readon... Remove this comment to see the full error message
+
             slaError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createMonitorSlaModalId' does not exist ... Remove this comment to see the full error message
+
             createMonitorSlaModalId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
+
             formValues,
         } = this.props;
         const { setCustomFrequency, setCustomMonitorUptime } = this.state;
@@ -390,7 +390,7 @@ class MonitorSlaModal extends React.Component {
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -546,14 +546,12 @@ class MonitorSlaModal extends React.Component {
                                                                             ready={
                                                                                 true
                                                                             }
-                                                                            value={`${
-                                                                                selectedMonitors.length
-                                                                            } Monitor${
-                                                                                selectedMonitors.length >
-                                                                                0
+                                                                            value={`${selectedMonitors.length
+                                                                                } Monitor${selectedMonitors.length >
+                                                                                    0
                                                                                     ? 's'
                                                                                     : ''
-                                                                            } Selected`}
+                                                                                } Selected`}
                                                                             updateState={
                                                                                 this
                                                                                     .updateState
@@ -908,10 +906,10 @@ class MonitorSlaModal extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorSlaModal.displayName = 'MonitorSlaModal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorSlaModal.propTypes = {
     closeModal: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,

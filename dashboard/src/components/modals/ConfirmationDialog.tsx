@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
+
 import { PropTypes } from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { openModal, closeModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
@@ -20,26 +20,26 @@ class ConfirmationDialog extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('cancelResetKey').click();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('confirmResetKey').click();
             default:
                 return false;
         }
     };
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             id: this.props.data.ConfirmationDialogId,
         });
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             data: {
                 ConfirmationDialogId,
                 SubProjectModalId,
@@ -47,9 +47,9 @@ class ConfirmationDialog extends Component {
                 subProjectId,
                 confirm,
             },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
         } = this.props;
 
@@ -150,10 +150,10 @@ class ConfirmationDialog extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ConfirmationDialog.displayName = 'ConfirmationDialog';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ConfirmationDialog.propTypes = {
     data: PropTypes.shape({
         ConfirmationDialogId: PropTypes.string,

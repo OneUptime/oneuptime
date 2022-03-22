@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, change, formValueSelector } from 'redux-form';
 import PropTypes from 'prop-types';
 import {
@@ -169,25 +169,25 @@ const placeholders = {
 export class RenderOption extends Component {
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addArrayField' does not exist on type 'R... Remove this comment to see the full error message
+
             addArrayField,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeArrayField' does not exist on type... Remove this comment to see the full error message
+
             removeArrayField,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fieldnameprop' does not exist on type 'R... Remove this comment to see the full error message
+
             fieldnameprop,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyfield' does not exist on type 'Reado... Remove this comment to see the full error message
+
             bodyfield,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addField' does not exist on type 'Readon... Remove this comment to see the full error message
+
             addField,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeField' does not exist on type 'Rea... Remove this comment to see the full error message
+
             removeField,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'level' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             level,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             type,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             change,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterionType' does not exist on type 'R... Remove this comment to see the full error message
+
             criterionType,
         } = this.props;
 
@@ -226,9 +226,8 @@ export class RenderOption extends Component {
                             }}
                             validate={ValidateField.select}
                             style={{
-                                width: `${
-                                    level > 1 ? 180 - level * 10 : 180
-                                }px`,
+                                width: `${level > 1 ? 180 - level * 10 : 180
+                                    }px`,
                             }}
                             options={[
                                 { value: '', label: 'None' },
@@ -359,12 +358,12 @@ export class RenderOption extends Component {
                 </div>
 
                 {bodyfield &&
-                bodyfield.responseType === 'javascriptExpression' ? (
+                    bodyfield.responseType === 'javascriptExpression' ? (
                     <div
                         className="bs-Fieldset-row"
                         style={
                             bodyfield !== '' &&
-                            bodyfield.responseType === 'javascriptExpression'
+                                bodyfield.responseType === 'javascriptExpression'
                                 ? flexStyle
                                 : flexStylehidden
                         }
@@ -383,30 +382,30 @@ export class RenderOption extends Component {
                                 component={RenderField}
                                 validate={
                                     filterval !== '' &&
-                                    firstField.indexOf(filterval) > -1
+                                        firstField.indexOf(filterval) > -1
                                         ? filterval === 'jsExpression'
                                             ? ValidateField.required
                                             : [
-                                                  ValidateField.required,
-                                                  ValidateField.maxValue10000,
-                                              ]
+                                                ValidateField.required,
+                                                ValidateField.maxValue10000,
+                                            ]
                                         : undefined
                                 }
                                 placeholder="response.body === {}"
                                 style={
                                     filterval !== '' &&
-                                    filterval === 'jsExpression'
+                                        filterval === 'jsExpression'
                                         ? { width: '426px' }
                                         : bodyfield &&
-                                          filterval !== '' &&
-                                          bodyfield.responseType ===
-                                              'responseTime'
-                                        ? { width: '180px' }
-                                        : { width: '200px' }
+                                            filterval !== '' &&
+                                            bodyfield.responseType ===
+                                            'responseTime'
+                                            ? { width: '180px' }
+                                            : { width: '200px' }
                                 }
                             />
                         </div>
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
+
                         <Tooltip title="Incoming http Request Filter">
                             <p>
                                 JavaScript expressions that evaluates to a
@@ -433,9 +432,9 @@ export class RenderOption extends Component {
                         className="bs-Fieldset-row"
                         style={
                             bodyfield &&
-                            bodyfield.responseType &&
-                            bodyfield.responseType !== '' &&
-                            bodyfield.responseType !== 'javascriptExpression'
+                                bodyfield.responseType &&
+                                bodyfield.responseType !== '' &&
+                                bodyfield.responseType !== 'javascriptExpression'
                                 ? flexStyle
                                 : flexStylehidden
                         }
@@ -466,12 +465,12 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
-                                                    'statusCode' ||
+                                                'statusCode' ||
                                                 bodyfield.responseType ===
-                                                    'incomingTime' ||
+                                                'incomingTime' ||
                                                 type === 'server-monitor' ||
                                                 bodyfield.responseType ===
-                                                    'podRestarts'),
+                                                'podRestarts'),
                                     },
                                     {
                                         value: 'lessThan',
@@ -481,9 +480,9 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
-                                                    'statusCode' ||
+                                                'statusCode' ||
                                                 bodyfield.responseType ===
-                                                    'incomingTime' ||
+                                                'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -494,9 +493,9 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
-                                                    'statusCode' ||
+                                                'statusCode' ||
                                                 bodyfield.responseType ===
-                                                    'incomingTime' ||
+                                                'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -525,9 +524,9 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
-                                                    'statusCode' ||
+                                                'statusCode' ||
                                                 bodyfield.responseType ===
-                                                    'incomingTime' ||
+                                                'incomingTime' ||
                                                 type === 'server-monitor' ||
                                                 type === 'kubernetes'),
                                     },
@@ -539,9 +538,9 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
-                                                    'statusCode' ||
+                                                'statusCode' ||
                                                 bodyfield.responseType ===
-                                                    'incomingTime' ||
+                                                'incomingTime' ||
                                                 type === 'server-monitor' ||
                                                 type === 'kubernetes'),
                                     },
@@ -553,9 +552,9 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
-                                                    'statusCode' ||
+                                                'statusCode' ||
                                                 bodyfield.responseType ===
-                                                    'incomingTime' ||
+                                                'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -566,9 +565,9 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseTime' ||
                                                 bodyfield.responseType ===
-                                                    'statusCode' ||
+                                                'statusCode' ||
                                                 bodyfield.responseType ===
-                                                    'incomingTime' ||
+                                                'incomingTime' ||
                                                 type === 'server-monitor'),
                                     },
                                     {
@@ -579,9 +578,9 @@ export class RenderOption extends Component {
                                             (bodyfield.responseType ===
                                                 'responseBody' ||
                                                 bodyfield.responseType ===
-                                                    'queryString' ||
+                                                'queryString' ||
                                                 bodyfield.responseType ===
-                                                    'headers'),
+                                                'headers'),
                                     },
                                     {
                                         value: 'doesNotContain',
@@ -589,7 +588,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'responseBody',
+                                            'responseBody',
                                     },
                                     {
                                         value: 'evaluateResponse',
@@ -597,7 +596,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'responseBody' &&
+                                            'responseBody' &&
                                             type === 'api',
                                     },
                                     {
@@ -606,7 +605,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'responseBody',
+                                            'responseBody',
                                     },
                                     {
                                         value: 'notEmpty',
@@ -614,7 +613,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'responseBody',
+                                            'responseBody',
                                     },
                                     {
                                         value: 'throwsError',
@@ -622,7 +621,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'scriptExecution',
+                                            'scriptExecution',
                                     },
                                     {
                                         value: 'doesNotThrowError',
@@ -630,7 +629,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'scriptExecution',
+                                            'scriptExecution',
                                     },
                                     {
                                         value: 'emptyCallback',
@@ -638,7 +637,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'scriptExecution',
+                                            'scriptExecution',
                                     },
                                     {
                                         value: 'nonEmptyCallback',
@@ -646,7 +645,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'scriptExecution',
+                                            'scriptExecution',
                                     },
                                     {
                                         value: 'executesIn',
@@ -654,7 +653,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'executionTime',
+                                            'executionTime',
                                     },
                                     {
                                         value: 'doesNotExecuteIn',
@@ -662,7 +661,7 @@ export class RenderOption extends Component {
                                         show:
                                             bodyfield &&
                                             bodyfield.responseType ===
-                                                'executionTime',
+                                            'executionTime',
                                     },
                                     {
                                         value: 'isValid',
@@ -706,8 +705,8 @@ export class RenderOption extends Component {
                 )}
 
                 {bodyfield &&
-                filterval !== '' &&
-                bodyfield.responseType === 'scriptExecution' ? (
+                    filterval !== '' &&
+                    bodyfield.responseType === 'scriptExecution' ? (
                     ''
                 ) : (
                     <>
@@ -715,7 +714,7 @@ export class RenderOption extends Component {
                             className="bs-Fieldset-row"
                             style={
                                 filterval !== '' &&
-                                firstField.indexOf(filterval) > -1
+                                    firstField.indexOf(filterval) > -1
                                     ? flexStyle
                                     : flexStylehidden
                             }
@@ -724,9 +723,9 @@ export class RenderOption extends Component {
                                 className="bs-Fieldset-label"
                                 style={{ padding: '6px' }}
                             >
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                 {filterval && mapValue[filterval]
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                     ? mapValue[filterval]
                                     : ''}
                             </label>
@@ -739,11 +738,10 @@ export class RenderOption extends Component {
                                         id="value"
                                         validate={ValidateField.select}
                                         style={{
-                                            width: `${
-                                                level > 1
+                                            width: `${level > 1
                                                     ? 180 - level * 10
                                                     : 180
-                                            }px`,
+                                                }px`,
                                         }}
                                         options={[
                                             {
@@ -776,27 +774,27 @@ export class RenderOption extends Component {
                                                 label: 'Running',
                                                 show:
                                                     bodyfield.responseType ===
-                                                        'podStatus' ||
+                                                    'podStatus' ||
                                                     bodyfield.responseType ===
-                                                        'jobStatus',
+                                                    'jobStatus',
                                             },
                                             {
                                                 value: 'succeeded',
                                                 label: 'Succeeded',
                                                 show:
                                                     bodyfield.responseType ===
-                                                        'jobStatus' ||
+                                                    'jobStatus' ||
                                                     bodyfield.responseType ===
-                                                        'podStatus',
+                                                    'podStatus',
                                             },
                                             {
                                                 value: 'failed',
                                                 label: 'Failed',
                                                 show:
                                                     bodyfield.responseType ===
-                                                        'jobStatus' ||
+                                                    'jobStatus' ||
                                                     bodyfield.responseType ===
-                                                        'podStatus',
+                                                    'podStatus',
                                             },
                                             {
                                                 value: 'unknown',
@@ -816,40 +814,40 @@ export class RenderOption extends Component {
                                         component={RenderField}
                                         validate={
                                             filterval !== '' &&
-                                            firstField.indexOf(filterval) > -1
+                                                firstField.indexOf(filterval) > -1
                                                 ? filterval ===
-                                                      'jsExpression' ||
-                                                  filterval ===
-                                                      'evaluateResponse' ||
-                                                  filterval === 'contains' ||
-                                                  filterval === 'doesNotContain'
+                                                    'jsExpression' ||
+                                                    filterval ===
+                                                    'evaluateResponse' ||
+                                                    filterval === 'contains' ||
+                                                    filterval === 'doesNotContain'
                                                     ? ValidateField.required
                                                     : bodyfield.responseType ===
-                                                          'podStatus' ||
-                                                      bodyfield.responseType ===
-                                                          'jobStatus'
-                                                    ? ValidateField.required
-                                                    : [
-                                                          ValidateField.required,
-                                                          ValidateField.maxValue20000,
-                                                      ]
+                                                        'podStatus' ||
+                                                        bodyfield.responseType ===
+                                                        'jobStatus'
+                                                        ? ValidateField.required
+                                                        : [
+                                                            ValidateField.required,
+                                                            ValidateField.maxValue20000,
+                                                        ]
                                                 : undefined
                                         }
                                         placeholder={
                                             bodyfield &&
-                                            filterval &&
-                                            bodyfield.responseType &&
-                                            placeholderfilter.indexOf(
-                                                filterval
-                                            ) <= -1 &&
-                                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                                            placeholders[filterval][
+                                                filterval &&
+                                                bodyfield.responseType &&
+                                                placeholderfilter.indexOf(
+                                                    filterval
+                                                ) <= -1 &&
+
+                                                placeholders[filterval][
                                                 bodyfield.responseType
-                                            ]
-                                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                                ]
+
                                                 ? placeholders[filterval][
-                                                      bodyfield.responseType
-                                                  ]
+                                                bodyfield.responseType
+                                                ]
                                                 : ''
                                         }
                                         style={{ width: '220px' }}
@@ -862,7 +860,7 @@ export class RenderOption extends Component {
                                         bodyfield.filter === 'jsExpression'
                                     }
                                 >
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
+
                                     <Tooltip title="Incoming HTTP Request JS Expression">
                                         <p>
                                             JavaScript expressions that
@@ -893,10 +891,10 @@ export class RenderOption extends Component {
                                     if={
                                         type === 'api' &&
                                         bodyfield.responseType ===
-                                            'responseBody'
+                                        'responseBody'
                                     }
                                 >
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
+
                                     <Tooltip title="Evaluate Response">
                                         <p>
                                             API Monitor exposes the{' '}
@@ -1016,8 +1014,8 @@ export class RenderOption extends Component {
                         </div>
 
                         {bodyfield &&
-                        filterval !== '' &&
-                        bodyfield.responseType === 'responseTime' ? (
+                            filterval !== '' &&
+                            bodyfield.responseType === 'responseTime' ? (
                             <span
                                 style={{
                                     display: 'inline-block',
@@ -1030,8 +1028,8 @@ export class RenderOption extends Component {
                             ''
                         )}
                         {bodyfield &&
-                        filterval !== '' &&
-                        bodyfield.responseType === 'incomingTime' ? (
+                            filterval !== '' &&
+                            bodyfield.responseType === 'incomingTime' ? (
                             <span
                                 style={{
                                     display: 'inline-block',
@@ -1044,8 +1042,8 @@ export class RenderOption extends Component {
                             ''
                         )}
                         {bodyfield &&
-                        filterval !== '' &&
-                        bodyfield.responseType === 'cpuLoad' ? (
+                            filterval !== '' &&
+                            bodyfield.responseType === 'cpuLoad' ? (
                             <span
                                 style={{
                                     display: 'inline-block',
@@ -1058,9 +1056,9 @@ export class RenderOption extends Component {
                             ''
                         )}
                         {bodyfield &&
-                        filterval !== '' &&
-                        (bodyfield.responseType === 'memoryUsage' ||
-                            bodyfield.responseType === 'storageUsage') ? (
+                            filterval !== '' &&
+                            (bodyfield.responseType === 'memoryUsage' ||
+                                bodyfield.responseType === 'storageUsage') ? (
                             <span
                                 style={{
                                     display: 'inline-block',
@@ -1073,8 +1071,8 @@ export class RenderOption extends Component {
                             ''
                         )}
                         {bodyfield &&
-                        filterval !== '' &&
-                        bodyfield.responseType === 'temperature' ? (
+                            filterval !== '' &&
+                            bodyfield.responseType === 'temperature' ? (
                             <span
                                 style={{
                                     display: 'inline-block',
@@ -1112,22 +1110,22 @@ export class RenderOption extends Component {
                             validate={
                                 filterval !== '' && filterval === 'inBetween'
                                     ? [
-                                          ValidateField.required,
-                                          ValidateField.maxValue20000,
-                                      ]
+                                        ValidateField.required,
+                                        ValidateField.maxValue20000,
+                                    ]
                                     : undefined
                             }
                             placeholder={
                                 bodyfield &&
-                                filterval &&
-                                bodyfield.responseType &&
-                                placeholderfilter.indexOf(filterval) <= -1 &&
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                                placeholders[filterval][bodyfield.responseType]
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                                    filterval &&
+                                    bodyfield.responseType &&
+                                    placeholderfilter.indexOf(filterval) <= -1 &&
+
+                                    placeholders[filterval][bodyfield.responseType]
+
                                     ? placeholders['lessThan'][
-                                          bodyfield.responseType
-                                      ]
+                                    bodyfield.responseType
+                                    ]
                                     : ''
                             }
                             style={{ width: '220px' }}
@@ -1136,9 +1134,9 @@ export class RenderOption extends Component {
                 </div>
 
                 {bodyfield &&
-                filterval !== '' &&
-                bodyfield.responseType === 'responseTime' &&
-                filterval === 'inBetween' ? (
+                    filterval !== '' &&
+                    bodyfield.responseType === 'responseTime' &&
+                    filterval === 'inBetween' ? (
                     <span
                         style={{
                             display: 'inline-block',
@@ -1152,8 +1150,8 @@ export class RenderOption extends Component {
                 )}
 
                 {bodyfield &&
-                filterval !== '' &&
-                bodyfield.responseType === 'executionTime' ? (
+                    filterval !== '' &&
+                    bodyfield.responseType === 'executionTime' ? (
                     <span
                         style={{
                             display: 'inline-block',
@@ -1165,9 +1163,9 @@ export class RenderOption extends Component {
                 ) : null}
 
                 {bodyfield &&
-                filterval !== '' &&
-                bodyfield.responseType === 'incomingTime' &&
-                filterval === 'inBetween' ? (
+                    filterval !== '' &&
+                    bodyfield.responseType === 'incomingTime' &&
+                    filterval === 'inBetween' ? (
                     <span
                         style={{
                             display: 'inline-block',
@@ -1180,9 +1178,9 @@ export class RenderOption extends Component {
                     ''
                 )}
                 {bodyfield &&
-                filterval !== '' &&
-                bodyfield.responseType === 'cpuLoad' &&
-                filterval === 'inBetween' ? (
+                    filterval !== '' &&
+                    bodyfield.responseType === 'cpuLoad' &&
+                    filterval === 'inBetween' ? (
                     <span
                         style={{
                             display: 'inline-block',
@@ -1195,10 +1193,10 @@ export class RenderOption extends Component {
                     ''
                 )}
                 {bodyfield &&
-                filterval !== '' &&
-                (bodyfield.responseType === 'memoryUsage' ||
-                    bodyfield.responseType === 'storageUsage') &&
-                filterval === 'inBetween' ? (
+                    filterval !== '' &&
+                    (bodyfield.responseType === 'memoryUsage' ||
+                        bodyfield.responseType === 'storageUsage') &&
+                    filterval === 'inBetween' ? (
                     <span
                         style={{
                             display: 'inline-block',
@@ -1211,9 +1209,9 @@ export class RenderOption extends Component {
                     ''
                 )}
                 {bodyfield &&
-                filterval !== '' &&
-                bodyfield.responseType === 'temperature' &&
-                filterval === 'inBetween' ? (
+                    filterval !== '' &&
+                    bodyfield.responseType === 'temperature' &&
+                    filterval === 'inBetween' ? (
                     <span
                         style={{
                             display: 'inline-block',
@@ -1274,7 +1272,7 @@ export class RenderOption extends Component {
                                     onClick={() =>
                                         removeField(
                                             removeArrayField,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCriteriaField' does not exist on t... Remove this comment to see the full error message
+
                                             this.props.updateCriteriaField
                                         )
                                     }
@@ -1310,7 +1308,7 @@ export class RenderOption extends Component {
                                     type="button"
                                     onClick={() => {
                                         addArrayField(fieldnameprop, [
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formCriteria' does not exist on type 'Re... Remove this comment to see the full error message
+
                                             ...(this.props.formCriteria || []),
                                             {
                                                 match: '',
@@ -1353,10 +1351,10 @@ export class RenderOption extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 RenderOption.displayName = 'RenderOption';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 RenderOption.propTypes = {
     bodyfield: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
     addArrayField: PropTypes.func,

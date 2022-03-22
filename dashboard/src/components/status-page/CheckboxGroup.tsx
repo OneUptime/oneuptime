@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field } from 'redux-form';
 
 class CheckboxGroup extends React.Component {
     checkboxGroup() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { monitors } = this.props;
 
         return monitors.map((monitor: $TSFixMe, index: $TSFixMe) => {
@@ -45,10 +45,10 @@ class CheckboxGroup extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CheckboxGroup.displayName = 'CheckboxGroup';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CheckboxGroup.propTypes = {
     monitors: PropTypes.array.isRequired,
 };

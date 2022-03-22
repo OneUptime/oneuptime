@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field } from 'redux-form';
 import DateTimeSelector from '../basic/DateTimeSelector';
 import TimeSelector from '../basic/TimeSelector';

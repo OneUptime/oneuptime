@@ -1,5 +1,5 @@
 import React from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import RoutingNumberList from './RoutingNumberList';
 import RoutingNumberButton from './RoutingNumberButton';
@@ -50,10 +50,10 @@ class RoutingNumberBox extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 RoutingNumberBox.displayName = 'RoutingNumberBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 RoutingNumberBox.propTypes = {};
 
 export default withRouter(RoutingNumberBox);

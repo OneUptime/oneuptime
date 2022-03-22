@@ -47,7 +47,7 @@ function ComponentList(props: $TSFixMe) {
         <div>
             {componentDetails}
 
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
             <div className="Box-root Card-shadow--medium" tabIndex="0">
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">

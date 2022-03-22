@@ -1,17 +1,17 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
 import { User, IS_SAAS_SERVICE } from '../../config';
 import { openModal, closeModal } from '../../actions/modal';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import About from '../modals/About';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 
 import ShouldRender from '../basic/ShouldRender';
@@ -32,18 +32,18 @@ export class ProfileMenu extends Component {
 
     handleShortcut = (event: $TSFixMe) => {
         // Only execute keyboard shortcut when profile menu is open
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'visible' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         if (this.props.visible) {
             if (event.key === 'p' || event.key === 'P') {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
+
                 this.props.hideProfileMenu();
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.history.push('/dashboard/profile/settings');
             }
             if (event.key === 'b' || event.key === 'B') {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
+
                 this.props.hideProfileMenu();
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.history.push('/dashboard/profile/billing');
             }
             if (event.key === 'a' || event.key === 'A') {
@@ -53,11 +53,11 @@ export class ProfileMenu extends Component {
     };
 
     showAboutModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
+
         this.props.hideProfileMenu();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'aboutId' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             id: this.state.aboutId,
             onClose: () => '',
             content: About,
@@ -65,7 +65,7 @@ export class ProfileMenu extends Component {
     };
 
     logout() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'logoutUser' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { logoutUser } = this.props;
         logoutUser();
     }
@@ -73,7 +73,7 @@ export class ProfileMenu extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({ id: this.state.aboutId });
             default:
                 return false;
@@ -81,7 +81,7 @@ export class ProfileMenu extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
         const { profileSettings, position } = this.props;
 
         const name = User.getName();
@@ -97,7 +97,7 @@ export class ProfileMenu extends Component {
             User.setEmail(profileSettings.data.email);
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'visible' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         return this.props.visible ? (
             <div
                 onKeyDown={this.handleKeyBoard}
@@ -149,7 +149,7 @@ export class ProfileMenu extends Component {
                                             className="ButtonLink db-Menu-item db-Menu-item--link"
                                             type="button"
                                             onClick={() =>
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
+
                                                 this.props.hideProfileMenu()
                                             }
                                         >
@@ -189,7 +189,7 @@ export class ProfileMenu extends Component {
                                                 className="ButtonLink db-Menu-item db-Menu-item--link"
                                                 type="button"
                                                 onClick={() =>
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
+
                                                     this.props.hideProfileMenu()
                                                 }
                                             >
@@ -286,7 +286,7 @@ export class ProfileMenu extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProfileMenu.displayName = 'ProfileMenu';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -304,7 +304,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
     hideProfileMenu: PropTypes.func.isRequired,

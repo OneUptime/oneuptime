@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderRotationFrequency } from './RenderRotationFrequency';
@@ -204,7 +204,7 @@ const RenderSingleEscalation = ({
                                                             subProjectId
                                                         }
                                                     />
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                     <Tooltip title="Call Reminders">
                                                         <div>
                                                             <p>
@@ -247,7 +247,7 @@ const RenderSingleEscalation = ({
                                                             subProjectId
                                                         }
                                                     />
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                     <Tooltip title="SMS Reminders">
                                                         <div>
                                                             <p>
@@ -290,7 +290,7 @@ const RenderSingleEscalation = ({
                                                             subProjectId
                                                         }
                                                     />
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                     <Tooltip title="Email Reminders">
                                                         <div>
                                                             <p>
@@ -334,7 +334,7 @@ const RenderSingleEscalation = ({
                                                             subProjectId
                                                         }
                                                     />
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                     <Tooltip title="Push notification Reminders">
                                                         <div>
                                                             <p>
@@ -376,7 +376,7 @@ const RenderSingleEscalation = ({
                                                         <PricingPlan
                                                             plan="Growth"
                                                             hideChildren={false}
-                                                        // @ts-expect-error ts-migrate(2747) FIXME: 'PricingPlan' components don't accept text as chil... Remove this comment to see the full error message
+
                                                         >
                                                             Advanced: Enable
                                                             Team Rotation
@@ -425,7 +425,7 @@ const RenderSingleEscalation = ({
                                                                 RenderRotationFrequency
                                                             }
                                                         />
-                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
+
                                                         <Tooltip title="On-Call Rotations">
                                                             <div>
                                                                 <p>
@@ -535,7 +535,7 @@ const RenderSingleEscalation = ({
                                                                 RenderInterval
                                                             }
                                                         />
-                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
+
                                                         <Tooltip title="Rotation Interval">
                                                             <div>
                                                                 <p>
@@ -629,7 +629,7 @@ const RenderSingleEscalation = ({
                                                             policy={policy}
                                                             rotateBy={rotateBy}
                                                         />
-                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; title: string; }' is ... Remove this comment to see the full error message
+
                                                         <Tooltip title="First Rotation On">
                                                             <div>
                                                                 <p>
@@ -765,7 +765,7 @@ const RenderSingleEscalation = ({
                                                             }}
                                                             placeholder="Select Timezone"
                                                         />
-                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                         <Tooltip title="First Rotation On Timezone">
                                                             <div>
                                                                 <p>

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { IS_SAAS_SERVICE, Validate } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
@@ -10,7 +10,7 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.projectName)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Project Name is required!';
     }
 
@@ -30,14 +30,14 @@ class DeleteCaution extends Component {
         switch (e.key) {
             case 'Escape':
                 if (IS_SAAS_SERVICE) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideOnDelete' does not exist on type 'Re... Remove this comment to see the full error message
+
                     this.props.hideOnDelete();
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hide' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 return this.props.hide();
             case 'Enter':
                 if (e.target.localName !== 'textarea') {
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                     return document.getElementById('btnDeleteProject').click();
                 }
                 return;
@@ -48,17 +48,17 @@ class DeleteCaution extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'hide' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             hide,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteProject' does not exist on type 'R... Remove this comment to see the full error message
+
             deleteProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSuccess' does not exist on type 'R... Remove this comment to see the full error message
+
             deleteSuccess,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideOnDelete' does not exist on type 'Re... Remove this comment to see the full error message
+
             hideOnDelete,
         } = this.props;
 
@@ -170,10 +170,10 @@ class DeleteCaution extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DeleteCaution.displayName = 'DeleteCaution';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DeleteCaution.propTypes = {
     hide: PropTypes.func.isRequired,
     deleteProject: PropTypes.func.isRequired,

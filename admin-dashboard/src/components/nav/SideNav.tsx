@@ -6,9 +6,9 @@ import NavItem from './SideNavItem';
 import { allRoutes, groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
 import { closeSideNav } from '../../actions/page';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter, Switch, Route } from 'react-router-dom';
 
 class SideNav extends Component {
@@ -23,20 +23,18 @@ class SideNav extends Component {
 
     render() {
         return (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeSideNav' does not exist on type 'Re... Remove this comment to see the full error message
+
             <ClickOutside onClickOutside={this.props.closeSideNav}>
                 <div
                     onKeyDown={this.handleKeyBoard}
-                    className={`db-World-sideNavContainer${
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sidenavopen' does not exist on type 'Rea... Remove this comment to see the full error message
-                        this.props.sidenavopen ? ' open' : ''
-                    }`}
+                    className={`db-World-sideNavContainer${this.props.sidenavopen ? ' open' : ''
+                        }`}
                 >
                     <div className="db-SideNav-container Box-root Box-background--surface Flex-flex Flex-direction--column Padding-top--20 Padding-right--2">
                         <div className="Box-root Margin-bottom--20">
                             <div>
                                 <div>
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                     <div tabIndex="-1" id="AccountSwitcherId">
                                         <div className="db-AccountSwitcherX-button Box-root Flex-flex Flex-alignItems--center">
                                             <div className="Box-root Margin-right--8">
@@ -78,7 +76,7 @@ class SideNav extends Component {
 
                         <div className="db-SideNav-navSections Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStaIt">
                             {groups
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isPublic' does not exist on type '{ grou... Remove this comment to see the full error message
+
                                 .filter(group => !group.isPublic)
                                 .filter(group => group.visible)
                                 .map((group, index, array) => {
@@ -113,16 +111,16 @@ class SideNav extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function(state: $TSFixMe) {
+const mapStateToProps = function (state: $TSFixMe) {
     return {
         sidenavopen: state.page.sidenavopen,
     };
 };
 
-const mapDispatchToProps = function(dispatch: $TSFixMe) {
+const mapDispatchToProps = function (dispatch: $TSFixMe) {
     return bindActionCreators(
         {
             openModal,
@@ -133,12 +131,12 @@ const mapDispatchToProps = function(dispatch: $TSFixMe) {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SideNav.propTypes = {
     closeSideNav: PropTypes.func,
     sidenavopen: PropTypes.bool,
 };
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 SideNav.contextTypes = {};
 
 // since sideNav is above page routes we have no access to the pages' props.match,
@@ -152,7 +150,7 @@ const WrappedSideNav = (props: $TSFixMe) => {
                 .map((route, index) => {
                     return (
                         <Route
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'exact' does not exist on type '{ title: ... Remove this comment to see the full error message
+
                             exact={route.exact}
                             path={route.path}
                             key={index}

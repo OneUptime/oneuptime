@@ -11,14 +11,14 @@ import { history } from '../../store';
 export class AlertChargesList extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {};
     }
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAlertCharges' does not exist on typ... Remove this comment to see the full error message
+
         const { fetchAlertCharges, getProjectBalance } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         let { projectId } = this.props;
         if (!projectId) {
             projectId = history.location.pathname
@@ -32,36 +32,36 @@ export class AlertChargesList extends Component {
     }
 
     prevClicked = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAlertCharges' does not exist on typ... Remove this comment to see the full error message
+
         const { fetchAlertCharges, projectId, skip } = this.props;
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) - 5 : 5, 5);
         this.setState({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     };
 
     nextClicked = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAlertCharges' does not exist on typ... Remove this comment to see the full error message
+
         const { fetchAlertCharges, projectId, skip } = this.props;
         fetchAlertCharges(projectId, skip ? parseInt(skip, 10) + 5 : 5, 5);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: !this.state.page ? 2 : this.state.page + 1 });
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertCharges' does not exist on type 'Re... Remove this comment to see the full error message
+
             alertCharges,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             error,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
             isRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             count,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             limit,
         } = this.props;
         const canNext = count > parseInt(skip) + parseInt(limit) ? true : false;
@@ -155,7 +155,7 @@ export class AlertChargesList extends Component {
                                         alertCharge.alertId
                                             ? alertCharge.alertId._id
                                             : alertCharge.subscriberAlertId
-                                                  ._id
+                                                ._id
                                     }
                                 >
                                     <td
@@ -168,17 +168,17 @@ export class AlertChargesList extends Component {
                                                     onClick={() => {
                                                         history.push(
                                                             '/dashboard/project/' +
-                                                                this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                                    .slug +
-                                                                '/component/' +
-                                                                alertCharge
-                                                                    .monitorId
-                                                                    .componentSlug +
-                                                                '/monitoring/' +
-                                                                alertCharge
-                                                                    .monitorId
-                                                                    .slug
+                                                            this.props
+
+                                                                .slug +
+                                                            '/component/' +
+                                                            alertCharge
+                                                                .monitorId
+                                                                .componentSlug +
+                                                            '/monitoring/' +
+                                                            alertCharge
+                                                                .monitorId
+                                                                .slug
                                                         );
                                                     }}
                                                     className="Box-root Margin-right--16"
@@ -207,17 +207,17 @@ export class AlertChargesList extends Component {
                                                     onClick={() => {
                                                         history.push(
                                                             '/dashboard/project/' +
-                                                                this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                                    .slug +
-                                                                '/component/' +
-                                                                alertCharge
-                                                                    .monitorId
-                                                                    .componentSlug +
-                                                                '/incidents/' +
-                                                                alertCharge
-                                                                    .incidentId
-                                                                    .slug
+                                                            this.props
+
+                                                                .slug +
+                                                            '/component/' +
+                                                            alertCharge
+                                                                .monitorId
+                                                                .componentSlug +
+                                                            '/incidents/' +
+                                                            alertCharge
+                                                                .incidentId
+                                                                .slug
                                                         );
                                                     }}
                                                     className="Box-root Margin-right--16"
@@ -274,11 +274,11 @@ export class AlertChargesList extends Component {
                                                         <span>
                                                             {alertCharge.alertId
                                                                 ? alertCharge
-                                                                      .alertId
-                                                                      .alertVia
+                                                                    .alertId
+                                                                    .alertVia
                                                                 : alertCharge
-                                                                      .subscriberAlertId
-                                                                      .alertVia}
+                                                                    .subscriberAlertId
+                                                                    .alertVia}
                                                         </span>
                                                     </span>
                                                 </div>
@@ -353,13 +353,13 @@ export class AlertChargesList extends Component {
                     }}
                 >
                     {(!alertCharges || alertCharges.length === 0) &&
-                    !isRequesting &&
-                    !error
+                        !isRequesting &&
+                        !error
                         ? 'No Alert charge'
                         : null}
                     {error && error ? error : null}
                     {error &&
-                    error ===
+                        error ===
                         "You cannot edit the project because you're not an owner."
                         ? 'Alert Charges are available to only owners.'
                         : error}
@@ -370,18 +370,14 @@ export class AlertChargesList extends Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
-                                        ? `Page ${
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                              !this.state.page
-                                                  ? 1
-                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                  : this.state.page
-                                          } of ${numberOfPages} (${count} Alert${
-                                              count === 1 ? '' : 's'
-                                          })`
-                                        : `${count} Alert${
-                                              count === 1 ? '' : 's'
-                                          }`}
+                                        ? `Page ${!this.state.page
+                                            ? 1
+
+                                            : this.state.page
+                                        } of ${numberOfPages} (${count} Alert${count === 1 ? '' : 's'
+                                        })`
+                                        : `${count} Alert${count === 1 ? '' : 's'
+                                        }`}
                                 </span>
                             </span>
                         </span>
@@ -465,7 +461,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 AlertChargesList.propTypes = {
     alertCharges: PropTypes.array,
     isRequesting: PropTypes.bool,
@@ -479,7 +475,7 @@ AlertChargesList.propTypes = {
     getProjectBalance: PropTypes.func,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AlertChargesList.displayName = 'AlertChargesList';
 
 export default connect(mapStateToProps, mapDispatchToProps)(AlertChargesList);

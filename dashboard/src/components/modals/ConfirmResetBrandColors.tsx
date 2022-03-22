@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
@@ -22,7 +22,7 @@ class ConfirmResetBrandColors extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.deleteSubProject();
@@ -32,17 +32,17 @@ class ConfirmResetBrandColors extends Component {
     };
 
     resetBrandColors = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { projectId, statusPageId } = this.props.data;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetBrandingColors' does not exist on t... Remove this comment to see the full error message
+
         this.props.resetBrandingColors(projectId, statusPageId).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             this.props.closeThisDialog();
         });
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { closeModal, data, closeThisDialog } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -63,14 +63,14 @@ class ConfirmResetBrandColors extends Component {
                                     <div className="bs-Modal-messages">
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage
                                                     .resetBrandingColors.error
                                             }
                                         >
                                             <p className="bs-Modal-message">
                                                 {
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                     this.props.statusPage
                                                         .resetBrandingColors
                                                         .error
@@ -110,25 +110,25 @@ class ConfirmResetBrandColors extends Component {
                                                 this.resetBrandColors()
                                             }
                                             disabled={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage
                                                     .resetBrandingColors
                                                     .requesting
                                             }
                                             autoFocus={true}
                                         >
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             {!this.props.statusPage
                                                 .resetBrandingColors
                                                 .requesting && (
-                                                <>
-                                                    <span>Confirm</span>
-                                                    <span className="delete-btn__keycode">
-                                                        <span className="keycode__icon keycode__icon--enter" />
-                                                    </span>
-                                                </>
-                                            )}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+                                                    <>
+                                                        <span>Confirm</span>
+                                                        <span className="delete-btn__keycode">
+                                                            <span className="keycode__icon keycode__icon--enter" />
+                                                        </span>
+                                                    </>
+                                                )}
+
                                             {this.props.statusPage
                                                 .resetBrandingColors
                                                 .requesting && <FormLoader />}
@@ -144,7 +144,7 @@ class ConfirmResetBrandColors extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ConfirmResetBrandColors.displayName = 'ConfirmResetBrandColorsFormModal';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -163,7 +163,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ConfirmResetBrandColors.propTypes = {
     closeModal: PropTypes.func,
     closeThisDialog: PropTypes.func.isRequired,

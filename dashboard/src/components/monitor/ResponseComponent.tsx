@@ -7,7 +7,7 @@ import {
     formValueSelector,
     change,
     arrayPush,
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 } from 'redux-form';
 import PropTypes from 'prop-types';
 import { ResponseParent } from './ResponseParent';
@@ -15,7 +15,7 @@ import ShouldRender from '../basic/ShouldRender';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import ScheduleInput from '../schedule/ScheduleInput';
 import { ValidateField } from '../../config';
@@ -40,10 +40,10 @@ export class ResponseComponent extends Component {
         };
     }
     handleAddFilterCriteria() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterion' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const criterionFieldName = `${this.props.criterion.type}_${this.props.criterion.id}`;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'arrayPush' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.arrayPush('NewMonitor', criterionFieldName, {
             match: '',
             responseType: '',
@@ -57,7 +57,7 @@ export class ResponseComponent extends Component {
     toggleAdvancedOption() {
         this.setState({
             ...this.state,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvancedOption' does not exist on ty... Remove this comment to see the full error message
+
             showAdvancedOption: !this.state.showAdvancedOption,
         });
     }
@@ -69,7 +69,7 @@ export class ResponseComponent extends Component {
      * @memberof ResponseComponent
      */
     handleRemoveCriterion(id: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeCriterion' does not exist on type ... Remove this comment to see the full error message
+
         this.props.removeCriterion(id);
     }
 
@@ -80,21 +80,21 @@ export class ResponseComponent extends Component {
      * @memberof ResponseComponent
      */
     handleAddCriterion(type: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCriterion' does not exist on type 'Re... Remove this comment to see the full error message
+
         this.props.addCriterion({ type, id: uuidv4() });
     }
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             type,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterion' does not exist on type 'Reado... Remove this comment to see the full error message
+
             criterion,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'Reado... Remove this comment to see the full error message
+
             schedules,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterionBodyField' does not exist on ty... Remove this comment to see the full error message
+
             criterionBodyField,
         } = this.props;
 
@@ -113,25 +113,25 @@ export class ResponseComponent extends Component {
 
         switch (criterionType) {
             case CRITERIA_TYPES.UP.type:
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backgroundColor' does not exist on type ... Remove this comment to see the full error message
+
                 status.backgroundColor = 'rgb(117, 211, 128)'; // "green-status";
                 head = CRITERIA_TYPES.UP.head;
                 tagline = CRITERIA_TYPES.UP.tagline;
                 break;
             case CRITERIA_TYPES.DEGRADED.type:
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backgroundColor' does not exist on type ... Remove this comment to see the full error message
+
                 status.backgroundColor = 'rgb(255, 222, 36)'; // "yellow-status";
                 head = CRITERIA_TYPES.DEGRADED.head;
                 tagline = CRITERIA_TYPES.DEGRADED.tagline;
                 break;
             case CRITERIA_TYPES.DOWN.type:
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backgroundColor' does not exist on type ... Remove this comment to see the full error message
+
                 status.backgroundColor = 'rgb(250, 117, 90)'; // "red-status";
                 head = CRITERIA_TYPES.DOWN.head;
                 tagline = CRITERIA_TYPES.DOWN.tagline;
                 break;
             default:
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backgroundColor' does not exist on type ... Remove this comment to see the full error message
+
                 status.backgroundColor = 'rgb(117, 211, 128)'; // "green-status";
                 head = CRITERIA_TYPES.UP.head;
                 tagline = CRITERIA_TYPES.UP.tagline;
@@ -140,7 +140,7 @@ export class ResponseComponent extends Component {
 
         return (
             <div>
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCriterion' does not exist on type 'R... Remove this comment to see the full error message
+
                 {this.state.showCriterion ? (
                     <div
                         className="bs-ContentSection Card-root Card-shadow--medium"
@@ -150,7 +150,7 @@ export class ResponseComponent extends Component {
                         <div
                             className="Box-root"
                             style={{
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCriterion' does not exist on type 'R... Remove this comment to see the full error message
+
                                 display: this.state.showCriterion
                                     ? 'block'
                                     : 'none',
@@ -164,9 +164,9 @@ export class ResponseComponent extends Component {
                                             {criterion.default
                                                 ? 'Default Criteria'
                                                 : head}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterionName' does not exist on type 'R... Remove this comment to see the full error message
+
                                             {this.props.criterionName &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterionName' does not exist on type 'R... Remove this comment to see the full error message
+
                                                 ` - ${this.props.criterionName}`}
                                         </span>
                                     </span>
@@ -203,13 +203,13 @@ export class ResponseComponent extends Component {
                                 </div>
 
                                 {criterion.default ||
-                                (criterionBodyField &&
-                                    criterionBodyField.length) ? (
+                                    (criterionBodyField &&
+                                        criterionBodyField.length) ? (
                                     <div>
                                         <div
                                             className="bs-Fieldset-row Flex-flex Flex-justifyContent--flexEnd Margin-bottom--16"
                                             style={{
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterion' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 display: this.props.criterion
                                                     .default
                                                     ? 'none'
@@ -224,22 +224,21 @@ export class ResponseComponent extends Component {
                                                 }
                                                 data-testId={`criterionAdvancedOptions_${criterionType}`}
                                             >
-                                                {`${
-                                                    this.state
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvancedOption' does not exist on ty... Remove this comment to see the full error message
+                                                {`${this.state
+
                                                         .showAdvancedOption
                                                         ? 'Hide'
                                                         : 'Show'
-                                                } 
+                                                    } 
                                                 Advanced Options`}
                                             </button>
                                         </div>
 
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvancedOption' does not exist on ty... Remove this comment to see the full error message
+
                                                 this.state.showAdvancedOption ||
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'criterion' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 this.props.criterion.default
                                             }
                                         >
@@ -280,7 +279,7 @@ export class ResponseComponent extends Component {
                                                                 criterionBodyField.length &&
                                                                 schedules &&
                                                                 schedules.length >
-                                                                    0)
+                                                                0)
                                                         }
                                                     >
                                                         <div className="bs-Fieldset-row Flex-alignContent--start">
@@ -346,7 +345,7 @@ export class ResponseComponent extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentCreatedAlertEnabledForCriterion'... Remove this comment to see the full error message
+
                                                                 .incidentCreatedAlertEnabledForCriterion
                                                         }
                                                     >
@@ -433,7 +432,7 @@ export class ResponseComponent extends Component {
                                                                         options={
                                                                             this
                                                                                 .props
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scriptsObj' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                                 .scriptsObj ||
                                                                             []
                                                                         }
@@ -603,7 +602,7 @@ export class ResponseComponent extends Component {
                                                 // onClick={this.addValue}
                                                 onClick={() =>
                                                     this.handleAddFilterCriteria(
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 0 arguments, but got 1.
+
                                                         criterionType
                                                     )
                                                 }
@@ -629,7 +628,7 @@ export class ResponseComponent extends Component {
                         <div
                             className="Box-root"
                             style={{
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCriterion' does not exist on type 'R... Remove this comment to see the full error message
+
                                 display: this.state.showCriterion
                                     ? 'none'
                                     : 'block',
@@ -668,12 +667,10 @@ export class ResponseComponent extends Component {
                                         type="button"
                                         data-testId={`criterionAdvancedOptions_${criterionType}`}
                                     >
-                                        {`${
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAdvancedOption' does not exist on ty... Remove this comment to see the full error message
-                                            this.state.showAdvancedOption
+                                        {`${this.state.showAdvancedOption
                                                 ? 'Hide'
                                                 : 'Show'
-                                        }
+                                            }
                                         Advanced Options`}
                                     </button>
                                 </div>
@@ -686,10 +683,10 @@ export class ResponseComponent extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ResponseComponent.displayName = 'ResponseComponent';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ResponseComponent.propTypes = {
     type: PropTypes.string,
     addCriterion: PropTypes.func.isRequired,

@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field, formValueSelector } from 'redux-form';
 import {
     createComponent,
@@ -41,9 +41,9 @@ class NewComponent extends Component {
     validate = (values: $TSFixMe) => {
         const errors = {};
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         if (!ValidateField.text(values[`name_${this.props.index}`])) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
             errors.name = 'Name is required.';
         }
 
@@ -51,13 +51,13 @@ class NewComponent extends Component {
     };
 
     componentDidUpdate() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { component } = this.props;
         if (
             component.newComponent.error ===
             "You can't add any more components. Please upgrade plan."
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showUpgradeForm' does not exist on type ... Remove this comment to see the full error message
+
             this.props.showUpgradeForm();
         }
     }
@@ -71,39 +71,39 @@ class NewComponent extends Component {
     submitForm = (values: $TSFixMe) => {
         const thisObj = this;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'upgradeModalId' does not exist on type '... Remove this comment to see the full error message
+
         const { upgradeModalId } = this.state;
         const postObj = { data: {}, criteria: {} };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{ dat... Remove this comment to see the full error message
+
         postObj.projectId = this.props.activeSubProjectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         postObj.name = values[`name_${this.props.index}`];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callScheduleId' does not exist on type '... Remove this comment to see the full error message
+
         postObj.callScheduleId = values[`callSchedule_${this.props.index}`];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{ dat... Remove this comment to see the full error message
+
         if (!postObj.projectId)
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{ dat... Remove this comment to see the full error message
+
             postObj.projectId = this.props.currentProject._id;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         if (this.props.edit) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{ data: {};... Remove this comment to see the full error message
+
             postObj._id = this.props.editComponentProp._id;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponent' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.editComponent(postObj.projectId, postObj).then(() => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'destroy' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 thisObj.props.destroy();
             });
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createComponent' does not exist on type ... Remove this comment to see the full error message
+
             this.props.createComponent(postObj.projectId, postObj).then(
-                // @ts-expect-error ts-migrate(7031) FIXME: Binding element 'componentSlug' implicitly has an ... Remove this comment to see the full error message
+
                 ({ data: { slug: componentSlug } }) => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                     thisObj.props.reset();
 
                     this.viewCreatedComponent(
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                         this.props.currentProject.slug,
                         componentSlug
                     );
@@ -113,16 +113,16 @@ class NewComponent extends Component {
                         error &&
                         error.message &&
                         error.message ===
-                            "You can't add any more components. Please add an extra seat to add more components."
+                        "You can't add any more components. Please add an extra seat to add more components."
                     ) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                         thisObj.props.openModal({
                             id: upgradeModalId,
                             onClose: () => '',
                             onConfirm: () =>
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'addSeat' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                 thisObj.props.addSeat(
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                     thisObj.props.currentProject._id
                                 ),
                             content: AddSeats,
@@ -136,35 +136,35 @@ class NewComponent extends Component {
     scheduleChange = (e: $TSFixMe, value: $TSFixMe) => {
         //load call schedules/duties
         if (value && value !== '') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSchedules' does not exist on type '... Remove this comment to see the full error message
+
             this.props.fetchSchedules(value);
         } else {
             const userId = User.getUserId();
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             const projectMember = this.props.currentProject.users.find(
                 (user: $TSFixMe) => user.userId === userId
             );
             if (projectMember)
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSchedules' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.fetchSchedules(this.props.currentProject._id);
         }
     };
 
     cancelEdit = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentSwitch' does not exist on t... Remove this comment to see the full error message
+
         this.props.editComponentSwitch(this.props.index);
     };
 
     render() {
         const requesting =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             (this.props.component.newComponent.requesting &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 !this.props.edit) ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             (this.props.component.editComponent.requesting && this.props.edit);
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit } = this.props;
 
         return (
@@ -175,32 +175,32 @@ class NewComponent extends Component {
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                         <ShouldRender if={!this.props.edit}>
                                             <span>New Component</span>
                                         </ShouldRender>
 
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                         <ShouldRender if={this.props.edit}>
                                             <span>
                                                 Edit Component
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentProp' does not exist on typ... Remove this comment to see the full error message
+
                                                 {this.props.editComponentProp &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentProp' does not exist on typ... Remove this comment to see the full error message
-                                                this.props.editComponentProp
-                                                    .name
+
+                                                    this.props.editComponentProp
+                                                        .name
                                                     ? ' - ' +
-                                                      this.props
-                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentProp' does not exist on typ... Remove this comment to see the full error message
-                                                          .editComponentProp
-                                                          .name
+                                                    this.props
+
+                                                        .editComponentProp
+                                                        .name
                                                     : null}
                                             </span>
                                         </ShouldRender>
                                     </span>
                                 </span>
                                 <p>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
                                             Components are like containers that
@@ -211,15 +211,15 @@ class NewComponent extends Component {
                                             called Home.
                                         </span>
                                     </ShouldRender>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                     <ShouldRender if={this.props.edit}>
                                         <span>
                                             Edit Name and URL of
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentProp' does not exist on typ... Remove this comment to see the full error message
+
                                             {this.props.editComponentProp &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentProp' does not exist on typ... Remove this comment to see the full error message
-                                            this.props.editComponentProp.name
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentProp' does not exist on typ... Remove this comment to see the full error message
+
+                                                this.props.editComponentProp.name
+
                                                 ? ` ${this.props.editComponentProp.name}`
                                                 : ''}
                                         </span>
@@ -251,7 +251,7 @@ class NewComponent extends Component {
                                                                 RenderField
                                                             }
                                                             type="text"
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                             name={`name_${this.props.index}`}
                                                             id="name"
                                                             placeholder="Home Page"
@@ -274,10 +274,10 @@ class NewComponent extends Component {
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 this.props.component
                                                     .newComponent.error ||
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 this.props.component
                                                     .editComponent.error
                                             }
@@ -287,10 +287,10 @@ class NewComponent extends Component {
                                             </div>
                                             <div className="Box-root">
                                                 <span style={{ color: 'red' }}>
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                     {this.props.component
                                                         .newComponent.error ||
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                         this.props.component
                                                             .editComponent
                                                             .error}
@@ -301,7 +301,7 @@ class NewComponent extends Component {
                                 </div>
                                 <div>
                                     <ShouldRender
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                         if={!requesting && this.props.edit}
                                     >
                                         <button
@@ -316,16 +316,16 @@ class NewComponent extends Component {
                                     <ShouldRender
                                         if={
                                             !requesting &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             this.props.toggleForm &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCancelBtn' does not exist on type 'R... Remove this comment to see the full error message
+
                                             this.props.showCancelBtn
                                         }
                                     >
                                         <button
                                             className="bs-Button"
                                             disabled={requesting}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             onClick={this.props.toggleForm}
                                             type="button"
                                         >
@@ -339,14 +339,14 @@ class NewComponent extends Component {
                                         type="submit"
                                     >
                                         <ShouldRender
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                             if={!this.props.edit && !requesting}
                                         >
                                             <span>Add Component</span>
                                         </ShouldRender>
 
                                         <ShouldRender
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                             if={this.props.edit && !requesting}
                                         >
                                             <span>Edit Component </span>
@@ -366,7 +366,7 @@ class NewComponent extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 NewComponent.displayName = 'NewComponent';
 
 const NewComponentForm = new reduxForm({
@@ -428,7 +428,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     }
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 NewComponent.propTypes = {
     index: PropTypes.oneOfType([
         PropTypes.string.isRequired,

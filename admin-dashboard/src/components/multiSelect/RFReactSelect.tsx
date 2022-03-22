@@ -4,7 +4,7 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module 'react-select-oneuptime' or its... Remove this comment to see the full error message
+
 import Select from 'react-select-oneuptime';
 
 /**

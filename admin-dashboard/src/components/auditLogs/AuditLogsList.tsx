@@ -2,7 +2,7 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
@@ -17,9 +17,9 @@ export class AuditLogsList extends Component {
     }
 
     handleDelete = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
+
         const { deleteModalId } = this.state;
         openModal({
             id: deleteModalId,
@@ -30,7 +30,7 @@ export class AuditLogsList extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -39,64 +39,64 @@ export class AuditLogsList extends Component {
 
     render() {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs.skip &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             typeof this.props.auditLogs.skip === 'string'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs.skip = parseInt(this.props.auditLogs.skip, 10);
         }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs.limit &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             typeof this.props.auditLogs.limit === 'string'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs.limit = parseInt(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 this.props.auditLogs.limit,
                 10
             );
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
         if (!this.props.auditLogs.skip) this.props.auditLogs.skip = 0;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
         if (!this.props.auditLogs.limit) this.props.auditLogs.limit = 0;
 
         let canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
-            this.props.auditLogs.count &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
-            this.props.auditLogs.count >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
+                this.props.auditLogs.count &&
+
+                this.props.auditLogs.count >
+
                 this.props.auditLogs.skip + this.props.auditLogs.limit
                 ? true
                 : false;
         let canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs && this.props.auditLogs.skip <= 0
                 ? false
                 : true;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.auditLogs &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             (this.props.requesting || !this.props.auditLogs.auditLogs)
         ) {
             canNext = false;
             canPrev = false;
         }
         const numberOfPages = Math.ceil(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             parseInt(this.props.auditLogs && this.props.auditLogs.count) / 10
         );
         return (
@@ -148,7 +148,7 @@ export class AuditLogsList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
                             {this.props.requesting ? (
                                 <Fragment>
                                     <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
@@ -169,13 +169,13 @@ export class AuditLogsList extends Component {
                                         </td>
                                     </tr>
                                 </Fragment>
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                             ) : this.props.auditLogs &&
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
-                              this.props.auditLogs.auditLogs &&
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
-                              this.props.auditLogs.auditLogs.length > 0 ? (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
+                                this.props.auditLogs.auditLogs &&
+
+                                this.props.auditLogs.auditLogs.length > 0 ? (
+
                                 this.props.auditLogs.auditLogs.map((auditLog: $TSFixMe) => {
                                     return (
                                         <tr
@@ -192,8 +192,8 @@ export class AuditLogsList extends Component {
                                                             <span>
                                                                 {auditLog.projectId
                                                                     ? auditLog
-                                                                          .projectId
-                                                                          .name
+                                                                        .projectId
+                                                                        .name
                                                                     : 'N/A'}
                                                             </span>
                                                         </div>
@@ -211,8 +211,8 @@ export class AuditLogsList extends Component {
                                                                 <span>
                                                                     {auditLog.userId
                                                                         ? auditLog
-                                                                              .userId
-                                                                              .name
+                                                                            .userId
+                                                                            .name
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -230,12 +230,12 @@ export class AuditLogsList extends Component {
                                                             <div className="Box-root Flex-flex">
                                                                 <span>
                                                                     {auditLog.request &&
-                                                                    auditLog
-                                                                        .request
-                                                                        .apiSection
+                                                                        auditLog
+                                                                            .request
+                                                                            .apiSection
                                                                         ? auditLog
-                                                                              .request
-                                                                              .apiSection
+                                                                            .request
+                                                                            .apiSection
                                                                         : ''}
                                                                 </span>
                                                             </div>
@@ -255,7 +255,7 @@ export class AuditLogsList extends Component {
                                                                 <span>
                                                                     <button
                                                                         onClick={() => {
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                             this.props.openModal(
                                                                                 {
                                                                                     id: uuidv4(),
@@ -300,21 +300,21 @@ export class AuditLogsList extends Component {
                     id="logsStatus"
                     style={{ textAlign: 'center', marginTop: '10px' }}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                     {this.props.auditLogs &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
-                    (!this.props.auditLogs.auditLogs ||
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
-                        !this.props.auditLogs.auditLogs.length) &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
-                    !this.props.requesting &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
-                    !this.props.auditLogs.error
+
+                        (!this.props.auditLogs.auditLogs ||
+
+                            !this.props.auditLogs.auditLogs.length) &&
+
+                        !this.props.requesting &&
+
+                        !this.props.auditLogs.error
                         ? "We don't have any logs yet"
                         : null}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                     {this.props.auditLogs && this.props.auditLogs.error
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                         ? this.props.auditLogs.error
                         : null}
                 </div>
@@ -328,22 +328,22 @@ export class AuditLogsList extends Component {
                                 >
                                     <ShouldRender
                                         if={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.auditLogs &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.auditLogs.count
                                         }
                                     >
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                         Page {this.props.page} of{' '}
                                         {numberOfPages} (
                                         <span id="audit-log-count">
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             {this.props.auditLogs.count}
                                         </span>{' '}
                                         Log
                                         <ShouldRender
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             if={this.props.auditLogs.count > 0}
                                         >
                                             s
@@ -360,11 +360,11 @@ export class AuditLogsList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.prevClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.auditLogs.skip,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.auditLogs.limit
                                         );
                                     }}
@@ -387,11 +387,11 @@ export class AuditLogsList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.nextClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.auditLogs.skip,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'auditLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.auditLogs.limit
                                         );
                                     }}
@@ -417,7 +417,7 @@ export class AuditLogsList extends Component {
                                     className={'Button bs-ButtonLegacy'}
                                     // data-db-analytics-name="list_view.pagination.next"
                                     type="button"
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     disabled={this.props.requesting}
                                 >
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -446,10 +446,10 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AuditLogsList.displayName = 'ProjectList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 AuditLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,

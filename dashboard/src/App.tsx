@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import store, { history, isServer } from './store';
@@ -38,7 +38,7 @@ if (userData !== undefined) {
 } else {
     // store original destination url
     const redirectTo = window.location.href;
-    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+
     window.location = ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
     store.dispatch(loadPage('Home'));
 }
@@ -73,7 +73,7 @@ const App = (props: $TSFixMe) => {
             router =>
                 !titleToExclude.includes(router.title) ||
                 router.path ===
-                    '/dashboard/project/:slug/component/:componentSlug/settings/advanced'
+                '/dashboard/project/:slug/component/:componentSlug/settings/advanced'
         );
     }
 
@@ -103,7 +103,7 @@ const App = (props: $TSFixMe) => {
                                 .map((route, index) => {
                                     return (
                                         <Route
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'exact' does not exist on type '{ title: ... Remove this comment to see the full error message
+
                                             exact={route.exact}
                                             path={route.path}
                                             key={index}
@@ -123,7 +123,7 @@ const App = (props: $TSFixMe) => {
                                                 route.title
                                             ) &&
                                             route.path !==
-                                                '/dashboard/project/:slug/component/:componentSlug/settings/advanced'
+                                            '/dashboard/project/:slug/component/:componentSlug/settings/advanced'
                                     )
                                     .map((route, index) => (
                                         <Route

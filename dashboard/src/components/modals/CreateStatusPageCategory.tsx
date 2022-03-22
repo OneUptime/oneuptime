@@ -1,10 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
@@ -19,7 +19,7 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.name)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Status Page Category name is required!';
     }
     return errors;
@@ -35,18 +35,18 @@ export class CreateStatusPageCategory extends React.Component {
     }
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { data, skip, limit, fetchStatusPageCategories } = this.props;
         const { projectId, statusPageId } = data;
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createStatusPageCategory' does not exist... Remove this comment to see the full error message
+
             .createStatusPageCategory({
                 projectId,
                 statusPageId,
                 statusPageCategoryName: values.statusPageCategoryName,
             })
             .then(() => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createError' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 if (!this.props.createError) {
                     fetchStatusPageCategories({
                         projectId,
@@ -64,7 +64,7 @@ export class CreateStatusPageCategory extends React.Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document
                     .getElementById('addStatusPageCategoryButton')
                     .click();
@@ -74,12 +74,12 @@ export class CreateStatusPageCategory extends React.Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({});
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, creatingCategory, createError } = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
@@ -132,7 +132,7 @@ export class CreateStatusPageCategory extends React.Component {
                                                     'bs-is-disabled'}`}
                                                 type="button"
                                                 onClick={() => {
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                     this.props.closeModal({});
                                                 }}
                                                 disabled={creatingCategory}
@@ -146,7 +146,7 @@ export class CreateStatusPageCategory extends React.Component {
                                                 id="addStatusPageCategoryButton"
                                                 className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${creatingCategory &&
                                                     'bs-is-disabled'}`}
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '"save"' is not assignable to type '"reset" |... Remove this comment to see the full error message
+
                                                 type="save"
                                                 disabled={creatingCategory}
                                             >
@@ -173,7 +173,7 @@ export class CreateStatusPageCategory extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CreateStatusPageCategory.displayName = 'CreateStatusPageCategory';
 
 const CreateStatusPageCategoryForm = reduxForm({
@@ -198,7 +198,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CreateStatusPageCategory.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,

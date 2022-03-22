@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -17,7 +17,7 @@ import { editContainerSecurity } from '../../actions/security';
 
 class EditContainerSecurity extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { propArr, isRequesting, closeModal, editError } = this.props;
         const { containerSecurityId } = propArr[0];
 
@@ -41,7 +41,7 @@ class EditContainerSecurity extends Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('editContainerBtn').click();
             default:
                 return false;
@@ -49,17 +49,17 @@ class EditContainerSecurity extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { propArr } = this.props;
         const { containerSecurityId } = propArr[0];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
             id: containerSecurityId,
         });
     };
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editContainerSecurity' does not exist on... Remove this comment to see the full error message
+
         const { editContainerSecurity, propArr } = this.props;
         const { projectId, componentId, containerSecurityId } = propArr[0];
 
@@ -72,7 +72,7 @@ class EditContainerSecurity extends Component {
             data: values,
         }).then((data: $TSFixMe) => {
             history.replace(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectSlug' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 `/dashboard/project/${this.props.projectSlug}/component/${this.props.componentSlug}/security/container/${data.data.slug}`
             );
         });
@@ -80,19 +80,19 @@ class EditContainerSecurity extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
             isRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editError' does not exist on type 'Reado... Remove this comment to see the full error message
+
             editError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             propArr,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dockerCredentials' does not exist on typ... Remove this comment to see the full error message
+
             dockerCredentials,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategoryList' does not exist on ... Remove this comment to see the full error message
+
             resourceCategoryList,
         } = this.props;
         const { containerSecurityId } = propArr[0];
@@ -163,7 +163,7 @@ class EditContainerSecurity extends Component {
                                                                     false &&
                                                                     resourceCategoryList &&
                                                                     resourceCategoryList.length >
-                                                                        0
+                                                                    0
                                                                 }
                                                             >
                                                                 <div className="bs-Fieldset-row bs-u-justify--center">
@@ -191,17 +191,17 @@ class EditContainerSecurity extends Component {
                                                                                         'Select category',
                                                                                 },
                                                                                 ...(resourceCategoryList &&
-                                                                                resourceCategoryList.length >
+                                                                                    resourceCategoryList.length >
                                                                                     0
                                                                                     ? resourceCategoryList.map(
-                                                                                          (category: $TSFixMe) => ({
-                                                                                              value:
-                                                                                                  category._id,
+                                                                                        (category: $TSFixMe) => ({
+                                                                                            value:
+                                                                                                category._id,
 
-                                                                                              label:
-                                                                                                  category.name
-                                                                                          })
-                                                                                      )
+                                                                                            label:
+                                                                                                category.name
+                                                                                        })
+                                                                                    )
                                                                                     : []),
                                                                             ]}
                                                                         />
@@ -235,17 +235,17 @@ class EditContainerSecurity extends Component {
                                                                                     'Select a Docker Credential',
                                                                             },
                                                                             ...(dockerCredentials &&
-                                                                            dockerCredentials.length >
+                                                                                dockerCredentials.length >
                                                                                 0
                                                                                 ? dockerCredentials.map(
-                                                                                      (dockerCredential: $TSFixMe) => ({
-                                                                                          value:
-                                                                                              dockerCredential._id,
+                                                                                    (dockerCredential: $TSFixMe) => ({
+                                                                                        value:
+                                                                                            dockerCredential._id,
 
-                                                                                          label:
-                                                                                              dockerCredential.dockerRegistryUrl
-                                                                                      })
-                                                                                  )
+                                                                                        label:
+                                                                                            dockerCredential.dockerRegistryUrl
+                                                                                    })
+                                                                                )
                                                                                 : []),
                                                                         ]}
                                                                     />
@@ -384,10 +384,10 @@ class EditContainerSecurity extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 EditContainerSecurity.displayName = 'EditContainerSecurity';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 EditContainerSecurity.propTypes = {
     isRequesting: PropTypes.bool,
     editError: PropTypes.string,

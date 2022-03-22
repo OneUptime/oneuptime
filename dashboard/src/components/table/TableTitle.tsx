@@ -6,7 +6,7 @@ export default class TableTitle extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { title } = this.props;
 
         return (
@@ -17,7 +17,7 @@ export default class TableTitle extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 TableTitle.propTypes = {
     title: PropTypes.string.isRequired,
 };

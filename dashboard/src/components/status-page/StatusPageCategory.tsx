@@ -20,13 +20,13 @@ export class StatusPageCategory extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageCategories' does not exis... Remove this comment to see the full error message
+
             fetchStatusPageCategories,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
+
             statusPageId,
         } = this.props;
         fetchStatusPageCategories({ projectId, skip, limit: 10, statusPageId });
@@ -38,13 +38,13 @@ export class StatusPageCategory extends Component {
 
     prevClicked = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageCategories' does not exis... Remove this comment to see the full error message
+
             fetchStatusPageCategories,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
+
             statusPageId,
         } = this.props;
         fetchStatusPageCategories({
@@ -60,13 +60,13 @@ export class StatusPageCategory extends Component {
 
     nextClicked = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageCategories' does not exis... Remove this comment to see the full error message
+
             fetchStatusPageCategories,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
+
             statusPageId,
         } = this.props;
         fetchStatusPageCategories({
@@ -79,7 +79,7 @@ export class StatusPageCategory extends Component {
     };
 
     handleCreateResourceCategory = (projectId: $TSFixMe, statusPageId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal } = this.props;
         openModal({
             content: DataPathHoC(CreateStatusPageCategory, {
@@ -94,7 +94,7 @@ export class StatusPageCategory extends Component {
         statusPageCategoryName,
         statusPageCategoryId
     }: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal } = this.props;
         openModal({
             content: DataPathHoC(EditStatusPageCategory, {
@@ -109,7 +109,7 @@ export class StatusPageCategory extends Component {
         projectId,
         statusPageCategoryId
     }: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal, statusPageId } = this.props;
         openModal({
             content: DataPathHoC(RemoveStatusPageCategory, {
@@ -123,24 +123,24 @@ export class StatusPageCategory extends Component {
     render() {
         const footerBorderTopStyle = { margin: 0, padding: 0 };
         let canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             this.props.count >
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-            parseInt(this.props.skip) + parseInt(this.props.limit)
+
+                parseInt(this.props.skip) + parseInt(this.props.limit)
                 ? true
                 : false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         let canPrev = parseInt(this.props.skip) <= 0 ? false : true;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
             isRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             error,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageCategories' does not exist on ... Remove this comment to see the full error message
+
             statusPageCategories,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
+
             statusPageId,
         } = this.props;
 
@@ -148,7 +148,7 @@ export class StatusPageCategory extends Component {
             canNext = false;
             canPrev = false;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
 
         return (
@@ -238,7 +238,7 @@ export class StatusPageCategory extends Component {
                                                 >
                                                     <div className="bs-ObjectList-cell bs-u-v-middle">
                                                         <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                             {this.props.name}
                                                         </div>
                                                         <div
@@ -324,7 +324,7 @@ export class StatusPageCategory extends Component {
                                                 !(
                                                     (!statusPageCategories ||
                                                         statusPageCategories.length ===
-                                                            0) &&
+                                                        0) &&
                                                     !isRequesting &&
                                                     !error
                                                 )
@@ -356,8 +356,8 @@ export class StatusPageCategory extends Component {
                             >
                                 {(!statusPageCategories ||
                                     statusPageCategories.length === 0) &&
-                                !isRequesting &&
-                                !error
+                                    !isRequesting &&
+                                    !error
                                     ? 'You have no status page category at this time'
                                     : null}
                                 {error ? error : null}
@@ -372,26 +372,17 @@ export class StatusPageCategory extends Component {
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
                                             {numberOfPages > 0
-                                                ? `Page ${
-                                                      this.state.page
-                                                  } of ${numberOfPages} (${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count
-                                                  } Status Page Categor${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count < 2 // This will cater for '0 Category'
-                                                          ? 'y'
-                                                          : 'ies'
-                                                  })`
-                                                : `${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count
-                                                  } Status Page Categor${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count < 2 // This will cater for '0 Category'
-                                                          ? 'y'
-                                                          : 'ies'
-                                                  }`}
+                                                ? `Page ${this.state.page
+                                                } of ${numberOfPages} (${this.props.count
+                                                } Status Page Categor${this.props.count < 2 // This will cater for '0 Category'
+                                                    ? 'y'
+                                                    : 'ies'
+                                                })`
+                                                : `${this.props.count
+                                                } Status Page Categor${this.props.count < 2 // This will cater for '0 Category'
+                                                    ? 'y'
+                                                    : 'ies'
+                                                }`}
                                         </span>
                                     </span>
                                 </span>
@@ -444,10 +435,10 @@ export class StatusPageCategory extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 StatusPageCategory.displayName = 'StatusPageCategory';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 StatusPageCategory.propTypes = {
     projectId: PropTypes.string,
     statusPageId: PropTypes.string,

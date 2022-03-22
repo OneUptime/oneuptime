@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -21,7 +21,7 @@ class ProbeDeleteModal extends Component {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleDelete();
@@ -31,7 +31,7 @@ class ProbeDeleteModal extends Component {
     };
 
     handleDelete = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { error, modalId, closeModal, deleteProbe, probeId } = this.props;
         deleteProbe(probeId).then(() => {
             if (!error) {
@@ -41,7 +41,7 @@ class ProbeDeleteModal extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { isRequesting, error, closeThisDialog } = this.props;
 
         return (
@@ -137,7 +137,7 @@ class ProbeDeleteModal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProbeDeleteModal.displayName = 'ProbeDeleteModal';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -157,7 +157,7 @@ const mapStateToProps = (state: $TSFixMe) => {
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, deleteProbe }, dispatch);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProbeDeleteModal.propTypes = {
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,

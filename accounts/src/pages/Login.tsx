@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginUserSso, loginError } from '../actions/login';
@@ -19,7 +19,7 @@ import { changeLogin } from '../actions/login';
 class LoginPage extends React.Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
     }
 
@@ -27,26 +27,26 @@ class LoginPage extends React.Component {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
         if (this.props.location?.pathname?.includes('/sso/')) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeLogin' does not exist on type 'Rea... Remove this comment to see the full error message
+
             this.props.changeLogin('sso');
         }
     }
 
     submitHandler = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'loginMethod' does not exist on type 'Rea... Remove this comment to see the full error message
+
         if (this.props.loginMethod === 'sso') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'loginUserSso' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.loginUserSso(values);
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'loginUser' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.loginUser(values);
         }
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { login, masterAdminExists, requestingMasterAdmin } = this.props;
 
         if (login.success && !login.user.tokens) {
@@ -65,24 +65,22 @@ class LoginPage extends React.Component {
                     </div>
 
                     {/* LOGIN BOX */}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                     {!this.props.login.success &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                         this.props.login.error &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                         this.props.login.error === 'Verify your email first.' ? (
                         <div>
                             <MessageBox
                                 title="Your email is not verified."
-                                message={`${
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'resendTokenRequest' does not exist on ty... Remove this comment to see the full error message
-                                    this.props.resendTokenRequest.requesting
+                                message={`${this.props.resendTokenRequest.requesting
                                         ? 'Resending verification link...'
                                         : "An email is on its way to you with new verification link. Please don't forget to check spam."
                                     }`}
                             >
                                 <div className="below-box">
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'resendTokenRequest' does not exist on ty... Remove this comment to see the full error message
+
                                     {this.props.resendTokenRequest
                                         .requesting ? (
                                         <ButtonSpinner color="black" />
@@ -100,12 +98,12 @@ class LoginPage extends React.Component {
                                                         login.user &&
                                                         login.user.email
                                                     ) {
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resendToken' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                         this.props.resendToken(
                                                             login.user
                                                         );
                                                     } else {
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resendTokenReset' does not exist on type... Remove this comment to see the full error message
+
                                                         this.props.resendTokenReset();
                                                         history.push(
                                                             '/accounts/user-verify/resend'
@@ -124,7 +122,7 @@ class LoginPage extends React.Component {
                         </div>
                     ) : (
                         <LoginForm
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children?: ReactNode; onSubmit: (values: a... Remove this comment to see the full error message
+
                             onSubmit={this.submitHandler}
                             {...this.props}
                         />
@@ -197,7 +195,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 LoginPage.propTypes = {
     loginUser: PropTypes.func.isRequired,
     loginUserSso: PropTypes.func.isRequired,
@@ -214,7 +212,7 @@ LoginPage.propTypes = {
     changeLogin: PropTypes.func,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 LoginPage.displayName = 'LoginPage';
 
 export default connect(mapStateToProps, mapDispatchToProps)(LoginPage);

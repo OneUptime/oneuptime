@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import {
     setSmtpConfig,
@@ -23,34 +23,34 @@ const validate = (values: $TSFixMe, props: $TSFixMe) => {
     if (props.showSmsSmtpConfiguration) {
         if (values.accountSid) {
             if (!Validate.text(values.accountSid)) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountSid' does not exist on type '{}'.
+
                 errors.accountSid = 'Please input accountSid in text format .';
             }
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'accountSid' does not exist on type '{}'.
+
             errors.accountSid =
                 'Please input accountSid this cannot be left blank.';
         }
 
         if (values.phoneNumber) {
             if (!Validate.number(values.phoneNumber)) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type '{}'... Remove this comment to see the full error message
+
                 errors.phoneNumber =
                     'Please input phoneNumber in number format .';
             }
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type '{}'... Remove this comment to see the full error message
+
             errors.phoneNumber =
                 'Please input phoneNumber this cannot be left blank.';
         }
 
         if (values.authToken) {
             if (!Validate.text(values.authToken)) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type '{}'.
+
                 errors.authToken = 'Please input authToken in proper format .';
             }
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'authToken' does not exist on type '{}'.
+
             errors.authToken =
                 'Please input authToken this cannot be left blank.';
         }
@@ -60,7 +60,7 @@ const validate = (values: $TSFixMe, props: $TSFixMe) => {
 
 export class SmsSmtpBox extends Component {
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.changeValue = this.changeValue.bind(this);
         this.submitForm = this.submitForm.bind(this);
@@ -68,13 +68,13 @@ export class SmsSmtpBox extends Component {
 
     submitForm = (values: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
             smtpConfigurations,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateSmtpConfig' does not exist on type... Remove this comment to see the full error message
+
             updateSmtpConfig,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'postSmtpConfig' does not exist on type '... Remove this comment to see the full error message
+
             postSmtpConfig,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
         } = this.props;
 
@@ -89,9 +89,9 @@ export class SmsSmtpBox extends Component {
                 postSmtpConfig(currentProject._id, values);
             }
         } else if (smtpConfigurations.config._id) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSmtpConfig' does not exist on type... Remove this comment to see the full error message
+
             this.props.deleteSmtpConfig(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.currentProject._id,
                 smtpConfigurations.config._id
             );
@@ -99,12 +99,12 @@ export class SmsSmtpBox extends Component {
     };
 
     changeValue = (e: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setSmtpConfig' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.setSmtpConfig(e.target.checked);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit } = this.props;
         return (
             <div
@@ -130,10 +130,10 @@ export class SmsSmtpBox extends Component {
                                         </p>
                                     </div>
                                 </div>
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                 {IsAdmin(this.props.currentProject) ||
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
-                                IsOwner(this.props.currentProject) ? (
+
+                                    IsOwner(this.props.currentProject) ? (
                                     <form
                                         onSubmit={handleSubmit(this.submitForm)}
                                     >
@@ -172,13 +172,13 @@ export class SmsSmtpBox extends Component {
                                                                                     !IsAdmin(
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                                                             .currentProject
                                                                                     ) &&
                                                                                     !IsOwner(
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                                                             .currentProject
                                                                                     )
                                                                                 }
@@ -216,7 +216,7 @@ export class SmsSmtpBox extends Component {
                                                             <ShouldRender
                                                                 if={
                                                                     this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showSmsSmtpConfiguration' does not exist... Remove this comment to see the full error message
+
                                                                         .showSmsSmtpConfiguration
                                                                 }
                                                             >
@@ -239,7 +239,7 @@ export class SmsSmtpBox extends Component {
                                                                             disabled={
                                                                                 this
                                                                                     .props
-                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
                                                                                     .smtpConfigurations
                                                                                     .requesting
                                                                             }
@@ -281,7 +281,7 @@ export class SmsSmtpBox extends Component {
                                                                             disabled={
                                                                                 this
                                                                                     .props
-                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
                                                                                     .smtpConfigurations
                                                                                     .requesting
                                                                             }
@@ -323,7 +323,7 @@ export class SmsSmtpBox extends Component {
                                                                             disabled={
                                                                                 this
                                                                                     .props
-                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
                                                                                     .smtpConfigurations
                                                                                     .requesting
                                                                             }
@@ -361,10 +361,10 @@ export class SmsSmtpBox extends Component {
                                                 <ShouldRender
                                                     if={
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
                                                             .smtpConfigurations
                                                             .error ||
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsSmtpDelete' does not exist on type 'R... Remove this comment to see the full error message
+
                                                         this.props.smsSmtpDelete
                                                             .error
                                                     }
@@ -388,12 +388,12 @@ export class SmsSmtpBox extends Component {
                                                                     }}
                                                                 >
                                                                     {this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
                                                                         .smtpConfigurations
                                                                         .error ||
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsSmtpDelete' does not exist on type 'R... Remove this comment to see the full error message
+
                                                                             .smsSmtpDelete
                                                                             .error}
                                                                 </span>
@@ -409,10 +409,10 @@ export class SmsSmtpBox extends Component {
                                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                                     disabled={
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
                                                             .smtpConfigurations
                                                             .requesting ||
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsSmtpDelete' does not exist on type 'R... Remove this comment to see the full error message
+
                                                         this.props.smsSmtpDelete
                                                             .requesting
                                                     }
@@ -421,11 +421,11 @@ export class SmsSmtpBox extends Component {
                                                     <ShouldRender
                                                         if={
                                                             !this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
                                                                 .smtpConfigurations
                                                                 .requesting &&
                                                             !this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsSmtpDelete' does not exist on type 'R... Remove this comment to see the full error message
+
                                                                 .smsSmtpDelete
                                                                 .requesting
                                                         }
@@ -436,11 +436,11 @@ export class SmsSmtpBox extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpConfigurations' does not exist on ty... Remove this comment to see the full error message
+
                                                                 .smtpConfigurations
                                                                 .requesting ||
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsSmtpDelete' does not exist on type 'R... Remove this comment to see the full error message
+
                                                                 .smsSmtpDelete
                                                                 .requesting
                                                         }
@@ -480,10 +480,10 @@ export class SmsSmtpBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SmsSmtpBox.displayName = 'SmsSmtpBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SmsSmtpBox.propTypes = {
     smtpConfigurations: PropTypes.object,
     updateSmtpConfig: PropTypes.func,

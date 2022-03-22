@@ -73,14 +73,14 @@ function ProbeBar({
                 style={
                     (lastAlive &&
                         moment(now).diff(moment(lastAlive), 'seconds') >=
-                            300) ||
-                    !lastAlive
+                        300) ||
+                        !lastAlive
                         ? greyBackground
                         : status === 'offline'
-                        ? redBackground
-                        : status === 'degraded'
-                        ? yellowBackground
-                        : greenBackground
+                            ? redBackground
+                            : status === 'degraded'
+                                ? yellowBackground
+                                : greenBackground
                 }
             ></span>
             <span>{name}</span>
@@ -97,7 +97,7 @@ ProbeBar.propTypes = {
     selectbutton: PropTypes.func,
     activeProbe: PropTypes.number,
     lastAlive: PropTypes.oneOfType([
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'typeof import("/home/nawazdhanda... Remove this comment to see the full error message
+
         PropTypes.instanceOf(moment),
         PropTypes.string,
     ]),

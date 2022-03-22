@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
@@ -21,7 +21,7 @@ class removeGroup extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.deleteSubProject();
@@ -31,7 +31,7 @@ class removeGroup extends Component {
     };
 
     deleteSubProject = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteGroup' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { deleteGroup, data, closeModal } = this.props;
         deleteGroup(data.projectId, data.groupId).then((value: $TSFixMe) => {
             if (!value.error) {
@@ -43,7 +43,7 @@ class removeGroup extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'groupDelete' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { groupDelete, closeModal, data, closeThisDialog } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -124,7 +124,7 @@ class removeGroup extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 removeGroup.displayName = 'removeGroup';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -144,7 +144,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 removeGroup.propTypes = {
     closeModal: PropTypes.func,
     closeThisDialog: PropTypes.func.isRequired,

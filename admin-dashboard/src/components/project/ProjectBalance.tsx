@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field, reset } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import { Validate } from '../../config';
@@ -11,7 +11,7 @@ import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import ConfirmBalanceTopUp from '../modals/ConfirmBalanceTopUp';
 import DataPathHoC from '../DataPathHoC';
@@ -20,13 +20,13 @@ function validate(value: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(value.rechargeBalanceAmount)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'rechargeBalanceAmount' does not exist on... Remove this comment to see the full error message
+
         errors.rechargeBalanceAmount = 'Amount is required';
     } else if (!Validate.number(value.rechargeBalanceAmount)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'rechargeBalanceAmount' does not exist on... Remove this comment to see the full error message
+
         errors.rechargeBalanceAmount = 'Enter a valid number';
     } else if (!Validate.numberGreaterThanZero(value.rechargeBalanceAmount)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'rechargeBalanceAmount' does not exist on... Remove this comment to see the full error message
+
         errors.rechargeBalanceAmount = 'Enter a valid number greater than 0';
     }
 
@@ -39,7 +39,7 @@ class ProjectBalance extends Component {
         createTopUpModalId: uuidv4(),
     };
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal } = this.props;
 
         const { createTopUpModalId } = this.state;
@@ -51,14 +51,14 @@ class ProjectBalance extends Component {
                 onConfirm: () => this.updateProjectBalance(values),
                 content: DataPathHoC(ConfirmBalanceTopUp, {
                     amount: values.rechargeBalanceAmount,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                     isRequesting: this.props.isRequesting,
                 }),
             });
         }
     };
     updateProjectBalance = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateBalance' does not exist on type 'R... Remove this comment to see the full error message
+
         const { updateBalance, projectId, openModal } = this.props;
         const { MessageBoxId } = this.state;
         return updateBalance(projectId, values.rechargeBalanceAmount)
@@ -84,7 +84,7 @@ class ProjectBalance extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'balance' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { balance } = this.props;
         return (
             <div className="Box-root Margin-vertical--12">
@@ -106,7 +106,7 @@ class ProjectBalance extends Component {
                                     </div>
                                 </div>
                                 <form
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
                                     onSubmit={this.props.handleSubmit(
                                         this.submitForm
                                     )}
@@ -226,7 +226,7 @@ class ProjectBalance extends Component {
                                                         required="required"
                                                         disabled={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                 .isRequesting
                                                         }
                                                     />
@@ -241,21 +241,21 @@ class ProjectBalance extends Component {
                                                 id="rechargeAccount"
                                                 className="bs-Button bs-Button--blue"
                                                 disabled={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                     this.props.isRequesting
                                                 }
                                                 type="submit"
                                             >
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                         !this.props.isRequesting
                                                     }
                                                 >
                                                     <span>Update Balance</span>
                                                 </ShouldRender>
                                                 <ShouldRender
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                     if={this.props.isRequesting}
                                                 >
                                                     <FormLoader />
@@ -273,10 +273,10 @@ class ProjectBalance extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectBalance.displayName = 'ProjectBalance';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectBalance.propTypes = {
     updateBalance: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,

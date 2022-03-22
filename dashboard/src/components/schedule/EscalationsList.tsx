@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(2307) FIXME: Cannot find module './EscalationSingle' or its cor... Remove this comment to see the full error message
+
 import { EscalationSingle } from './EscalationSingle';
 
 const EscalationsList = ({

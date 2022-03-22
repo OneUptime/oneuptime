@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, FieldArray, arrayPush } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { getEscalation, addEscalation } from '../../actions/schedule';
 import { getProjectGroups } from '../../actions/group';
@@ -25,71 +25,71 @@ function validate(values: $TSFixMe) {
             const escalationArrayErrors: $TSFixMe = [];
             if (values.OnCallAlertBox[i]) {
                 if (values.OnCallAlertBox[i].callReminders === '') {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callReminders' does not exist on type '{... Remove this comment to see the full error message
+
                     repeatErrors.callReminders =
                         'Please enter how many reminders to send';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (
                     !Validate.number(values.OnCallAlertBox[i].callReminders)
                 ) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callReminders' does not exist on type '{... Remove this comment to see the full error message
+
                     repeatErrors.callReminders = 'This should be a number.';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (values.OnCallAlertBox[i].callReminders <= 0) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'callReminders' does not exist on type '{... Remove this comment to see the full error message
+
                     repeatErrors.callReminders =
                         'This should be greater than 0.';
                     alertArrayErrors[i] = repeatErrors;
                 }
 
                 if (values.OnCallAlertBox[i].smsReminders === '') {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsReminders' does not exist on type '{}... Remove this comment to see the full error message
+
                     repeatErrors.smsReminders =
                         'Please enter how many reminders to send';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (
                     !Validate.number(values.OnCallAlertBox[i].smsReminders)
                 ) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsReminders' does not exist on type '{}... Remove this comment to see the full error message
+
                     repeatErrors.smsReminders = 'This should be a number.';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (values.OnCallAlertBox[i].smsReminders <= 0) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsReminders' does not exist on type '{}... Remove this comment to see the full error message
+
                     repeatErrors.smsReminders = 'This should be greater than 0';
                     alertArrayErrors[i] = repeatErrors;
                 }
 
                 if (values.OnCallAlertBox[i].emailReminders === '') {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailReminders' does not exist on type '... Remove this comment to see the full error message
+
                     repeatErrors.emailReminders =
                         'Please enter how many reminders to send.';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (
                     !Validate.number(values.OnCallAlertBox[i].emailReminders)
                 ) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailReminders' does not exist on type '... Remove this comment to see the full error message
+
                     repeatErrors.emailReminders = 'This should be a number.';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (values.OnCallAlertBox[i].emailReminders <= 0) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailReminders' does not exist on type '... Remove this comment to see the full error message
+
                     repeatErrors.emailReminders =
                         'This should be greater than 0';
                     alertArrayErrors[i] = repeatErrors;
                 }
 
                 if (values.OnCallAlertBox[i].pushReminders === '') {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushReminders' does not exist on type '{... Remove this comment to see the full error message
+
                     repeatErrors.pushReminders =
                         'Please enter how many reminders to send.';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (
                     !Validate.number(values.OnCallAlertBox[i].pushReminders)
                 ) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushReminders' does not exist on type '{... Remove this comment to see the full error message
+
                     repeatErrors.pushReminders = 'This should be a number.';
                     alertArrayErrors[i] = repeatErrors;
                 } else if (values.OnCallAlertBox[i].pushReminders <= 0) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushReminders' does not exist on type '{... Remove this comment to see the full error message
+
                     repeatErrors.pushReminders =
                         'This should be greater than 0';
                     alertArrayErrors[i] = repeatErrors;
@@ -104,19 +104,19 @@ function validate(values: $TSFixMe) {
                             val.teamMembers[0] &&
                             val.teamMembers[0].userId === ''
                         ) {
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type '{}'.
+
                             escalationErrors.userId = 'Please select a member.';
                             escalationArrayErrors[j] = escalationErrors;
                         }
                     }
                 });
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalation' does not exist on type '{}'.
+
             repeatErrors.escalation = escalationArrayErrors;
             alertArrayErrors[i] = repeatErrors;
         }
 
         if (alertArrayErrors.length) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'OnCallAlertBox' does not exist on type '... Remove this comment to see the full error message
+
             errors.OnCallAlertBox = alertArrayErrors;
         }
     }
@@ -127,15 +127,15 @@ function validate(values: $TSFixMe) {
 export class OnCallAlertBox extends Component {
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
             subProjectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getProjectGroups' does not exist on type... Remove this comment to see the full error message
+
             getProjectGroups,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
+
             subProjectTeamLoading,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type 'Read... Remove this comment to see the full error message
+
             scheduleId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getEscalation' does not exist on type 'R... Remove this comment to see the full error message
+
             getEscalation,
         } = this.props;
         if (subProjectId) {
@@ -148,21 +148,21 @@ export class OnCallAlertBox extends Component {
     }
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
             prevProps.subProjectId !== this.props.subProjectId ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedule' does not exist on type 'Readon... Remove this comment to see the full error message
+
             prevProps.schedule !== this.props.schedule
         ) {
             const {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
                 subProjectId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'getProjectGroups' does not exist on type... Remove this comment to see the full error message
+
                 getProjectGroups,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
+
                 subProjectTeamLoading,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type 'Read... Remove this comment to see the full error message
+
                 scheduleId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'getEscalation' does not exist on type 'R... Remove this comment to see the full error message
+
                 getEscalation,
             } = this.props;
             if (subProjectId) {
@@ -175,11 +175,11 @@ export class OnCallAlertBox extends Component {
         }
     }
     submitForm = async (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { subProjectId, scheduleId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addEscalation' does not exist on type 'R... Remove this comment to see the full error message
+
         await this.props.addEscalation(subProjectId, scheduleId, values);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'afterSave' does not exist on type 'Reado... Remove this comment to see the full error message
+
         if (this.props.afterSave) this.props.afterSave();
     };
 
@@ -188,7 +188,7 @@ export class OnCallAlertBox extends Component {
             type="button"
             className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
             onClick={() =>
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushArray' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 this.props.pushArray('OnCallAlertBox', 'OnCallAlertBox', {
                     callReminders: 3,
                     smsReminders: 3,
@@ -215,7 +215,7 @@ export class OnCallAlertBox extends Component {
     );
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit } = this.props;
 
         return (
@@ -257,7 +257,7 @@ export class OnCallAlertBox extends Component {
                                                     name="OnCallAlertBox"
                                                     component={RenderEscalation}
                                                     subProjectId={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                         this.props.subProjectId
                                                     }
                                                 />
@@ -274,7 +274,7 @@ export class OnCallAlertBox extends Component {
                                     >
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalationPolicy' does not exist on type... Remove this comment to see the full error message
+
                                                 this.props.escalationPolicy
                                                     .error
                                             }
@@ -286,7 +286,7 @@ export class OnCallAlertBox extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalationPolicy' does not exist on type... Remove this comment to see the full error message
+
                                                             .escalationPolicy
                                                             .error
                                                     }
@@ -302,16 +302,16 @@ export class OnCallAlertBox extends Component {
                                         id="saveSchedulePolicy"
                                         className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                         disabled={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalationPolicy' does not exist on type... Remove this comment to see the full error message
+
                                             this.props.escalationPolicy
                                                 .requesting
                                         }
                                         type="submit"
                                     >
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalationPolicy' does not exist on type... Remove this comment to see the full error message
+
                                         {!this.props.escalationPolicy
                                             .requesting && <span>Save</span>}
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalationPolicy' does not exist on type... Remove this comment to see the full error message
+
                                         {this.props.escalationPolicy
                                             .requesting && <FormLoader />}
                                     </button>
@@ -325,10 +325,10 @@ export class OnCallAlertBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 OnCallAlertBox.displayName = 'OnCallAlertBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 OnCallAlertBox.propTypes = {
     getEscalation: PropTypes.func.isRequired,
     afterSave: PropTypes.func.isRequired,
@@ -368,29 +368,29 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
         escalations && escalations.length > 0
             ? escalations
             : [
-                  {
-                      callReminders: '3',
-                      smsReminders: '3',
-                      emailReminders: '3',
-                      pushReminders: '3',
-                      email: true,
-                      sms: false,
-                      call: false,
-                      push: false,
-                      teams: [
-                          {
-                              teamMembers: [
-                                  {
-                                      member: '',
-                                      timezone: '',
-                                      startTime: '',
-                                      endTime: '',
-                                  },
-                              ],
-                          },
-                      ],
-                  },
-              ];
+                {
+                    callReminders: '3',
+                    smsReminders: '3',
+                    emailReminders: '3',
+                    pushReminders: '3',
+                    email: true,
+                    sms: false,
+                    call: false,
+                    push: false,
+                    teams: [
+                        {
+                            teamMembers: [
+                                {
+                                    member: '',
+                                    timezone: '',
+                                    startTime: '',
+                                    endTime: '',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ];
     let schedule = state.schedule.subProjectSchedules.map(
         (subProjectSchedule: $TSFixMe) => {
             return subProjectSchedule.schedules.find(

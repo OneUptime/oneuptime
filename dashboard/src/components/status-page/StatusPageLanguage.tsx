@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm, FieldArray } from 'redux-form';
 import {
     updateStatusPageLanguage,
@@ -378,40 +378,40 @@ const mapStateToProps = (state: $TSFixMe) => {
     } = state;
 
     if (status) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isPrivate' does not exist on type '{}'.
+
         initialValues.isPrivate = status.isPrivate;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isSubscriberEnabled' does not exist on t... Remove this comment to see the full error message
+
         initialValues.isSubscriberEnabled = status.isSubscriberEnabled;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isGroupedByMonitorCategory' does not exi... Remove this comment to see the full error message
+
         initialValues.isGroupedByMonitorCategory =
             status.isGroupedByMonitorCategory;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showScheduledEvents' does not exist on t... Remove this comment to see the full error message
+
         initialValues.showScheduledEvents = status.showScheduledEvents;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableIpWhitelist' does not exist on typ... Remove this comment to see the full error message
+
         initialValues.enableIpWhitelist = status.enableIpWhitelist;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ipWhitelist' does not exist on type '{}'... Remove this comment to see the full error message
+
         initialValues.ipWhitelist = status.ipWhitelist;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProbeBar' does not exist on type '{}... Remove this comment to see the full error message
+
         initialValues.hideProbeBar = status.hideProbeBar;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideUptime' does not exist on type '{}'.
+
         initialValues.hideUptime = status.hideUptime;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideResolvedIncident' does not exist on ... Remove this comment to see the full error message
+
         initialValues.hideResolvedIncident = status.hideResolvedIncident;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentHistoryDays' does not exist on t... Remove this comment to see the full error message
+
         initialValues.incidentHistoryDays = status.incidentHistoryDays;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleHistoryDays' does not exist on t... Remove this comment to see the full error message
+
         initialValues.scheduleHistoryDays = status.scheduleHistoryDays;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcementLogsHistory' does not exist ... Remove this comment to see the full error message
+
         initialValues.announcementLogsHistory = status.announcementLogsHistory;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onlineText' does not exist on type '{}'.
+
         initialValues.onlineText = status.onlineText || 'Operational';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'offlineText' does not exist on type '{}'... Remove this comment to see the full error message
+
         initialValues.offlineText = status.offlineText || 'Offline';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'degradedText' does not exist on type '{}... Remove this comment to see the full error message
+
         initialValues.degradedText = status.degradedText || 'Degraded';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'multiLanguage' does not exist on type '{... Remove this comment to see the full error message
+
         initialValues.multiLanguage = status.enableMultipleLanguage || false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'multipleLanguages' does not exist on typ... Remove this comment to see the full error message
+
         initialValues.multipleLanguages = status.multipleLanguages || [];
     }
 

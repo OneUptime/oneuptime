@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { bindActionCreators } from 'redux';
 import { history } from '../../store';
@@ -21,14 +21,14 @@ class DuplicateStatusPageConfirmation extends Component {
     }
 
     handleNavigation = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { slug, statusPageSlug } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'duplicateModalId' does not exist on type... Remove this comment to see the full error message
+
             id: this.props.duplicateModalId,
         });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPage' does not exist on type ... Remove this comment to see the full error message
+
         this.props.fetchStatusPage(statusPageSlug);
         history.push(
             `/dashboard/project/${slug}/status-page/${statusPageSlug}`
@@ -47,11 +47,11 @@ class DuplicateStatusPageConfirmation extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'duplicateStatusPageReset' does not exist... Remove this comment to see the full error message
+
         this.props.duplicateStatusPageReset();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'duplicateModalId' does not exist on type... Remove this comment to see the full error message
+
             id: this.props.duplicateModalId,
         });
     };
@@ -117,7 +117,7 @@ class DuplicateStatusPageConfirmation extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DuplicateStatusPageConfirmation.displayName = 'DuplicateStatusPageConfirmation';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -135,7 +135,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DuplicateStatusPageConfirmation.propTypes = {
     closeModal: PropTypes.func,
     duplicateModalId: PropTypes.string.isRequired,

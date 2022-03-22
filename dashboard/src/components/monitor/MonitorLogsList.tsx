@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
@@ -12,7 +12,7 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { formatDecimal, formatBytes } from '../../config';
 import ShouldRender from '../../components/basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'to-p... Remove this comment to see the full error message
+
 import toPascalCase from 'to-pascal-case';
 import ViewScriptLogs from '../modals/ViewScriptLogs';
 import { updatemonitorlogbysocket } from '../../actions/socket';
@@ -35,7 +35,7 @@ export class MonitorLogsList extends Component {
         // socket.removeListener(`updateMonitorLog-${this.props.projectId}`);
     }
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorLogs' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { monitorLogs } = this.props;
         let skip = monitorLogs && monitorLogs.skip ? monitorLogs.skip : null;
         let limit = monitorLogs && monitorLogs.limit ? monitorLogs.limit : null;
@@ -70,12 +70,12 @@ export class MonitorLogsList extends Component {
                     <table className="Table">
                         <thead className="Table-body">
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                 {this.props.monitorType &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
-                                this.props.monitorType === 'server-monitor' ? (
+
+                                    this.props.monitorType === 'server-monitor' ? (
                                     <>
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'agentless' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         <ShouldRender if={this.props.agentless}>
                                             <td
                                                 className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -153,7 +153,7 @@ export class MonitorLogsList extends Component {
                                         </td>
                                         <td
                                             id="overflow"
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                             type="action"
                                             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{ height: '1px' }}
@@ -177,12 +177,12 @@ export class MonitorLogsList extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType !==
-                                                                'incomingHttpRequest'
+                                                            'incomingHttpRequest'
                                                         }
                                                     >
                                                         <span>Probe</span>
@@ -190,12 +190,12 @@ export class MonitorLogsList extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType ===
-                                                                'incomingHttpRequest'
+                                                            'incomingHttpRequest'
                                                         }
                                                     >
                                                         <span>
@@ -218,17 +218,17 @@ export class MonitorLogsList extends Component {
                                         </td>
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                 this.props.monitorType &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                 this.props.monitorType !==
-                                                    'incomingHttpRequest' &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+                                                'incomingHttpRequest' &&
+
                                                 this.props.monitorType !==
-                                                    'kubernetes' &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+                                                'kubernetes' &&
+
                                                 this.props.monitorType !==
-                                                    'script'
+                                                'script'
                                             }
                                         >
                                             <td
@@ -256,11 +256,11 @@ export class MonitorLogsList extends Component {
                                         </ShouldRender>
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                 this.props.monitorType &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                 this.props.monitorType ===
-                                                    'script'
+                                                'script'
                                             }
                                         >
                                             <td
@@ -302,33 +302,32 @@ export class MonitorLogsList extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {monitorLogs &&
-                            monitorLogs.logs &&
-                            monitorLogs.logs.length > 0 ? (
+                                monitorLogs.logs &&
+                                monitorLogs.logs.length > 0 ? (
                                 monitorLogs.logs.map((log: $TSFixMe, i: $TSFixMe) => {
                                     return (
                                         <tr
-                                            id={`monitor_log_${
-                                                log.monitorId &&
-                                                log.monitorId.name
+                                            id={`monitor_log_${log.monitorId &&
+                                                    log.monitorId.name
                                                     ? log.monitorId.name
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                     : this.props.monitorName
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                    ? this.props.monitorName
-                                                    : 'Unknown Monitor'
-                                            }_${i}`}
+
+                                                        ? this.props.monitorName
+                                                        : 'Unknown Monitor'
+                                                }_${i}`}
                                             key={log._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                         >
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                             {this.props.monitorType &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
-                                            this.props.monitorType ===
+
+                                                this.props.monitorType ===
                                                 'server-monitor' ? (
                                                 <>
                                                     <ShouldRender
                                                         if={
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'agentless' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                             this.props.agentless
                                                         }
                                                     >
@@ -345,12 +344,12 @@ export class MonitorLogsList extends Component {
                                                                     <div className="Box-root Margin-right--16">
                                                                         <span>
                                                                             {log.probeId &&
-                                                                            log
-                                                                                .probeId
-                                                                                .probeName
+                                                                                log
+                                                                                    .probeId
+                                                                                    .probeName
                                                                                 ? log
-                                                                                      .probeId
-                                                                                      .probeName
+                                                                                    .probeId
+                                                                                    .probeName
                                                                                 : 'OneUptime'}
                                                                         </span>
                                                                     </div>
@@ -406,8 +405,8 @@ export class MonitorLogsList extends Component {
                                                                         <div className="Box-root Flex-flex">
                                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                 {log &&
-                                                                                log.status &&
-                                                                                log.status ===
+                                                                                    log.status &&
+                                                                                    log.status ===
                                                                                     'offline' ? (
                                                                                     <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
@@ -417,9 +416,9 @@ export class MonitorLogsList extends Component {
                                                                                         </span>
                                                                                     </div>
                                                                                 ) : log &&
-                                                                                  log.status &&
-                                                                                  log.status ===
-                                                                                      'online' ? (
+                                                                                    log.status &&
+                                                                                    log.status ===
+                                                                                    'online' ? (
                                                                                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                             <span>
@@ -428,9 +427,9 @@ export class MonitorLogsList extends Component {
                                                                                         </span>
                                                                                     </div>
                                                                                 ) : log &&
-                                                                                  log.status &&
-                                                                                  log.status ===
-                                                                                      'degraded' ? (
+                                                                                    log.status &&
+                                                                                    log.status ===
+                                                                                    'degraded' ? (
                                                                                     <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                             <span>
@@ -471,11 +470,11 @@ export class MonitorLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log.cpuLoad
-                                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+
                                                                                                 ? formatDecimal(
-                                                                                                      log.cpuLoad,
-                                                                                                      2
-                                                                                                  )
+                                                                                                    log.cpuLoad,
+                                                                                                    2
+                                                                                                )
                                                                                                 : 0}{' '}
                                                                                             %
                                                                                         </span>
@@ -504,10 +503,10 @@ export class MonitorLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log.memoryUsed
-                                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+
                                                                                                 ? formatBytes(
-                                                                                                      log.memoryUsed
-                                                                                                  )
+                                                                                                    log.memoryUsed
+                                                                                                )
                                                                                                 : '0 Bytes'}
                                                                                         </span>
                                                                                     </span>
@@ -535,11 +534,11 @@ export class MonitorLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log.storageUsage
-                                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+
                                                                                                 ? formatDecimal(
-                                                                                                      log.storageUsage,
-                                                                                                      2
-                                                                                                  )
+                                                                                                    log.storageUsage,
+                                                                                                    2
+                                                                                                )
                                                                                                 : 0}{' '}
                                                                                             %
                                                                                         </span>
@@ -606,39 +605,38 @@ export class MonitorLogsList extends Component {
                                                                                         className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                                                         type="button"
                                                                                         onClick={() =>
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                                             this.props.openModal(
                                                                                                 {
                                                                                                     id: this
                                                                                                         .state
-                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
+
                                                                                                         .viewJsonModalId,
                                                                                                     content: DataPathHoC(
                                                                                                         ViewJsonLogs,
                                                                                                         {
                                                                                                             viewJsonModalId: this
                                                                                                                 .state
-                                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
+
                                                                                                                 .viewJsonModalId,
                                                                                                             jsonLog: log,
-                                                                                                            title: `Monitor Log for ${
-                                                                                                                this
+                                                                                                            title: `Monitor Log for ${this
                                                                                                                     .props
-                                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                                                                     .monitorName
                                                                                                                     ? this
-                                                                                                                          .props
-                                                                                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                                                          .monitorName
+                                                                                                                        .props
+
+                                                                                                                        .monitorName
                                                                                                                     : log.monitorId &&
-                                                                                                                      log
-                                                                                                                          .monitorId
-                                                                                                                          .name
-                                                                                                                    ? log
-                                                                                                                          .monitorId
-                                                                                                                          .name
-                                                                                                                    : 'Unknown'
-                                                                                                            } monitor`,
+                                                                                                                        log
+                                                                                                                            .monitorId
+                                                                                                                            .name
+                                                                                                                        ? log
+                                                                                                                            .monitorId
+                                                                                                                            .name
+                                                                                                                        : 'Unknown'
+                                                                                                                } monitor`,
                                                                                                             rootName:
                                                                                                                 'monitorLog',
                                                                                                         }
@@ -676,27 +674,27 @@ export class MonitorLogsList extends Component {
                                                                 <div className="Box-root Margin-right--16">
                                                                     <span>
                                                                         {log.probeId &&
-                                                                        log
-                                                                            .probeId
-                                                                            .probeName
+                                                                            log
+                                                                                .probeId
+                                                                                .probeName
                                                                             ? log
-                                                                                  .probeId
-                                                                                  .probeName
+                                                                                .probeId
+                                                                                .probeName
                                                                             : this
-                                                                                  .props
-                                                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                  .monitorType &&
-                                                                              [
-                                                                                  'incomingHttpRequest',
-                                                                                  'script',
-                                                                              ].includes(
-                                                                                  this
-                                                                                      .props
-                                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                      .monitorType
-                                                                              )
-                                                                            ? 'OneUptime'
-                                                                            : 'Unknown Probe'}
+                                                                                .props
+
+                                                                                .monitorType &&
+                                                                                [
+                                                                                    'incomingHttpRequest',
+                                                                                    'script',
+                                                                                ].includes(
+                                                                                    this
+                                                                                        .props
+
+                                                                                        .monitorType
+                                                                                )
+                                                                                ? 'OneUptime'
+                                                                                : 'Unknown Probe'}
                                                                     </span>
                                                                 </div>
                                                             </span>
@@ -749,8 +747,8 @@ export class MonitorLogsList extends Component {
                                                                         <div className="Box-root Flex-flex">
                                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                 {log &&
-                                                                                log.status &&
-                                                                                log.status ===
+                                                                                    log.status &&
+                                                                                    log.status ===
                                                                                     'offline' ? (
                                                                                     <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
@@ -760,9 +758,9 @@ export class MonitorLogsList extends Component {
                                                                                         </span>
                                                                                     </div>
                                                                                 ) : log &&
-                                                                                  log.status &&
-                                                                                  log.status ===
-                                                                                      'online' ? (
+                                                                                    log.status &&
+                                                                                    log.status ===
+                                                                                    'online' ? (
                                                                                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                             <span>
@@ -771,9 +769,9 @@ export class MonitorLogsList extends Component {
                                                                                         </span>
                                                                                     </div>
                                                                                 ) : log &&
-                                                                                  log.status &&
-                                                                                  log.status ===
-                                                                                      'degraded' ? (
+                                                                                    log.status &&
+                                                                                    log.status ===
+                                                                                    'degraded' ? (
                                                                                     <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                             <span>
@@ -801,20 +799,20 @@ export class MonitorLogsList extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType !==
-                                                                'incomingHttpRequest' &&
+                                                            'incomingHttpRequest' &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType !==
-                                                                'kubernetes' &&
+                                                            'kubernetes' &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType !==
-                                                                'script'
+                                                            'script'
                                                         }
                                                     >
                                                         <td
@@ -830,10 +828,10 @@ export class MonitorLogsList extends Component {
                                                                             <div className="Box-root Flex-flex">
                                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                     {log &&
-                                                                                    log.responseStatus &&
-                                                                                    parseInt(
-                                                                                        log.responseStatus
-                                                                                    ) >=
+                                                                                        log.responseStatus &&
+                                                                                        parseInt(
+                                                                                            log.responseStatus
+                                                                                        ) >=
                                                                                         400 ? (
                                                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
@@ -845,11 +843,11 @@ export class MonitorLogsList extends Component {
                                                                                             </span>
                                                                                         </div>
                                                                                     ) : log &&
-                                                                                      log.responseStatus &&
-                                                                                      parseInt(
-                                                                                          log.responseStatus
-                                                                                      ) <
-                                                                                          400 ? (
+                                                                                        log.responseStatus &&
+                                                                                        parseInt(
+                                                                                            log.responseStatus
+                                                                                        ) <
+                                                                                        400 ? (
                                                                                         <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                 <span>
@@ -909,12 +907,12 @@ export class MonitorLogsList extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 .monitorType ===
-                                                                'script'
+                                                            'script'
                                                         }
                                                     >
                                                         <td
@@ -932,9 +930,9 @@ export class MonitorLogsList extends Component {
                                                                                     {log
                                                                                         ?.scriptMetadata
                                                                                         ?.statusText &&
-                                                                                    log
-                                                                                        .scriptMetadata
-                                                                                        .statusText !==
+                                                                                        log
+                                                                                            .scriptMetadata
+                                                                                            .statusText !==
                                                                                         'success' ? (
                                                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
@@ -948,12 +946,12 @@ export class MonitorLogsList extends Component {
                                                                                             </span>
                                                                                         </div>
                                                                                     ) : log
-                                                                                          ?.scriptMetadata
-                                                                                          ?.statusText &&
-                                                                                      log
-                                                                                          .scriptMetadata
-                                                                                          .statusText ===
-                                                                                          'success' ? (
+                                                                                        ?.scriptMetadata
+                                                                                        ?.statusText &&
+                                                                                        log
+                                                                                            .scriptMetadata
+                                                                                            .statusText ===
+                                                                                        'success' ? (
                                                                                         <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                 <span>
@@ -1032,7 +1030,7 @@ export class MonitorLogsList extends Component {
                                                                                         if={
                                                                                             this
                                                                                                 .props
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                                                 .monitorType ===
                                                                                             'script'
                                                                                         }
@@ -1049,42 +1047,41 @@ export class MonitorLogsList extends Component {
                                                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                                                             type="button"
                                                                                             onClick={() =>
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                                                 this.props.openModal(
                                                                                                     {
                                                                                                         id: this
                                                                                                             .state
-                                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewScriptLogModalId' does not exist on ... Remove this comment to see the full error message
+
                                                                                                             .viewScriptLogModalId,
                                                                                                         content: DataPathHoC(
                                                                                                             ViewScriptLogs,
                                                                                                             {
                                                                                                                 viewScriptLogModalId: this
                                                                                                                     .state
-                                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewScriptLogModalId' does not exist on ... Remove this comment to see the full error message
+
                                                                                                                     .viewScriptLogModalId,
                                                                                                                 consoleLogs:
                                                                                                                     log
                                                                                                                         .scriptMetadata
                                                                                                                         .consoleLogs,
-                                                                                                                title: `Console logs for "${
-                                                                                                                    this
+                                                                                                                title: `Console logs for "${this
                                                                                                                         .props
-                                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                                                                         .monitorName
                                                                                                                         ? this
-                                                                                                                              .props
-                                                                                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                                                              .monitorName
+                                                                                                                            .props
+
+                                                                                                                            .monitorName
                                                                                                                         : log.monitorId &&
-                                                                                                                          log
-                                                                                                                              .monitorId
-                                                                                                                              .name
-                                                                                                                        ? log
-                                                                                                                              .monitorId
-                                                                                                                              .name
-                                                                                                                        : 'Unknown'
-                                                                                                                }" monitor`,
+                                                                                                                            log
+                                                                                                                                .monitorId
+                                                                                                                                .name
+                                                                                                                            ? log
+                                                                                                                                .monitorId
+                                                                                                                                .name
+                                                                                                                            : 'Unknown'
+                                                                                                                    }" monitor`,
                                                                                                                 rootName:
                                                                                                                     'monitorLog',
                                                                                                             }
@@ -1103,7 +1100,7 @@ export class MonitorLogsList extends Component {
                                                                                         if={
                                                                                             this
                                                                                                 .props
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                                                 .monitorType !==
                                                                                             'script'
                                                                                         }
@@ -1120,39 +1117,38 @@ export class MonitorLogsList extends Component {
                                                                                             className="bs-Button bs-DeprecatedButton Margin-left--8"
                                                                                             type="button"
                                                                                             onClick={() =>
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                                                 this.props.openModal(
                                                                                                     {
                                                                                                         id: this
                                                                                                             .state
-                                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
+
                                                                                                             .viewJsonModalId,
                                                                                                         content: DataPathHoC(
                                                                                                             ViewJsonLogs,
                                                                                                             {
                                                                                                                 viewJsonModalId: this
                                                                                                                     .state
-                                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewJsonModalId' does not exist on type ... Remove this comment to see the full error message
+
                                                                                                                     .viewJsonModalId,
                                                                                                                 jsonLog: log,
-                                                                                                                title: `Monitor Log for ${
-                                                                                                                    this
+                                                                                                                title: `Monitor Log for ${this
                                                                                                                         .props
-                                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                                                                         .monitorName
                                                                                                                         ? this
-                                                                                                                              .props
-                                                                                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorName' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                                                                                              .monitorName
+                                                                                                                            .props
+
+                                                                                                                            .monitorName
                                                                                                                         : log.monitorId &&
-                                                                                                                          log
-                                                                                                                              .monitorId
-                                                                                                                              .name
-                                                                                                                        ? log
-                                                                                                                              .monitorId
-                                                                                                                              .name
-                                                                                                                        : 'Unknown'
-                                                                                                                } monitor`,
+                                                                                                                            log
+                                                                                                                                .monitorId
+                                                                                                                                .name
+                                                                                                                            ? log
+                                                                                                                                .monitorId
+                                                                                                                                .name
+                                                                                                                            : 'Unknown'
+                                                                                                                    } monitor`,
                                                                                                                 rootName:
                                                                                                                     'monitorLog',
                                                                                                             }
@@ -1197,10 +1193,10 @@ export class MonitorLogsList extends Component {
                     }}
                 >
                     {!monitorLogs ||
-                    (monitorLogs &&
-                        (!monitorLogs.logs || !monitorLogs.logs.length) &&
-                        !monitorLogs.requesting &&
-                        !monitorLogs.error)
+                        (monitorLogs &&
+                            (!monitorLogs.logs || !monitorLogs.logs.length) &&
+                            !monitorLogs.requesting &&
+                            !monitorLogs.error)
                         ? "We don't have any monitor logs so far."
                         : null}
                     {monitorLogs && monitorLogs.error
@@ -1213,20 +1209,17 @@ export class MonitorLogsList extends Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
-                                        ? `Page ${
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                              this.props.page
-                                          } of ${numberOfPages} (${
-                                              count
-                                                  ? count +
-                                                    (count > 1
-                                                        ? ' Logs'
-                                                        : ' Log')
-                                                  : '0 Logs'
-                                          })`
+                                        ? `Page ${this.props.page
+                                        } of ${numberOfPages} (${count
+                                            ? count +
+                                            (count > 1
+                                                ? ' Logs'
+                                                : ' Log')
+                                            : '0 Logs'
+                                        })`
                                         : count
-                                        ? count + (count > 1 ? ' Logs' : ' Log')
-                                        : '0 Logs'}
+                                            ? count + (count > 1 ? ' Logs' : ' Log')
+                                            : '0 Logs'}
                                 </span>
                             </span>
                         </span>
@@ -1237,11 +1230,11 @@ export class MonitorLogsList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.prevClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.monitorId
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 ? this.props.monitorId
                                                 : null,
                                             skip,
@@ -1267,11 +1260,11 @@ export class MonitorLogsList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.nextClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.monitorId
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 ? this.props.monitorId
                                                 : null,
                                             skip,
@@ -1320,22 +1313,22 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
             ) {
                 const initialData = { ...log.kubernetesLog };
                 const newData = {};
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'podData' does not exist on type '{}'.
+
                 newData.podData = {
                     podStat: initialData.podData.podStat,
                     healthyPodData: initialData.podData.healthyPodData,
                     unhealthyPodData: initialData.podData.unhealthyPodData,
                     allPodData: initialData.podData.allPodData,
                 };
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'jobData' does not exist on type '{}'.
+
                 newData.jobData = {
                     jobStat: initialData.jobData.jobStat,
                     healthyJobData: initialData.jobData.healthyJobData,
                     unhealthyJobData: initialData.jobData.unhealthyJobData,
                 };
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'serviceData' does not exist on type '{}'... Remove this comment to see the full error message
+
                 newData.serviceData = initialData.serviceData;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deploymentData' does not exist on type '... Remove this comment to see the full error message
+
                 newData.deploymentData = {
                     desiredDeployment:
                         initialData.deploymentData.desiredDeployment,
@@ -1349,7 +1342,7 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
                     allDeploymentData:
                         initialData.deploymentData.allDeploymentData,
                 };
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statefulsetData' does not exist on type ... Remove this comment to see the full error message
+
                 newData.statefulsetData = {
                     readyStatefulsets:
                         initialData.statefulsetData.readyStatefulsets,
@@ -1376,10 +1369,10 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorLogsList.displayName = 'MonitorLogsList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorLogsList.propTypes = {
     monitorId: PropTypes.string,
     monitorLogs: PropTypes.object,

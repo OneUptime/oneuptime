@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 
 class About extends Component {
@@ -17,7 +17,7 @@ class About extends Component {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -25,7 +25,7 @@ class About extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'versions' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { versions } = this.props;
         const currentYear = new Date().getFullYear();
 
@@ -36,7 +36,7 @@ class About extends Component {
                     tabIndex={-1}
                     style={{ marginTop: 40 }}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                     <ClickOutside onClickOutside={this.props.closeThisDialog}>
                         <div className="bs-BIM">
                             <div className="bs-Modal bs-Modal--medium">
@@ -207,7 +207,7 @@ class About extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                                             onClick={this.props.closeThisDialog}
                                             autoFocus={true}
                                         >
@@ -227,7 +227,7 @@ class About extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 About.displayName = 'AboutModal';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -236,7 +236,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 About.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     versions: PropTypes.object,

@@ -13,39 +13,39 @@ import { CreateDefaultRoleModal } from './ssoDefaultRoles/DefaultRoleModal';
 
 class Box extends React.Component {
     async previousClicked() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoPaginate' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { skip, limit } = this.props.ssoPaginate;
         if (0 <= skip - limit) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsoDefaultRoles' does not exist on ... Remove this comment to see the full error message
+
             await this.props.fetchSsoDefaultRoles(skip - limit, limit);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.paginate('prev');
         }
     }
     async nextClicked() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoPaginate' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { skip, limit } = this.props.ssoPaginate;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { count, paginate } = this.props;
         if (skip + limit < count) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsoDefaultRoles' does not exist on ... Remove this comment to see the full error message
+
             await this.props.fetchSsoDefaultRoles(skip + limit, limit);
             paginate('next');
         }
     }
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjects' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.fetchProjects(0, 0);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsoDefaultRoles' does not exist on ... Remove this comment to see the full error message
+
         await this.props.fetchSsoDefaultRoles(0, 10);
     }
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoDefaultRoles' does not exist on type ... Remove this comment to see the full error message
+
         const { ssoDefaultRoles, openModal, count } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoPaginate' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const canPrev = this.props.ssoPaginate.skip > 0;
         const canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssoPaginate' does not exist on type 'Rea... Remove this comment to see the full error message
+
             this.props.ssoPaginate.skip + this.props.ssoPaginate.limit < count;
         const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
@@ -57,7 +57,7 @@ class Box extends React.Component {
                     <BoxHeader
                         title="SSO default roles "
                         description="Default roles of the members"
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'Element[]' is not assignable to type '(...ar... Remove this comment to see the full error message
+
                         buttons={[
                             <Button
                                 text="Define new configurations"
@@ -75,13 +75,13 @@ class Box extends React.Component {
                         <Table ssoDefaultRoles={ssoDefaultRoles} />
                         <BoxFooter
                             recordsCount={count}
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'boolean' is not assignable to type '((...arg... Remove this comment to see the full error message
+
                             canPrev={canPrev}
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'boolean' is not assignable to type '((...arg... Remove this comment to see the full error message
+
                             canNext={canNext}
                             previousClicked={() => this.previousClicked()}
                             nextClicked={() => this.nextClicked()}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                             page={this.props.page}
                             numberOfPages={numberOfPages}
                         />
@@ -92,9 +92,9 @@ class Box extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Box.displayName = 'ssoDefaultRoles';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Box.propTypes = {
     ssoDefaultRoles: PropTypes.array,
     fetchSsoDefaultRoles: PropTypes.func,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 
 export class SwitchingModal extends React.Component {
@@ -59,11 +59,11 @@ export class SwitchingModal extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SwitchingModal.displayName = 'ProjectSwitchingModal';
 
 function mapValueToProps(value: $TSFixMe) {
-    return function() {
+    return function () {
         return { project: value };
     };
 }

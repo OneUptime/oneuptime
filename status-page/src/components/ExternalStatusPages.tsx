@@ -6,17 +6,17 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from './ShouldRender';
 class ExternalStatusPages extends Component {
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchExternalStatusPages' does not exist... Remove this comment to see the full error message
+
         this.props.fetchExternalStatusPages(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage.projectId._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage._id
         );
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'externalStatusPages' does not exist on t... Remove this comment to see the full error message
+
         const { externalStatusPages, theme } = this.props;
         return (
             <div>
@@ -82,7 +82,7 @@ class ExternalStatusPages extends Component {
                                                         'translateY(-50%)',
                                                     color:
                                                         link.description ===
-                                                        'All Systems Operational'
+                                                            'All Systems Operational'
                                                             ? '#49c3b1'
                                                             : 'red',
                                                     fontWeight: '500',
@@ -194,7 +194,7 @@ class ExternalStatusPages extends Component {
                                                                     'translateY(-50%)',
                                                                 color:
                                                                     link.description ===
-                                                                    'All Systems Operational'
+                                                                        'All Systems Operational'
                                                                         ? '#49c3b1'
                                                                         : 'red',
                                                                 fontWeight:
@@ -236,7 +236,7 @@ class ExternalStatusPages extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ExternalStatusPages.displayName = 'ExternalStatusPages';
 const mapStateToProps = (state: $TSFixMe) => ({
     statusPage: state.status.statusPage,
@@ -247,7 +247,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchExternalStatusPages }, dispatch);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ExternalStatusPages.propTypes = {
     externalStatusPages: PropTypes.object,
     fetchExternalStatusPages: PropTypes.func,

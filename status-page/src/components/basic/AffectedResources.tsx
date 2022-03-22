@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { capitalize } from '../../config';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 
 const AffectedResources = ({
@@ -100,7 +100,7 @@ const AffectedResources = ({
                     }
                 >
                     {affectedMonitors
-                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+
                         .map(monitor => capitalize(monitor.name))
                         .join(', ')
                         .replace(/, ([^,]*)$/, ' and $1')}
@@ -128,7 +128,7 @@ const AffectedResources = ({
                 }
             >
                 {affectedMonitors
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+
                     .map(monitor => capitalize(monitor.name))
                     .join(', ')
                     .replace(/, ([^,]*)$/, ' and $1')}

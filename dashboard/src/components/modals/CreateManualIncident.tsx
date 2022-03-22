@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field, change, formValueSelector } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -26,9 +26,9 @@ class CreateManualIncident extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
+
         const { fetchCustomFields } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { projectId } = this.props.data;
         fetchCustomFields(projectId);
 
@@ -41,22 +41,22 @@ class CreateManualIncident extends Component {
 
     submitForm = (values: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createNewIncident' does not exist on typ... Remove this comment to see the full error message
+
             createNewIncident,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentModalId' does not exist on... Remove this comment to see the full error message
+
             createIncidentModalId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentReset' does not exist on t... Remove this comment to see the full error message
+
             createIncidentReset,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { projectId, monitorId } = this.props.data;
         const monitor = [monitorId];
         this.setState({ incidentType: values.incidentType });
         const thisObj = this;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
+
         const customFields = this.props.customFields.map((field: $TSFixMe) => ({
             fieldName: field.fieldName,
             fieldType: field.fieldType,
@@ -94,7 +94,7 @@ class CreateManualIncident extends Component {
     };
 
     handleKeyBoard = (e: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentReset' does not exist on t... Remove this comment to see the full error message
+
         const { createIncidentReset } = this.props;
 
         if (e.key) {
@@ -104,22 +104,22 @@ class CreateManualIncident extends Component {
             }
             if (e.key === 'Enter' && e.target.localName !== 'textarea') {
                 document.getElementById('createIncident') &&
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                     document.getElementById('createIncident').click();
             }
         }
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentModalId' does not exist on... Remove this comment to see the full error message
+
             id: this.props.createIncidentModalId,
         });
     };
 
     setTemplateValues = (value: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { change, incidentTemplateObj } = this.props;
 
         if (value) {
@@ -132,7 +132,7 @@ class CreateManualIncident extends Component {
                             change(
                                 'incidentPriority',
                                 template.incidentPriority._id ||
-                                    template.incidentPriority
+                                template.incidentPriority
                             );
                     }
                 });
@@ -141,29 +141,29 @@ class CreateManualIncident extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
             newIncident,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriorities' does not exist on ty... Remove this comment to see the full error message
+
             incidentPriorities,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
+
             customFields,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTemplateObj' does not exist on t... Remove this comment to see the full error message
+
             incidentTemplateObj,
         } = this.props;
         const sameError =
             newIncident &&
-            newIncident.error &&
-            newIncident.error ===
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentType' does not exist on type 'Re... Remove this comment to see the full error message
+                newIncident.error &&
+                newIncident.error ===
+
                 `An unresolved incident of type ${this.state.incidentType} already exists.`
                 ? true
                 : false;
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -212,7 +212,7 @@ class CreateManualIncident extends Component {
                                                             placeholder="Incident type"
                                                             disabled={
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                     .newIncident
                                                                     .requesting
                                                             }
@@ -249,7 +249,7 @@ class CreateManualIncident extends Component {
                                                 {!incidentTemplateObj.requesting &&
                                                     incidentTemplateObj
                                                         .templates.length >
-                                                        1 && (
+                                                    1 && (
                                                         <div className="bs-Fieldset-row Margin-bottom--12">
                                                             <label className="bs-Fieldset-label">
                                                                 Incident
@@ -267,7 +267,7 @@ class CreateManualIncident extends Component {
                                                                     disabled={
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                             .newIncident
                                                                             .requesting
                                                                     }
@@ -319,7 +319,7 @@ class CreateManualIncident extends Component {
                                                                 placeholder="Incident Priority"
                                                                 disabled={
                                                                     this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                         .newIncident
                                                                         .requesting
                                                                 }
@@ -357,7 +357,7 @@ class CreateManualIncident extends Component {
                                                             placeholder="Incident title"
                                                             disabled={
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                     .newIncident
                                                                     .requesting
                                                             }
@@ -426,7 +426,7 @@ class CreateManualIncident extends Component {
                                                                                 disabled={
                                                                                     this
                                                                                         .props
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                                         .newIncident
                                                                                         .requesting
                                                                                 }
@@ -446,12 +446,12 @@ class CreateManualIncident extends Component {
                                                 <span>
                                                     An unresolved incident of
                                                     type{' '}
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentType' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                     {this.state.incidentType}{' '}
                                                     already exists. Please
                                                     resolve earlier incidents of
                                                     type{' '}
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentType' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                     {this.state.incidentType} to
                                                     create a new incident.
                                                 </span>
@@ -492,7 +492,7 @@ class CreateManualIncident extends Component {
                                                         >
                                                             {
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'newIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                     .newIncident
                                                                     .error
                                                             }
@@ -504,12 +504,12 @@ class CreateManualIncident extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             onClick={() => {
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentReset' does not exist on t... Remove this comment to see the full error message
+
                                                 this.props.createIncidentReset();
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.closeModal({
                                                     id: this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentModalId' does not exist on... Remove this comment to see the full error message
+
                                                         .createIncidentModalId,
                                                 });
                                             }}
@@ -539,7 +539,7 @@ class CreateManualIncident extends Component {
                                             >
                                                 {newIncident &&
                                                     !newIncident.requesting &&
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'loading' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                     !this.state.loading && (
                                                         <>
                                                             <span>Create</span>
@@ -550,7 +550,7 @@ class CreateManualIncident extends Component {
                                                     )}
                                                 {newIncident &&
                                                     (newIncident.requesting ||
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'loading' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                         this.state.loading) && (
                                                         <FormLoader />
                                                     )}
@@ -567,9 +567,9 @@ class CreateManualIncident extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CreateManualIncident.displayName = 'CreateManualIncident';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CreateManualIncident.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
     closeModal: PropTypes.func.isRequired,
@@ -601,13 +601,13 @@ function mapStateToProps(state: $TSFixMe) {
 
     const defaultTemplate = defaultTemplateObj.template;
     if (defaultTemplate) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTemplate' does not exist on type... Remove this comment to see the full error message
+
         initialValues.incidentTemplate = defaultTemplate._id;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type '{ inciden... Remove this comment to see the full error message
+
         initialValues.title = defaultTemplate.title;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{ i... Remove this comment to see the full error message
+
         initialValues.description = defaultTemplate.description;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriority' does not exist on type... Remove this comment to see the full error message
+
         initialValues.incidentPriority =
             defaultTemplate.incidentPriority?._id ||
             defaultTemplate.incidentPriority;

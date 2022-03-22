@@ -1,10 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
@@ -18,7 +18,7 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.name)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Status Page Name is required!';
     }
     return errors;
@@ -39,12 +39,12 @@ export class StatusPageForm extends React.Component {
     }
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { data, currentProject } = this.props;
         const subProjectId = values.statuspageId || null;
         const name = values.name;
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createDuplicateStatusPage' does not exis... Remove this comment to see the full error message
+
             .createDuplicateStatusPage(
                 currentProject._id,
                 subProjectId,
@@ -52,18 +52,18 @@ export class StatusPageForm extends React.Component {
                 { name }
             )
             .then((res: Response) => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 this.props.closeModal({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'duplicateModalId' does not exist on type... Remove this comment to see the full error message
+
                     id: this.props.duplicateModalId,
                 });
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 this.props.openModal({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'duplicateModalId' does not exist on type... Remove this comment to see the full error message
+
                     id: this.props.duplicateModalId,
                     content: DuplicateStatusPageConfirmation,
                     statusPageSlug: res.data.slug,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     slug: this.props.currentProject.slug,
                 });
             });
@@ -74,10 +74,10 @@ export class StatusPageForm extends React.Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document
                     .querySelector('#btnDuplicateStatusPage')
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'click' does not exist on type 'Element'.
+
                     .click();
             default:
                 return false;
@@ -85,15 +85,15 @@ export class StatusPageForm extends React.Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'duplicateModalId' does not exist on type... Remove this comment to see the full error message
+
             id: this.props.duplicateModalId,
         });
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, subProjects } = this.props;
         return (
             <form onSubmit={handleSubmit(this.submitForm.bind(this))}>
@@ -119,7 +119,7 @@ export class StatusPageForm extends React.Component {
                                         <div className="bs-Modal-messages">
                                             <ShouldRender
                                                 if={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                     this.props.statusPage
                                                         .duplicateStatusPage
                                                         .error
@@ -127,7 +127,7 @@ export class StatusPageForm extends React.Component {
                                             >
                                                 <p className="bs-Modal-message">
                                                     {
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                         this.props.statusPage
                                                             .duplicateStatusPage
                                                             .error
@@ -148,7 +148,7 @@ export class StatusPageForm extends React.Component {
                                                 margin: '10px 0 10px 5%',
                                             }}
                                             disabled={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage
                                                     .duplicateStatusPage
                                                     .requesting
@@ -193,22 +193,22 @@ export class StatusPageForm extends React.Component {
                                         <div className="bs-Modal-footer-actions">
                                             <button
                                                 className={`bs-Button bs-DeprecatedButton btn__modal  ${this
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                     .props.statusPage
                                                     .duplicateStatusPage
                                                     .requesting &&
                                                     'bs-is-disabled'}`}
                                                 type="button"
                                                 onClick={() => {
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                     this.props.closeModal({
                                                         id: this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'duplicateModalId' does not exist on type... Remove this comment to see the full error message
+
                                                             .duplicateModalId,
                                                     });
                                                 }}
                                                 disabled={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                     this.props.statusPage
                                                         .duplicateStatusPage
                                                         .requesting
@@ -222,15 +222,15 @@ export class StatusPageForm extends React.Component {
                                             <button
                                                 id="btnDuplicateStatusPage"
                                                 className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${this
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                     .props.statusPage
                                                     .duplicateStatusPage
                                                     .requesting &&
                                                     'bs-is-disabled'}`}
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '"save"' is not assignable to type '"reset" |... Remove this comment to see the full error message
+
                                                 type="save"
                                                 disabled={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                     this.props.statusPage
                                                         .duplicateStatusPage
                                                         .requesting
@@ -238,7 +238,7 @@ export class StatusPageForm extends React.Component {
                                             >
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                         this.props.statusPage
                                                             .duplicateStatusPage
                                                             .requesting
@@ -263,7 +263,7 @@ export class StatusPageForm extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 StatusPageForm.displayName = 'StatusPageForm';
 
 const DuplicateStatusPageForm = reduxForm({
@@ -287,7 +287,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 StatusPageForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,

@@ -13,15 +13,15 @@ export default class RenderBasedOnRole extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'visibleForOwner' does not exist on type ... Remove this comment to see the full error message
+
             visibleForOwner,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'visibleForAdmin' does not exist on type ... Remove this comment to see the full error message
+
             visibleForAdmin,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'visibleForViewer' does not exist on type... Remove this comment to see the full error message
+
             visibleForViewer,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'visibleForMember' does not exist on type... Remove this comment to see the full error message
+
             visibleForMember,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'visibleForAll' does not exist on type 'R... Remove this comment to see the full error message
+
             visibleForAll,
             children,
         } = this.props;
@@ -48,7 +48,7 @@ export default class RenderBasedOnRole extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 RenderBasedOnRole.propTypes = {
     children: PropTypes.any.isRequired,
 

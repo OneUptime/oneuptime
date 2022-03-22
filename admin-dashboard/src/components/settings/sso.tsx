@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { fetchSsos, deleteSso, fetchSso } from '../../actions/sso';
 import { fetchSsoDefaultRoles } from '../../actions/ssoDefaultRoles';
@@ -19,7 +19,7 @@ export class Component extends React.Component {
     };
 
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsos' does not exist on type 'Reado... Remove this comment to see the full error message
+
         await this.props.fetchSsos();
 
         window.addEventListener('keydown', this.handleKeyboard);
@@ -30,7 +30,7 @@ export class Component extends React.Component {
     }
 
     handleKeyboard = (event: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { modalId, modalList } = this.props;
         const { ssoModalId } = this.state;
 
@@ -50,25 +50,25 @@ export class Component extends React.Component {
     };
 
     addSso = async () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: this.state.ssoModalId,
-            onConfirm: () => {},
+            onConfirm: () => { },
             content: SsoAddModal,
         });
         this.setState({ page: 1 });
     };
 
     deleteSso = async (ssoId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: ssoId,
             onConfirm: async () => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSso' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 await this.props.deleteSso(ssoId);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsoDefaultRoles' does not exist on ... Remove this comment to see the full error message
+
                 await this.props.fetchSsoDefaultRoles();
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsos' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 return this.props.fetchSsos();
             },
             content: SsoDeleteModal,
@@ -76,13 +76,13 @@ export class Component extends React.Component {
     };
 
     editSso = async (ssoId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSso' does not exist on type 'Readon... Remove this comment to see the full error message
+
         this.props.fetchSso(ssoId);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: ssoId,
             onConfirm: async () => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsos' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 return this.props.fetchSsos();
             },
             content: SsoUpdateModal,
@@ -90,25 +90,25 @@ export class Component extends React.Component {
     };
 
     previousClicked = async () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssos' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { ssos } = this.props;
         const { skip, limit } = ssos;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsos' does not exist on type 'Reado... Remove this comment to see the full error message
+
         await this.props.fetchSsos(skip - limit >= 0 ? skip - limit : 0, limit);
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = async () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssos' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { ssos } = this.props;
         const { skip, limit } = ssos;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsos' does not exist on type 'Reado... Remove this comment to see the full error message
+
         await this.props.fetchSsos(skip + limit, limit);
         this.setState({ page: this.state.page + 1 });
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ssos' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { ssos } = this.props;
         const { count, skip, limit } = ssos;
         const canPrev = skip > 0;
@@ -247,7 +247,7 @@ export class Component extends React.Component {
                                                 height: '1px',
                                                 minWidth: '270px',
                                             }}
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                             colSpan="5"
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
@@ -437,10 +437,10 @@ export class Component extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Component.displayName = 'SettingsForm';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Component.propTypes = {
     ssos: PropTypes.object.isRequired,
     fetchSsos: PropTypes.func.isRequired,

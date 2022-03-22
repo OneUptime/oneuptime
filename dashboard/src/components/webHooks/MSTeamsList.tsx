@@ -16,9 +16,9 @@ import { User } from '../../config';
 
 class MSTeamsList extends React.Component {
     ready() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getMsTeamsMonitor' does not exist on typ... Remove this comment to see the full error message
+
         const { getMsTeamsMonitor, monitorId, getMsTeams } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId } = this.props;
 
         if (monitorId) {
@@ -33,7 +33,7 @@ class MSTeamsList extends React.Component {
     }
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
         this.props.paginate('reset');
     }
 
@@ -50,17 +50,17 @@ class MSTeamsList extends React.Component {
 
     prevClicked = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'msTeams' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             msTeams: { skip, limit },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
             paginate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getMsTeamsMonitor' does not exist on typ... Remove this comment to see the full error message
+
             getMsTeamsMonitor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             monitorId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getMsTeams' does not exist on type 'Read... Remove this comment to see the full error message
+
             getMsTeams,
         } = this.props;
 
@@ -83,17 +83,17 @@ class MSTeamsList extends React.Component {
 
     nextClicked = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'msTeams' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             msTeams: { skip, limit },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getMsTeamsMonitor' does not exist on typ... Remove this comment to see the full error message
+
             getMsTeamsMonitor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
             paginate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             monitorId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getMsTeams' does not exist on type 'Read... Remove this comment to see the full error message
+
             getMsTeams,
         } = this.props;
 
@@ -106,7 +106,7 @@ class MSTeamsList extends React.Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'msTeams' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { msTeams, isRequesting, monitorId } = this.props;
         const { count, skip, limit } = msTeams;
         let { msTeams: webHooks } = msTeams;
@@ -149,14 +149,14 @@ class MSTeamsList extends React.Component {
                             <ShouldRender if={numberOfWebHooks > 0}>
                                 {(webHooks ? webHooks : []).map((hook: $TSFixMe) => <MSTeamsItem
                                     key={`${hook._id}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: string; data: any; monitorId: any; mo... Remove this comment to see the full error message
+
                                     data={hook}
                                     monitorId={monitorId}
                                     monitors={hook.monitors}
                                     currentMonitorName={
                                         !monitorId &&
-                                        hook.monitorId &&
-                                        hook.monitorId.componentId
+                                            hook.monitorId &&
+                                            hook.monitorId.componentId
                                             ? `${hook.monitorId.componentId.name} / ${hook.monitorId.name}`
                                             : ''
                                     }
@@ -203,16 +203,14 @@ class MSTeamsList extends React.Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                         ? `Page ${this.props.pages &&
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                              this.props.pages
-                                                  .counter} of ${numberOfPages} (${count} MS Team${
-                                              count === 1 ? '' : 's'
-                                          })`
-                                        : `${count} MS Team${
-                                              count === 1 ? '' : 's'
-                                          }`}
+
+                                        this.props.pages
+                                            .counter} of ${numberOfPages} (${count} MS Team${count === 1 ? '' : 's'
+                                        })`
+                                        : `${count} MS Team${count === 1 ? '' : 's'
+                                        }`}
                                 </span>
                             </span>
                         </span>
@@ -224,11 +222,10 @@ class MSTeamsList extends React.Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${
-                                        !canPaginateBackward
+                                    className={`Button bs-ButtonLegacy ${!canPaginateBackward
                                             ? 'Is--disabled'
                                             : ''
-                                    }`}
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!canPaginateBackward}
                                     type="button"
@@ -244,11 +241,10 @@ class MSTeamsList extends React.Component {
                             </div>
                             <div className="Box-root">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${
-                                        !canPaginateForward
+                                    className={`Button bs-ButtonLegacy ${!canPaginateForward
                                             ? 'Is--disabled'
                                             : ''
-                                    }`}
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!canPaginateForward}
                                     type="button"
@@ -270,7 +266,7 @@ class MSTeamsList extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MSTeamsList.displayName = 'MsTeamsList';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -296,7 +292,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MSTeamsList.propTypes = {
     getMsTeams: PropTypes.func,
     projectId: PropTypes.string,

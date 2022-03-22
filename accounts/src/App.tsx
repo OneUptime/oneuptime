@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import { history, isServer } from './store';
 import { connect } from 'react-redux';
@@ -13,7 +13,7 @@ import {
     User,
 } from './config';
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'quer... Remove this comment to see the full error message
+
 import queryString from 'query-string';
 import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
@@ -45,10 +45,10 @@ if (userIsLoggedIn) {
     window.location = cookies.get('admin-data')
         ? ADMIN_DASHBOARD_URL
         : isStatusPageLogin
-        ? `${statusPageURL}?userId=${userId}&accessToken=${jwtAccessToken}`
-        : redirectTo
-        ? redirectTo
-        : DASHBOARD_URL;
+            ? `${statusPageURL}?userId=${userId}&accessToken=${jwtAccessToken}`
+            : redirectTo
+                ? redirectTo
+                : DASHBOARD_URL;
 }
 
 const App = ({
@@ -86,7 +86,7 @@ const App = ({
                             .map((route, index) => {
                                 return (
                                     <Route
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'exact' does not exist on type '{ title: ... Remove this comment to see the full error message
+
                                         exact={route.exact}
                                         path={route.path}
                                         key={index}

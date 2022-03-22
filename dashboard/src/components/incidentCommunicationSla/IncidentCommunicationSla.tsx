@@ -19,7 +19,7 @@ import secondsToHms from '../../utils/secondsToHms';
 class IncidentCommunicationSla extends Component {
     limit: $TSFixMe;
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.limit = 10;
         this.state = {
@@ -29,13 +29,13 @@ class IncidentCommunicationSla extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId, fetchCommunicationSlas } = this.props;
         fetchCommunicationSlas(projectId, 0, this.limit);
     }
 
     prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId, fetchCommunicationSlas } = this.props;
         this.setState({
             flag: false,
@@ -46,12 +46,12 @@ class IncidentCommunicationSla extends Component {
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             limit
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId, fetchCommunicationSlas } = this.props;
         this.setState({
             flag: false,
@@ -59,11 +59,11 @@ class IncidentCommunicationSla extends Component {
         fetchCommunicationSlas(projectId, skip + limit, 10);
         this.setState({
             page:
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 this.state.page < this.props.count
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                     ? this.state.page + 1
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                     : this.props.count,
         });
     };
@@ -72,7 +72,7 @@ class IncidentCommunicationSla extends Component {
         projectId,
         incidentSlaId
     }: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCommunicationSla' does not exist o... Remove this comment to see the full error message
+
         const { updateCommunicationSla, setActiveSla } = this.props;
         const data = { isDefault: true };
         setActiveSla(incidentSlaId);
@@ -99,233 +99,233 @@ class IncidentCommunicationSla extends Component {
 
     handleIncidentSlas = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlas' does not exist on type 'Re... Remove this comment to see the full error message
+
             incidentSlas,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeSla' does not exist on type 'Reado... Remove this comment to see the full error message
+
             activeSla,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             monitors,
         } = this.props;
 
         return incidentSlas &&
-        incidentSlas.length > 0 &&
-        incidentSlas.map((incidentSla: $TSFixMe) => {
-            const slaMonitors = monitors.filter(
-                (monitor: $TSFixMe) => monitor.incidentCommunicationSla &&
-                String(monitor.incidentCommunicationSla._id) ===
-                    String(incidentSla._id)
-            );
-            return (
-                <div
-                    key={incidentSla._id}
-                    id={`incidentSla_${incidentSla.name}`}
-                    className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                    style={{
-                        backgroundColor: 'white',
-                        cursor: 'pointer',
-                    }}
-                >
-                    {incidentSla.isDefault ? (
-                        <div
-                            className="bs-ObjectList-cell bs-u-v-middle"
-                            style={{
-                                display: 'flex',
-                                width: '20vw',
-                            }}
-                        >
-                            <div className="bs-ObjectList-cell-row">
-                                {incidentSla.name}
-                            </div>
+            incidentSlas.length > 0 &&
+            incidentSlas.map((incidentSla: $TSFixMe) => {
+                const slaMonitors = monitors.filter(
+                    (monitor: $TSFixMe) => monitor.incidentCommunicationSla &&
+                        String(monitor.incidentCommunicationSla._id) ===
+                        String(incidentSla._id)
+                );
+                return (
+                    <div
+                        key={incidentSla._id}
+                        id={`incidentSla_${incidentSla.name}`}
+                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                        style={{
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {incidentSla.isDefault ? (
                             <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
                                 style={{
-                                    marginLeft: 5,
+                                    display: 'flex',
+                                    width: '20vw',
                                 }}
-                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
                             >
-                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                    <span>Default</span>
-                                </span>
+                                <div className="bs-ObjectList-cell-row">
+                                    {incidentSla.name}
+                                </div>
+                                <div
+                                    style={{
+                                        marginLeft: 5,
+                                    }}
+                                    className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                >
+                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                        <span>Default</span>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div
-                            className="bs-ObjectList-cell bs-u-v-middle"
-                            style={{
-                                display: 'flex',
-                                width: '20vw',
-                            }}
-                        >
-                            <div className="bs-ObjectList-cell-row">
-                                {incidentSla.name}
+                        ) : (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{
+                                    display: 'flex',
+                                    width: '20vw',
+                                }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    {incidentSla.name}
+                                </div>
                             </div>
-                        </div>
-                    )}
-                    <div
-                        className="bs-ObjectList-cell bs-u-v-middle"
-                        style={{ width: '20vw' }}
-                    >
-                        <div className="bs-ObjectList-cell-row">
-                            {secondsToHms(incidentSla.duration * 60)}
-                        </div>
-                    </div>
-                    <div
-                        className="bs-ObjectList-cell bs-u-v-middle"
-                        style={{ width: '20vw' }}
-                    >
-                        <div className="bs-ObjectList-cell-row">
-                            {secondsToHms(incidentSla.alertTime * 60)}
-                        </div>
-                    </div>
-                    {incidentSla.isDefault ? (
+                        )}
                         <div
                             className="bs-ObjectList-cell bs-u-v-middle"
                             style={{ width: '20vw' }}
                         >
                             <div className="bs-ObjectList-cell-row">
-                                All monitors without SLA
+                                {secondsToHms(incidentSla.duration * 60)}
                             </div>
                         </div>
-                    ) : (
                         <div
                             className="bs-ObjectList-cell bs-u-v-middle"
                             style={{ width: '20vw' }}
                         >
                             <div className="bs-ObjectList-cell-row">
-                                {this.handleMonitorList(slaMonitors)}
+                                {secondsToHms(incidentSla.alertTime * 60)}
                             </div>
                         </div>
-                    )}
+                        {incidentSla.isDefault ? (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{ width: '20vw' }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    All monitors without SLA
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{ width: '20vw' }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    {this.handleMonitorList(slaMonitors)}
+                                </div>
+                            </div>
+                        )}
 
-                    <div
-                        className="bs-ObjectList-cell bs-u-v-middle"
-                        style={{ width: '20vw' }}
-                    >
                         <div
-                            className="bs-ObjectList-cell-row"
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'flex-end',
-                                marginRight: 15,
-                            }}
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
                         >
-                            <ShouldRender if={!incidentSla.isDefault}>
+                            <div
+                                className="bs-ObjectList-cell-row"
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'flex-end',
+                                    marginRight: 15,
+                                }}
+                            >
+                                <ShouldRender if={!incidentSla.isDefault}>
+                                    <button
+                                        id={`defaultIncidentSlaBtn_${incidentSla.name}`}
+                                        title="set default"
+                                        className="bs-Button bs-DeprecatedButton"
+                                        style={{
+                                            marginLeft: 20,
+                                            minWidth: 100,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            this.setAsDefault({
+                                                projectId,
+                                                incidentSlaId: incidentSla._id,
+                                            });
+                                            this.setState({
+                                                flag: true,
+                                            });
+                                        }}
+                                        disabled={requesting}
+                                    >
+                                        <ShouldRender
+                                            if={
+                                                !requesting ||
+                                                String(activeSla) !==
+                                                String(incidentSla._id)
+                                            }
+                                        >
+                                            <span>Set as Default</span>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                requesting &&
+                                                String(activeSla) ===
+                                                String(incidentSla._id)
+                                            }
+                                        >
+                                            <ListLoader
+                                                style={{
+                                                    marginTop: 0,
+                                                }}
+                                            />
+                                        </ShouldRender>
+                                    </button>
+                                </ShouldRender>
                                 <button
-                                    id={`defaultIncidentSlaBtn_${incidentSla.name}`}
-                                    title="set default"
-                                    className="bs-Button bs-DeprecatedButton"
+                                    id={`editIncidentSlaBtn_${incidentSla.name}`}
+                                    title="edit"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                     style={{
                                         marginLeft: 20,
-                                        minWidth: 100,
                                     }}
                                     type="button"
                                     onClick={() => {
-                                        this.setAsDefault({
+                                        openModal({
+                                            id: incidentSla._id,
+                                            content: EditIncidentCommunicationSlaModal,
+                                            sla: incidentSla,
                                             projectId,
-                                            incidentSlaId: incidentSla._id,
-                                        });
-                                        this.setState({
-                                            flag: true,
                                         });
                                     }}
-                                    disabled={requesting}
                                 >
-                                    <ShouldRender
-                                        if={
-                                            !requesting ||
-                                            String(activeSla) !==
-                                                String(incidentSla._id)
-                                        }
-                                    >
-                                        <span>Set as Default</span>
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={
-                                            requesting &&
-                                            String(activeSla) ===
-                                                String(incidentSla._id)
-                                        }
-                                    >
-                                        <ListLoader
-                                            style={{
-                                                marginTop: 0,
-                                            }}
-                                        />
-                                    </ShouldRender>
+                                    <span>Edit</span>
                                 </button>
-                            </ShouldRender>
-                            <button
-                                id={`editIncidentSlaBtn_${incidentSla.name}`}
-                                title="edit"
-                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
-                                style={{
-                                    marginLeft: 20,
-                                }}
-                                type="button"
-                                onClick={() => {
-                                    openModal({
-                                        id: incidentSla._id,
-                                        content: EditIncidentCommunicationSlaModal,
-                                        sla: incidentSla,
-                                        projectId,
-                                    });
-                                }}
-                            >
-                                <span>Edit</span>
-                            </button>
-                            <button
-                                id={`deleteIncidentSlaBtn_${incidentSla.name}`}
-                                title="delete"
-                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                style={{
-                                    marginLeft: 20,
-                                }}
-                                type="button"
-                                onClick={() => {
-                                    openModal({
-                                        id: incidentSla._id,
-                                        content: DataPathHoC(
-                                            DeleteIncidentCommunicationSlaModal,
-                                            {
-                                                projectId,
-                                                incidentSlaId:
-                                                    incidentSla._id,
-                                            }
-                                        ),
-                                    });
-                                }}
-                            >
-                                <span>Delete</span>
-                            </button>
+                                <button
+                                    id={`deleteIncidentSlaBtn_${incidentSla.name}`}
+                                    title="delete"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                    style={{
+                                        marginLeft: 20,
+                                    }}
+                                    type="button"
+                                    onClick={() => {
+                                        openModal({
+                                            id: incidentSla._id,
+                                            content: DataPathHoC(
+                                                DeleteIncidentCommunicationSlaModal,
+                                                {
+                                                    projectId,
+                                                    incidentSlaId:
+                                                        incidentSla._id,
+                                                }
+                                            ),
+                                        });
+                                    }}
+                                >
+                                    <span>Delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            );
-        });
+                );
+            });
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             limit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             count,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSlaError' does not exist on type 'R... Remove this comment to see the full error message
+
             fetchSlaError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlas' does not exist on type 'Re... Remove this comment to see the full error message
+
             incidentSlas,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -333,7 +333,7 @@ class IncidentCommunicationSla extends Component {
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
         const projectName = currentProject ? currentProject.name : '';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
@@ -355,7 +355,7 @@ class IncidentCommunicationSla extends Component {
                                 <button
                                     id="addIncidentSlaBtn"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         this.props.openModal({
                                             id: projectId,
                                             content: DataPathHoC(
@@ -434,7 +434,7 @@ class IncidentCommunicationSla extends Component {
                                 </ShouldRender>
                             </div>
                         </div>
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'flag' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                         <ShouldRender if={requesting && !this.state.flag}>
                             <ListLoader />
                         </ShouldRender>
@@ -456,8 +456,8 @@ class IncidentCommunicationSla extends Component {
                                 <span>
                                     {(!incidentSlas ||
                                         incidentSlas.length === 0) &&
-                                    !requesting &&
-                                    !fetchSlaError
+                                        !requesting &&
+                                        !fetchSlaError
                                         ? 'You have no incident communication SLA'
                                         : null}
                                     {fetchSlaError ? fetchSlaError : null}
@@ -476,25 +476,17 @@ class IncidentCommunicationSla extends Component {
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
                                             {numberOfPages > 0
-                                                ? `Page ${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                      this.state.page
-                                                  } of ${numberOfPages} (${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count
-                                                  } SLA${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count === 1
-                                                          ? ''
-                                                          : 's'
-                                                  })`
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                : `${this.props.count} SLA${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count === 1
-                                                          ? ''
-                                                          : 's'
-                                                  }`}
+                                                ? `Page ${this.state.page
+                                                } of ${numberOfPages} (${this.props.count
+                                                } SLA${this.props.count === 1
+                                                    ? ''
+                                                    : 's'
+                                                })`
+
+                                                : `${this.props.count} SLA${this.props.count === 1
+                                                    ? ''
+                                                    : 's'
+                                                }`}
                                         </span>
                                     </span>
                                 </span>
@@ -553,10 +545,10 @@ class IncidentCommunicationSla extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 IncidentCommunicationSla.displayName = 'IncidentCommunicationSla';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 IncidentCommunicationSla.propTypes = {
     openModal: PropTypes.func.isRequired,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

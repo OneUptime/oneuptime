@@ -7,7 +7,7 @@ export default class TableActionButtons extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'actionButtons' does not exist on type 'R... Remove this comment to see the full error message
+
         const { actionButtons, item } = this.props;
 
         return (
@@ -29,7 +29,7 @@ export default class TableActionButtons extends Component {
                                         style={{ marginRight: '4px' }}
                                     >
                                         <Button
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ title: any; id: any; onClick: () => any; d... Remove this comment to see the full error message
+
                                             title={actionButton.title}
                                             id={actionButton.id}
                                             onClick={() =>
@@ -48,7 +48,7 @@ export default class TableActionButtons extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 TableActionButtons.propTypes = {
     item: PropTypes.object.isRequired,
     actionButtons: PropTypes.array,

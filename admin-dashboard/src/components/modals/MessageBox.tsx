@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes, { string } from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 
@@ -26,17 +26,17 @@ class MessageBox extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'messageBoxId' does not exist on type 'Re... Remove this comment to see the full error message
+
             id: this.props.messageBoxId,
         });
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { data } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         let { title, message, messageBoxId } = this.props;
         if (data) {
             title = data.title;
@@ -78,7 +78,7 @@ class MessageBox extends Component {
                                             type="button"
                                             id="modal-ok"
                                             onClick={() =>
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.closeModal({
                                                     id: messageBoxId,
                                                 })
@@ -101,10 +101,10 @@ class MessageBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MessageBox.displayName = 'MessageBoxModal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MessageBox.propTypes = {
     closeModal: PropTypes.func.isRequired,
     title: PropTypes.string,

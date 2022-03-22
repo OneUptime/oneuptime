@@ -2,7 +2,7 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 
@@ -22,9 +22,9 @@ export class SmsLogsList extends Component {
     }
 
     handleDelete = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
+
         const { deleteModalId } = this.state;
         openModal({
             id: deleteModalId,
@@ -35,7 +35,7 @@ export class SmsLogsList extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -44,58 +44,58 @@ export class SmsLogsList extends Component {
 
     render() {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs.skip &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             typeof this.props.smsLogs.skip === 'string'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs.skip = parseInt(this.props.smsLogs.skip, 10);
         }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs.limit &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             typeof this.props.smsLogs.limit === 'string'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs.limit = parseInt(this.props.smsLogs.limit, 10);
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         if (!this.props.smsLogs.skip) this.props.smsLogs.skip = 0;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         if (!this.props.smsLogs.limit) this.props.smsLogs.limit = 0;
 
         let canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
-            this.props.smsLogs.count &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
-            this.props.smsLogs.count >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
+                this.props.smsLogs.count &&
+
+                this.props.smsLogs.count >
+
                 this.props.smsLogs.skip + this.props.smsLogs.limit
                 ? true
                 : false;
         let canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs && this.props.smsLogs.skip <= 0 ? false : true;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.smsLogs &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             (this.props.requesting || !this.props.smsLogs.smsLogs)
         ) {
             canNext = false;
             canPrev = false;
         }
         const numberOfPages = Math.ceil(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             parseInt(this.props.smsLogs && this.props.smsLogs.count) / 10
         );
         return (
@@ -170,7 +170,7 @@ export class SmsLogsList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
                             {this.props.requesting ? (
                                 <Fragment>
                                     <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink">
@@ -191,13 +191,13 @@ export class SmsLogsList extends Component {
                                         </td>
                                     </tr>
                                 </Fragment>
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                             ) : this.props.smsLogs &&
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
-                              this.props.smsLogs.smsLogs &&
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
-                              this.props.smsLogs.smsLogs.length > 0 ? (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
+                                this.props.smsLogs.smsLogs &&
+
+                                this.props.smsLogs.smsLogs.length > 0 ? (
+
                                 this.props.smsLogs.smsLogs.map((smsLog: $TSFixMe) => {
                                     return (
                                         <tr
@@ -214,20 +214,18 @@ export class SmsLogsList extends Component {
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div className="Box-root Margin-right--16">
                                                             <div
-                                                                className={`Badge Badge--color--${
-                                                                    smsLog.status ===
-                                                                    'Success'
+                                                                className={`Badge Badge--color--${smsLog.status ===
+                                                                        'Success'
                                                                         ? 'green'
                                                                         : 'red'
-                                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                                    } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                             >
                                                                 <span
-                                                                    className={`Badge-text Text-color--${
-                                                                        smsLog.status ===
-                                                                        'Success'
+                                                                    className={`Badge-text Text-color--${smsLog.status ===
+                                                                            'Success'
                                                                             ? 'green'
                                                                             : 'red'
-                                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                        } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                 >
                                                                     <span>
                                                                         {smsLog.status
@@ -245,7 +243,7 @@ export class SmsLogsList extends Component {
                                                 style={{
                                                     height: '1px',
                                                     cursor: 'pointer',
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | null' is not assignable to type 'Te... Remove this comment to see the full error message
+
                                                     textDecoration: smsLog.projectId
                                                         ? 'underline'
                                                         : null,
@@ -253,7 +251,7 @@ export class SmsLogsList extends Component {
                                                 onClick={() => {
                                                     history.push(
                                                         '/admin/projects/' +
-                                                            smsLog.projectId._id
+                                                        smsLog.projectId._id
                                                     );
                                                 }}
                                             >
@@ -264,8 +262,8 @@ export class SmsLogsList extends Component {
                                                                 <span>
                                                                     {smsLog.projectId
                                                                         ? smsLog
-                                                                              .projectId
-                                                                              .name
+                                                                            .projectId
+                                                                            .name
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -278,7 +276,7 @@ export class SmsLogsList extends Component {
                                                 style={{
                                                     height: '1px',
                                                     cursor: 'pointer',
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | null' is not assignable to type 'Te... Remove this comment to see the full error message
+
                                                     textDecoration: smsLog.userId
                                                         ? 'underline'
                                                         : null,
@@ -287,8 +285,8 @@ export class SmsLogsList extends Component {
                                                     if (smsLog.userId) {
                                                         history.push(
                                                             '/admin/users/' +
-                                                                smsLog.userId
-                                                                    ._id
+                                                            smsLog.userId
+                                                                ._id
                                                         );
                                                     }
                                                 }}
@@ -299,8 +297,8 @@ export class SmsLogsList extends Component {
                                                             <span>
                                                                 {smsLog.userId
                                                                     ? smsLog
-                                                                          .userId
-                                                                          .name
+                                                                        .userId
+                                                                        .name
                                                                     : 'N/A'}
                                                             </span>
                                                         </div>
@@ -340,13 +338,13 @@ export class SmsLogsList extends Component {
                                                                 <span>
                                                                     {smsLog.createdAt
                                                                         ? moment
-                                                                              .utc(
-                                                                                  smsLog.createdAt
-                                                                              )
-                                                                              .local()
-                                                                              .format(
-                                                                                  'ddd, YYYY/MM/DD, h:mm:ss'
-                                                                              )
+                                                                            .utc(
+                                                                                smsLog.createdAt
+                                                                            )
+                                                                            .local()
+                                                                            .format(
+                                                                                'ddd, YYYY/MM/DD, h:mm:ss'
+                                                                            )
                                                                         : 'N/A'}
                                                                 </span>
                                                             </div>
@@ -370,7 +368,7 @@ export class SmsLogsList extends Component {
                                                                 <span>
                                                                     <button
                                                                         onClick={() => {
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                             this.props.openModal(
                                                                                 {
                                                                                     id: uuidv4(),
@@ -397,7 +395,7 @@ export class SmsLogsList extends Component {
                                                                     {smsLog.error ? (
                                                                         <button
                                                                             onClick={() => {
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                                 this.props.openModal(
                                                                                     {
                                                                                         id: uuidv4(),
@@ -441,21 +439,21 @@ export class SmsLogsList extends Component {
                     id="logsStatus"
                     style={{ textAlign: 'center', marginTop: '10px' }}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     {this.props.smsLogs &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    (!this.props.smsLogs.smsLogs ||
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
-                        !this.props.smsLogs.smsLogs.length) &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
-                    !this.props.requesting &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
-                    !this.props.smsLogs.error
+
+                        (!this.props.smsLogs.smsLogs ||
+
+                            !this.props.smsLogs.smsLogs.length) &&
+
+                        !this.props.requesting &&
+
+                        !this.props.smsLogs.error
                         ? "We don't have any logs yet"
                         : null}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     {this.props.smsLogs && this.props.smsLogs.error
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                         ? this.props.smsLogs.error
                         : null}
                 </div>
@@ -469,22 +467,22 @@ export class SmsLogsList extends Component {
                                 >
                                     <ShouldRender
                                         if={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.smsLogs &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.smsLogs.count
                                         }
                                     >
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                         Page {this.props.page} of{' '}
                                         {numberOfPages} (
                                         <span id="sms-log-count">
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             {this.props.smsLogs.count}
                                         </span>{' '}
                                         Log
                                         <ShouldRender
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             if={this.props.smsLogs.count > 0}
                                         >
                                             s
@@ -501,11 +499,11 @@ export class SmsLogsList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.prevClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.smsLogs.skip,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.smsLogs.limit
                                         );
                                     }}
@@ -528,11 +526,11 @@ export class SmsLogsList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.nextClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.smsLogs.skip,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'smsLogs' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.smsLogs.limit
                                         );
                                     }}
@@ -558,7 +556,7 @@ export class SmsLogsList extends Component {
                                     className={'Button bs-ButtonLegacy'}
                                     // data-db-analytics-name="list_view.pagination.next"
                                     type="button"
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     disabled={this.props.requesting}
                                 >
                                     <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -587,10 +585,10 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SmsLogsList.displayName = 'ProjectList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SmsLogsList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,

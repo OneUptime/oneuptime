@@ -30,7 +30,7 @@ const ApplicationSecurity = ({
                 <SecurityInfo
                     name={name}
                     projectId={projectId}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: any; projectId: any; componentId: an... Remove this comment to see the full error message
+
                     componentId={componentId}
                     applicationSecuritySlug={applicationSecuritySlug}
                     applicationSecurityId={applicationSecurityId}

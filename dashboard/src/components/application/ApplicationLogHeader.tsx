@@ -13,7 +13,7 @@ import { HelpIcon } from '../svg';
 class ApplicationLogHeader extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             showFilters: false,
@@ -21,37 +21,37 @@ class ApplicationLogHeader extends Component {
     }
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
+
             applicationLog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDetails' does not exist on type 'Reado... Remove this comment to see the full error message
+
             isDetails,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openApplicationLogKeyModalId' does not e... Remove this comment to see the full error message
+
             openApplicationLogKeyModalId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editApplicationLog' does not exist on ty... Remove this comment to see the full error message
+
             editApplicationLog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'viewMore' does not exist on type 'Readon... Remove this comment to see the full error message
+
             viewMore,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetApplicationLogKey' does not exist o... Remove this comment to see the full error message
+
             resetApplicationLogKey,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             filter,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logOptions' does not exist on type 'Read... Remove this comment to see the full error message
+
             logOptions,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentDateRange' does not exist on type... Remove this comment to see the full error message
+
             currentDateRange,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logType' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             logType,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleEndDateTimeChange' does not exist ... Remove this comment to see the full error message
+
             handleEndDateTimeChange,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleStartDateTimeChange' does not exis... Remove this comment to see the full error message
+
             handleStartDateTimeChange,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleLogFilterChange' does not exist on... Remove this comment to see the full error message
+
             handleLogFilterChange,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleLogTypeChange' does not exist on t... Remove this comment to see the full error message
+
             handleLogTypeChange,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             formId,
         } = this.props;
 
@@ -73,9 +73,9 @@ class ApplicationLogHeader extends Component {
                                             id={`${applicationLog.name}Badge`}
                                         >
                                             {applicationLog &&
-                                            applicationLog.resourceCategory
+                                                applicationLog.resourceCategory
                                                 ? applicationLog
-                                                      .resourceCategory.name
+                                                    .resourceCategory.name
                                                 : ''}
                                         </Badge>
                                     </div>
@@ -102,7 +102,7 @@ class ApplicationLogHeader extends Component {
                                                     id={`help_${applicationLog.name}`}
                                                     className="bs-Button bs-DeprecatedButton"
                                                     type="button"
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'setShow' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                     onClick={this.props.setShow}
                                                 >
                                                     <span className="bs-list-flex">
@@ -124,14 +124,14 @@ class ApplicationLogHeader extends Component {
                                                     onClick={() =>
                                                         this.setState(
                                                             state => ({
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showFilters' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                 showFilters: !state.showFilters,
                                                             })
                                                         )
                                                     }
                                                 >
                                                     <span>
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showFilters' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                         {this.state.showFilters
                                                             ? 'Hide Filters'
                                                             : 'Filter Logs'}
@@ -187,7 +187,7 @@ class ApplicationLogHeader extends Component {
                             <div
                                 className="db-Trends-controls Margin-top--12"
                                 style={{
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'showFilters' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                     display: this.state.showFilters
                                         ? 'flex'
                                         : 'none',
@@ -213,7 +213,7 @@ class ApplicationLogHeader extends Component {
                                         }}
                                     >
                                         <SearchBox
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; value: any; onChange: any; p... Remove this comment to see the full error message
+
                                             name="log_filter"
                                             value={filter}
                                             onChange={handleLogFilterChange}
@@ -244,7 +244,7 @@ class ApplicationLogHeader extends Component {
                                         }}
                                     >
                                         <Select
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; value: any; onChange: any; p... Remove this comment to see the full error message
+
                                             name="log_type_selector"
                                             value={logType}
                                             onChange={handleLogTypeChange}
@@ -273,7 +273,7 @@ class ApplicationLogHeader extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ApplicationLogHeader.displayName = 'ApplicationLogHeader';
 
 function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
@@ -287,7 +287,7 @@ function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
         currentDateRange,
     };
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ApplicationLogHeader.propTypes = {
     openApplicationLogKeyModalId: PropTypes.string,
     applicationLog: PropTypes.object,

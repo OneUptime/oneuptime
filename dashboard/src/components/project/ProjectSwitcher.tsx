@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ReactHoverObserver from 'react-hover-observer';
 import {
     switchProject,
@@ -22,30 +22,30 @@ export class ProjectSwitcher extends Component {
     }
 
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showForm' does not exist on type 'Readon... Remove this comment to see the full error message
+
         this.props.showForm();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProjectSwitcher' does not exist on t... Remove this comment to see the full error message
+
         this.props.hideProjectSwitcher();
     };
 
     selectProject(project: $TSFixMe) {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchProject' does not exist on type 'R... Remove this comment to see the full error message
+
             switchProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProjectSwitcher' does not exist on t... Remove this comment to see the full error message
+
             hideProjectSwitcher,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dispatch' does not exist on type 'Readon... Remove this comment to see the full error message
+
             dispatch,
         } = this.props;
 
         if (project._id !== currentProject._id) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSubProjects' does not exist on type '... Remove this comment to see the full error message
+
             this.props.getSubProjects(project._id).then((res: Response) => {
                 const { data: subProjects } = res.data;
                 switchProject(dispatch, project, subProjects);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
+
                 this.props.switchToProjectViewerNav(
                     User.getUserId(),
                     subProjects,
@@ -60,7 +60,7 @@ export class ProjectSwitcher extends Component {
     render() {
         let projectOptions = null;
         let isHovering = false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { projects } = this.props.project.projects;
         if (projects && projects.length > 0) {
             projectOptions = projects.map(
@@ -136,7 +136,7 @@ export class ProjectSwitcher extends Component {
                     left: '0px',
                     top: '12px',
                     width: 'calc(100% - 5px)',
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'visible' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     visibility: !this.props.visible ? 'collapse' : 'visible',
                 }}
             >
@@ -212,7 +212,7 @@ export class ProjectSwitcher extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectSwitcher.displayName = 'ProjectSwitcher';
 
 const mapStateToProps = (state: $TSFixMe) => ({
@@ -232,7 +232,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectSwitcher.propTypes = {
     showForm: PropTypes.func.isRequired,
     hideProjectSwitcher: PropTypes.func.isRequired,

@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 // import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import ShouldRender from '../basic/ShouldRender';
@@ -37,9 +37,9 @@ export class Setting extends Component {
         domainVerificationToken
     }: $TSFixMe) => {
         e.preventDefault();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifyDomain' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { verifyDomain } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { projectId } = this.props.statusPage.status;
         const token = domainVerificationToken.verificationToken; // get the verification token
 
@@ -51,20 +51,20 @@ export class Setting extends Component {
                 verificationToken: token,
             },
         };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: this.state.verifyModalId,
             onConfirm: () => {
                 //Todo: handle the dispatch to domain verification
                 return verifyDomain(data).then(() => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifyError' does not exist on type 'Rea... Remove this comment to see the full error message
+
                     if (this.props.verifyError) {
                         // prevent dismissal of modal if errored
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
+
                         return this.handleVerifyDomain();
                     }
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                     this.props.closeModal({
                         id: this.state.deleteDomainModalId,
                     });
@@ -83,9 +83,9 @@ export class Setting extends Component {
 
     handleDeleteDomain = (e: $TSFixMe, domain: $TSFixMe) => {
         e.preventDefault();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteDomain' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { deleteDomain } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { _id, projectId } = this.props.statusPage.status;
 
         const data = {
@@ -93,20 +93,20 @@ export class Setting extends Component {
             statusPageId: _id,
             domainId: domain._id,
         };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: this.state.deleteDomainModalId,
             onConfirm: () => {
                 //Todo: handle the dispatch to delete domain
                 return deleteDomain(data).then(() => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteDomainError' does not exist on typ... Remove this comment to see the full error message
+
                     if (this.props.deleteDomainError) {
                         // prevent dismissal of modal if errored
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
+
                         return this.handleDeleteDomain();
                     }
 
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                     this.props.closeModal({
                         id: this.state.deleteDomainModalId,
                     });
@@ -119,7 +119,7 @@ export class Setting extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({
                     id: this.state.verifyModalId,
                 });
@@ -129,7 +129,7 @@ export class Setting extends Component {
     };
 
     addMoreDomain = (statusPageId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal, statusPage } = this.props;
         const { projectId } = statusPage.status;
 
@@ -142,7 +142,7 @@ export class Setting extends Component {
     };
 
     editDomain = (statusPageId: $TSFixMe, domain: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal, statusPage } = this.props;
         const { projectId } = statusPage.status;
 
@@ -160,40 +160,40 @@ export class Setting extends Component {
         let statusPageSlug = '';
         let hosted = '';
         let publicStatusPageUrl = '';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         let { projectId } = this.props.statusPage.status;
         projectId = projectId ? projectId._id || projectId : null;
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage.status &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage.status._id
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             hosted = `${this.props.statusPage.status._id}.oneuptimeapp.com`;
         }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage.status &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage.status._id
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPageId = this.props.statusPage.status._id;
         }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage.status &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage.status.slug
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPageSlug = this.props.statusPage.status.slug;
         }
 
@@ -204,7 +204,7 @@ export class Setting extends Component {
                 window.location.origin + '/status-page/' + statusPageSlug;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { subProjects, currentProject } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
         let subProject =
@@ -257,15 +257,15 @@ export class Setting extends Component {
                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                     <ShouldRender
                                         if={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.domains &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.domains.length > 0
                                         }
                                     >
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                         {this.props.domains &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.domains.map(
                                                 (domain: $TSFixMe, index: $TSFixMe) => {
                                                     return (
@@ -449,11 +449,11 @@ export class Setting extends Component {
                                                                                     if={
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                                             .domains &&
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                                             .domains
                                                                                             .length >
                                                                                         0
@@ -488,11 +488,11 @@ export class Setting extends Component {
                                                                                     if={
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                                             .domains &&
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                                             .domains
                                                                                             .length >
                                                                                         0
@@ -627,9 +627,9 @@ export class Setting extends Component {
                                     </ShouldRender>
                                     <ShouldRender
                                         if={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.domains &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domains' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             this.props.domains.length === 0 &&
                                             this.state.fields.length === 0
                                         }
@@ -668,10 +668,10 @@ export class Setting extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Setting.displayName = 'Setting';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Setting.propTypes = {
     statusPage: PropTypes.object.isRequired,
     currentProject: PropTypes.oneOfType([

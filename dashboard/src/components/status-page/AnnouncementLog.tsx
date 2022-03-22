@@ -2,14 +2,14 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { fetchAnnouncementLogs } from '../../actions/statusPage';
-// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
+
 import { PropTypes } from 'prop-types';
 import moment from 'moment';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { openModal } from '../../actions/modal';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import DeleteAnnouncementLog from '../modals/DeleteAnnouncementLog';
@@ -25,7 +25,7 @@ class AnnouncementLog extends Component {
         };
     }
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
+
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         await fetchAnnouncementLogs(projectId, statusPage._id, 0, this.limit);
     }
@@ -44,13 +44,12 @@ class AnnouncementLog extends Component {
             return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
         }
 
-        return `${monitors[0].monitorId.name}, ${
-            monitors[1].monitorId.name
-        } and ${monitors.length - 2} others`;
+        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
+            } and ${monitors.length - 2} others`;
     };
 
     prevClicked = (skip: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
+
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         fetchAnnouncementLogs(
             projectId,
@@ -61,7 +60,7 @@ class AnnouncementLog extends Component {
     };
 
     nextClicked = (skip: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
+
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         fetchAnnouncementLogs(
             projectId,
@@ -73,19 +72,19 @@ class AnnouncementLog extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             error,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             logs: { announcementLogs, count, skip, limit },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage,
         } = this.props;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
+
         const { deleteModalId } = this.state;
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
@@ -192,10 +191,10 @@ class AnnouncementLog extends Component {
                                                     <div className="Box-root">
                                                         {log.startDate
                                                             ? moment(
-                                                                  log.startDate
-                                                              ).format(
-                                                                  'MMMM Do YYYY, h:mm a'
-                                                              )
+                                                                log.startDate
+                                                            ).format(
+                                                                'MMMM Do YYYY, h:mm a'
+                                                            )
                                                             : '-'}
                                                     </div>
                                                 </div>
@@ -236,7 +235,7 @@ class AnnouncementLog extends Component {
                                                             marginLeft: 10,
                                                         }}
                                                         onClick={() =>
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                             this.props.openModal(
                                                                 {
                                                                     id: deleteModalId,
@@ -268,7 +267,7 @@ class AnnouncementLog extends Component {
                                         !(
                                             (!announcementLogs ||
                                                 announcementLogs.length ===
-                                                    0) &&
+                                                0) &&
                                             !requesting &&
                                             !error
                                         )
@@ -300,8 +299,8 @@ class AnnouncementLog extends Component {
                                 <span>
                                     {(!announcementLogs ||
                                         announcementLogs.length === 0) &&
-                                    !requesting &&
-                                    !error
+                                        !requesting &&
+                                        !error
                                         ? 'You have no announcements at this time.'
                                         : null}
                                     {error ? error : null}
@@ -330,7 +329,7 @@ class AnnouncementLog extends Component {
                                                         {count}
                                                     </span>{' '}
                                                     {announcementLogs &&
-                                                    count > 1
+                                                        count > 1
                                                         ? 'Logs'
                                                         : 'Log'}
                                                 </ShouldRender>
@@ -393,10 +392,10 @@ class AnnouncementLog extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AnnouncementLog.displayName = 'AnnouncementLog';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 AnnouncementLog.propTypes = {
     fetchAnnouncementLogs: PropTypes.func,
     projectId: PropTypes.string,

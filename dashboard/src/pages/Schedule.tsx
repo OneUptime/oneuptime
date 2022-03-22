@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import DeleteBox from '../components/schedule/DeleteBox';
 import MonitorBox from '../components/schedule/MonitorBox';
@@ -24,15 +24,15 @@ class Schedule extends Component {
 
     async componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
             subProjectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type 'Read... Remove this comment to see the full error message
+
             scheduleId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getEscalation' does not exist on type 'R... Remove this comment to see the full error message
+
             getEscalation,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
+
             subProjectTeamLoading,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamLoading' does not exist on type 'Rea... Remove this comment to see the full error message
+
             teamLoading,
         } = this.props;
         if (scheduleId && subProjectId) {
@@ -50,21 +50,21 @@ class Schedule extends Component {
 
     async componentDidUpdate(prevProps: $TSFixMe) {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedule' does not exist on type 'Readon... Remove this comment to see the full error message
+
             prevProps.schedule !== this.props.schedule ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
             prevProps.subProjectId !== this.props.subProjectId
         ) {
             const {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
                 subProjectId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type 'Read... Remove this comment to see the full error message
+
                 scheduleId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'getEscalation' does not exist on type 'R... Remove this comment to see the full error message
+
                 getEscalation,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
+
                 subProjectTeamLoading,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamLoading' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 teamLoading,
             } = this.props;
             if (scheduleId && subProjectId) {
@@ -80,12 +80,12 @@ class Schedule extends Component {
             }
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
+
         if (prevProps.activeProjectId !== this.props.activeProjectId) {
             // navigate back to main section
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.history.push(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 `/dashboard/project/${this.props.currentProject.slug}/on-call`
             );
         }
@@ -96,26 +96,26 @@ class Schedule extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editSchedule' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { editSchedule, error } = this.state;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'escalations' does not exist on type 'Rea... Remove this comment to see the full error message
+
             escalations,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMembers' does not exist on type 'Rea... Remove this comment to see the full error message
+
             teamMembers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
             subProjectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location: { pathname },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedule' does not exist on type 'Readon... Remove this comment to see the full error message
+
             schedule,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'groups' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             groups,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingEscalations' does not exist on... Remove this comment to see the full error message
+
             requestingEscalations,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
+
             switchToProjectViewerNav,
         } = this.props;
         const name = schedule ? schedule.name : null;
@@ -131,11 +131,11 @@ class Schedule extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+
                     route={getParentRoute(pathname)}
                     name="On-Call Duty"
                 />
@@ -167,7 +167,7 @@ class Schedule extends Component {
                                                 {!editSchedule &&
                                                     escalations.length > 0 && (
                                                         <EscalationSummary
-                                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ onEditClicked: () => void; escalations: an... Remove this comment to see the full error message
+
                                                             onEditClicked={() => {
                                                                 this.setState({
                                                                     editSchedule: true,
@@ -249,10 +249,10 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Schedule.displayName = 'Schedule';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Schedule.propTypes = {
     getEscalation: PropTypes.func.isRequired,
     subProjectTeamLoading: PropTypes.func.isRequired,

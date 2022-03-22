@@ -13,7 +13,7 @@ class ErrorBoundary extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hasError' does not exist on type 'Readon... Remove this comment to see the full error message
+
         if (this.state.hasError || this.state.error) {
             return (
                 <div
@@ -43,13 +43,13 @@ class ErrorBoundary extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ErrorBoundary.displayName = 'ErrorBoundary';
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 ErrorBoundary.contextTypes = {};
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ErrorBoundary.propTypes = {
     children: PropTypes.any,
 };

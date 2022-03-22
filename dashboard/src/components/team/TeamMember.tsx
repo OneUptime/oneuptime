@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm } from 'redux-form';
 import {
     teamDelete,
@@ -13,7 +13,7 @@ import { changeProjectRoles, exitProject } from '../../actions/project';
 import { TeamListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
@@ -38,20 +38,20 @@ export class TeamMember extends Component {
 
     removeTeamMember(values: $TSFixMe) {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetTeamDelete' does not exist on type ... Remove this comment to see the full error message
+
             resetTeamDelete,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamDelete' does not exist on type 'Read... Remove this comment to see the full error message
+
             teamDelete,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
             subProjectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
         } = this.props;
         teamDelete(subProjectId, values.userId).then((value: $TSFixMe) => {
             if (!value.error) {
                 resetTeamDelete();
                 return closeModal({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeUserModalId' does not exist on typ... Remove this comment to see the full error message
+
                     id: this.state.removeUserModalId,
                 });
             } else return null;
@@ -60,40 +60,40 @@ export class TeamMember extends Component {
 
     updateTeamMemberRole(values: $TSFixMe, to: $TSFixMe) {
         const data = {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMemberId' does not exist on type '{}... Remove this comment to see the full error message
+
         data.teamMemberId = values.userId;
         if (values.role === to) {
             return;
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type '{}'.
+
             data.role = to;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeProjectRoles' does not exist on ty... Remove this comment to see the full error message
+
         const { changeProjectRoles } = this.props;
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamUpdateRole' does not exist on type '... Remove this comment to see the full error message
+
             .teamUpdateRole(this.props.subProjectId, data)
             .then((team: $TSFixMe) => changeProjectRoles(team.data));
     }
 
     exitProject = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             userId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextProject' does not exist on type 'Rea... Remove this comment to see the full error message
+
             nextProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'exitProject' does not exist on type 'Rea... Remove this comment to see the full error message
+
             exitProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dispatch' does not exist on type 'Readon... Remove this comment to see the full error message
+
             dispatch,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectId' does not exist on type 'Re... Remove this comment to see the full error message
+
             subProjectId,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: uuidv4(),
             onConfirm: () => {
-                return exitProject(subProjectId, userId).then(function() {
+                return exitProject(subProjectId, userId).then(function () {
                     window.location.reload();
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
                 });
@@ -104,19 +104,19 @@ export class TeamMember extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             userId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
+
             deleting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'team' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             team: { subProjectTeamMembers },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updating' does not exist on type 'Readon... Remove this comment to see the full error message
+
             updating,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'exitingProject' does not exist on type '... Remove this comment to see the full error message
+
             exitingProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
         } = this.props;
         let teamMembers = subProjectTeamMembers.map((teamMembers: $TSFixMe) => {
@@ -130,18 +130,18 @@ export class TeamMember extends Component {
 
         const isOwner = teamMembers.find(
             (user: $TSFixMe) => user.userId === loggedInUser &&
-            user.role === 'Owner' &&
-            user.name
+                user.role === 'Owner' &&
+                user.name
         );
         const isAdmin = teamMembers.find(
             (user: $TSFixMe) => user.userId === loggedInUser &&
-            user.role === 'Administrator' &&
-            user.name
+                user.role === 'Administrator' &&
+                user.name
         );
 
         const mainUser = currentProject?.users.find(
             (user: $TSFixMe) => (user.userId._id || user.userId) === loggedInUser &&
-            (user.role === 'Owner' || user.role === 'Administrator')
+                (user.role === 'Owner' || user.role === 'Administrator')
         );
 
         return (
@@ -151,16 +151,16 @@ export class TeamMember extends Component {
             >
                 <div
                     className="bs-ObjectList-cell bs-u-v-middle"
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                     id={`${this.props.email.split('@')[0]}-profile`}
                     style={{ cursor: 'pointer' }}
                     onClick={() => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                         history.push('/dashboard/profile/' + this.props.userId);
                     }}
                 >
                     <div className="bs-ObjectList-cell-row bs-ObjectList-copy">
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                         {this.props.name ? (
                             <div className="Flex-flex">
                                 <img
@@ -171,13 +171,13 @@ export class TeamMember extends Component {
                                 />
                                 <div>
                                     <div className="bs-ObjectList-copy bs-is-highlighted">
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                         {this.props.name ? this.props.name : ''}
                                     </div>
                                     <div>
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                         {this.props.email
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                             ? this.props.email
                                             : ''}
                                     </div>
@@ -186,7 +186,7 @@ export class TeamMember extends Component {
                         ) : (
                             ''
                         )}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                         {!this.props.name && this.props.email ? (
                             <span>
                                 <img
@@ -196,7 +196,7 @@ export class TeamMember extends Component {
                                     alt=""
                                 />
                                 <span>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                     {this.props.email ? this.props.email : ''}
                                 </span>
                             </span>
@@ -207,14 +207,12 @@ export class TeamMember extends Component {
                 </div>
                 <div className="bs-ObjectList-cell bs-u-v-middle">
                     <div
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                        id={`${this.props.role}_${
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                            this.props.email.split('@')[0]
-                        }`}
+
+                        id={`${this.props.role}_${this.props.email.split('@')[0]
+                            }`}
                         className="bs-ObjectList-cell-row"
                     >
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                         {this.props.role}
                     </div>
                 </div>
@@ -222,9 +220,9 @@ export class TeamMember extends Component {
                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                             <span>
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                 {this.props.name
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastActive' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     ? 'Online ' + this.props.lastActive
                                     : 'Invitation Sent'}
                             </span>
@@ -236,10 +234,8 @@ export class TeamMember extends Component {
                     <div>
                         <RenderIfSubProjectMember currentUserId={userId}>
                             <button
-                                id={`memberExit__${
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                    this.props.email.split('@')[0]
-                                }`}
+                                id={`memberExit__${this.props.email.split('@')[0]
+                                    }`}
                                 title="exit"
                                 disabled={exitingProject}
                                 className="bs-Button bs-DeprecatedButton Margin-left--8"
@@ -266,34 +262,32 @@ export class TeamMember extends Component {
                                             { value: 'Viewer', show: true },
                                         ]}
                                         value={'Change Role'}
-                                        id={`changeRole_${
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                            this.props.email.split('@')[0]
-                                        }`}
+                                        id={`changeRole_${this.props.email.split('@')[0]
+                                            }`}
                                         updateState={(val: $TSFixMe) => {
                                             switch (val) {
                                                 case 'Owner':
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                     this.props.openModal({
                                                         id: this.state
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ConfirmationDialogId' does not exist on ... Remove this comment to see the full error message
+
                                                             .ConfirmationDialogId,
                                                         content: DataPathHoC(
                                                             ConfirmChangeRoleModal,
                                                             {
                                                                 ConfirmationDialogId: this
                                                                     .state
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'ConfirmationDialogId' does not exist on ... Remove this comment to see the full error message
+
                                                                     .ConfirmationDialogId,
                                                                 name:
                                                                     this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                         .name ||
                                                                     this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                         .email,
                                                                 role: this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                     .role,
                                                                 userId: userId,
                                                                 newRole:
@@ -309,7 +303,7 @@ export class TeamMember extends Component {
                                                     this.updateTeamMemberRole(
                                                         {
                                                             role: this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                 .role,
                                                             userId: userId,
                                                         },
@@ -320,7 +314,7 @@ export class TeamMember extends Component {
                                                     this.updateTeamMemberRole(
                                                         {
                                                             role: this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                 .role,
                                                             userId: userId,
                                                         },
@@ -331,7 +325,7 @@ export class TeamMember extends Component {
                                                     this.updateTeamMemberRole(
                                                         {
                                                             role: this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'role' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                 .role,
                                                             userId: userId,
                                                         },
@@ -355,34 +349,32 @@ export class TeamMember extends Component {
                                     </button>
                                 </ShouldRender>
                                 <button
-                                    id={`removeMember__${
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                        this.props.email.split('@')[0]
-                                    }`}
+                                    id={`removeMember__${this.props.email.split('@')[0]
+                                        }`}
                                     title="delete"
                                     disabled={deleting}
                                     className="bs-Button bs-DeprecatedButton Margin-left--8"
                                     type="button"
                                     onClick={handleSubmit((values: $TSFixMe) => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         this.props.openModal({
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeUserModalId' does not exist on typ... Remove this comment to see the full error message
+
                                             id: this.state.removeUserModalId,
                                             content: DataPathHoC(
                                                 RemoveTeamUserModal,
                                                 {
                                                     removeUserModalId: this
                                                         .state
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeUserModalId' does not exist on typ... Remove this comment to see the full error message
+
                                                         .removeUserModalId,
                                                     values: {
                                                         ...values,
                                                         userId: userId,
                                                     },
                                                     displayName:
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         this.props.name ||
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                         this.props.email,
                                                     removeTeamMember: this
                                                         .removeTeamMember,
@@ -402,10 +394,10 @@ export class TeamMember extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 TeamMember.displayName = 'TeamMember';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 TeamMember.propTypes = {
     changeProjectRoles: PropTypes.func.isRequired,
     closeModal: PropTypes.func.isRequired,
@@ -459,9 +451,9 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     const nextProject =
         projects.length > 0
             ? projects.find(
-                  (project: $TSFixMe) => project._id !== projectId &&
-                  project.users.some((user: $TSFixMe) => user.userId === userId)
-              )
+                (project: $TSFixMe) => project._id !== projectId &&
+                    project.users.some((user: $TSFixMe) => user.userId === userId)
+            )
             : null;
     return {
         team: state.team,

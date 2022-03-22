@@ -8,7 +8,7 @@ import DataPathHoC from '../DataPathHoC';
 
 class MSTeamsButton extends React.Component {
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { monitorId } = this.props;
 
         return (
@@ -17,7 +17,7 @@ class MSTeamsButton extends React.Component {
                 type="button"
                 id="addMsTeamsButton"
                 onClick={() =>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                     this.props.openModal({
                         id: 'data._id',
                         onClose: () => '',
@@ -40,7 +40,7 @@ class MSTeamsButton extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MSTeamsButton.displayName = 'WebHookButton';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
@@ -55,7 +55,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject
 });
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MSTeamsButton.propTypes = {
     openModal: PropTypes.func.isRequired,
     monitorId: PropTypes.string,

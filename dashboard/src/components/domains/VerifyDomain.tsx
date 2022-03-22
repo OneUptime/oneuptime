@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -15,7 +15,7 @@ import {
 
 class VerifyDomain extends Component {
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetVerifyProjectDomain' does not exist... Remove this comment to see the full error message
+
         this.props.resetVerifyProjectDomain();
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -36,34 +36,34 @@ class VerifyDomain extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainId' does not exist on type 'Readon... Remove this comment to see the full error message
+
             id: this.props.domainId,
         });
     };
 
     handleVerifyDomain = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             domain,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainId' does not exist on type 'Readon... Remove this comment to see the full error message
+
             domainId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifyProjectDomain' does not exist on t... Remove this comment to see the full error message
+
             verifyProjectDomain,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectDomains' does not exist on t... Remove this comment to see the full error message
+
             fetchProjectDomains,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'verificationToken' does not exist on typ... Remove this comment to see the full error message
+
             verificationToken,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
         } = this.props;
 
         const data = { domain, verificationToken };
         verifyProjectDomain({ projectId, domainId, data }).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifyError' does not exist on type 'Rea... Remove this comment to see the full error message
+
             if (!this.props.verifyError) {
                 fetchProjectDomains(currentProject._id, 0, 10);
                 this.handleCloseModal();
@@ -72,7 +72,7 @@ class VerifyDomain extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { requesting, verificationToken, verifyError } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -309,10 +309,10 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 VerifyDomain.displayName = 'Domain verification';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 VerifyDomain.propTypes = {
     requesting: PropTypes.bool,
     verificationToken: PropTypes.string,

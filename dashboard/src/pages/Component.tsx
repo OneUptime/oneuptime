@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { destroy } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import NewComponent from '../components/component/NewComponent';
 import ComponentList from '../components/component/ComponentList';
@@ -38,7 +38,7 @@ class ComponentDashboardView extends Component {
 
     prevClicked = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPaginatedComponents' does not exist... Remove this comment to see the full error message
+
             .fetchPaginatedComponents({
                 projectId,
                 skip: (skip || 0) > (limit || 3) ? skip - limit : 0,
@@ -46,7 +46,7 @@ class ComponentDashboardView extends Component {
             })
             .then(() => {
                 this.setState(prevState => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                     const updatedPage = prevState.page;
                     updatedPage[projectId] =
                         !updatedPage[projectId] || updatedPage[projectId] === 1
@@ -60,7 +60,7 @@ class ComponentDashboardView extends Component {
 
     nextClicked = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchPaginatedComponents' does not exist... Remove this comment to see the full error message
+
             .fetchPaginatedComponents({
                 projectId,
                 skip: skip + limit,
@@ -68,7 +68,7 @@ class ComponentDashboardView extends Component {
             })
             .then(() => {
                 this.setState(prevState => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                     const updatedPage = prevState.page;
                     updatedPage[projectId] = !updatedPage[projectId]
                         ? 2
@@ -80,7 +80,7 @@ class ComponentDashboardView extends Component {
     };
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'loadPage' does not exist on type 'Readon... Remove this comment to see the full error message
+
         this.props.loadPage('Components');
 
         this.ready();
@@ -88,58 +88,58 @@ class ComponentDashboardView extends Component {
 
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             prevProps?.currentProject?._id !== this.props?.currentProject?._id
         ) {
             this.ready();
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
+
         if (prevProps?.activeProjectId !== this.props?.activeProjectId) {
             this.ready();
         }
     }
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'destroy' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         this.props.destroy('NewComponent');
     }
 
     toggleForm = () => {
         this.setState(prevState => ({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showNewComponentForm' does not exist on ... Remove this comment to see the full error message
+
             showNewComponentForm: !prevState.showNewComponentForm,
         }));
     };
 
     ready = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
+
         const { activeProjectId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const currentProjectId = this.props.currentProject
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             ? this.props.currentProject._id
             : null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponents' does not exist on type ... Remove this comment to see the full error message
+
         this.props.fetchComponents({ projectId: activeProjectId });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSmtpConfig' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.getSmtpConfig(currentProjectId);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitors' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.fetchMonitors(activeProjectId).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor.monitorsList.monitors.forEach((subProject: $TSFixMe) => {
                 if (subProject.monitors.length > 0) {
                     subProject.monitors.forEach((monitor: $TSFixMe) => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorLogs' does not exist on type... Remove this comment to see the full error message
+
                         this.props.fetchMonitorLogs(
                             monitor.projectId._id || monitor.projectId,
                             monitor._id,
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
                             this.props.startDate,
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                             this.props.endDate
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsIncidents' does not exist o... Remove this comment to see the full error message
+
                         this.props.fetchMonitorsIncidents(
                             monitor.projectId._id || monitor.projectId,
                             monitor._id,
@@ -153,13 +153,13 @@ class ComponentDashboardView extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         if (this.props.currentProject) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             document.title = this.props.currentProject.name + ' Dashboard';
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'components' does not exist on type 'Read... Remove this comment to see the full error message
+
         if (this.props.components.length) {
             const scriptElement = document.createElement('script');
             scriptElement.type = 'text/javascript';
@@ -168,23 +168,23 @@ class ComponentDashboardView extends Component {
         }
 
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location: { pathname },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
+
             switchToProjectViewerNav,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
+
             activeProjectId,
         } = this.props;
         const currentProjectId = activeProjectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         let allComponents = this.props.component.componentList.components
             .map((component: $TSFixMe) => component.components)
             .flat();
 
         // Add Project Components to Components List
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         let projectComponent = this.props.component.componentList.components.find(
             (subProjectComponent: $TSFixMe) => String(subProjectComponent._id) === String(currentProjectId)
         );
@@ -214,12 +214,12 @@ class ComponentDashboardView extends Component {
                             skip={projectComponent.skip}
                             count={projectComponent.count}
                             limit={projectComponent.limit}
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                             page={this.state.page[currentProjectId]}
                             prevClicked={this.prevClicked}
                             nextClicked={this.nextClicked}
                             requestErrorObject={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                 this.props.component.componentList[
                                 currentProjectId
                                 ]
@@ -242,7 +242,7 @@ class ComponentDashboardView extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
@@ -256,16 +256,16 @@ class ComponentDashboardView extends Component {
                             : 'Components'
                     }
                     pageTitle="Components"
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: any; name: string; pageTitle: strin... Remove this comment to see the full error message
+
                     addBtn={components.length > 0 && components[0] !== false}
                     btnText="Create New Component"
                     toggleForm={this.toggleForm}
                 />
                 <ShouldRender
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     if={this.props.monitors && this.props.monitors.length > 0}
                 >
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{page: string; }' is not assignable to type... Remove this comment to see the full error message
+
                     <AlertDisabledWarning page="Component" />
                 </ShouldRender>
                 <div className="Box-root">
@@ -279,15 +279,15 @@ class ComponentDashboardView extends Component {
                                                 <ShouldRender
                                                     if={
                                                         !(
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                             this.props.component
                                                                 .componentList
                                                                 .requesting ||
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorListRequesting' does not exist on... Remove this comment to see the full error message
+
                                                                 .monitorListRequesting ||
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsRequesting' does not exist on ty... Remove this comment to see the full error message
+
                                                                 .monitorsRequesting
                                                         )
                                                     }
@@ -299,27 +299,27 @@ class ComponentDashboardView extends Component {
                                                         }
                                                         tutorialStat={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'tutorialStat' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                 .tutorialStat
                                                         }
                                                         currentProjectId={
                                                             currentProjectId
                                                         }
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         slug={this.props.slug}
                                                         hideActionButton={true}
                                                     />
                                                     <ShouldRender
                                                         if={
                                                             (!this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'tutorialStat' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                 .tutorialStat
                                                                 .componentCustom
                                                                 .show ||
                                                                 allComponents.length >
                                                                 0) &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'tutorialStat' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                 .tutorialStat
                                                                 .component.show
                                                         }
@@ -371,7 +371,7 @@ class ComponentDashboardView extends Component {
                                                         <ShouldRender
                                                             if={
                                                                 !this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                     .component
                                                                     .componentList
                                                                     .requesting &&
@@ -443,15 +443,15 @@ class ComponentDashboardView extends Component {
 
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                         this.props.component
                                                             .componentList
                                                             .requesting ||
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorListRequesting' does not exist on... Remove this comment to see the full error message
+
                                                             .monitorListRequesting ||
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsRequesting' does not exist on ty... Remove this comment to see the full error message
+
                                                             .monitorsRequesting
                                                     }
                                                 >
@@ -519,7 +519,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it
     for (const key in tutorialStat) {
         if (projectCustomTutorial && projectCustomTutorial[key]) {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             tutorialStat[key].show = projectCustomTutorial[key].show;
         }
     }
@@ -543,7 +543,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ComponentDashboardView.propTypes = {
     currentProject: PropTypes.object,
     component: PropTypes.object,
@@ -571,7 +571,7 @@ ComponentDashboardView.propTypes = {
     activeProjectId: PropTypes.string,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ComponentDashboardView.displayName = 'ComponentDashboardView';
 
 export default connect(

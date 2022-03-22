@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field, reset } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import { Validate } from '../../config';
@@ -19,7 +19,7 @@ function validate(value: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(value.project_name)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Project name is required.';
     }
 
@@ -30,13 +30,13 @@ export class ProjectSettings extends Component {
     submitForm = (values: $TSFixMe) => {
         const projectName = values.project_name;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'renameProject' does not exist on type 'R... Remove this comment to see the full error message
+
             renameProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
         } = this.props;
         const userId = User.getUserId();
@@ -63,9 +63,9 @@ export class ProjectSettings extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                     id: this.props.projectId,
                 });
             default:
@@ -95,7 +95,7 @@ export class ProjectSettings extends Component {
                             </div>
                         </div>
                         <form
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
                             onSubmit={this.props.handleSubmit(this.submitForm)}
                         >
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -120,7 +120,7 @@ export class ProjectSettings extends Component {
                                                             required="required"
                                                             disabled={
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                     .isRequesting
                                                             }
                                                         />
@@ -137,18 +137,18 @@ export class ProjectSettings extends Component {
                                     <button
                                         id="btnCreateProject"
                                         className="bs-Button bs-Button--blue"
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                         disabled={this.props.isRequesting}
                                         type="submit"
                                     >
                                         <ShouldRender
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                             if={!this.props.isRequesting}
                                         >
                                             <span>Save</span>
                                         </ShouldRender>
                                         <ShouldRender
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                             if={this.props.isRequesting}
                                         >
                                             <FormLoader />
@@ -164,10 +164,10 @@ export class ProjectSettings extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectSettings.displayName = 'ProjectSettings';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectSettings.propTypes = {
     renameProject: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,

@@ -2,13 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter, Link } from 'react-router-dom';
 import MonitorInputs from './MonitorInputs';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addMonitors } from '../../actions/schedule';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
@@ -111,7 +111,7 @@ export const MonitorBox = (props: $TSFixMe) => {
                                                             Schedule Monitors
                                                         </span>
                                                     </label>
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                     <Tooltip title="Moniors and Criteria Using Schedule">
                                                         <div>
                                                             <p>
@@ -358,12 +358,12 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
         }: $TSFixMe) => _id);
 
         monitorIds.forEach((_id: $TSFixMe) => {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             initialValues[_id] = scheduleMonitorIds.includes(_id);
         });
     }
     if (schedule) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isDefault' does not exist on type '{}'.
+
         initialValues.isDefault = schedule.isDefault;
     }
 

@@ -74,7 +74,7 @@ const AffectedResources = ({
             >
                 {affectedMonitors.length <= 3 &&
                     affectedMonitors
-                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+
                         .map(monitor => capitalize(monitor.name))
                         .join(', ')
                         .replace(/, ([^,]*)$/, ' and $1')}

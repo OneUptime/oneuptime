@@ -5,17 +5,17 @@ import { updateStatusPageLayout } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import ConfirmResetLayout from '../modals/ConfirmResetLayout';
 import { openModal } from '../../actions/modal';
 import DataPathHoC from '../DataPathHoC';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 
 const grid = 8;
 
-// @ts-expect-error ts-migrate(7006) FIXME: Parameter 'isDragging' implicitly has an 'any' typ... Remove this comment to see the full error message
+
 const getItemStyle = (isDragging, draggableStyle) => ({
     userSelect: 'none',
     padding: grid * 2,
@@ -69,7 +69,7 @@ export class StatusPageLayout extends Component {
     };
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { statusPage } = this.props;
         const { layout } = statusPage.status;
 
@@ -84,7 +84,7 @@ export class StatusPageLayout extends Component {
         }
     }
     handleSubmit = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { statusPage } = this.props;
         const { _id } = statusPage.status;
         let { projectId } = statusPage.status;
@@ -93,7 +93,7 @@ export class StatusPageLayout extends Component {
             visible: this.state.visible,
             invisible: this.state.invisible,
         };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateStatusPageLayout' does not exist o... Remove this comment to see the full error message
+
         this.props.updateStatusPageLayout(projectId, {
             _id,
             projectId,
@@ -120,7 +120,7 @@ export class StatusPageLayout extends Component {
         const finish = destination.droppableId;
 
         if (start === finish) {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             const result = Array.from(this.state[start]);
             const [removed] = result.splice(source.index, 1);
             result.splice(destination.index, 0, removed);
@@ -132,11 +132,11 @@ export class StatusPageLayout extends Component {
         }
 
         // Moving from one list to another
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         const startTask = Array.from(this.state[start]);
         const [removed] = startTask.splice(source.index, 1);
 
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         const finishTask = Array.from(this.state[finish]);
         finishTask.splice(destination.index, 0, removed);
 
@@ -183,7 +183,7 @@ export class StatusPageLayout extends Component {
     }
 
     resetLayoutToDefault = async () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { statusPage } = this.props;
         const { _id } = statusPage.status;
         let { projectId } = statusPage.status;
@@ -217,7 +217,7 @@ export class StatusPageLayout extends Component {
             ],
         };
         await this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateStatusPageLayout' does not exist o... Remove this comment to see the full error message
+
             .updateStatusPageLayout(projectId, {
                 _id,
                 projectId,
@@ -232,7 +232,7 @@ export class StatusPageLayout extends Component {
             });
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { statusPage } = this.props;
         const pageLayout = statusPage && statusPage.updateLayout;
         return (
@@ -342,7 +342,7 @@ export class StatusPageLayout extends Component {
                                                                                     .draggableProps
                                                                                     .style,
 
-                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 3.
+
                                                                                 true
                                                                             )}
                                                                             className="Layout-box movable-layout-box"
@@ -420,7 +420,7 @@ export class StatusPageLayout extends Component {
                                                         ref={provided.innerRef}
                                                         style={getListStyle(
                                                             snapshot.isDraggingOver,
-                                                            // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
+
                                                             true
                                                         )}
                                                         className="layoutContainer"
@@ -453,7 +453,7 @@ export class StatusPageLayout extends Component {
                                                                                 provided
                                                                                     .draggableProps
                                                                                     .style,
-                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 3.
+
                                                                                 true
                                                                             )}
                                                                             className="Layout-box movable-layout-box"
@@ -533,7 +533,7 @@ export class StatusPageLayout extends Component {
                                             id="resetBranding"
                                             className="bs-Button bs-FileUploadButton bs-Button--new"
                                             disabled={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage
                                                     .resetBrandingColors
                                                     .requesting
@@ -541,7 +541,7 @@ export class StatusPageLayout extends Component {
                                             type="button"
                                             onClick={e => {
                                                 e.preventDefault();
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 return this.props.openModal({
                                                     id: this.state
                                                         .confirmResetModalId,
@@ -564,7 +564,7 @@ export class StatusPageLayout extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                             disabled={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage.customHTML
                                                     .requesting
                                             }
@@ -593,10 +593,10 @@ export class StatusPageLayout extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 StatusPageLayout.displayName = 'StatusPageLayout';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 StatusPageLayout.propTypes = {
     statusPage: PropTypes.object.isRequired,
     updateStatusPageLayout: PropTypes.func,

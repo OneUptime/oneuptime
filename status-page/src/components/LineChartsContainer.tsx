@@ -15,7 +15,7 @@ const ChartContainer = ({
         <span style={{ fontSize: '13px', display: 'block', marginTop: '10px' }}>
             {label}
         </span>
-        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: any; data: any; }' is not assignable... Remove this comment to see the full error message
+
         <AreaChart name={name} data={data} />
     </Fragment>
 );
@@ -30,11 +30,11 @@ ChartContainer.propTypes = {
 
 class LineChartsContainer extends React.Component {
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { _id: monitorId } = this.props.monitor;
         let requesting = true;
         let data = [];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         for (const log of this.props.logs) {
             if (log.monitorId === monitorId) {
                 requesting = log.requesting;
@@ -63,19 +63,19 @@ class LineChartsContainer extends React.Component {
 
         return (
             <Fragment>
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedCharts' does not exist on type '... Remove this comment to see the full error message
+
                 {this.props.selectedCharts.memory && (
                     <ChartContainer label="Memory" name="memory" data={data} />
                 )}
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedCharts' does not exist on type '... Remove this comment to see the full error message
+
                 {this.props.selectedCharts.cpu && (
                     <ChartContainer label="CPU" name="load" data={data} />
                 )}
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedCharts' does not exist on type '... Remove this comment to see the full error message
+
                 {this.props.selectedCharts.storage && (
                     <ChartContainer label="Storage" name="disk" data={data} />
                 )}
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedCharts' does not exist on type '... Remove this comment to see the full error message
+
                 {this.props.selectedCharts.responseTime && (
                     <ChartContainer
                         label="Response time"
@@ -83,7 +83,7 @@ class LineChartsContainer extends React.Component {
                         data={data}
                     />
                 )}
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedCharts' does not exist on type '... Remove this comment to see the full error message
+
                 {this.props.selectedCharts.temperature && (
                     <ChartContainer
                         label="Temperature"
@@ -91,7 +91,7 @@ class LineChartsContainer extends React.Component {
                         data={data}
                     />
                 )}
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedCharts' does not exist on type '... Remove this comment to see the full error message
+
                 {this.props.selectedCharts.runtime && (
                     <ChartContainer
                         label="Runtime"
@@ -104,10 +104,10 @@ class LineChartsContainer extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 LineChartsContainer.displayName = 'LineChartsContainer';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 LineChartsContainer.propTypes = {
     monitor: PropTypes.object,
     selectedCharts: PropTypes.object.isRequired,

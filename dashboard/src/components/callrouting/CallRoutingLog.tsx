@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -22,10 +22,10 @@ const formatNumber = (phoneNumberString: $TSFixMe) => {
     return phoneNumberString;
 };
 class CallRoutingLog extends Component {
-    componentDidMount() {}
+    componentDidMount() { }
 
     prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getCallRoutingLogs' does not exist on ty... Remove this comment to see the full error message
+
         const { getCallRoutingLogs, limit } = this.props;
         getCallRoutingLogs(
             projectId,
@@ -35,7 +35,7 @@ class CallRoutingLog extends Component {
     };
 
     nextClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getCallRoutingLogs' does not exist on ty... Remove this comment to see the full error message
+
         const { getCallRoutingLogs, limit } = this.props;
         getCallRoutingLogs(
             projectId,
@@ -46,19 +46,19 @@ class CallRoutingLog extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             limit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             count,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             logs,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             error,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -128,7 +128,7 @@ class CallRoutingLog extends Component {
                                                 : [];
                                         const newDialed = dialed.filter(
                                             (d: $TSFixMe) => d.status &&
-                                            d.status === 'completed'
+                                                d.status === 'completed'
                                         );
                                         if (newDialed && newDialed.length) {
                                             dialedLog = newDialed[0];
@@ -165,39 +165,39 @@ class CallRoutingLog extends Component {
                                                 <div className="bs-ObjectList-cell bs-u-v-middle">
                                                     <div className="bs-ObjectList-cell-row">
                                                         {dialedLog &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type '{}'.
-                                                        dialedLog.userId &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type '{}'.
-                                                        dialedLog.userId.length
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type '{}'.
+
+                                                            dialedLog.userId &&
+
+                                                            dialedLog.userId.length
+
                                                             ? dialedLog.userId
                                                             : dialedLog &&
-                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type '{}'.
-                                                              dialedLog.scheduleId &&
-                                                              dialedLog
-                                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type '{}'.
-                                                                  .scheduleId
-                                                                  .length
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type '{}'.
-                                                            ? dialedLog.scheduleId
-                                                            : dialedLog &&
-                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type '{}'... Remove this comment to see the full error message
-                                                              dialedLog.phoneNumber &&
-                                                              dialedLog
-                                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type '{}'... Remove this comment to see the full error message
-                                                                  .phoneNumber
-                                                                  .length
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'phoneNumber' does not exist on type '{}'... Remove this comment to see the full error message
-                                                            ? dialedLog.phoneNumber
-                                                            : 'unknown user'}
+
+                                                                dialedLog.scheduleId &&
+                                                                dialedLog
+
+                                                                    .scheduleId
+                                                                    .length
+
+                                                                ? dialedLog.scheduleId
+                                                                : dialedLog &&
+
+                                                                    dialedLog.phoneNumber &&
+                                                                    dialedLog
+
+                                                                        .phoneNumber
+                                                                        .length
+
+                                                                    ? dialedLog.phoneNumber
+                                                                    : 'unknown user'}
                                                     </div>
                                                 </div>
                                                 <div className="bs-ObjectList-cell bs-u-v-middle">
                                                     <div className="bs-ObjectList-cell-row">
                                                         {dialedLog &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type '{}'.
-                                                        dialedLog.status
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type '{}'.
+
+                                                            dialedLog.status
+
                                                             ? dialedLog.status
                                                             : 'unknown status'}
                                                     </div>
@@ -263,8 +263,8 @@ class CallRoutingLog extends Component {
                             >
                                 <span>
                                     {(!logs || logs.length === 0) &&
-                                    !requesting &&
-                                    !error
+                                        !requesting &&
+                                        !error
                                         ? 'You have no call routing logs at this time'
                                         : null}
                                 </span>
@@ -281,14 +281,14 @@ class CallRoutingLog extends Component {
                                             id="customFieldCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                             {this.props.count
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                 ? this.props.count +
-                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                  (this.props.count > 1
-                                                      ? '  Logs'
-                                                      : ' Log')
+
+                                                (this.props.count > 1
+                                                    ? '  Logs'
+                                                    : ' Log')
                                                 : '0 Log'}
                                         </span>
                                     </span>
@@ -354,10 +354,10 @@ class CallRoutingLog extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CallRoutingLog.displayName = 'CallRoutingLog';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CallRoutingLog.propTypes = {
     count: PropTypes.number,
     currentProject: PropTypes.object,

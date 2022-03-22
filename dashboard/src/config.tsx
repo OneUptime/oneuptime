@@ -1,17 +1,17 @@
 import React from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'sane... Remove this comment to see the full error message
+
 import isEmail from 'sane-email-validation';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'vali... Remove this comment to see the full error message
+
 import validUrl from 'valid-url';
 import valid from 'card-validator';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'file... Remove this comment to see the full error message
+
 import FileSaver from 'file-saver';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import { isEmpty } from 'lodash';
 // import { emaildomains } from './constants/emaildomains';
 // import booleanParser from './utils/booleanParser';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'dirt... Remove this comment to see the full error message
+
 import dJSON from 'dirty-json'
 
 let apiUrl = window.location.origin + '/api';
@@ -40,7 +40,7 @@ if (isLocalhost) {
 }
 
 export const env = (value: $TSFixMe) => {
-    // @ts-expect-error ts-migrate(2339) FIXME: Property '_env' does not exist on type 'Window & t... Remove this comment to see the full error message
+
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -305,7 +305,7 @@ export const ValidateField = {
         ? undefined
         : 'Please enter a valid number',
 
-    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
     email: (email: $TSFixMe) => this.text(email) && isEmail(email)
         ? undefined
         : 'Please enter a valid email',
@@ -640,15 +640,15 @@ export const makeCriteria = (val: $TSFixMe) => {
     for (let i = 0; i < val.length; i++) {
         const val3 = {};
         if (val[i].responseType && val[i].responseType.length) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
+
             val3.responseType = val[i].responseType;
         }
         if (val[i].filter && val[i].filter.length) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+
             val3.filter = val[i].filter;
         }
         if (val[i].field1 && val[i].field1.length) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
+
             val3.field1 =
                 val[i].field1 &&
                     typeof val[i].field1 === 'string' &&
@@ -657,7 +657,7 @@ export const makeCriteria = (val: $TSFixMe) => {
                     : val[i].field1;
         }
         if (val[i].field2 && val[i].field2.length) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
+
             val3.field2 =
                 val[i].field2 &&
                     typeof val[i].field2 === 'string' &&
@@ -673,16 +673,16 @@ export const makeCriteria = (val: $TSFixMe) => {
         criteria.push(...nestVal);
 
         if (val[0].match && val[0].match.length && val[0].match === 'all') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{}'.
+
             val2.condition = 'and';
         }
         if (val[0].match && val[0].match.length && val[0].match === 'any') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'condition' does not exist on type '{}'.
+
             val2.condition = 'or';
         }
     }
 
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type '{}'.
+
     val2.criteria = criteria;
     return val2;
 }
@@ -696,15 +696,15 @@ function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
                 val.criteria[j].responseType &&
                 val.criteria[j].responseType.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
+
                 innerVal.responseType = val.criteria[j].responseType;
             }
             if (val.criteria[j].filter && val.criteria[j].filter.length) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+
                 innerVal.filter = val.criteria[j].filter;
             }
             if (val.criteria[j].field1 && val.criteria[j].field1.length) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
+
                 innerVal.field1 =
                     val.criteria[j].field1 &&
                         typeof val.criteria[j].field1 === 'string' &&
@@ -713,7 +713,7 @@ function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
                         : val.criteria[j].field1;
             }
             if (val.criteria[j].field2 && val.criteria[j].field2.length) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
+
                 innerVal.field2 =
                     val.criteria[j].field2 &&
                         typeof val.criteria[j].field2 === 'string' &&
@@ -749,28 +749,28 @@ export const mapCriteria = (val: $TSFixMe) => {
                 val.criteria.criteria[i].responseType &&
                 val.criteria.criteria[i].responseType.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
+
                 val3.responseType = val.criteria.criteria[i].responseType;
             }
             if (
                 val.criteria.criteria[i].filter &&
                 val.criteria.criteria[i].filter.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+
                 val3.filter = val.criteria.criteria[i].filter;
             }
             if (
                 val.criteria.criteria[i].field1 &&
                 val.criteria.criteria[i].field1.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
+
                 val3.field1 = val.criteria.criteria[i].field1;
             }
             if (
                 val.criteria.criteria[i].field2 &&
                 val.criteria.criteria[i].field2.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
+
                 val3.field2 = val.criteria.criteria[i].field2;
             }
 
@@ -787,11 +787,11 @@ export const mapCriteria = (val: $TSFixMe) => {
                     val2[val2.length - 1]
                 );
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field3' does not exist on type '{}'.
+
                 val3.field3 = false;
             }
             if (i === 0) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type '{}'.
+
                 val3.match = 'all';
             }
             if (!isEmpty(val3)) {
@@ -806,28 +806,28 @@ export const mapCriteria = (val: $TSFixMe) => {
                 val.criteria.criteria[i].responseType &&
                 val.criteria.criteria[i].responseType.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
+
                 val3.responseType = val.criteria.criteria[i].responseType;
             }
             if (
                 val.criteria.criteria[i].filter &&
                 val.criteria.criteria[i].filter.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+
                 val3.filter = val.criteria.criteria[i].filter;
             }
             if (
                 val.criteria.criteria[i].field1 &&
                 val.criteria.criteria[i].field1.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
+
                 val3.field1 = val.criteria.criteria[i].field1;
             }
             if (
                 val.criteria.criteria[i].field2 &&
                 val.criteria.criteria[i].field2.length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
+
                 val3.field2 = val.criteria.criteria[i].field2;
             }
 
@@ -844,11 +844,11 @@ export const mapCriteria = (val: $TSFixMe) => {
                     val2[val2.length - 1]
                 );
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'field3' does not exist on type '{}'.
+
                 val3.field3 = false;
             }
             if (i === 0) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type '{}'.
+
                 val3.match = 'any';
             }
             if (!isEmpty(val3)) {
@@ -867,36 +867,36 @@ function mapNestedCriteria(criteriaObj: $TSFixMe, innerContainer: $TSFixMe, cr: 
             criteriaObj.criteria[j].responseType &&
             criteriaObj.criteria[j].responseType.length
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'responseType' does not exist on type '{}... Remove this comment to see the full error message
+
             innerVal.responseType = criteriaObj.criteria[j].responseType;
         }
         if (
             criteriaObj.criteria[j].filter &&
             criteriaObj.criteria[j].filter.length
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type '{}'.
+
             innerVal.filter = criteriaObj.criteria[j].filter;
         }
         if (
             criteriaObj.criteria[j].field1 &&
             criteriaObj.criteria[j].field1.length
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'field1' does not exist on type '{}'.
+
             innerVal.field1 = criteriaObj.criteria[j].field1;
         }
         if (
             criteriaObj.criteria[j].field2 &&
             criteriaObj.criteria[j].field2.length
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'field2' does not exist on type '{}'.
+
             innerVal.field2 = criteriaObj.criteria[j].field2;
         }
 
         if (j === 0 && criteriaObj.condition === 'and') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type '{}'.
+
             innerVal.match = 'all';
         } else if (j === 0 && criteriaObj.condition === 'or') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type '{}'.
+
             innerVal.match = 'any';
         }
 

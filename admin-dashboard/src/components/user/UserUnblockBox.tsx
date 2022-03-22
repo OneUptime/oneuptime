@@ -10,18 +10,18 @@ import { openModal, closeModal } from '../../actions/modal';
 export class UserUnblockBox extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
     }
 
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'unblockUser' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { unblockUser, userId } = this.props;
         return unblockUser(userId);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { isRequesting } = this.props;
 
         return (
@@ -65,7 +65,7 @@ export class UserUnblockBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 UserUnblockBox.displayName = 'UserUnblockBox';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ unblockUser, openModal, closeModal }, dispatch);
@@ -83,7 +83,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 UserUnblockBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     userId: PropTypes.oneOfType([
@@ -93,7 +93,7 @@ UserUnblockBox.propTypes = {
     unblockUser: PropTypes.func.isRequired,
 };
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 UserUnblockBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserUnblockBox);

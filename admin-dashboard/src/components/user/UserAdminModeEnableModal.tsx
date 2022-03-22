@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
@@ -22,17 +22,17 @@ class UserAdminModeEnableModal extends Component {
     }
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
         return this.props.confirmThisDialog(values);
     };
 
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('enableAdminMode').click();
             default:
                 return false;
@@ -41,13 +41,13 @@ class UserAdminModeEnableModal extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
             isRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'enableAdminModeError' does not exist on ... Remove this comment to see the full error message
+
             enableAdminModeError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             closeThisDialog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
         } = this.props;
 
@@ -187,7 +187,7 @@ class UserAdminModeEnableModal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 UserAdminModeEnableModal.displayName = 'UserAdminModeEnableModal';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -203,7 +203,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 UserAdminModeEnableModal.propTypes = {
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,

@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
 import { history } from '../../store';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field, reset } from 'redux-form';
 import { renameSchedule } from '../../actions/schedule';
 import PropTypes from 'prop-types';
@@ -19,7 +19,7 @@ function validate(value: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(value.schedule_name)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Duty name is required.';
     }
 
@@ -28,7 +28,7 @@ function validate(value: $TSFixMe) {
 
 export class RenameScheduleBox extends Component {
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleId' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { scheduleId, renameSchedule, subProjectId } = this.props;
 
         const scheduleName = values.schedule_name;
@@ -37,7 +37,7 @@ export class RenameScheduleBox extends Component {
             renameSchedule(subProjectId, scheduleId, scheduleName).then(
                 (data: $TSFixMe) => {
                     history.replace(
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectSlug' does not exist on ty... Remove this comment to see the full error message
+
                         `/dashboard/project/${this.props.currentProjectSlug}/schedule/${data.data[0].slug}`
                     );
                 }
@@ -71,7 +71,7 @@ export class RenameScheduleBox extends Component {
                             </div>
                         </div>
                         <form
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
                             onSubmit={this.props.handleSubmit(this.submitForm)}
                         >
                             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -97,7 +97,7 @@ export class RenameScheduleBox extends Component {
                                                                 required="required"
                                                                 disabled={
                                                                     this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                         .isRequesting
                                                                 }
                                                             />
@@ -105,16 +105,16 @@ export class RenameScheduleBox extends Component {
                                                         <RenderIfSubProjectMember>
                                                             <label className="bs-Fieldset-label">
                                                                 {this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
                                                                     .initialValues &&
-                                                                this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
-                                                                    .initialValues
-                                                                    .schedule_name
+                                                                    this.props
+
+                                                                        .initialValues
+                                                                        .schedule_name
                                                                     ? this.props
-                                                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
-                                                                          .initialValues
-                                                                          .schedule_name
+
+                                                                        .initialValues
+                                                                        .schedule_name
                                                                     : 'Unnamed Schedule'}
                                                             </label>
                                                         </RenderIfSubProjectMember>
@@ -134,13 +134,13 @@ export class RenameScheduleBox extends Component {
                                             type="submit"
                                         >
                                             <ShouldRender
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                 if={!this.props.isRequesting}
                                             >
                                                 <span>Save</span>
                                             </ShouldRender>
                                             <ShouldRender
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                 if={this.props.isRequesting}
                                             >
                                                 <FormLoader />
@@ -157,7 +157,7 @@ export class RenameScheduleBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 RenameScheduleBox.displayName = 'RenameScheduleBox';
 
 const formName = 'RenameSchedule' + Math.floor(Math.random() * 10 + 1);
@@ -201,7 +201,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 RenameScheduleBox.propTypes = {
     scheduleId: PropTypes.string,
     subProjectId: PropTypes.string,

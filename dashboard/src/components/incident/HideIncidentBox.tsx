@@ -12,7 +12,7 @@ class HideIncidentBox extends Component {
         };
     }
     handleChange = (e: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { incident, currentProject, hideIncident } = this.props;
         const checked = e.target.checked;
         this.setState({ checked });
@@ -24,7 +24,7 @@ class HideIncidentBox extends Component {
         hideIncident(data);
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideIncidentError' does not exist on typ... Remove this comment to see the full error message
+
         const { hideIncidentError } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -56,7 +56,7 @@ class HideIncidentBox extends Component {
                                             onChange={this.handleChange}
                                             name="hideIncident"
                                             id="hideIncident"
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'checked' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                             checked={this.state.checked}
                                         />
                                         <span className="TogglerBtn-slider round"></span>
@@ -92,7 +92,7 @@ class HideIncidentBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 HideIncidentBox.displayName = 'HideIncidentBox';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -103,7 +103,7 @@ const mapStateToProps = (state: $TSFixMe) => {
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ hideIncident }, dispatch);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 HideIncidentBox.propTypes = {
     hideIncident: PropTypes.func,
     hideIncidentError: PropTypes.string,

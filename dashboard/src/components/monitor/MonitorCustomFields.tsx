@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -17,20 +17,20 @@ import EditMonitorCustomField from '../modals/EditMonitorCustomField';
 class MonitorCustomFields extends Component {
     limit: $TSFixMe;
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.limit = 10;
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
+
         const { fetchCustomFields, currentProject } = this.props;
         const projectId = currentProject._id;
         fetchCustomFields(projectId, 0, this.limit);
     }
 
     prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
+
         const { fetchCustomFields } = this.props;
         fetchCustomFields(
             projectId,
@@ -40,7 +40,7 @@ class MonitorCustomFields extends Component {
     };
 
     nextClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCustomFields' does not exist on typ... Remove this comment to see the full error message
+
         const { fetchCustomFields } = this.props;
         fetchCustomFields(
             projectId,
@@ -51,21 +51,21 @@ class MonitorCustomFields extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             limit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             count,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'customFields' does not exist on type 'Re... Remove this comment to see the full error message
+
             customFields,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             error,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -94,7 +94,7 @@ class MonitorCustomFields extends Component {
                                 <button
                                     id="addCustomField"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         this.props.openModal({
                                             id: currentProject._id,
                                             content: DataPathHoC(
@@ -298,8 +298,8 @@ class MonitorCustomFields extends Component {
                                 <span>
                                     {(!customFields ||
                                         customFields.length === 0) &&
-                                    !requesting &&
-                                    !error
+                                        !requesting &&
+                                        !error
                                         ? 'You have no custom field at this time'
                                         : null}
                                 </span>
@@ -316,14 +316,14 @@ class MonitorCustomFields extends Component {
                                             id="customFieldCount"
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                             {this.props.count
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                 ? this.props.count +
-                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                  (this.props.count > 1
-                                                      ? '  Custom fields'
-                                                      : ' Custom field')
+
+                                                (this.props.count > 1
+                                                    ? '  Custom fields'
+                                                    : ' Custom field')
                                                 : '0 Custom field'}
                                         </span>
                                     </span>
@@ -389,10 +389,10 @@ class MonitorCustomFields extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorCustomFields.displayName = 'MonitorCustomFields';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorCustomFields.propTypes = {
     currentProject: PropTypes.object,
     error: PropTypes.string,

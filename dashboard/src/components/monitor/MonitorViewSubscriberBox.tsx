@@ -9,7 +9,7 @@ import CreateSubscriber from '../../components/modals/CreateSubscriber';
 import DataPathHoC from '../DataPathHoC';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
@@ -28,16 +28,16 @@ export class MonitorViewSubscriberBox extends Component {
 
     prevClicked = () => {
         const subProjectId =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor.projectId._id || this.props.monitor.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsSubscribers' does not exist... Remove this comment to see the full error message
+
         this.props.fetchMonitorsSubscribers(
             subProjectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor.subscribers.skip
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 ? parseInt(this.props.monitor.subscribers.skip, 10) - 5
                 : 5,
             5
@@ -46,16 +46,16 @@ export class MonitorViewSubscriberBox extends Component {
 
     nextClicked = () => {
         const subProjectId =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor.projectId._id || this.props.monitor.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsSubscribers' does not exist... Remove this comment to see the full error message
+
         this.props.fetchMonitorsSubscribers(
             subProjectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor.subscribers.skip
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 ? parseInt(this.props.monitor.subscribers.skip, 10) + 5
                 : 5,
             5
@@ -63,16 +63,16 @@ export class MonitorViewSubscriberBox extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriberModalId' does not exist ... Remove this comment to see the full error message
+
         const { createSubscriberModalId, uploadSubscriberModalId } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'create' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const creating = this.props.create ? this.props.create : false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'export' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const exporting = this.props.export ? this.props.export : false;
         const subProjectId =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor.projectId._id || this.props.monitor.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { monitorId } = this.props;
 
         return (
@@ -90,7 +90,7 @@ export class MonitorViewSubscriberBox extends Component {
                                 <span
                                     onClick={() =>
                                         history.push(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                             `/dashboard/project/${this.props.currentProject.slug}/on-call`
                                         )
                                     }
@@ -115,14 +115,14 @@ export class MonitorViewSubscriberBox extends Component {
                                 disabled={creating}
                                 id="addSubscriberButton"
                                 onClick={() =>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                     this.props.openModal({
                                         id: createSubscriberModalId,
                                         onClose: () =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             this.props.closeModal({
                                                 id: this.state
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriberModalId' does not exist ... Remove this comment to see the full error message
+
                                                     .createSubscriberModalId,
                                             }),
                                         content: DataPathHoC(CreateSubscriber, {
@@ -154,11 +154,11 @@ export class MonitorViewSubscriberBox extends Component {
                                     type="button"
                                     disabled={exporting}
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         this.props.openModal({
                                             id: uploadSubscriberModalId,
                                             onClose: () =>
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.closeModal({
                                                     id: uploadSubscriberModalId,
                                                 }),
@@ -190,7 +190,7 @@ export class MonitorViewSubscriberBox extends Component {
                                     type="button"
                                     disabled={exporting}
                                     onClick={() =>
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'exportCSV' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         this.props.exportCSV(
                                             subProjectId,
                                             monitorId,
@@ -215,7 +215,7 @@ export class MonitorViewSubscriberBox extends Component {
                 </div>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <SubscriberList
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ monitorId: any; subProjectId: any; prevCli... Remove this comment to see the full error message
+
                         monitorId={monitorId}
                         subProjectId={subProjectId}
                         prevClicked={this.prevClicked}
@@ -227,10 +227,10 @@ export class MonitorViewSubscriberBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorViewSubscriberBox.displayName = 'MonitorViewSubscriberBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorViewSubscriberBox.propTypes = {
     monitor: PropTypes.object.isRequired,
     currentProject: PropTypes.object.isRequired,

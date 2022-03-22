@@ -9,7 +9,7 @@ import { history } from '../../store';
 class ErrorTrackerIssueTimeline extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
     }
     generateText = (status: $TSFixMe) => {
@@ -18,7 +18,7 @@ class ErrorTrackerIssueTimeline extends Component {
         return `${capitalizedText}d by`;
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEvent' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { errorEvent, errorTrackerIssue } = this.props;
         return (
             <ShouldRender
@@ -38,8 +38,8 @@ class ErrorTrackerIssueTimeline extends Component {
                             </div>
                         </div>
                         {errorTrackerIssue &&
-                        errorTrackerIssue.timeline &&
-                        errorTrackerIssue.timeline.length > 0 ? (
+                            errorTrackerIssue.timeline &&
+                            errorTrackerIssue.timeline.length > 0 ? (
                             errorTrackerIssue.timeline
                                 .reverse()
                                 .map((timeline: $TSFixMe, i: $TSFixMe) => {
@@ -54,18 +54,17 @@ class ErrorTrackerIssueTimeline extends Component {
                                             >
                                                 <div
                                                     className={`bs-incident-notes 
-                                                                    ${
-                                                                        timeline.status ===
-                                                                        'resolve'
-                                                                            ? 'bs-note-resolved'
-                                                                            : timeline.status ===
-                                                                              'unresolve'
-                                                                            ? 'bs-note-offline'
-                                                                            : timeline.status ===
-                                                                              'ignore'
-                                                                            ? 'bs-note-acknowleged'
-                                                                            : 'bs-note-offline-o'
-                                                                    }`}
+                                                                    ${timeline.status ===
+                                                            'resolve'
+                                                            ? 'bs-note-resolved'
+                                                            : timeline.status ===
+                                                                'unresolve'
+                                                                ? 'bs-note-offline'
+                                                                : timeline.status ===
+                                                                    'ignore'
+                                                                    ? 'bs-note-acknowleged'
+                                                                    : 'bs-note-offline-o'
+                                                        }`}
                                                 ></div>
                                                 <div className="bs-incident-notes-content">
                                                     <div className="bs-note-display-flex bs-mob-block">
@@ -88,9 +87,9 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                 ) {
                                                                     history.push(
                                                                         '/dashboard/profile/' +
-                                                                            timeline
-                                                                                .createdById
-                                                                                ._id
+                                                                        timeline
+                                                                            .createdById
+                                                                            ._id
                                                                     );
                                                                 }
                                                             }}
@@ -98,9 +97,9 @@ class ErrorTrackerIssueTimeline extends Component {
                                                             <img
                                                                 src={
                                                                     timeline.createdById &&
-                                                                    timeline
-                                                                        .createdById
-                                                                        .name
+                                                                        timeline
+                                                                            .createdById
+                                                                            .name
                                                                         ? '/dashboard/assets/img/profile-user.svg'
                                                                         : '/dashboard/assets/img/ou-wb.svg'
                                                                 }
@@ -111,21 +110,21 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                         '-5px',
                                                                     backgroundColor:
                                                                         timeline.createdById &&
-                                                                        timeline
-                                                                            .createdById
-                                                                            .name
+                                                                            timeline
+                                                                                .createdById
+                                                                                .name
                                                                             ? '#fff'
                                                                             : '#121212',
                                                                 }}
                                                             />
                                                             <span>
                                                                 {timeline.createdById &&
-                                                                timeline
-                                                                    .createdById
-                                                                    .name
+                                                                    timeline
+                                                                        .createdById
+                                                                        .name
                                                                     ? timeline
-                                                                          .createdById
-                                                                          .name
+                                                                        .createdById
+                                                                        .name
                                                                     : 'OneUptime'}
                                                             </span>
                                                         </div>
@@ -142,8 +141,8 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                         <div className="Box-root Flex-flex">
                                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                 {timeline &&
-                                                                                timeline.status &&
-                                                                                timeline.status ===
+                                                                                    timeline.status &&
+                                                                                    timeline.status ===
                                                                                     'unresolve' ? (
                                                                                     <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
@@ -153,9 +152,9 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                                         </span>
                                                                                     </div>
                                                                                 ) : timeline &&
-                                                                                  timeline.status &&
-                                                                                  timeline.status ===
-                                                                                      'resolve' ? (
+                                                                                    timeline.status &&
+                                                                                    timeline.status ===
+                                                                                    'resolve' ? (
                                                                                     <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                             <span>
@@ -164,9 +163,9 @@ class ErrorTrackerIssueTimeline extends Component {
                                                                                         </span>
                                                                                     </div>
                                                                                 ) : timeline &&
-                                                                                  timeline.status &&
-                                                                                  timeline.status ===
-                                                                                      'ignore' ? (
+                                                                                    timeline.status &&
+                                                                                    timeline.status ===
+                                                                                    'ignore' ? (
                                                                                     <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                             <span>
@@ -195,19 +194,19 @@ class ErrorTrackerIssueTimeline extends Component {
                                                         <span>
                                                             {currentTimeZone
                                                                 ? momentTz(
-                                                                      timeline.createdAt
-                                                                  )
-                                                                      .tz(
-                                                                          currentTimeZone
-                                                                      )
-                                                                      .format(
-                                                                          'lll'
-                                                                      )
+                                                                    timeline.createdAt
+                                                                )
+                                                                    .tz(
+                                                                        currentTimeZone
+                                                                    )
+                                                                    .format(
+                                                                        'lll'
+                                                                    )
                                                                 : moment(
-                                                                      timeline.createdAt
-                                                                  ).format(
-                                                                      'lll'
-                                                                  )}
+                                                                    timeline.createdAt
+                                                                ).format(
+                                                                    'lll'
+                                                                )}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -216,7 +215,7 @@ class ErrorTrackerIssueTimeline extends Component {
                                                 if={
                                                     errorTrackerIssue.timeline
                                                         .length -
-                                                        1 !==
+                                                    1 !==
                                                     i
                                                 }
                                             >
@@ -242,12 +241,12 @@ class ErrorTrackerIssueTimeline extends Component {
         );
     }
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ErrorTrackerIssueTimeline.propTypes = {
     errorEvent: PropTypes.object,
     errorTrackerIssue: PropTypes.object,
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ErrorTrackerIssueTimeline.displayName = 'ErrorTrackerIssueTimeline';
 
 export default ErrorTrackerIssueTimeline;

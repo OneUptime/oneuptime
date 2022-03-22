@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
+
 import { PropTypes } from 'prop-types';
 
 import { bindActionCreators } from 'redux';
 import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
 import { history } from '../../store';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 
 class IncidentCreated extends Component {
@@ -24,11 +24,11 @@ class IncidentCreated extends Component {
             typeof projectId === 'object' ? projectId._id : projectId;
 
         const notifications = [{ notificationId }];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'markAsRead' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.markAsRead(project_Id, notifications);
 
         history.push(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             `/dashboard/project/${this.props.slug}/component/${slug}/incidents/${incidentSlug}`
         );
     };
@@ -37,12 +37,12 @@ class IncidentCreated extends Component {
         const { projectId, _id: notificationId } = notification;
         const project_Id =
             typeof projectId === 'object' ? projectId._id : projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeNotification' does not exist on typ... Remove this comment to see the full error message
+
         this.props.closeNotification(project_Id, notificationId);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
         const { notifications } = this.props;
 
         return (
@@ -184,7 +184,7 @@ class IncidentCreated extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 IncidentCreated.displayName = 'IncidentCreated';
 
 const mapStateToProps = () => {
@@ -195,7 +195,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ markAsRead, closeNotification }, dispatch);
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 IncidentCreated.propTypes = {
     notifications: PropTypes.array,
     markAsRead: PropTypes.func,

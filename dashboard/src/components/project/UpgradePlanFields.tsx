@@ -13,7 +13,7 @@ export default function UpgradePlanFields(props: $TSFixMe) {
         if (currentProject.stripePlanId === plan.planId) {
             for (let i = 0; i < plans.length; i++) {
                 if (i > index && plans[index].category !== plans[i].category) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ category: string; planId: stri... Remove this comment to see the full error message
+
                     filtered.push(plans[i]);
                 }
             }
@@ -51,17 +51,17 @@ export default function UpgradePlanFields(props: $TSFixMe) {
                         >
                             <ShouldRender if={index === i * 2}>
                                 <span className="Margin-bottom--12 Text-fontWeight--medium">
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type 'never'... Remove this comment to see the full error message
+
                                     {plan.category} Plan
                                 </span>
                             </ShouldRender>
 
                             <RadioInput
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type 'never'... Remove this comment to see the full error message
+
                                 id={`${plan.category}_${plan.type}`}
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type 'never'.
+
                                 details={plan.details}
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'planId' does not exist on type 'never'.
+
                                 value={plan.planId}
                             />
                         </ShouldRender>

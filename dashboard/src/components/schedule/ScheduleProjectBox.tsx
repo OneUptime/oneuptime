@@ -9,7 +9,7 @@ import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import sortByName from '../../utils/sortByName';
 
@@ -24,7 +24,7 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                     case 'n':
                         if (modalList.length === 0) {
                             event.preventDefault();
-                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                             return document
                                 .getElementById(
                                     `btnCreateSchedule_${props.subProjectName}`
@@ -64,18 +64,18 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                                         for
                                     </span>{' '}
                                     {props.currentProject._id !==
-                                    props.subProjectSchedule._id
+                                        props.subProjectSchedule._id
                                         ? props.subProjectName
                                         : props.subProjects.length > 0
-                                        ? props.currentProject.name
-                                        : ''}
+                                            ? props.currentProject.name
+                                            : ''}
                                 </span>
                             </span>
                             <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                 <span>
                                     {IsOwnerSubProject(props.currentProject) ||
-                                    IsAdminSubProject(props.subProject) ||
-                                    IsOwnerSubProject(props.subProject)
+                                        IsAdminSubProject(props.subProject) ||
+                                        IsOwnerSubProject(props.subProject)
                                         ? "A Duty let's you connect members to monitors, so only members who are responsible for certain monitors are alerted."
                                         : 'When monitors go down, OneUptime alerts your team.'}
                                 </span>
@@ -85,15 +85,14 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                             <div className="Box-root">
                                 <RenderIfSubProjectAdmin
                                     subProjectId={props.projectId}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '() => any' is not assignable to type 'Key | ... Remove this comment to see the full error message
+
                                     key={() => uuidv4()}
                                 >
                                     <button
-                                        id={`btnCreateSchedule_${
-                                            props.subProjectName
+                                        id={`btnCreateSchedule_${props.subProjectName
                                                 ? props.subProjectName
                                                 : props.currentProject.name
-                                        }`}
+                                            }`}
                                         className="Button bs-ButtonLegacy ActionIconParent"
                                         type="button"
                                         onClick={() => {
@@ -198,20 +197,16 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
                                     {numberOfPages > 0
-                                        ? `Page ${
-                                              !props.page ? 1 : props.page
-                                          } of ${numberOfPages} (${
-                                              props.count
-                                          } ${
-                                              props.numberOfSchedules === 1
-                                                  ? 'duty'
-                                                  : 'duties'
-                                          })`
-                                        : `${props.count} ${
-                                              props.numberOfSchedules === 1
-                                                  ? ' duty'
-                                                  : ' duties'
-                                          }`}
+                                        ? `Page ${!props.page ? 1 : props.page
+                                        } of ${numberOfPages} (${props.count
+                                        } ${props.numberOfSchedules === 1
+                                            ? 'duty'
+                                            : 'duties'
+                                        })`
+                                        : `${props.count} ${props.numberOfSchedules === 1
+                                            ? ' duty'
+                                            : ' duties'
+                                        }`}
                                 </span>
                             </span>
                         </span>
@@ -226,11 +221,10 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                                 {/** Needed for identifying subproject */}
                                 <button
                                     id="btnPrev"
-                                    className={`Button bs-ButtonLegacy ${
-                                        !props.canPaginateBackward
+                                    className={`Button bs-ButtonLegacy ${!props.canPaginateBackward
                                             ? 'Is--disabled'
                                             : ''
-                                    }`}
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!props.canPaginateBackward}
                                     type="button"
@@ -257,11 +251,10 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                                 {/** Needed for identifying subproject */}
                                 <button
                                     id="btnNext"
-                                    className={`Button bs-ButtonLegacy ${
-                                        !props.canPaginateForward
+                                    className={`Button bs-ButtonLegacy ${!props.canPaginateForward
                                             ? 'Is--disabled'
                                             : ''
-                                    }`}
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!props.canPaginateForward}
                                     type="button"

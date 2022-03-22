@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
 import { closeTutorial } from '../../actions/tutorial';
 import { bindActionCreators } from 'redux';
@@ -20,7 +20,7 @@ function QuickTipBox({
 }: $TSFixMe) {
     return (
         <div
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
             tabIndex="0"
             id={`info-${id}`}
             className="Box-root Margin-vertical--12"

@@ -141,13 +141,13 @@ const styles = createStyles((theme: $TSFixMe) => ({
     }
 }));
 
-// @ts-expect-error ts-migrate(2322) FIXME: Type 'ComponentType<Pick<any, string | number | sy... Remove this comment to see the full error message
+
 WeekSelector = withStyles(styles)(WeekSelector);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type '({ ... Remove this comment to see the full error message
+
 WeekSelector.displayName = 'WeekSelector';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type '({ cl... Remove this comment to see the full error message
+
 WeekSelector.propTypes = {
     input: PropTypes.object.isRequired,
     style: PropTypes.object,

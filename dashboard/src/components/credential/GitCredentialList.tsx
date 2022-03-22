@@ -312,12 +312,10 @@ const GitCredentialList = ({
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
                                     {numberOfPages > 0
-                                        ? `Page ${page} of ${numberOfPages} (${count} Git Credential${
-                                              count === 1 ? '' : 's'
-                                          })`
-                                        : `${count} Git Credential${
-                                              count < 2 ? '' : 's'
-                                          }`}
+                                        ? `Page ${page} of ${numberOfPages} (${count} Git Credential${count === 1 ? '' : 's'
+                                        })`
+                                        : `${count} Git Credential${count < 2 ? '' : 's'
+                                        }`}
                                 </span>
                             </div>
                         </div>
@@ -329,7 +327,7 @@ const GitCredentialList = ({
                                     id="btnPrev"
                                     className={`Button bs-ButtonLegacy ${!pre_page &&
                                         'Is--disabled'}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
+
                                     disabled=""
                                     type="button"
                                     onClick={prev}
@@ -346,7 +344,7 @@ const GitCredentialList = ({
                                     id="btnNext"
                                     className={`Button bs-ButtonLegacy ${!next_page &&
                                         'Is--disabled'}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
+
                                     disabled=""
                                     type="button"
                                     onClick={next}

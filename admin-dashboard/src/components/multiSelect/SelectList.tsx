@@ -4,7 +4,7 @@ import SelectItem from './SelectItem';
 
 class SelectList extends React.Component {
     handleSelectionChanged = (option: $TSFixMe, checked: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selected' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { selected, onSelectedChanged, disabled } = this.props;
 
         if (disabled) return true;
@@ -24,17 +24,17 @@ class SelectList extends React.Component {
 
     renderItems() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'options' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             options,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'selected' does not exist on type 'Readon... Remove this comment to see the full error message
+
             selected,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'focusIndex' does not exist on type 'Read... Remove this comment to see the full error message
+
             focusIndex,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'onClick' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             onClick,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ItemRenderer' does not exist on type 'Re... Remove this comment to see the full error message
+
             ItemRenderer,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'disabled' does not exist on type 'Readon... Remove this comment to see the full error message
+
             disabled,
         } = this.props;
         return options.map((o: $TSFixMe, i: $TSFixMe) => (
@@ -43,7 +43,7 @@ class SelectList extends React.Component {
                 style={{ listStyle: 'none' }}
             >
                 <SelectItem
-                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                     focused={focusIndex === 1}
                     option={o}
                     onSelectChanged={(c: $TSFixMe) => this.handleSelectionChanged(o, c)}
@@ -67,14 +67,14 @@ class SelectList extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SelectList.displayName = 'SelectList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SelectList.propTypes = {
     selected: PropTypes.arrayOf(Object).isRequired,
     options: PropTypes.arrayOf({
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '{ label: PropTypes.Validator<str... Remove this comment to see the full error message
+
         label: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
         key: PropTypes.string,

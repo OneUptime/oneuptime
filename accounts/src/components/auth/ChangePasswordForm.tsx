@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { Validate } from '../../config';
@@ -13,7 +13,7 @@ import {
 } from '../../actions/changePassword';
 import { bindActionCreators } from 'redux';
 import { RenderField } from '../basic/RenderField';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
 
 const errorStyle = {
@@ -21,14 +21,14 @@ const errorStyle = {
 };
 export class ChangePasswordForm extends Component {
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'token' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         values.token = this.props.token || '';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePassword' does not exist on type '... Remove this comment to see the full error message
+
         this.props.changePassword(values);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePasswordState' does not exist on t... Remove this comment to see the full error message
+
         const changePasswordStateError = this.props.changePasswordState.error;
         let header;
         if (changePasswordStateError) {
@@ -40,7 +40,7 @@ export class ChangePasswordForm extends Component {
             <div id="main-body" className="box css">
                 <div className="inner">
                     <form
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
                         onSubmit={this.props.handleSubmit(this.submitForm)}
                         className="request-reset"
                     >
@@ -51,7 +51,7 @@ export class ChangePasswordForm extends Component {
 
                             <p className="error-message hidden" />
 
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePasswordState' does not exist on t... Remove this comment to see the full error message
+
                             {this.props.changePasswordState.success && (
                                 <p className="message">
                                     {' '}
@@ -62,7 +62,7 @@ export class ChangePasswordForm extends Component {
                                     </Link>{' '}
                                 </p>
                             )}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePasswordState' does not exist on t... Remove this comment to see the full error message
+
                             {!this.props.changePasswordState.success && (
                                 <p className="message">
                                     {' '}
@@ -70,7 +70,7 @@ export class ChangePasswordForm extends Component {
                                 </p>
                             )}
 
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePasswordState' does not exist on t... Remove this comment to see the full error message
+
                             {!this.props.changePasswordState.success && (
                                 <div>
                                     {' '}
@@ -109,21 +109,21 @@ export class ChangePasswordForm extends Component {
                                             type="submit"
                                             className="button blue medium"
                                             disabled={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePasswordState' does not exist on t... Remove this comment to see the full error message
+
                                                 this.props.changePasswordState
                                                     .requesting
                                             }
                                         >
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePasswordState' does not exist on t... Remove this comment to see the full error message
+
                                             {!this.props.changePasswordState
                                                 .requesting && (
-                                                <span>Change Password</span>
-                                            )}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'changePasswordState' does not exist on t... Remove this comment to see the full error message
+                                                    <span>Change Password</span>
+                                                )}
+
                                             {this.props.changePasswordState
                                                 .requesting && (
-                                                <ButtonSpinner />
-                                            )}
+                                                    <ButtonSpinner />
+                                                )}
                                         </button>
                                     </p>{' '}
                                 </div>
@@ -136,28 +136,28 @@ export class ChangePasswordForm extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ChangePasswordForm.displayName = 'ChangePasswordForm';
 
 function validate(values: $TSFixMe) {
     const errors = {};
     if (!Validate.text(values.password)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type '{}'.
+
         errors.password = 'Password is required.';
     }
     if (
         Validate.text(values.password) &&
         !Validate.isStrongPassword(values.password)
     ) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type '{}'.
+
         errors.password = 'Password should be atleast 8 characters long';
     }
     if (!Validate.text(values.confirmPassword)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmPassword' does not exist on type ... Remove this comment to see the full error message
+
         errors.confirmPassword = 'Confirm Password is required.';
     }
     if (!Validate.compare(values.password, values.confirmPassword)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmPassword' does not exist on type ... Remove this comment to see the full error message
+
         errors.confirmPassword = 'Password and confirm password should match.';
     }
     return errors;
@@ -186,7 +186,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ChangePasswordForm.propTypes = {
     changePassword: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader2 } from '../basic/Loader';
 
@@ -17,14 +17,14 @@ class ErrorEventIssueMember extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             default:
                 return false;
         }
     };
     manageMemberInIssue = (member: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { updateErrorEventMember, errorTrackerIssue } = this.props.data;
         const memberInIssue = this.isTeamMemberAssigned(member);
         updateErrorEventMember(
@@ -34,7 +34,7 @@ class ErrorEventIssueMember extends Component {
         );
     };
     isTeamMemberAssigned = (teamMember: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { errorTrackerIssue } = this.props.data;
         const memberExist = errorTrackerIssue.members.find(
             (member: $TSFixMe) => member.userId._id === teamMember.userId
@@ -42,13 +42,13 @@ class ErrorEventIssueMember extends Component {
         return memberExist ? true : false;
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { data, closeThisDialog, errorTrackerIssueMembers } = this.props;
 
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -133,8 +133,8 @@ class ErrorEventIssueMember extends Component {
                                                                 </div>
                                                             </header>
                                                             {data.allTeamMembers &&
-                                                            data.allTeamMembers
-                                                                .length > 0 ? (
+                                                                data.allTeamMembers
+                                                                    .length > 0 ? (
                                                                 data.allTeamMembers.map(
                                                                     (
                                                                         member: $TSFixMe,
@@ -164,8 +164,8 @@ class ErrorEventIssueMember extends Component {
                                                                                                     {member.name
                                                                                                         ? member.name
                                                                                                         : member.email
-                                                                                                        ? member.email
-                                                                                                        : 'N/A'}
+                                                                                                            ? member.email
+                                                                                                            : 'N/A'}
                                                                                                 </span>
                                                                                             </span>
                                                                                         }
@@ -174,22 +174,20 @@ class ErrorEventIssueMember extends Component {
 
                                                                                 <div className="bs-ObjectList-cell bs-u-v-middle">
                                                                                     <div
-                                                                                        className={`Badge ${
-                                                                                            this.isTeamMemberAssigned(
-                                                                                                member
-                                                                                            )
+                                                                                        className={`Badge ${this.isTeamMemberAssigned(
+                                                                                            member
+                                                                                        )
                                                                                                 ? 'Badge--color--green'
                                                                                                 : 'Badge--color--red'
-                                                                                        } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                                                            } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                                                     >
                                                                                         <span
-                                                                                            className={`Badge-text ${
-                                                                                                this.isTeamMemberAssigned(
-                                                                                                    member
-                                                                                                )
+                                                                                            className={`Badge-text ${this.isTeamMemberAssigned(
+                                                                                                member
+                                                                                            )
                                                                                                     ? 'Text-color--green'
                                                                                                     : 'Text-color--red '
-                                                                                            } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                                                } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                                         >
                                                                                             <span>
                                                                                                 {this.isTeamMemberAssigned(
@@ -210,7 +208,7 @@ class ErrorEventIssueMember extends Component {
                                                                                                 disabled={
                                                                                                     this
                                                                                                         .props
-                                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                                                                         .deleting
                                                                                                 }
                                                                                                 className="bs-Button"
@@ -222,15 +220,15 @@ class ErrorEventIssueMember extends Component {
                                                                                                 }
                                                                                             >
                                                                                                 {errorTrackerIssueMembers &&
-                                                                                                errorTrackerIssueMembers[
+                                                                                                    errorTrackerIssueMembers[
                                                                                                     member
                                                                                                         .userId
-                                                                                                ] &&
-                                                                                                errorTrackerIssueMembers[
-                                                                                                    member
-                                                                                                        .userId
-                                                                                                ]
-                                                                                                    .requesting ? (
+                                                                                                    ] &&
+                                                                                                    errorTrackerIssueMembers[
+                                                                                                        member
+                                                                                                            .userId
+                                                                                                    ]
+                                                                                                        .requesting ? (
                                                                                                     <FormLoader2 />
                                                                                                 ) : (
                                                                                                     <span>
@@ -299,15 +297,15 @@ class ErrorEventIssueMember extends Component {
 const mapStateToProp = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const errorTrackerIssueMembers =
         state.errorTracker.errorTrackerIssueMembers[
-            ownProps.data.errorTrackerIssue._id
+        ownProps.data.errorTrackerIssue._id
         ];
     return {
         errorTrackerIssueMembers,
     };
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ErrorEventIssueMember.displayName = 'ErrorEventIssueMember';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ErrorEventIssueMember.propTypes = {
     data: PropTypes.object,
     closeThisDialog: PropTypes.func,

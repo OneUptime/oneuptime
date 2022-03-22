@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
-// @ts-expect-error ts-migrate(2613) FIXME: Module '"/home/nawazdhandala/Projects/OneUptime/ap... Remove this comment to see the full error message
+
 import UserSetting from '../components/user/UserSetting';
 import UserProject from '../components/user/UserProject';
 import UserHistory from '../components/user/UserHistory';
@@ -20,11 +20,11 @@ import { User as LsUser } from '../config';
 
 class User extends Component {
     componentDidMount = async () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserProjects' does not exist on typ... Remove this comment to see the full error message
+
         await this.props.fetchUserProjects(this.props.match.params.userId);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUser' does not exist on type 'Reado... Remove this comment to see the full error message
+
         await this.props.fetchUser(this.props.match.params.userId);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserloginHistory' does not exist on... Remove this comment to see the full error message
+
         await this.props.fetchUserloginHistory(this.props.match.params.userId);
     };
 
@@ -46,18 +46,18 @@ class User extends Component {
                                             </div>
                                             <div className="Box-root Margin-bottom--12">
                                                 <AdminNotes
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ id: any; addNote: any; initialValues: any;... Remove this comment to see the full error message
+
                                                     id={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                         this.props.match.params
                                                             .userId
                                                     }
                                                     addNote={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addUserNote' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                         this.props.addUserNote
                                                     }
                                                     initialValues={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
                                                         this.props.initialValues
                                                     }
                                                 />
@@ -65,7 +65,7 @@ class User extends Component {
                                             <ShouldRender
                                                 if={
                                                     LsUser.getUserId() !==
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                     this.props.match.params
                                                         .userId
                                                 }
@@ -73,10 +73,10 @@ class User extends Component {
                                                 <div className="Box-root Margin-bottom--12">
                                                     <ShouldRender
                                                         if={
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                             !this.props?.user
                                                                 ?.isAdminMode &&
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                             !this.props?.user
                                                                 .deleted
                                                         }
@@ -85,10 +85,10 @@ class User extends Component {
                                                     </ShouldRender>
                                                     <ShouldRender
                                                         if={
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                             this.props?.user
                                                                 ?.isAdminMode &&
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                             !this.props?.user
                                                                 .deleted
                                                         }
@@ -99,10 +99,10 @@ class User extends Component {
                                             </ShouldRender>
                                             <div className="Box-root Margin-bottom--12">
                                                 <UserHistory
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ history: any; userId: any; }' is not assig... Remove this comment to see the full error message
+
                                                     history={this.props.history}
                                                     userId={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                         this.props.match.params
                                                             .userId
                                                     }
@@ -111,19 +111,19 @@ class User extends Component {
                                             <ShouldRender
                                                 if={
                                                     LsUser.getUserId() !==
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                     this.props.match.params
                                                         .userId
                                                 }
                                             >
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         this.props.user &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         !this.props.user
                                                             .deleted &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         !this.props.user
                                                             .isBlocked
                                                     }
@@ -134,12 +134,12 @@ class User extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         this.props.user &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         !this.props.user
                                                             .deleted &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         this.props.user
                                                             .isBlocked
                                                     }
@@ -150,9 +150,9 @@ class User extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         this.props.user &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         !this.props.user.deleted
                                                     }
                                                 >
@@ -162,9 +162,9 @@ class User extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         this.props.user &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         this.props.user.deleted
                                                     }
                                                 >
@@ -203,10 +203,10 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 User.contextTypes = {};
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 User.propTypes = {
     match: PropTypes.object.isRequired,
     fetchUserProjects: PropTypes.func.isRequired,
@@ -218,7 +218,7 @@ User.propTypes = {
     fetchUserloginHistory: PropTypes.func,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 User.displayName = 'User';
 
 export default connect(mapStateToProps, mapDispatchToProps)(User);

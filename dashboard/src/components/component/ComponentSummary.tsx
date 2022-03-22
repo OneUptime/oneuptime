@@ -33,7 +33,7 @@ function ComponentSummary({
     }
 
     return (
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
         <div className="Box-root Card-shadow--medium" tabIndex="0">
             <div className="db-Trends-header">
                 <div className="db-Trends-title">
@@ -118,11 +118,11 @@ function ComponentSummary({
                                                     <span className="chart-font">
                                                         {avgMonitorUptime ===
                                                             0 ||
-                                                        avgMonitorUptime === 100
+                                                            avgMonitorUptime === 100
                                                             ? avgMonitorUptime
                                                             : avgMonitorUptime.toFixed(
-                                                                  3
-                                                              )}{' '}
+                                                                3
+                                                            )}{' '}
                                                         %
                                                     </span>
                                                 </span>

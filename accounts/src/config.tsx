@@ -1,10 +1,10 @@
 import React from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'sane... Remove this comment to see the full error message
+
 import isEmail from 'sane-email-validation';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'vali... Remove this comment to see the full error message
+
 import validUrl from 'valid-url';
 import valid from 'card-validator';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'file... Remove this comment to see the full error message
+
 import FileSaver from 'file-saver';
 // import { emaildomains } from './constants/emaildomains';
 
@@ -33,7 +33,7 @@ if (
 }
 
 export const env = (value: $TSFixMe) => {
-    // @ts-expect-error ts-migrate(2339) FIXME: Property '_env' does not exist on type 'Window & t... Remove this comment to see the full error message
+
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||

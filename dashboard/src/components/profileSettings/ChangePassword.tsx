@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import {
     updateChangePasswordSetting,
@@ -16,22 +16,22 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 
 //Client side validation
 function validate(values: $TSFixMe) {
     const errors = {};
     if (!Validate.text(values.currentPassword)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPassword' does not exist on type ... Remove this comment to see the full error message
+
         errors.currentPassword = 'Current password is required.';
     }
     if (!Validate.text(values.newPassword)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'newPassword' does not exist on type '{}'... Remove this comment to see the full error message
+
         errors.newPassword = 'New Password is required.';
     }
     if (!Validate.text(values.confirmPassword)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmPassword' does not exist on type ... Remove this comment to see the full error message
+
         errors.confirmPassword = 'Confirm password is required.';
     }
     return errors;
@@ -44,18 +44,18 @@ export class ChangePasswordSetting extends Component {
 
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
     }
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { reset, openModal } = this.props;
         const { MessageBoxId } = this.state;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateChangePasswordSetting' does not ex... Remove this comment to see the full error message
+
         this.props.updateChangePasswordSetting(values).then(
-            function() {
+            function () {
                 openModal({
                     id: MessageBoxId,
                     content: MessageBox,
@@ -64,12 +64,12 @@ export class ChangePasswordSetting extends Component {
                 });
                 reset();
             },
-            function() {}
+            function () { }
         );
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit } = this.props;
 
         return (
@@ -108,10 +108,10 @@ export class ChangePasswordSetting extends Component {
                                                         component={RenderField}
                                                         disabled={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                                                 .profileSettings &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                                                 .profileSettings
                                                                 .changePasswordSetting
                                                                 .requesting
@@ -133,10 +133,10 @@ export class ChangePasswordSetting extends Component {
                                                         component={RenderField}
                                                         disabled={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                                                 .profileSettings &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                                                 .profileSettings
                                                                 .changePasswordSetting
                                                                 .requesting
@@ -158,10 +158,10 @@ export class ChangePasswordSetting extends Component {
                                                         component={RenderField}
                                                         disabled={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                                                 .profileSettings &&
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                                                 .profileSettings
                                                                 .changePasswordSetting
                                                                 .requesting
@@ -180,9 +180,9 @@ export class ChangePasswordSetting extends Component {
                                 <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                     <ShouldRender
                                         if={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                             this.props.profileSettings &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                             this.props.profileSettings
                                                 .changePasswordSetting.error
                                         }
@@ -195,9 +195,9 @@ export class ChangePasswordSetting extends Component {
                                                 style={{ color: 'red' }}
                                                 id="errorMessage"
                                             >
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                                 {this.props.profileSettings &&
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                                     this.props.profileSettings
                                                         .changePasswordSetting
                                                         .error}
@@ -211,22 +211,22 @@ export class ChangePasswordSetting extends Component {
                                 <button
                                     className="bs-Button bs-DeprecatedButton bs-Button--blue"
                                     disabled={
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                         this.props.profileSettings &&
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                         this.props.profileSettings
                                             .changePasswordSetting.requesting
                                     }
                                     type="submit"
                                 >
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                     {!this.props.profileSettings
                                         .changePasswordSetting.requesting && (
-                                        <span>Change Password</span>
-                                    )}
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+                                            <span>Change Password</span>
+                                        )}
+
                                     {this.props.profileSettings &&
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                                         this.props.profileSettings
                                             .changePasswordSetting
                                             .requesting && <FormLoader />}
@@ -240,7 +240,7 @@ export class ChangePasswordSetting extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ChangePasswordSetting.displayName = 'ChangePasswordSetting';
 
 const ChangePasswordSettingForm = reduxForm({
@@ -267,7 +267,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ChangePasswordSetting.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     reset: PropTypes.func.isRequired,

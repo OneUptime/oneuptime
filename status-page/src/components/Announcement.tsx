@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { getAnnouncements } from '../actions/status';
@@ -22,9 +22,9 @@ class Announcement extends Component {
 
     handleRouting = (announcementSlug: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             history,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage: { slug },
         } = this.props;
         history.push(`/status-page/${slug}/announcement/${announcementSlug}`);
@@ -32,9 +32,9 @@ class Announcement extends Component {
 
     addMore = async () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getAnnouncements' does not exist on type... Remove this comment to see the full error message
+
             getAnnouncements,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage: { projectId, _id },
         } = this.props;
         this.limit += this.counter;
@@ -42,13 +42,13 @@ class Announcement extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcement' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { announcement, monitorState } = this.props;
         return (
             <>
                 {announcement && (
                     <>
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                         {this.props.theme ? (
                             <div
                                 className="clean_ann"
@@ -57,7 +57,7 @@ class Announcement extends Component {
                                     this.handleRouting(announcement.slug);
                                 }}
                             >
-                                <span className="ann_header">{}</span>
+                                <span className="ann_header">{ }</span>
                                 <AnnouncementBox
                                     announcement={announcement}
                                     monitorState={monitorState}
@@ -88,10 +88,10 @@ class Announcement extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Announcement.displayName = 'Announcement';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Announcement.propTypes = {
     theme: PropTypes.string,
     getAnnouncements: PropTypes.func,

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'huma... Remove this comment to see the full error message
+
 import humanize from 'humanize-duration';
 import { ListLoader } from '../basic/Loader';
 import {
@@ -26,13 +26,13 @@ class Monitors extends Component {
     }
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getActiveMonitors' does not exist on typ... Remove this comment to see the full error message
+
             getActiveMonitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate,
         } = this.props;
         getActiveMonitors(currentProject, startDate, endDate);
@@ -48,18 +48,18 @@ class Monitors extends Component {
         } = nextProps;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate !== this.props.startDate ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate !== this.props.endDate ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject !== this.props.currentProject
         ) {
             getActiveMonitors(
                 currentProject,
                 startDate,
                 endDate,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 this.state.skip,
                 10
             );
@@ -75,21 +75,21 @@ class Monitors extends Component {
     handleNext(event: $TSFixMe) {
         event.preventDefault();
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getActiveMonitors' does not exist on typ... Remove this comment to see the full error message
+
             getActiveMonitors,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const skip = this.state.skip + this.state.limit;
         getActiveMonitors(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             page: this.state.page + 1,
         });
     }
@@ -97,45 +97,45 @@ class Monitors extends Component {
     handlePrevious(event: $TSFixMe) {
         event.preventDefault();
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getActiveMonitors' does not exist on typ... Remove this comment to see the full error message
+
             getActiveMonitors,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const skip = this.state.skip - this.state.limit;
         getActiveMonitors(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     }
 
     render() {
         let canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
             this.props.activeMonitors &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-            this.props.activeMonitors.count &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-            this.props.activeMonitors.count > this.state.skip + this.state.limit
+
+                this.props.activeMonitors.count &&
+
+                this.props.activeMonitors.count > this.state.skip + this.state.limit
                 ? true
                 : false;
         let canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
             this.props.activeMonitors && this.state.skip <= 0 ? false : true;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
             this.props.activeMonitors &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
             (this.props.activeMonitors.requesting ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
                 !this.props.activeMonitors.members)
         ) {
             canNext = false;
@@ -143,7 +143,7 @@ class Monitors extends Component {
         }
         const numberOfPages = Math.ceil(
             parseInt(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.activeMonitors && this.props.activeMonitors.count
             ) / 10
         );
@@ -212,7 +212,7 @@ class Monitors extends Component {
                                 </td>
                                 <td
                                     id="overflow"
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -225,7 +225,7 @@ class Monitors extends Component {
                         </thead>
 
                         <tbody className="Table-body">
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                             {this.state.monitors.map((monitor: $TSFixMe) => {
                                 const {
                                     monitorName,
@@ -353,10 +353,10 @@ class Monitors extends Component {
                         </tbody>
                     </table>
                 </div>
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
                 {this.props.activeMonitors &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                this.props.activeMonitors.requesting ? (
+
+                    this.props.activeMonitors.requesting ? (
                     <ListLoader />
                 ) : null}
                 <div
@@ -366,23 +366,23 @@ class Monitors extends Component {
                         padding: '0 10px',
                     }}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
                     {this.props.activeMonitors &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                    (!this.props.activeMonitors.monitors ||
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                        !this.props.activeMonitors.monitors.length) &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                    !this.props.activeMonitors.requesting &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                    !this.props.activeMonitors.error
+
+                        (!this.props.activeMonitors.monitors ||
+
+                            !this.props.activeMonitors.monitors.length) &&
+
+                        !this.props.activeMonitors.requesting &&
+
+                        !this.props.activeMonitors.error
                         ? "We don't have any report for this period"
                         : null}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
                     {this.props.activeMonitors &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                    this.props.activeMonitors.error
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
+
+                        this.props.activeMonitors.error
+
                         ? this.props.activeMonitors.error
                         : null}
                 </div>
@@ -392,23 +392,19 @@ class Monitors extends Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
-                                        ? `Page ${
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                              this.state.page
-                                          } of ${numberOfPages} (${this.props
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                                              .activeMonitors &&
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                                              this.props.activeMonitors
-                                                  .count} Monitor${
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                                              this.props.activeMonitors &&
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMonitors' does not exist on type '... Remove this comment to see the full error message
-                                              this.props.activeMonitors
-                                                  .count === 1
-                                                  ? ''
-                                                  : 's'
-                                          })`
+                                        ? `Page ${this.state.page
+                                        } of ${numberOfPages} (${this.props
+
+                                            .activeMonitors &&
+
+                                        this.props.activeMonitors
+                                            .count} Monitor${this.props.activeMonitors &&
+
+                                            this.props.activeMonitors
+                                                .count === 1
+                                            ? ''
+                                            : 's'
+                                        })`
                                         : null}
                                 </span>
                             </span>
@@ -474,10 +470,10 @@ const mapStateToProps = (state: $TSFixMe) => ({
 const mapDispatchToProps = (dispatch: $TSFixMe) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Monitors.displayName = 'Monitors';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Monitors.propTypes = {
     getActiveMonitors: PropTypes.func,
     startDate: PropTypes.object,

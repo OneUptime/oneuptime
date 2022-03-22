@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, FieldArray } from 'redux-form';
 import { AdminNote } from './AdminNote';
 import { Validate } from '../../config';
@@ -19,7 +19,7 @@ function validate(values: $TSFixMe) {
             const adminNotesErrors = {};
             if (values.adminNotes[i] && values.adminNotes[i].note) {
                 if (!Validate.text(values.adminNotes[i].note)) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'note' does not exist on type '{}'.
+
                     adminNotesErrors.note = 'Note is not in text format.';
                     adminNotesArrayErrors[i] = adminNotesErrors;
                 }
@@ -27,7 +27,7 @@ function validate(values: $TSFixMe) {
         }
 
         if (adminNotesArrayErrors.length) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'adminNotes' does not exist on type '{}'.
+
             errors.adminNotes = adminNotesArrayErrors;
         }
     }
@@ -37,12 +37,12 @@ function validate(values: $TSFixMe) {
 
 export class AdminNotes extends Component {
     submitForm = async (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addNote' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         await this.props.addNote(this.props.id, values.adminNotes);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, requesting } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -98,7 +98,7 @@ export class AdminNotes extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AdminNotes.displayName = 'AdminNotes';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
@@ -107,7 +107,7 @@ const mapStateToProps = () => {
     return {};
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 AdminNotes.propTypes = {
     requesting: PropTypes.bool,
     addNote: PropTypes.func.isRequired,

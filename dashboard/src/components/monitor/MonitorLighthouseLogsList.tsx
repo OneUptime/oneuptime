@@ -8,14 +8,14 @@ import { ListLoader, Spinner } from '../basic/Loader';
 import { deleteSiteUrl } from '../../actions/monitor';
 import DeleteSiteUrl from '../modals/DeleteSiteUrl';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class MonitorLighthouseLogsList extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             deleteSiteUrlModalId: uuidv4(),
@@ -25,9 +25,9 @@ export class MonitorLighthouseLogsList extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSiteUrlModalId' does not exist on ... Remove this comment to see the full error message
+
                     id: this.state.deleteSiteUrlModalId,
                 });
             default:
@@ -36,9 +36,9 @@ export class MonitorLighthouseLogsList extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSiteUrlModalId' does not exist on ... Remove this comment to see the full error message
+
         const { deleteSiteUrlModalId } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { monitor, monitorState } = this.props;
         const lighthouseLogs = monitor.lighthouseLogs || {};
         let skip =
@@ -160,15 +160,14 @@ export class MonitorLighthouseLogsList extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {lighthouseLogs.data &&
-                            lighthouseLogs.data.length > 0 ? (
+                                lighthouseLogs.data.length > 0 ? (
                                 lighthouseLogs.data.map((log: $TSFixMe, i: $TSFixMe) => {
                                     return (
                                         <tr
-                                            id={`lighthouseLogs_${
-                                                monitor.name
+                                            id={`lighthouseLogs_${monitor.name
                                                     ? monitor.name
                                                     : 'Unknown Monitor'
-                                            }_${i}`}
+                                                }_${i}`}
                                             key={i}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink lighthouseLogsListItem"
                                         >
@@ -181,20 +180,20 @@ export class MonitorLighthouseLogsList extends Component {
                                                 onClick={() => {
                                                     return log._id
                                                         ? history.push(
-                                                              '/dashboard/project/' +
-                                                                  this.props
-                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
-                                                                      .currentProject
-                                                                      .slug +
-                                                                  '/component/' +
-                                                                  this.props
-                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                                                                      .componentSlug +
-                                                                  '/monitoring/' +
-                                                                  monitor.slug +
-                                                                  '/issues/' +
-                                                                  log._id
-                                                          )
+                                                            '/dashboard/project/' +
+                                                            this.props
+
+                                                                .currentProject
+                                                                .slug +
+                                                            '/component/' +
+                                                            this.props
+
+                                                                .componentSlug +
+                                                            '/monitoring/' +
+                                                            monitor.slug +
+                                                            '/issues/' +
+                                                            log._id
+                                                        )
                                                         : false;
                                                 }}
                                             >
@@ -202,11 +201,10 @@ export class MonitorLighthouseLogsList extends Component {
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         <div
                                                             className="Box-root Margin-right--16"
-                                                            id={`lighthouseUrl_${
-                                                                monitor.name
+                                                            id={`lighthouseUrl_${monitor.name
                                                                     ? monitor.name
                                                                     : 'Unknown Monitor'
-                                                            }_${i}`}
+                                                                }_${i}`}
                                                         >
                                                             <span>
                                                                 {log && log.url
@@ -255,15 +253,15 @@ export class MonitorLighthouseLogsList extends Component {
                                             </td>
 
                                             {!lighthouseScanStatus ||
-                                            (lighthouseScanStatus &&
-                                                lighthouseScanStatus ===
+                                                (lighthouseScanStatus &&
+                                                    lighthouseScanStatus ===
                                                     'scan' &&
-                                                monitor &&
-                                                monitor.siteUrls &&
-                                                monitor.siteUrls.length > 0) ? (
+                                                    monitor &&
+                                                    monitor.siteUrls &&
+                                                    monitor.siteUrls.length > 0) ? (
                                                 <>
                                                     <td
-                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                                         colSpan="5"
                                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     >
@@ -325,17 +323,17 @@ export class MonitorLighthouseLogsList extends Component {
                                                     </td>
                                                 </>
                                             ) : (!lighthouseScanStatus ||
-                                                  (lighthouseScanStatus &&
-                                                      lighthouseScanStatus ===
-                                                          'scanning')) &&
-                                              monitor &&
-                                              monitor.siteUrls &&
-                                              monitor.siteUrls.length > 0 &&
-                                              (log.scanning ||
-                                                  log.scanning == null) ? (
+                                                (lighthouseScanStatus &&
+                                                    lighthouseScanStatus ===
+                                                    'scanning')) &&
+                                                monitor &&
+                                                monitor.siteUrls &&
+                                                monitor.siteUrls.length > 0 &&
+                                                (log.scanning ||
+                                                    log.scanning == null) ? (
                                                 <>
                                                     <td
-                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                                         colSpan="5"
                                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                     >
@@ -381,7 +379,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                     id="website_scanning"
                                                                                 />
                                                                                 {lighthouseScanStatus ===
-                                                                                'scan'
+                                                                                    'scan'
                                                                                     ? 'website scan will begin in a few seconds'
                                                                                     : `We
                                                                                 are
@@ -424,7 +422,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                             id={`performance_${monitor.name}_${i}`}
                                                                                         >
                                                                                             {log &&
-                                                                                            log.performance
+                                                                                                log.performance
                                                                                                 ? `${log.performance}%`
                                                                                                 : '-'}
                                                                                         </span>
@@ -454,7 +452,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log &&
-                                                                                            log.accessibility
+                                                                                                log.accessibility
                                                                                                 ? `${log.accessibility}%`
                                                                                                 : '-'}
                                                                                         </span>
@@ -484,7 +482,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log &&
-                                                                                            log.bestPractices
+                                                                                                log.bestPractices
                                                                                                 ? `${log.bestPractices}%`
                                                                                                 : '-'}
                                                                                         </span>
@@ -514,7 +512,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log &&
-                                                                                            log.seo
+                                                                                                log.seo
                                                                                                 ? `${log.seo}%`
                                                                                                 : '-'}
                                                                                         </span>
@@ -544,7 +542,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                     <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                         <span>
                                                                                             {log &&
-                                                                                            log.pwa
+                                                                                                log.pwa
                                                                                                 ? `${log.pwa}%`
                                                                                                 : '-'}
                                                                                         </span>
@@ -572,24 +570,24 @@ export class MonitorLighthouseLogsList extends Component {
                                                                 <button
                                                                     id={`removeSiteUrl_${monitor.name}_${i}`}
                                                                     onClick={() =>
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                         this.props.openModal(
                                                                             {
                                                                                 id: deleteSiteUrlModalId,
                                                                                 onClose: () =>
                                                                                     '',
                                                                                 onConfirm: () =>
-                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSiteUrl' does not exist on type 'R... Remove this comment to see the full error message
+
                                                                                     this.props.deleteSiteUrl(
                                                                                         monitor._id,
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                                                             .currentProject
                                                                                             ._id,
                                                                                         log.url
                                                                                     ),
-                                                                                // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+
                                                                                 content: DataPathHoC(
                                                                                     DeleteSiteUrl
                                                                                 ),
@@ -632,13 +630,13 @@ export class MonitorLighthouseLogsList extends Component {
                     }}
                 >
                     {lighthouseScanStatus &&
-                    !(
-                        lighthouseScanStatus === 'scan' ||
-                        lighthouseScanStatus === 'scanning'
-                    ) &&
-                    !monitorState.fetchLighthouseLogsRequest &&
-                    (!lighthouseLogs.data ||
-                        (lighthouseLogs.data && lighthouseLogs.data.length < 1))
+                        !(
+                            lighthouseScanStatus === 'scan' ||
+                            lighthouseScanStatus === 'scanning'
+                        ) &&
+                        !monitorState.fetchLighthouseLogsRequest &&
+                        (!lighthouseLogs.data ||
+                            (lighthouseLogs.data && lighthouseLogs.data.length < 1))
                         ? "You don't have any website URL yet"
                         : null}
                 </div>
@@ -649,9 +647,9 @@ export class MonitorLighthouseLogsList extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {lighthouseLogs && lighthouseLogs.count
                                         ? lighthouseLogs.count +
-                                          (lighthouseLogs.count > 1
-                                              ? ' URLs'
-                                              : ' URL')
+                                        (lighthouseLogs.count > 1
+                                            ? ' URLs'
+                                            : ' URL')
                                         : null}
                                 </span>
                             </span>
@@ -663,7 +661,7 @@ export class MonitorLighthouseLogsList extends Component {
                                 <button
                                     id="btnLighthousePrev"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.prevClicked(
                                             monitor._id,
                                             lighthouseLogs.skip,
@@ -689,7 +687,7 @@ export class MonitorLighthouseLogsList extends Component {
                                 <button
                                     id="btnLighthouseNext"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.nextClicked(
                                             monitor._id,
                                             lighthouseLogs.skip,
@@ -733,10 +731,10 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorLighthouseLogsList.displayName = 'MonitorLighthouseLogsList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorLighthouseLogsList.propTypes = {
     monitor: PropTypes.object,
     monitorState: PropTypes.object,

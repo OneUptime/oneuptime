@@ -41,6 +41,6 @@ class ErrorEventTagDetail extends Component {
         );
     }
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ErrorEventTagDetail.displayName = 'ErrorEventTagDetail';
 export default ErrorEventTagDetail;

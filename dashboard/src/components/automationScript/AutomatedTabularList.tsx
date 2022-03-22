@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { openModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { bindActionCreators } from 'redux';

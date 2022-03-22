@@ -2,9 +2,9 @@ import React, { Component, createRef } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import { isEqual } from 'lodash';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import {
     reduxForm,
@@ -13,7 +13,7 @@ import {
     change,
     isValid,
     FieldArray,
-    // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 } from 'redux-form';
 import {
     createMonitor,
@@ -64,7 +64,7 @@ import { UploadFile } from '../basic/UploadFile';
 import CRITERIA_TYPES from '../../constants/CRITERIA_TYPES';
 import ScheduleInput from '../schedule/ScheduleInput';
 const selector = formValueSelector('NewMonitor');
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'dirt... Remove this comment to see the full error message
+
 import dJSON from 'dirty-json'
 import { fetchAutomatedScript } from '../../actions/automatedScript';
 
@@ -120,10 +120,10 @@ class NewMonitor extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
         const { editMonitorProp } = this.props;
         const userId = User.getUserId();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const projectMember = this.props.currentProject.users.find(
             (user: $TSFixMe) => user.userId === userId
         );
@@ -133,25 +133,25 @@ class NewMonitor extends Component {
                 : `${API_URL}/incomingHttpRequest/${uuidv4()}`;
         //load call schedules/duties
         if (projectMember) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorSlas' does not exist on type... Remove this comment to see the full error message
+
             this.props.fetchMonitorSlas(this.props.currentProject._id);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCommunicationSlas' does not exist o... Remove this comment to see the full error message
+
             this.props.fetchCommunicationSlas(this.props.currentProject._id);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSchedules' does not exist on type '... Remove this comment to see the full error message
+
             this.props.fetchSchedules(this.props.currentProject._id);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAutomatedScript' does not exist on ... Remove this comment to see the full error message
+
             this.props.fetchAutomatedScript(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.currentProject._id,
                 0,
                 10
             );
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorCriteria' does not exist on ... Remove this comment to see the full error message
+
         this.props.fetchMonitorCriteria();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setFileInputKey' does not exist on type ... Remove this comment to see the full error message
+
         this.props.setFileInputKey(new Date());
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setConfigInputKey' does not exist on typ... Remove this comment to see the full error message
+
         this.props.setConfigInputKey(new Date());
         this.setHttpRequestLink(link);
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -161,12 +161,12 @@ class NewMonitor extends Component {
         switch (e.key) {
             case 'Enter':
                 // prevent form submission while using ace editor
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 if (e.target.name === `script_editor_${this.props.index}`) {
                     return true;
                 }
                 if (document.getElementById('addMonitorButton'))
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                     return document.getElementById('addMonitorButton').click();
                 else return false;
             default:
@@ -175,7 +175,7 @@ class NewMonitor extends Component {
     };
 
     componentDidUpdate(prevProps: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { monitor, editMonitorProp } = this.props;
         const link =
             editMonitorProp && editMonitorProp.data
@@ -185,7 +185,7 @@ class NewMonitor extends Component {
             monitor.newMonitor.error ===
             "You can't add any more monitors. Please upgrade plan."
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showUpgradeForm' does not exist on type ... Remove this comment to see the full error message
+
             this.props.showUpgradeForm();
         }
         if (
@@ -198,14 +198,14 @@ class NewMonitor extends Component {
             this.setHttpRequestLink(link);
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         if (!this.props.edit) {
             // setup criteria for up, down, and degraded events
             // update automatically when monitor type is changed
 
             const areCriterionInitialValuesEqual = isEqual(
                 prevProps.initialValues,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
                 this.props.initialValues
             );
 
@@ -225,7 +225,7 @@ class NewMonitor extends Component {
                 [CRITERIA_TYPES.UP, CRITERIA_TYPES.DEGRADED].forEach(
                     criterion => {
                         if (
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                             this.props.type === 'kubernetes' &&
                             criterion.type === 'degraded'
                         ) {
@@ -237,7 +237,7 @@ class NewMonitor extends Component {
                                 id,
                                 type: criterion.type,
                                 name:
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                     CRITERIA_TYPES[criterion.type.toUpperCase()]
                                         .name,
                             };
@@ -267,7 +267,7 @@ class NewMonitor extends Component {
             return;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { change } = this.props;
 
         /** @type {{bodyField:Object[] | undefined, createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
@@ -275,23 +275,23 @@ class NewMonitor extends Component {
         // add filter criteria if the criterion is not default
 
         const criterionValues = this.getCriterionInitialValue(criterion.type);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyField' does not exist on type '{}'.
+
         change(criterionFieldName, criterionValues.bodyField);
 
         change(`name_${criterionFieldName}`, criterion.name);
         change(
             `createAlert_${criterionFieldName}`,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAlert' does not exist on type '{}'... Remove this comment to see the full error message
+
             criterionValues.createAlert
         );
         change(
             `autoAcknowledge_${criterionFieldName}`,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoAcknowledge' does not exist on type ... Remove this comment to see the full error message
+
             criterionValues.autoAcknowledge
         );
         change(
             `autoResolve_${criterionFieldName}`,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoResolve' does not exist on type '{}'... Remove this comment to see the full error message
+
             criterionValues.autoResolve
         );
     }
@@ -304,9 +304,9 @@ class NewMonitor extends Component {
      * @memberof NewMonitor
      */
     getCriterionInitialValue(criterionType: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
         let { initialValues } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { edit, monitor, editMonitorProp } = this.props;
 
         if (edit) {
@@ -320,56 +320,56 @@ class NewMonitor extends Component {
 
             switch (criterionType) {
                 case CRITERIA_TYPES.UP.type:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyField' does not exist on type '{}'.
+
                     initialCriterionValue.bodyField = initialValues.up_1000;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAlert' does not exist on type '{}'... Remove this comment to see the full error message
+
                     initialCriterionValue.createAlert =
                         initialValues.up_1000_createAlert;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoAcknowledge' does not exist on type ... Remove this comment to see the full error message
+
                     initialCriterionValue.autoAcknowledge =
                         initialValues.up_1000_autoAcknowledge;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoResolve' does not exist on type '{}'... Remove this comment to see the full error message
+
                     initialCriterionValue.autoResolve =
                         initialValues.up_1000_autoResolve;
                     break;
                 case CRITERIA_TYPES.DOWN.type:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyField' does not exist on type '{}'.
+
                     initialCriterionValue.bodyField = initialValues.down_1000;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAlert' does not exist on type '{}'... Remove this comment to see the full error message
+
                     initialCriterionValue.createAlert =
                         initialValues.down_1000_createAlert;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoAcknowledge' does not exist on type ... Remove this comment to see the full error message
+
                     initialCriterionValue.autoAcknowledge =
                         initialValues.down_1000_autoAcknowledge;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoResolve' does not exist on type '{}'... Remove this comment to see the full error message
+
                     initialCriterionValue.autoResolve =
                         initialValues.down_1000_autoResolve;
                     break;
 
                 case CRITERIA_TYPES.DEGRADED.type:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyField' does not exist on type '{}'.
+
                     initialCriterionValue.bodyField =
                         initialValues.degraded_1000;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAlert' does not exist on type '{}'... Remove this comment to see the full error message
+
                     initialCriterionValue.createAlert =
                         initialValues.degraded_1000_createAlert;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoAcknowledge' does not exist on type ... Remove this comment to see the full error message
+
                     initialCriterionValue.autoAcknowledge =
                         initialValues.degraded_1000_autoAcknowledge;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoResolve' does not exist on type '{}'... Remove this comment to see the full error message
+
                     initialCriterionValue.autoResolve =
                         initialValues.degraded_1000_autoResolve;
                     break;
                 default:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyField' does not exist on type '{}'.
+
                     initialCriterionValue.bodyField = initialValues.up_1000;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAlert' does not exist on type '{}'... Remove this comment to see the full error message
+
                     initialCriterionValue.createAlert =
                         initialValues.up_1000_createAlert;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoAcknowledge' does not exist on type ... Remove this comment to see the full error message
+
                     initialCriterionValue.autoAcknowledge =
                         initialValues.up_1000_autoAcknowledge;
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoResolve' does not exist on type '{}'... Remove this comment to see the full error message
+
                     initialCriterionValue.autoResolve =
                         initialValues.up_1000_autoResolve;
                     break;
@@ -387,18 +387,18 @@ class NewMonitor extends Component {
      * @memberof NewMonitor
      */
     removeCriterion(id: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const indexOfTargetCriterion = this.state.criteria.findIndex(
             (criterion: $TSFixMe) => criterion.id === id
         );
         if (indexOfTargetCriterion !== -1) {
             const newCriteria = [
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type 'Readon... Remove this comment to see the full error message
+
                 ...this.state.criteria.slice(0, indexOfTargetCriterion),
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type 'Readon... Remove this comment to see the full error message
+
                 ...this.state.criteria.slice(
                     indexOfTargetCriterion + 1,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     this.state.criteria.length
                 ),
             ];
@@ -412,7 +412,7 @@ class NewMonitor extends Component {
      * @returns {string} name computed name
      */
     getDefaultCriterionName(criterion: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const criteriaWithSameType = this.state.criteria.reduce(
             (acc: $TSFixMe, criterionItem: $TSFixMe) => {
                 return (
@@ -426,7 +426,7 @@ class NewMonitor extends Component {
             0
         );
         const defaultCriterionName =
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             CRITERIA_TYPES[criterion.type.toUpperCase()].name;
         const name =
             criteriaWithSameType === 0
@@ -442,7 +442,7 @@ class NewMonitor extends Component {
      * @memberof NewMonitor
      */
     addCriterion(criterion = {}) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type '{}'.
+
         if (!criterion.id || !criterion.type) {
             return;
         }
@@ -456,7 +456,7 @@ class NewMonitor extends Component {
 
         this.setState({
             ...this.state,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type 'Readon... Remove this comment to see the full error message
+
             criteria: [...this.state.criteria, newCriterion],
         });
     }
@@ -466,31 +466,31 @@ class NewMonitor extends Component {
         const postObj = { data: {}, criteria: {} };
         thisObj.setState({ processingMonitor: true });
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type '{ d... Remove this comment to see the full error message
+
         postObj.componentId = thisObj.props.componentId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{ dat... Remove this comment to see the full error message
+
         postObj.projectId = this.props.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentCommunicationSla' does not exist... Remove this comment to see the full error message
+
         postObj.incidentCommunicationSla = values.incidentCommunicationSla;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSla' does not exist on type '{ da... Remove this comment to see the full error message
+
         postObj.monitorSla = values.monitorSla;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         postObj.name = values[`name_${this.props.index}`];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         postObj.type = values[`type_${this.props.index}`]
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             ? values[`type_${this.props.index}`]
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             : this.props.edit
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                 ? this.props.editMonitorProp.type
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 : this.props.type;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
+
         postObj.resourceCategory =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             values[`resourceCategory_${this.props.index}`];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const callSchedules = values[`callSchedules_${this.props.index}`];
         let monitorSchedules = [];
         if (callSchedules && callSchedules.length) {
@@ -501,106 +501,106 @@ class NewMonitor extends Component {
                 });
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callScheduleIds' does not exist on type ... Remove this comment to see the full error message
+
         postObj.callScheduleIds = monitorSchedules;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         if (postObj.type === 'manual')
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+
             postObj.data.description =
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`description_${this.props.index}`] || null;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         if (postObj.type === 'url' || postObj.type === 'api')
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
+
             postObj.data.url = values[`url_${this.props.index}`];
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         if (postObj.type === 'script') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type '{}'.
+
             postObj.data.script = thisObj.state.script;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         if (postObj.type === 'ip')
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'IPAddress' does not exist on type '{}'.
+
             postObj.data.IPAddress = values[`ip_${this.props.index}`];
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'server-monitor' &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             values[`mode_${this.props.index}`] === 'agentless'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'agentlessConfig' does not exist on type ... Remove this comment to see the full error message
+
             postObj.agentlessConfig = {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 host: values[`host_${this.props.index}`],
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 port: values[`port_${this.props.index}`],
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 username: values[`username_${this.props.index}`],
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 authentication: values[`authentication_${this.props.index}`],
             };
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`authentication_${this.props.index}`] === 'identityFile'
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'agentlessConfig' does not exist on type ... Remove this comment to see the full error message
+
                 postObj.agentlessConfig.identityFile = this.props.identityFile;
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'agentlessConfig' does not exist on type ... Remove this comment to see the full error message
+
                 postObj.agentlessConfig.password =
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                     values[`password_${this.props.index}`];
             }
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         if (postObj.type === 'kubernetes' && !this.props.edit) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'kubernetesConfig' does not exist on type... Remove this comment to see the full error message
+
             postObj.kubernetesConfig = this.props.configurationFile;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'kubernetesNamespace' does not exist on t... Remove this comment to see the full error message
+
             postObj.kubernetesNamespace =
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`kubernetesNamespace_${this.props.index}`];
         }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'kubernetes' &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             this.props.edit &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'configurationFile' does not exist on typ... Remove this comment to see the full error message
+
             this.props.configurationFile
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'kubernetesConfig' does not exist on type... Remove this comment to see the full error message
+
             postObj.kubernetesConfig = this.props.configurationFile;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         if (postObj.type === 'incomingHttpRequest')
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'link' does not exist on type '{}'.
+
             postObj.data.link = thisObj.state.httpRequestLink;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'url' ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'api' ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'server-monitor' ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'script' ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'incomingHttpRequest' ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'kubernetes' ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
             postObj.type === 'ip'
         ) {
             // collect and organize all criteria data
             const criteria = { up: [], down: [], degraded: [] };
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.state.criteria.forEach((criterion: $TSFixMe) => {
                 const criterionData = {};
 
@@ -608,13 +608,13 @@ class NewMonitor extends Component {
 
                 // add conditions only if the criterion isn't a default one
                 if (criterion.default) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'default' does not exist on type '{}'.
+
                     criterionData.default = true;
                 } else {
                     const conditions = makeCriteria(
                         values[`${criterionFieldName}`]
                     );
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type '{}'.
+
                     criterionData.criteria = conditions;
                 }
 
@@ -628,23 +628,23 @@ class NewMonitor extends Component {
                         .map((scheduleObject: $TSFixMe) => Object.keys(scheduleObject)[0])
                     : [];
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleIds' does not exist on type '{}'... Remove this comment to see the full error message
+
                 criterionData.scheduleIds = schedules;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
                 criterionData.name = values[`name_${criterionFieldName}`];
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAlert' does not exist on type '{}'... Remove this comment to see the full error message
+
                 criterionData.createAlert =
                     values[`createAlert_${criterionFieldName}`];
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoAcknowledge' does not exist on type ... Remove this comment to see the full error message
+
                 criterionData.autoAcknowledge =
                     values[`autoAcknowledge_${criterionFieldName}`];
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'autoResolve' does not exist on type '{}'... Remove this comment to see the full error message
+
                 criterionData.autoResolve =
                     values[`autoResolve_${criterionFieldName}`];
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type '{}'.
+
                 criterionData.title =
                     values[`incidentTitle_${criterionFieldName}`];
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+
                 criterionData.description =
                     values[`incidentDescription_${criterionFieldName}`];
                 const scriptValues =
@@ -654,79 +654,79 @@ class NewMonitor extends Component {
                         scriptId: script.value,
                     };
                 });
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'scripts' does not exist on type '{}'.
+
                 criterionData.scripts = scriptArr || [];
 
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                 if (Array.isArray(criteria[criterion.type])) {
-                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                     criteria[criterion.type].push(criterionData);
                 }
             });
             postObj.criteria = criteria;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
         if (postObj.type === 'api') {
             if (
                 values &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`method_${this.props.index}`] &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`method_${this.props.index}`].length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'method' does not exist on type '{ data: ... Remove this comment to see the full error message
+
                 postObj.method = values[`method_${this.props.index}`];
             }
             if (
                 values &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`headers_${this.props.index}`] &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`headers_${this.props.index}`].length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'headers' does not exist on type '{ data:... Remove this comment to see the full error message
+
                 postObj.headers = values[`headers_${this.props.index}`];
             }
             if (
                 values &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`bodyType_${this.props.index}`] &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`bodyType_${this.props.index}`].length
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyType' does not exist on type '{ data... Remove this comment to see the full error message
+
                 postObj.bodyType = values[`bodyType_${this.props.index}`];
             }
             if (
                 values &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`formData_${this.props.index}`] &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`formData_${this.props.index}`].length &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyType' does not exist on type '{ data... Remove this comment to see the full error message
+
                 (postObj.bodyType === 'form-data' ||
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyType' does not exist on type '{ data... Remove this comment to see the full error message
+
                     postObj.bodyType === 'x-www-form-urlencoded')
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'formData' does not exist on type '{ data... Remove this comment to see the full error message
+
                 postObj.formData = values[`formData_${this.props.index}`];
             }
             if (
                 values &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`text_${this.props.index}`] &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 values[`text_${this.props.index}`].length &&
                 !(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyType' does not exist on type '{ data... Remove this comment to see the full error message
+
                     postObj.bodyType === 'form-data' ||
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyType' does not exist on type '{ data... Remove this comment to see the full error message
+
                     postObj.bodyType === 'x-www-form-urlencoded'
                 )
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 let text = values[`text_${this.props.index}`];
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodyType' does not exist on type '{ data... Remove this comment to see the full error message
+
                 if (postObj.bodyType === 'application/json') {
                     try {
                         const val = text.replace(/^,{+|},+$/g, '');
@@ -736,51 +736,51 @@ class NewMonitor extends Component {
                         //
                     }
                 }
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'text' does not exist on type '{ data: {}... Remove this comment to see the full error message
+
                 postObj.text = text;
             }
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         if (this.props.edit) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             const { monitorId } = this.props;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{ data: {};... Remove this comment to see the full error message
+
             postObj._id = this.props.editMonitorProp._id;
             this.props
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitor' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 .editMonitor(postObj.projectId, postObj)
                 .then((data: $TSFixMe) => {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleEdit' does not exist on type 'Read... Remove this comment to see the full error message
+
                     this.props.toggleEdit(false);
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'destroy' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     thisObj.props.destroy();
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                     if (monitorId === this.props.editMonitorProp._id) {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsIncidents' does not exist o... Remove this comment to see the full error message
+
                         this.props.fetchMonitorsIncidents(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{ dat... Remove this comment to see the full error message
+
                             postObj.projectId,
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                             this.props.editMonitorProp._id,
                             0,
                             5
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsSubscribers' does not exist... Remove this comment to see the full error message
+
                         this.props.fetchMonitorsSubscribers(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{ dat... Remove this comment to see the full error message
+
                             postObj.projectId,
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                             this.props.editMonitorProp._id,
                             0,
                             5
                         );
                     } else {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsIncidents' does not exist o... Remove this comment to see the full error message
+
                         this.props.fetchMonitorsIncidents(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type '{ dat... Remove this comment to see the full error message
+
                             postObj.projectId,
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                             this.props.editMonitorProp._id,
                             0,
                             3
@@ -789,23 +789,23 @@ class NewMonitor extends Component {
 
                     thisObj.setState({ processingMonitor: false });
                     history.replace(
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                         `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.component.slug}/monitoring/${data.data.slug}`
                     );
                 })
                 .finally(() => thisObj.setState({ processingMonitor: false }));
         } else {
             this.props
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createMonitor' does not exist on type 'R... Remove this comment to see the full error message
+
                 .createMonitor(postObj.projectId, postObj)
                 .then(
                     (data: $TSFixMe) => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                         thisObj.props.reset();
 
                         thisObj.setState({ processingMonitor: false });
                         history.push(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring/${data.data.slug}`
                         );
                     },
@@ -821,11 +821,11 @@ class NewMonitor extends Component {
         this.setState({
             advance: false,
             script: defaultScript,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             type: this.props.edit
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                 ? this.props.editMonitorProp.type
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 : this.props.type,
         });
     };
@@ -833,29 +833,29 @@ class NewMonitor extends Component {
     scheduleChange = (e: $TSFixMe, value: $TSFixMe) => {
         //load call schedules/duties
         if (value && value !== '') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSchedules' does not exist on type '... Remove this comment to see the full error message
+
             this.props.fetchSchedules(value);
         } else {
             const userId = User.getUserId();
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             const projectMember = this.props.currentProject.users.find(
                 (user: $TSFixMe) => user.userId === userId
             );
             if (projectMember)
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSchedules' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.fetchSchedules(this.props.currentProject._id);
         }
     };
 
     cancelEdit = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorSwitch' does not exist on typ... Remove this comment to see the full error message
+
         this.props.editMonitorSwitch(this.props.index);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleEdit' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.toggleEdit(false);
     };
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         if (this.props.edit) {
             this.cancelEdit();
         }
@@ -863,25 +863,25 @@ class NewMonitor extends Component {
     }
 
     openAdvance = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'advance' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         this.setState({ advance: !this.state.advance });
     };
 
     changeBox = (e: $TSFixMe, value: $TSFixMe) => {
         this.setState({ advance: false, type: value });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setMonitorCriteria' does not exist on ty... Remove this comment to see the full error message
+
         this.props.setMonitorCriteria(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             this.props.name,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.category,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProject' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.subProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSchedules' does not exist on type... Remove this comment to see the full error message
+
             this.props.monitorSchedules,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSla' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.monitorSla,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentCommunicationSla' does not exist... Remove this comment to see the full error message
+
             this.props.incidentCommunicationSla,
             value
         );
@@ -898,7 +898,7 @@ class NewMonitor extends Component {
     changeFile = (e: $TSFixMe) => {
         e.preventDefault();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'logFile' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { logFile, uploadIdentityFile, projectId } = this.props;
 
         const reader = new FileReader();
@@ -920,11 +920,11 @@ class NewMonitor extends Component {
         e.preventDefault();
 
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logConfigFile' does not exist on type 'R... Remove this comment to see the full error message
+
             logConfigFile,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadConfigurationFile' does not exist ... Remove this comment to see the full error message
+
             uploadConfigurationFile,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
         } = this.props;
 
@@ -944,7 +944,7 @@ class NewMonitor extends Component {
     };
 
     removeConfigFile = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setConfigInputKey' does not exist on typ... Remove this comment to see the full error message
+
         const { setConfigInputKey, resetConfigFile } = this.props;
 
         setConfigInputKey(new Date());
@@ -952,7 +952,7 @@ class NewMonitor extends Component {
     };
 
     removeFile = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setFileInputKey' does not exist on type ... Remove this comment to see the full error message
+
         const { setFileInputKey, resetFile } = this.props;
 
         setFileInputKey(new Date());
@@ -1027,50 +1027,50 @@ class NewMonitor extends Component {
     };
     render() {
         const requesting =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             (this.props.monitor.editMonitor.requesting && this.props.edit) ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingSla' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.requestingSla ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingMonitorSla' does not exist on ... Remove this comment to see the full error message
+
             this.props.requestingMonitorSla;
 
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
+
             subProjects,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'Reado... Remove this comment to see the full error message
+
             schedules,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategoryList' does not exist on ... Remove this comment to see the full error message
+
             resourceCategoryList,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             monitor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             project,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentPlanId' does not exist on type 'R... Remove this comment to see the full error message
+
             currentPlanId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'identityFile' does not exist on type 'Re... Remove this comment to see the full error message
+
             identityFile,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadingIdentityFile' does not exist on... Remove this comment to see the full error message
+
             uploadingIdentityFile,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fileInputKey' does not exist on type 'Re... Remove this comment to see the full error message
+
             fileInputKey,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uploadingConfigurationFile' does not exi... Remove this comment to see the full error message
+
             uploadingConfigurationFile,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'configurationFile' does not exist on typ... Remove this comment to see the full error message
+
             configurationFile,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'configFileInputKey' does not exist on ty... Remove this comment to see the full error message
+
             configFileInputKey,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { type, mode, authentication, httpRequestLink } = this.state;
         const unlimitedMonitors = ['Scale', 'Enterprise'];
         const planCategory =
             currentPlanId === 'enterprise'
                 ? 'Enterprise'
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
                 : PlanListing.getPlanById(currentPlanId).category;
         const numOfUsers = this.getUserCount(project, subProjects);
         const monitorPerUser =
@@ -1144,11 +1144,11 @@ class NewMonitor extends Component {
         ];
 
         const scriptsObj =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scripts' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.scripts &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scripts' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.scripts.length > 0 &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scripts' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.scripts.map((script: $TSFixMe) => {
                 return {
                     value: script._id,
@@ -1164,21 +1164,21 @@ class NewMonitor extends Component {
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{...Remove this comment to see the full error message
+
                                         <ShouldRender if={!this.props.edit}>
                                             <span>New Monitor</span>
                                         </ShouldRender>
 
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{...Remove this comment to see the full error message
+
                                         <ShouldRender if={this.props.edit}>
                                             <span>
                                                 Edit Monitor
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                                                 {this.props.editMonitorProp &&
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                                                     this.props.editMonitorProp.name
                                                     ? ' - ' +
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                                                     this.props.editMonitorProp
                                                         .name
                                                     : null}
@@ -1187,7 +1187,7 @@ class NewMonitor extends Component {
                                     </span>
                                 </span>
                                 <p>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{...Remove this comment to see the full error message
+
                                     <ShouldRender if={!this.props.edit}>
                                         <span>
                                             Monitor any resources (Websites,
@@ -1196,15 +1196,15 @@ class NewMonitor extends Component {
                                             they do not behave the way you want.
                                         </span>
                                     </ShouldRender>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{...Remove this comment to see the full error message
+
                                     <ShouldRender if={this.props.edit}>
                                         <span>
                                             Edit Name and URL of
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                                             {this.props.editMonitorProp &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                                                 this.props.editMonitorProp.name
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorProp' does not exist on type ... Remove this comment to see the full error message
+
                                                 ? ` ${this.props.editMonitorProp.name}`
                                                 : ''}
                                         </span>
@@ -1259,7 +1259,7 @@ class NewMonitor extends Component {
                                                                 RenderField
                                                             }
                                                             type="text"
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                             name={`name_${this.props.index}`}
                                                             id="name"
                                                             placeholder="Home Page"
@@ -1273,7 +1273,7 @@ class NewMonitor extends Component {
                                                     </div>
                                                 </div>
                                                 <ShouldRender
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                     if={!this.props.edit}
                                                 >
                                                     <div
@@ -1305,7 +1305,7 @@ class NewMonitor extends Component {
                                                                             0,
                                                                             this
                                                                                 .state
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAllMonitors' does not exist on type ... Remove this comment to see the full error message
+
                                                                                 .showAllMonitors
                                                                                 ? monitorTypesOptions.length
                                                                                 : 4
@@ -1326,12 +1326,12 @@ class NewMonitor extends Component {
                                                                                         className={`radio-field monitor-type-item Box-background--white`}
                                                                                         style={{
                                                                                             border: `1px solid ${this
-                                                                                                    .props
-                                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                                                                    .type ===
-                                                                                                    el.value
-                                                                                                    ? 'black'
-                                                                                                    : 'rgba(0,0,0,0.2)'
+                                                                                                .props
+
+                                                                                                .type ===
+                                                                                                el.value
+                                                                                                ? 'black'
+                                                                                                : 'rgba(0,0,0,0.2)'
                                                                                                 }`,
                                                                                         }}
                                                                                     >
@@ -1344,7 +1344,7 @@ class NewMonitor extends Component {
                                                                                                 type="radio"
                                                                                                 data-testId={`type_${el.value}`}
                                                                                                 id={`type_${el.value}`}
-                                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                                                 name={`type_${this.props.index}`}
                                                                                                 className="Margin-left--4 Margin-top--4"
                                                                                                 validate={
@@ -1404,7 +1404,7 @@ class NewMonitor extends Component {
                                                                             )
                                                                         )}
                                                                     {this.state
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showAllMonitors' does not exist on type ... Remove this comment to see the full error message
+
                                                                         .showAllMonitors ? null : (
                                                                         <div className="bs-Fieldset-fields">
                                                                             <button
@@ -1438,7 +1438,7 @@ class NewMonitor extends Component {
                                                     if={
                                                         type ===
                                                         'server-monitor' &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         !this.props.edit
                                                     }
                                                 >
@@ -1460,7 +1460,7 @@ class NewMonitor extends Component {
                                                                     component={
                                                                         RenderSelect
                                                                     }
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                     name={`mode_${this.props.index}`}
                                                                     id="mode"
                                                                     placeholder="Mode"
@@ -1524,7 +1524,7 @@ class NewMonitor extends Component {
                                                                         RenderField
                                                                     }
                                                                     type="text"
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                     name={`host_${this.props.index}`}
                                                                     id="host"
                                                                     placeholder="example.compute-1.amazonaws.com"
@@ -1553,7 +1553,7 @@ class NewMonitor extends Component {
                                                                         RenderField
                                                                     }
                                                                     type="text"
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                     name={`port_${this.props.index}`}
                                                                     id="port"
                                                                     placeholder="22"
@@ -1582,7 +1582,7 @@ class NewMonitor extends Component {
                                                                         RenderField
                                                                     }
                                                                     type="text"
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                     name={`username_${this.props.index}`}
                                                                     id="username"
                                                                     placeholder="root"
@@ -1613,7 +1613,7 @@ class NewMonitor extends Component {
                                                                         component={
                                                                             RenderSelect
                                                                         }
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                         name={`authentication_${this.props.index}`}
                                                                         id="authentication"
                                                                         placeholder="Authentication Method"
@@ -1678,7 +1678,7 @@ class NewMonitor extends Component {
                                                                             RenderField
                                                                         }
                                                                         type="password"
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                         name={`password_${this.props.index}`}
                                                                         id="password"
                                                                         placeholder="Password"
@@ -1719,7 +1719,7 @@ class NewMonitor extends Component {
                                                                         <div>
                                                                             <label
                                                                                 className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
+
                                                                                 type="button"
                                                                             >
                                                                                 <ShouldRender
@@ -1752,7 +1752,7 @@ class NewMonitor extends Component {
                                                                                         component={
                                                                                             UploadFile
                                                                                         }
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                                         name={`identityFile_${this.props.index}`}
                                                                                         id="identityFile"
                                                                                         accept=".pem, .ppk"
@@ -1834,7 +1834,7 @@ class NewMonitor extends Component {
                                                                     RenderField
                                                                 }
                                                                 type="text"
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                 name={`kubernetesNamespace_${this.props.index}`}
                                                                 id="kubernetesNamespace"
                                                                 placeholder="default"
@@ -1866,7 +1866,7 @@ class NewMonitor extends Component {
                                                                 <div>
                                                                     <label
                                                                         className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
+
                                                                         type="button"
                                                                     >
                                                                         <ShouldRender
@@ -1899,7 +1899,7 @@ class NewMonitor extends Component {
                                                                                 component={
                                                                                     UploadFile
                                                                                 }
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                                 name={`configurationFile_${this.props.index}`}
                                                                                 id="configurationFile"
                                                                                 accept="config"
@@ -1977,7 +1977,7 @@ class NewMonitor extends Component {
                                                                 component={
                                                                     RenderSelect
                                                                 }
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                 name={`method_${this.props.index}`}
                                                                 id="method"
                                                                 placeholder="Http Method"
@@ -2041,13 +2041,13 @@ class NewMonitor extends Component {
                                                                     RenderField
                                                                 }
                                                                 type="url"
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                 name={`url_${this.props.index}`}
                                                                 id="url"
                                                                 placeholder={`https://mywebsite.com${type ===
-                                                                        'api'
-                                                                        ? '/api'
-                                                                        : ''
+                                                                    'api'
+                                                                    ? '/api'
+                                                                    : ''
                                                                     }`}
                                                                 disabled={
                                                                     requesting
@@ -2081,13 +2081,13 @@ class NewMonitor extends Component {
                                                                     RenderField
                                                                 }
                                                                 type="url"
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                 name={`url_${this.props.index}`}
                                                                 id="url"
                                                                 placeholder={`https://mywebsite.com${type ===
-                                                                        'api'
-                                                                        ? '/api'
-                                                                        : ''
+                                                                    'api'
+                                                                    ? '/api'
+                                                                    : ''
                                                                     }`}
                                                                 disabled={
                                                                     requesting
@@ -2120,7 +2120,7 @@ class NewMonitor extends Component {
                                                                 component={
                                                                     RenderField
                                                                 }
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                 name={`ip_${this.props.index}`}
                                                                 id="IPAddress"
                                                                 placeholder="192.168.1.1"
@@ -2192,7 +2192,7 @@ class NewMonitor extends Component {
                                                                     RenderField
                                                                 }
                                                                 type="text"
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                 name={`description_${this.props.index}`}
                                                                 id="description"
                                                                 placeholder="Home Page's Monitor"
@@ -2227,7 +2227,7 @@ class NewMonitor extends Component {
                                                                         value={
                                                                             this
                                                                                 .state
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                                                                                 .script
                                                                         }
                                                                         defaultValue={
@@ -2241,9 +2241,9 @@ class NewMonitor extends Component {
                                                                             boxShadow:
                                                                                 '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
                                                                         }}
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                         name={`script_${this.props.index}`}
-                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
+
                                                                         id="script"
                                                                         editorProps={{
                                                                             $blockScrolling: true,
@@ -2266,9 +2266,9 @@ class NewMonitor extends Component {
                                                                         onLoad={editor => {
                                                                             // give the inner text area a name
                                                                             // so that we can reference it later
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'textInput' does not exist on type 'Edito... Remove this comment to see the full error message
+
                                                                             const elem = editor.textInput.getElement();
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                             elem.name = `script_editor_${this.props.index}`;
                                                                         }}
                                                                         wrapEnabled={
@@ -2325,7 +2325,7 @@ class NewMonitor extends Component {
                                                                     component={
                                                                         RenderSelect
                                                                     }
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                     name={`resourceCategory_${this.props.index}`}
                                                                     id="resourceCategory"
                                                                     placeholder="Choose Resource Category"
@@ -2354,7 +2354,7 @@ class NewMonitor extends Component {
                                                                             : []),
                                                                     ]}
                                                                 />
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                                 <Tooltip title="Resource Category">
                                                                     <div>
                                                                         <p>
@@ -2399,7 +2399,7 @@ class NewMonitor extends Component {
                                                                     Call duties.
                                                                 </span>
 
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                                 <Tooltip title="Call Schedule">
                                                                     <div>
                                                                         <p>
@@ -2447,9 +2447,9 @@ class NewMonitor extends Component {
                                                                     component={
                                                                         ScheduleInput
                                                                     }
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                     name={`callSchedules_${this.props.index}`}
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                     id={`callSchedules_${this.props.index}`}
                                                                     placeholder="Call Duty"
                                                                     disabled={
@@ -2462,13 +2462,13 @@ class NewMonitor extends Component {
                                                                     schedules={
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                             .schedules
                                                                     }
                                                                     currentProject={
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                                             .currentProject
                                                                     }
                                                                 />
@@ -2478,10 +2478,10 @@ class NewMonitor extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlas' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                         this.props.monitorSlas
                                                             .length > 0 ||
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlas' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                         this.props.incidentSlas
                                                             .length > 0
                                                     }
@@ -2509,7 +2509,7 @@ class NewMonitor extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlas' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                         this.props.monitorSlas
                                                             .length > 0
                                                     }
@@ -2526,7 +2526,7 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
                                                                 {this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                     .edit ? (
                                                                     <Field
                                                                         className="db-select-nw"
@@ -2540,7 +2540,7 @@ class NewMonitor extends Component {
                                                                             requesting
                                                                         }
                                                                         options={[
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlas' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                             ...this.props.monitorSlas.map(
                                                                                 (sla: $TSFixMe) => ({
                                                                                     value:
@@ -2571,7 +2571,7 @@ class NewMonitor extends Component {
                                                                                 label:
                                                                                     'Select Monitor SLA',
                                                                             },
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorSlas' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                                             ...this.props.monitorSlas.map(
                                                                                 (sla: $TSFixMe) => ({
                                                                                     value:
@@ -2585,7 +2585,7 @@ class NewMonitor extends Component {
                                                                     />
                                                                 )}
 
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                                 <Tooltip title="Monitor SLA">
                                                                     <div>
                                                                         <p>
@@ -2626,7 +2626,7 @@ class NewMonitor extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlas' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                         this.props.incidentSlas
                                                             .length > 0
                                                     }
@@ -2644,7 +2644,7 @@ class NewMonitor extends Component {
                                                         <div className="bs-Fieldset-fields">
                                                             <span className="flex">
                                                                 {this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                     .edit ? (
                                                                     <Field
                                                                         className="db-select-nw"
@@ -2658,7 +2658,7 @@ class NewMonitor extends Component {
                                                                             requesting
                                                                         }
                                                                         options={[
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlas' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                             ...this.props.incidentSlas.map(
                                                                                 (sla: $TSFixMe) => ({
                                                                                     value:
@@ -2689,7 +2689,7 @@ class NewMonitor extends Component {
                                                                                 label:
                                                                                     'Select Incident Communication SLA',
                                                                             },
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlas' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                             ...this.props.incidentSlas.map(
                                                                                 (sla: $TSFixMe) => ({
                                                                                     value:
@@ -2703,7 +2703,7 @@ class NewMonitor extends Component {
                                                                     />
                                                                 )}
 
-                                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{children: Element; title: string; }' is no... Remove this comment to see the full error message
+
                                                                 <Tooltip title="Incident Communication SLA">
                                                                     <div>
                                                                         <p>
@@ -2777,7 +2777,7 @@ class NewMonitor extends Component {
                                                             type ===
                                                             'kubernetes' ||
                                                             type === 'ip') &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'advance' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                         !this.state.advance
                                                     }
                                                 >
@@ -2819,7 +2819,7 @@ class NewMonitor extends Component {
                                                 </ShouldRender>
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'advance' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                         this.state.advance &&
                                                         (type === 'api' ||
                                                             type === 'url' ||
@@ -2836,14 +2836,14 @@ class NewMonitor extends Component {
                                                     <ShouldRender
                                                         if={
                                                             this.state
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'advance' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                 .advance &&
                                                             type === 'api'
                                                         }
                                                     >
                                                         <ApiAdvance
                                                             index={
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                 this.props.index
                                                             }
                                                         />
@@ -2853,7 +2853,7 @@ class NewMonitor extends Component {
                                                         CRITERIA_TYPES
                                                     ).map(criterionType => {
                                                         const criteria = [
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'criteria' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                             ...this.state.criteria.filter(
                                                                 (criterion: $TSFixMe) => {
                                                                     if (
@@ -2894,7 +2894,7 @@ class NewMonitor extends Component {
                                                                                     type={
                                                                                         this
                                                                                             .state
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                                             .type
                                                                                     }
                                                                                     addCriterion={(data: $TSFixMe) => this.addCriterion(
@@ -2911,13 +2911,13 @@ class NewMonitor extends Component {
                                                                                     schedules={
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedules' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                                             .schedules
                                                                                     }
                                                                                     edit={
                                                                                         this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                                             .edit
                                                                                     }
                                                                                     scriptsObj={
@@ -3060,10 +3060,10 @@ class NewMonitor extends Component {
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                 this.props.monitor.newMonitor
                                                     .error ||
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                 this.props.monitor.editMonitor
                                                     .error
                                             }
@@ -3076,10 +3076,10 @@ class NewMonitor extends Component {
                                                     style={{ color: 'red' }}
                                                     id="formNewMonitorError"
                                                 >
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                     {this.props.monitor
                                                         .newMonitor.error ||
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                         this.props.monitor
                                                             .editMonitor.error}
                                                 </span>
@@ -3091,9 +3091,9 @@ class NewMonitor extends Component {
                                     <ShouldRender
                                         if={
                                             !requesting &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                             this.props.edit &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'processingMonitor' does not exist on typ... Remove this comment to see the full error message
+
                                             !this.state.processingMonitor
                                         }
                                     >
@@ -3109,18 +3109,18 @@ class NewMonitor extends Component {
                                     <ShouldRender
                                         if={
                                             !requesting &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             this.props.toggleForm &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCancelBtn' does not exist on type 'R... Remove this comment to see the full error message
+
                                             this.props.showCancelBtn &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'processingMonitor' does not exist on typ... Remove this comment to see the full error message
+
                                             !this.state.processingMonitor
                                         }
                                     >
                                         <button
                                             className="bs-Button"
                                             disabled={requesting}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             onClick={this.props.toggleForm}
                                             type="button"
                                         >
@@ -3148,11 +3148,11 @@ class NewMonitor extends Component {
                                         >
                                             <ShouldRender
                                                 if={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                     !this.props.edit &&
                                                     !requesting &&
                                                     !this.state
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'processingMonitor' does not exist on typ... Remove this comment to see the full error message
+
                                                         .processingMonitor
                                                 }
                                             >
@@ -3161,10 +3161,10 @@ class NewMonitor extends Component {
                                         </PricingPlan>
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                 this.props.edit &&
                                                 !requesting &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'processingMonitor' does not exist on typ... Remove this comment to see the full error message
+
                                                 !this.state.processingMonitor
                                             }
                                         >
@@ -3174,7 +3174,7 @@ class NewMonitor extends Component {
                                         <ShouldRender
                                             if={
                                                 requesting ||
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'processingMonitor' does not exist on typ... Remove this comment to see the full error message
+
                                                 this.state.processingMonitor
                                             }
                                         >
@@ -3191,7 +3191,7 @@ class NewMonitor extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 NewMonitor.displayName = 'NewMonitor';
 
 const NewMonitorForm = new reduxForm({
@@ -3359,7 +3359,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     }
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 NewMonitor.propTypes = {
     index: PropTypes.oneOfType([
         PropTypes.string.isRequired,

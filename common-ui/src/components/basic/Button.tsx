@@ -7,21 +7,21 @@ export default class Button extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'shortcutKey' does not exist on type 'Rea... Remove this comment to see the full error message
+
         if (this.props.shortcutKey) {
             window.addEventListener('keydown', this.handleKeyboard.bind(this));
         }
     }
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'shortcutKey' does not exist on type 'Rea... Remove this comment to see the full error message
+
         if (this.props.shortcutKey) {
             window.removeEventListener('keydown', this.handleKeyboard.bind(this));
         }
     }
 
     handleKeyboard(event: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'shortcutKey' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { shortcutKey, onClick } = this.props;
 
         if (event.target.localName === 'body' && event.key) {
@@ -37,7 +37,7 @@ export default class Button extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { title, shortcutKey, id, onClick, disabled } = this.props;
 
         return (<button
@@ -65,7 +65,7 @@ export default class Button extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Button.propTypes = {
     title: PropTypes.string.isRequired,
     onClick: PropTypes.func,

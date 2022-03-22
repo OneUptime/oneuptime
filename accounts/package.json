@@ -45,6 +45,7 @@
         "dev": "PORT=3003 react-scripts --openssl-legacy-provider start",
         "build": "react-scripts --openssl-legacy-provider build && npm run build-sw",
         "build-sw": "node ./src/sw-build.js",
+        "compile": "tsc",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
         "start": "node index.ts",

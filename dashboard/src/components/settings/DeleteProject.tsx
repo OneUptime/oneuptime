@@ -9,12 +9,12 @@ import { IS_SAAS_SERVICE } from '../../config';
 
 export class DeleteProjectBox extends Component {
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showDeleteModal' does not exist on type ... Remove this comment to see the full error message
+
         this.props.showDeleteModal();
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { isRequesting, currentProject } = this.props;
 
         return (
@@ -66,10 +66,10 @@ export class DeleteProjectBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DeleteProjectBox.displayName = 'DeleteProjectBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DeleteProjectBox.propTypes = {
     currentProject: PropTypes.object,
     isRequesting: PropTypes.oneOf([null, undefined, false, true]),

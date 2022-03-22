@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
@@ -16,7 +16,7 @@ function validate(values: $TSFixMe) {
 
     if (values.email) {
         if (!Validate.email(values.email)) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
+
             errors.email = 'Email is not valid.';
         }
 
@@ -24,14 +24,14 @@ function validate(values: $TSFixMe) {
             !Validate.isValidBusinessEmail(values.email) &&
             Validate.email(values.email)
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
+
             errors.email = 'Please enter a business email address.';
         }
     }
 
     if (values.license) {
         if (!Validate.text(values.license)) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'license' does not exist on type '{}'.
+
             errors.license = 'License is not in valid format.';
         }
     }
@@ -41,7 +41,7 @@ function validate(values: $TSFixMe) {
 
 export class LicenseSetting extends Component {
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmLicense' does not exist on type '... Remove this comment to see the full error message
+
         const { confirmLicense } = this.props;
 
         confirmLicense(values);
@@ -49,11 +49,11 @@ export class LicenseSetting extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'license' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             license: { data },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirm' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             confirm: { requesting, error },
         } = this.props;
         const isLicensed = data && data.license;
@@ -68,14 +68,12 @@ export class LicenseSetting extends Component {
                                     <span>License Details</span>
                                 </span>
                                 <div
-                                    className={`Badge Badge--color--${
-                                        isLicensed ? 'green' : 'red'
-                                    } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                    className={`Badge Badge--color--${isLicensed ? 'green' : 'red'
+                                        } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                 >
                                     <span
-                                        className={`Badge-text Text-color--${
-                                            isLicensed ? 'green' : 'red'
-                                        } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                        className={`Badge-text Text-color--${isLicensed ? 'green' : 'red'
+                                            } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                     >
                                         <span>
                                             {isLicensed
@@ -179,7 +177,7 @@ export class LicenseSetting extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 LicenseSetting.displayName = 'LicenseSetting';
 
 const LicenseSettingForm = reduxForm({
@@ -202,7 +200,7 @@ const mapStateToProps = (state: $TSFixMe) => {
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ confirmLicense }, dispatch);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 LicenseSetting.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     confirmLicense: PropTypes.func.isRequired,

@@ -7,7 +7,7 @@ import { closeModal } from '../actions/modal';
 
 export class Modals extends Component {
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modals' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const modals = this.props.modals.map((item: $TSFixMe, i: $TSFixMe) => {
             const ModalComponent = Modal(item.content);
             return (
@@ -18,11 +18,11 @@ export class Modals extends Component {
                 // 	onClose: item => this.props.closeModal(item)
                 // })
                 <ModalComponent
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ item: any; key: any; zIndex: any; onClose:... Remove this comment to see the full error message
+
                     item={item}
                     key={i}
                     zIndex={i}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                     onClose={(item: $TSFixMe) => this.props.closeModal(item)}
                 />
             );
@@ -31,18 +31,18 @@ export class Modals extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Modals.propTypes = {
     modals: PropTypes.array.isRequired,
     closeModal: PropTypes.func.isRequired,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Modals.displayName = 'BlackBoneModals';
 
 export default connect(
     (state) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modal' does not exist on type 'DefaultRo... Remove this comment to see the full error message
+
         return state.modal;
     },
     (dispatch) => {

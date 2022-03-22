@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field, formValueSelector } from 'redux-form';
 import {
     updateProfileSetting,
@@ -57,7 +57,7 @@ function validate(values: $TSFixMe) {
 
     if (values.email) {
         if (!Validate.email(values.email)) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
+
             errors.email = 'Email is not valid.';
         }
 
@@ -65,28 +65,28 @@ function validate(values: $TSFixMe) {
             !Validate.isValidBusinessEmail(values.email) &&
             Validate.email(values.email)
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
+
             errors.email = 'Please enter a business email address.';
         }
     }
 
     if (values.name) {
         if (!Validate.text(values.name)) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
             errors.name = 'Name is not in valid format.';
         }
     }
 
     if (values.timezone) {
         if (!Validate.text(values.timezone)) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
             errors.name = 'Timezone is not in valid format.';
         }
     }
 
     if (values.companyPhoneNumber) {
         if (!Validate.text(values.companyPhoneNumber)) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
             errors.name = 'Phone Number is not in valid format.';
         }
     }
@@ -97,7 +97,7 @@ function validate(values: $TSFixMe) {
 export class ProfileSetting extends Component {
     timer: $TSFixMe;
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.state = {
             checked: false,
@@ -106,19 +106,19 @@ export class ProfileSetting extends Component {
     }
     handleOnChange = (value: $TSFixMe) => {
         const internationalNumber = value.startsWith('+') ? value : '+' + value;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setAlertPhoneNumber' does not exist on t... Remove this comment to see the full error message
+
         this.props.setAlertPhoneNumber(internationalNumber);
     };
 
     ref = React.createRef();
 
     tick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resendTimer' does not exist on type 'Rea... Remove this comment to see the full error message
+
         if (this.props.resendTimer < 1) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setResendTimer' does not exist on type '... Remove this comment to see the full error message
+
             this.props.setResendTimer(null);
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setResendTimer' does not exist on type '... Remove this comment to see the full error message
+
             this.props.setResendTimer(this.props.resendTimer - 1);
         }
     };
@@ -129,9 +129,9 @@ export class ProfileSetting extends Component {
     };
 
     handleVerifySMSCode = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId, verifySMSCode, otp, setVerified } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettingState' does not exist on t... Remove this comment to see the full error message
+
         const { alertPhoneNumber } = this.props.profileSettingState;
 
         verifySMSCode(projectId, {
@@ -146,28 +146,28 @@ export class ProfileSetting extends Component {
 
     handleSendVerificationSMS = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sendVerificationSMS' does not exist on t... Remove this comment to see the full error message
+
             sendVerificationSMS,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInitPhoneVerificationNumber' does not... Remove this comment to see the full error message
+
             setInitPhoneVerificationNumber,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInitPhoneVerification' does not exist... Remove this comment to see the full error message
+
             setInitPhoneVerification,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setResendTimer' does not exist on type '... Remove this comment to see the full error message
+
             setResendTimer,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettingState' does not exist on t... Remove this comment to see the full error message
+
         const { alertPhoneNumber } = this.props.profileSettingState;
         const StartTimer = this.startTimer;
         clearInterval(this.timer);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setResendTimer' does not exist on type '... Remove this comment to see the full error message
+
         this.props.setResendTimer(null);
         sendVerificationSMS(projectId, {
             to: alertPhoneNumber,
         }).then(() => {
             setResendTimer(300);
-            // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
             setTimeout(StartTimer(), 1000);
         });
         setInitPhoneVerificationNumber(alertPhoneNumber);
@@ -175,18 +175,18 @@ export class ProfileSetting extends Component {
     };
 
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userSettings' does not exist on type 'Re... Remove this comment to see the full error message
+
         await this.props.userSettings();
         const profilePic =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
             this.props.profileSettings &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
-            this.props.profileSettings.data &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
-            this.props.profileSettings.data.profilePic &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
-            this.props.profileSettings.data.profilePic !== ''
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
+                this.props.profileSettings.data &&
+
+                this.props.profileSettings.data.profilePic &&
+
+                this.props.profileSettings.data.profilePic !== ''
+
                 ? this.props.profileSettings.data.profilePic
                 : null;
         const {
@@ -194,24 +194,24 @@ export class ProfileSetting extends Component {
             isVerified,
             email,
             twoFactorAuthEnabled,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
         } = this.props.initialValues;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setAlertPhoneNumber' does not exist on t... Remove this comment to see the full error message
+
         this.props.setAlertPhoneNumber(alertPhoneNumber);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setProfilePic' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.setProfilePic(profilePic);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setIsVerified' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.setIsVerified(isVerified);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setFileInputKey' does not exist on type ... Remove this comment to see the full error message
+
         this.props.setFileInputKey(new Date());
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInitialAlertPhoneNumber' does not exi... Remove this comment to see the full error message
+
         this.props.setInitialAlertPhoneNumber(alertPhoneNumber);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setUserEmail' does not exist on type 'Re... Remove this comment to see the full error message
+
         this.props.setUserEmail(email);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setTwoFactorAuth' does not exist on type... Remove this comment to see the full error message
+
         this.props.setTwoFactorAuth(twoFactorAuthEnabled);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getProjects' does not exist on type 'Rea... Remove this comment to see the full error message
+
         this.props.getProjects(null);
         this.checkPush();
     }
@@ -219,18 +219,18 @@ export class ProfileSetting extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         const prevProfilePic =
             prevProps.profileSettings &&
-            prevProps.profileSettings.data &&
-            prevProps.profileSettings.data.profilePic
+                prevProps.profileSettings.data &&
+                prevProps.profileSettings.data.profilePic
                 ? prevProps.profileSettings.data.profilePic
                 : null;
         const currentProfilePic =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
             this.props.profileSettings &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
-            this.props.profileSettings.data &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
-            this.props.profileSettings.data.profilePic
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
+                this.props.profileSettings.data &&
+
+                this.props.profileSettings.data.profilePic
+
                 ? this.props.profileSettings.data.profilePic
                 : null;
 
@@ -240,7 +240,7 @@ export class ProfileSetting extends Component {
     }
 
     updateProfilePic(profilePic: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetFile' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { resetFile, setProfilePic } = this.props;
 
         setProfilePic(profilePic);
@@ -254,14 +254,14 @@ export class ProfileSetting extends Component {
         const file = e.target.files[0];
 
         reader.onloadend = () => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logFile' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.logFile(reader.result);
         };
         try {
             reader.readAsDataURL(file);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setProfilePic' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.setProfilePic(file);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setRemovedPic' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.setRemovedPic(false);
         } catch (error) {
             return;
@@ -270,13 +270,13 @@ export class ProfileSetting extends Component {
 
     handleChange = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
             profileSettings: { data },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateTwoFactorAuthToken' does not exist... Remove this comment to see the full error message
+
             updateTwoFactorAuthToken,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setTwoFactorAuth' does not exist on type... Remove this comment to see the full error message
+
             setTwoFactorAuth,
         } = this.props;
         if (data.twoFactorAuthEnabled) {
@@ -297,7 +297,7 @@ export class ProfileSetting extends Component {
 
     checkPush = async () => {
         const userAgent = await getUserAgent();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
         const identification = this.props.profileSettings.data.identification;
         if (identification && identification.length > 0) {
             const check = identification.find(
@@ -314,7 +314,7 @@ export class ProfileSetting extends Component {
     };
 
     handlePush = async (e: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isBackendChecked' does not exist on type... Remove this comment to see the full error message
+
         const { isBackendChecked } = this.state;
         this.setState({ isBackendChecked: !isBackendChecked });
         const checked = e.target.checked;
@@ -335,10 +335,10 @@ export class ProfileSetting extends Component {
     };
 
     submitPush = async () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatePushNotification' does not exist o... Remove this comment to see the full error message
+
         const { updatePushNotification } = this.props;
         const userAgent = await getUserAgent();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscription' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { subscription, checked } = this.state;
         if (subscription) {
             updatePushNotification({ subscription, userAgent, checked });
@@ -347,9 +347,9 @@ export class ProfileSetting extends Component {
 
     handleShowBackupCodes = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
             profileSettings: { data },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
         } = this.props;
         openModal({
@@ -360,21 +360,21 @@ export class ProfileSetting extends Component {
     };
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
         const initialAlertPhoneNumber = this.props.initialValues
             .alertPhoneNumber;
         const {
             alertPhoneNumber,
             verified,
             removedPic,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettingState' does not exist on t... Remove this comment to see the full error message
+
         } = this.props.profileSettingState;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sendVerificationSMSError' does not exist... Remove this comment to see the full error message
+
             sendVerificationSMSError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifySMSCodeError' does not exist on ty... Remove this comment to see the full error message
+
             verifySMSCodeError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInitPhoneVerification' does not exist... Remove this comment to see the full error message
+
             setInitPhoneVerification,
         } = this.props;
 
@@ -387,11 +387,11 @@ export class ProfileSetting extends Component {
             setInitPhoneVerification(true);
             this.handleSendVerificationSMS();
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateProfileSetting' does not exist on ... Remove this comment to see the full error message
+
         const { updateProfileSetting, resetFile } = this.props;
 
         values.removedPic = removedPic;
-        updateProfileSetting(values).then(function() {
+        updateProfileSetting(values).then(function () {
             resetFile();
         });
 
@@ -401,13 +401,13 @@ export class ProfileSetting extends Component {
 
     removeProfilePic = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetFile' does not exist on type 'Reado... Remove this comment to see the full error message
+
             resetFile,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setProfilePic' does not exist on type 'R... Remove this comment to see the full error message
+
             setProfilePic,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setRemovedPic' does not exist on type 'R... Remove this comment to see the full error message
+
             setRemovedPic,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setFileInputKey' does not exist on type ... Remove this comment to see the full error message
+
             setFileInputKey,
         } = this.props;
         setProfilePic(null);
@@ -417,27 +417,27 @@ export class ProfileSetting extends Component {
     };
 
     handleSendEmailVerification = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailValue' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { emailValue, initialValues } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sendEmailVerificationLink' does not exis... Remove this comment to see the full error message
+
         this.props.sendEmailVerificationLink({
             email: emailValue,
             userId: initialValues.id,
         });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInitAlertEmail' does not exist on typ... Remove this comment to see the full error message
+
         this.props.setInitAlertEmail(emailValue);
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettingState' does not exist on t... Remove this comment to see the full error message
+
             profileSettingState,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailValue' does not exist on type 'Read... Remove this comment to see the full error message
+
             emailValue,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'twoFactorAuthSetting' does not exist on ... Remove this comment to see the full error message
+
             twoFactorAuthSetting,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resendTimer' does not exist on type 'Rea... Remove this comment to see the full error message
+
         let { resendTimer } = this.props;
         if (!Validate.number(resendTimer)) {
             resendTimer = parseInt(resendTimer, 10);
@@ -458,39 +458,39 @@ export class ProfileSetting extends Component {
             initPhoneVerificationNumber &&
             initPhoneVerificationNumber !== profileSettingState.alertPhoneNumber
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInitPhoneVerification' does not exist... Remove this comment to see the full error message
+
             this.props.setInitPhoneVerification(false);
         } else if (
             !initPhoneVerification &&
             initPhoneVerificationNumber &&
             initPhoneVerificationNumber === profileSettingState.alertPhoneNumber
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInitPhoneVerification' does not exist... Remove this comment to see the full error message
+
             this.props.setInitPhoneVerification(true);
         }
 
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
             profileSettings,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sendVerificationSMSRequesting' does not ... Remove this comment to see the full error message
+
             sendVerificationSMSRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailVerificationRequesting' does not ex... Remove this comment to see the full error message
+
             emailVerificationRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifySMSCodeRequesting' does not exist ... Remove this comment to see the full error message
+
             verifySMSCodeRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sendVerificationSMSError' does not exist... Remove this comment to see the full error message
+
             sendVerificationSMSError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifySMSCodeError' does not exist on ty... Remove this comment to see the full error message
+
             verifySMSCodeError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailVerificationError' does not exist o... Remove this comment to see the full error message
+
             emailVerificationError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailVerificationSuccess' does not exist... Remove this comment to see the full error message
+
             emailVerificationSuccess,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
             initialValues,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushSettings' does not exist on type 'Re... Remove this comment to see the full error message
+
             pushSettings,
         } = this.props;
 
@@ -498,22 +498,22 @@ export class ProfileSetting extends Component {
         let isVerified = profileSettingState.isVerified;
 
         if (initialValues) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
             isVerified = this.props.initialValues.isVerified;
         }
 
         profilePic = profilePic === 'null' ? null : profilePic;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fileUrl' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const fileData = this.props.fileUrl
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fileUrl' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             ? this.props.fileUrl
             : profilePic
-            ? `${API_URL}/file/${profilePic}`
-            : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                ? `${API_URL}/file/${profilePic}`
+                : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
         let profileImage = <span />;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fileUrl' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         if (profilePic || this.props.fileUrl) {
             profileImage = (
                 <img
@@ -532,11 +532,11 @@ export class ProfileSetting extends Component {
         const verifiedPhone =
             (verified &&
                 profileSettingState.alertPhoneNumber ===
-                    profileSettingState.initPhoneVerificationNumber) ||
+                profileSettingState.initPhoneVerificationNumber) ||
             (profileSettingState.alertPhoneNumber === initialAlertPhoneNumber &&
                 profileSettings.data &&
                 profileSettingState.alertPhoneNumber !==
-                    profileSettings.data.tempAlertPhoneNumber);
+                profileSettings.data.tempAlertPhoneNumber);
         const showPhoneVerifyTools = !verifiedPhone;
         const showSendVerification =
             showPhoneVerifyTools && !initPhoneVerification;
@@ -544,7 +544,7 @@ export class ProfileSetting extends Component {
             !verified &&
             (verifySMSCodeError || sendVerificationSMSError) &&
             profileSettingState.alertPhoneNumber ===
-                profileSettingState.initPhoneVerificationNumber;
+            profileSettingState.initPhoneVerificationNumber;
 
         return (
             <>
@@ -657,10 +657,10 @@ export class ProfileSetting extends Component {
                                                         <label className="bs-Fieldset-label"></label>
                                                         <div className="bs-Fieldset-fields">
                                                             {profileSettingState.initAlertEmail ||
-                                                            (profileSettings.data &&
-                                                                profileSettings
-                                                                    .data
-                                                                    .tempEmail) ? (
+                                                                (profileSettings.data &&
+                                                                    profileSettings
+                                                                        .data
+                                                                        .tempEmail) ? (
                                                                 <span
                                                                     style={{
                                                                         marginBottom:
@@ -678,12 +678,12 @@ export class ProfileSetting extends Component {
                                                                     >
                                                                         {' '}
                                                                         {profileSettings.data &&
-                                                                        profileSettings
-                                                                            .data
-                                                                            .email
+                                                                            profileSettings
+                                                                                .data
+                                                                                .email
                                                                             ? profileSettings
-                                                                                  .data
-                                                                                  .email
+                                                                                .data
+                                                                                .email
                                                                             : ''}{' '}
                                                                     </span>
                                                                     will be used
@@ -699,13 +699,13 @@ export class ProfileSetting extends Component {
                                                                         {profileSettingState.initAlertEmail
                                                                             ? profileSettingState.initAlertEmail
                                                                             : profileSettings.data &&
-                                                                              profileSettings
-                                                                                  .data
-                                                                                  .tempEmail
-                                                                            ? profileSettings
-                                                                                  .data
-                                                                                  .tempEmail
-                                                                            : ''}{' '}
+                                                                                profileSettings
+                                                                                    .data
+                                                                                    .tempEmail
+                                                                                ? profileSettings
+                                                                                    .data
+                                                                                    .tempEmail
+                                                                                : ''}{' '}
                                                                     </span>{' '}
                                                                     is verified.{' '}
                                                                 </span>
@@ -744,7 +744,7 @@ export class ProfileSetting extends Component {
                                                             </button>
                                                             {emailVerificationError &&
                                                                 emailValue ===
-                                                                    profileSettingState.initAlertEmail && (
+                                                                profileSettingState.initAlertEmail && (
                                                                     <span>
                                                                         <br />
                                                                         {
@@ -776,7 +776,7 @@ export class ProfileSetting extends Component {
                                                         }}
                                                     >
                                                         <ReactPhoneInput
-                                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ defaultCountry: string; value: any; onChan... Remove this comment to see the full error message
+
                                                             defaultCountry="us"
                                                             value={
                                                                 profileSettingState.alertPhoneNumber
@@ -823,12 +823,12 @@ export class ProfileSetting extends Component {
                                                     if={showPhoneVerifyTools}
                                                 >
                                                     {profileSettings.data &&
-                                                    profileSettings.data
-                                                        .alertPhoneNumber &&
-                                                    (profileSettingState.initPhoneVerificationNumber ||
-                                                        (profileSettings.data &&
-                                                            profileSettings.data
-                                                                .tempAlertPhoneNumber)) ? (
+                                                        profileSettings.data
+                                                            .alertPhoneNumber &&
+                                                        (profileSettingState.initPhoneVerificationNumber ||
+                                                            (profileSettings.data &&
+                                                                profileSettings.data
+                                                                    .tempAlertPhoneNumber)) ? (
                                                         <div
                                                             className="bs-Fieldset-row"
                                                             style={{
@@ -850,12 +850,12 @@ export class ProfileSetting extends Component {
                                                                     >
                                                                         {' '}
                                                                         {profileSettings.data &&
-                                                                        profileSettings
-                                                                            .data
-                                                                            .alertPhoneNumber
+                                                                            profileSettings
+                                                                                .data
+                                                                                .alertPhoneNumber
                                                                             ? profileSettings
-                                                                                  .data
-                                                                                  .alertPhoneNumber
+                                                                                .data
+                                                                                .alertPhoneNumber
                                                                             : ''}{' '}
                                                                     </span>
                                                                     will be used
@@ -870,13 +870,13 @@ export class ProfileSetting extends Component {
                                                                         {profileSettingState.initPhoneVerificationNumber
                                                                             ? profileSettingState.initPhoneVerificationNumber
                                                                             : profileSettings.data &&
-                                                                              profileSettings
-                                                                                  .data
-                                                                                  .tempAlertPhoneNumber
-                                                                            ? profileSettings
-                                                                                  .data
-                                                                                  .tempAlertPhoneNumber
-                                                                            : ''}{' '}
+                                                                                profileSettings
+                                                                                    .data
+                                                                                    .tempAlertPhoneNumber
+                                                                                ? profileSettings
+                                                                                    .data
+                                                                                    .tempAlertPhoneNumber
+                                                                                : ''}{' '}
                                                                     </span>{' '}
                                                                     is verified.{' '}
                                                                 </span>
@@ -1067,20 +1067,20 @@ export class ProfileSetting extends Component {
                                                                             </span>
                                                                         )}
                                                                     {!sendVerificationSMSRequesting &&
-                                                                    resendTimer &&
-                                                                    resendTimer >
+                                                                        resendTimer &&
+                                                                        resendTimer >
                                                                         0 ? (
                                                                         <span>
                                                                             Resend
                                                                             in{' '}
                                                                             {Math.floor(
                                                                                 resendTimer /
-                                                                                    60
+                                                                                60
                                                                             )}{' '}
                                                                             :{' '}
                                                                             {Math.floor(
                                                                                 resendTimer %
-                                                                                    60
+                                                                                60
                                                                             )}
                                                                         </span>
                                                                     ) : (
@@ -1137,7 +1137,7 @@ export class ProfileSetting extends Component {
                                                                                 verifySMSCodeError
                                                                             }
                                                                             {sendVerificationSMSError ===
-                                                                            'Server Error.' ? (
+                                                                                'Server Error.' ? (
                                                                                 <span>
                                                                                     Please
                                                                                     provide
@@ -1221,7 +1221,7 @@ export class ProfileSetting extends Component {
                                                             <div>
                                                                 <label
                                                                     className="bs-Button bs-DeprecatedButton bs-FileUploadButton"
-                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element[]; className: string; ty... Remove this comment to see the full error message
+
                                                                     type="button"
                                                                 >
                                                                     <ShouldRender
@@ -1312,7 +1312,7 @@ export class ProfileSetting extends Component {
                                                             if={
                                                                 profilePic ||
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'fileUrl' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                     .fileUrl
                                                             }
                                                         >
@@ -1516,14 +1516,14 @@ export class ProfileSetting extends Component {
                                                             id="pushNotfication"
                                                             checked={
                                                                 this.state
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isBackendChecked' does not exist on type... Remove this comment to see the full error message
+
                                                                     .isBackendChecked
                                                             }
                                                         />
                                                         <span className="TogglerBtn-slider round"></span>
                                                     </label>
                                                     <ShouldRender
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                         if={this.state.error}
                                                     >
                                                         <div
@@ -1546,7 +1546,7 @@ export class ProfileSetting extends Component {
                                                                     {
                                                                         this
                                                                             .state
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                             .error
                                                                     }
                                                                 </span>
@@ -1614,7 +1614,7 @@ export class ProfileSetting extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProfileSetting.displayName = 'ProfileSetting';
 
 const ProfileSettingForm = reduxForm({
@@ -1699,7 +1699,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProfileSetting.propTypes = {
     alertPhoneNumber: PropTypes.string,
     emailValue: PropTypes.string,

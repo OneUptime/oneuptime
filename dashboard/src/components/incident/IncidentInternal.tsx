@@ -9,14 +9,14 @@ import {
 
 import IncidentMessageThread from './IncidentMessageThread';
 import { openModal } from '../../actions/modal';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { fetchIncidentNoteTemplates } from '../../actions/incidentNoteTemplate';
 
 export class IncidentInternal extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             createMessageModalId: uuidv4(),
@@ -25,7 +25,7 @@ export class IncidentInternal extends Component {
         };
     }
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, fetchIncidentNoteTemplates } = this.props;
         if (currentProject) {
             fetchIncidentNoteTemplates({
@@ -39,14 +39,14 @@ export class IncidentInternal extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             JSON.stringify(prevProps.currentProject) !==
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             JSON.stringify(this.props.currentProject)
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             if (this.props.currentProject) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentNoteTemplates' does not exi... Remove this comment to see the full error message
+
                 this.props.fetchIncidentNoteTemplates({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     projectId: this.props.currentProject._id,
                     skip: 0,
                     limit: 0,
@@ -55,44 +55,44 @@ export class IncidentInternal extends Component {
         }
     }
     olderInternalMessage = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentMessages' does not exist on... Remove this comment to see the full error message
+
         this.props.fetchIncidentMessages(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             this.props.currentProject._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.incident.slug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessages' does not exist on type... Remove this comment to see the full error message
+
             parseInt(this.props.incidentMessages.skip, 10) -
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessages' does not exist on type... Remove this comment to see the full error message
-                parseInt(this.props.incidentMessages.limit, 10),
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessages' does not exist on type... Remove this comment to see the full error message
+
+            parseInt(this.props.incidentMessages.limit, 10),
+
             parseInt(this.props.incidentMessages.limit, 10),
             'internal'
         );
     };
 
     newerInternalMessage = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentMessages' does not exist on... Remove this comment to see the full error message
+
         this.props.fetchIncidentMessages(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             this.props.currentProject._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.incident.slug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessages' does not exist on type... Remove this comment to see the full error message
+
             parseInt(this.props.incidentMessages.skip, 10) +
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessages' does not exist on type... Remove this comment to see the full error message
-                parseInt(this.props.incidentMessages.limit, 10),
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessages' does not exist on type... Remove this comment to see the full error message
+
+            parseInt(this.props.incidentMessages.limit, 10),
+
             parseInt(this.props.incidentMessages.limit, 10),
             'internal'
         );
     };
     deleteInvestigationMessage = (incidentMessageId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteIncidentMessage' does not exist on... Remove this comment to see the full error message
+
         const promise = this.props.deleteIncidentMessage(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             this.props.currentProject._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.incident._id,
             incidentMessageId
         );
@@ -107,14 +107,14 @@ export class IncidentInternal extends Component {
         let canPrev = false;
         let canNext = false;
         let error;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessages' does not exist on type... Remove this comment to see the full error message
+
         const { incidentMessages, incident, openModal } = this.props;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createMessageModalId' does not exist on ... Remove this comment to see the full error message
+
             createMessageModalId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMessageModalId' does not exist on ty... Remove this comment to see the full error message
+
             editMessageModalId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteMessageModalId' does not exist on ... Remove this comment to see the full error message
+
             deleteMessageModalId,
         } = this.state;
         if (incidentMessages) {
@@ -149,7 +149,7 @@ export class IncidentInternal extends Component {
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentMessageThread
-                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                         title="Investigation and Postmortem"
                         description="Add notes and collaborate with members who are working on this incident."
                         incidentMessages={incidentMessages}
@@ -167,7 +167,7 @@ export class IncidentInternal extends Component {
                         editMessageModalId={editMessageModalId}
                         deleteMessageModalId={deleteMessageModalId}
                         deleteIncidentMessage={this.deleteInvestigationMessage}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                         slug={this.props.currentProject.slug}
                     />
                 </div>
@@ -176,7 +176,7 @@ export class IncidentInternal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 IncidentInternal.displayName = 'IncidentInternal';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
@@ -193,8 +193,8 @@ function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     const incidentMessages = state.incident.incidentMessages
         ? state.incident.incidentMessages[ownProps.incident.slug]
             ? state.incident.incidentMessages[ownProps.incident.slug][
-                  'internal'
-              ]
+            'internal'
+            ]
             : {}
         : {};
     const currentProject = state.project.currentProject;
@@ -204,7 +204,7 @@ function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 IncidentInternal.propTypes = {
     incident: PropTypes.object.isRequired,
     incidentMessages: PropTypes.object,

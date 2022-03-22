@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -16,19 +16,19 @@ import {
 import { ACCOUNTS_URL } from '../config';
 import { ListLoader } from './basic/Loader';
 import AffectedResources from './basic/AffectedResources';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
 
 class ScheduledEvent extends Component {
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match: { params },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEventNote' does not exist on type '... Remove this comment to see the full error message
+
             fetchEventNote,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusData,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEvent' does not exist on type 'Read... Remove this comment to see the full error message
+
             fetchEvent,
         } = this.props;
         const { eventId } = params;
@@ -60,13 +60,13 @@ class ScheduledEvent extends Component {
             url = window.location.host;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getStatusPage' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.getStatusPage(statusPageSlug, url).catch((err: $TSFixMe) => {
             if (err.message === 'Request failed with status code 401') {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+
                     window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                 }
             }
@@ -82,13 +82,13 @@ class ScheduledEvent extends Component {
 
     componentDidUpdate(prevProps: $TSFixMe) {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match: { params },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEventNote' does not exist on type '... Remove this comment to see the full error message
+
             fetchEventNote,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusData,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEvent' does not exist on type 'Read... Remove this comment to see the full error message
+
             fetchEvent,
         } = this.props;
         const { eventId } = params;
@@ -103,13 +103,13 @@ class ScheduledEvent extends Component {
 
     more() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'moreEventNote' does not exist on type 'R... Remove this comment to see the full error message
+
             moreEventNote,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusData,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match: { params },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
         } = this.props;
         const { eventId } = params;
@@ -123,7 +123,7 @@ class ScheduledEvent extends Component {
     }
 
     renderError = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { error } = this.props.status;
         if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
@@ -183,7 +183,7 @@ class ScheduledEvent extends Component {
                 </span>{' '}
                 <span>
                     {affectedMonitors
-                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
+
                         .map(monitor => monitor.name)
                         .join(', ')
                         .replace(/, ([^,]*)$/, ' and $1')}
@@ -194,23 +194,23 @@ class ScheduledEvent extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingNotes' does not exist on type 'R... Remove this comment to see the full error message
+
             fetchingNotes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingEvent' does not exist on type 'R... Remove this comment to see the full error message
+
             fetchingEvent,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEvent' does not exist on type '... Remove this comment to see the full error message
+
             scheduledEvent,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'eventNotes' does not exist on type 'Read... Remove this comment to see the full error message
+
             eventNotes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             count,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             history,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
             monitorState,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusData,
         } = this.props;
         const error = this.renderError();
@@ -328,99 +328,99 @@ class ScheduledEvent extends Component {
                                         }
                                     })
                                     .map((note: $TSFixMe) => <div
-                                    key={note._id}
-                                    style={{
-                                        width: '100%',
-                                        display: 'grid',
-                                        gridTemplateColumns: '1fr 3fr',
-                                        gridColumnGap: 10,
-                                        marginTop: 20,
-                                    }}
-                                >
-                                    <div>
-                                        <span
-                                            style={{
-                                                display: 'block',
-                                                fontWeight: 'bold',
-                                                textTransform:
-                                                    'capitalize',
-                                            }}
-                                        >
-                                            {note.event_state}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span
-                                            style={{
-                                                color:
-                                                    'rgba(0, 0, 0, 0.6)',
-                                                fontSize: 14,
-                                                display: 'block',
-                                                textAlign: 'justify',
-                                                whiteSpace: 'pre-wrap',
-                                            }}
-                                        >
-                                            {note.content &&
-                                                note.content
-                                                    .split('\n')
-                                                    .map(
-                                                        (
-                                                            elem: $TSFixMe,
-                                                            index: $TSFixMe
-                                                        ) => (
-                                                            <Markdown
-                                                                key={`${elem}-${index}`}
-                                                                options={{
-                                                                    forceBlock: true,
-                                                                }}
-                                                            >
-                                                                {elem}
-                                                            </Markdown>
-                                                        )
+                                        key={note._id}
+                                        style={{
+                                            width: '100%',
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 3fr',
+                                            gridColumnGap: 10,
+                                            marginTop: 20,
+                                        }}
+                                    >
+                                        <div>
+                                            <span
+                                                style={{
+                                                    display: 'block',
+                                                    fontWeight: 'bold',
+                                                    textTransform:
+                                                        'capitalize',
+                                                }}
+                                            >
+                                                {note.event_state}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span
+                                                style={{
+                                                    color:
+                                                        'rgba(0, 0, 0, 0.6)',
+                                                    fontSize: 14,
+                                                    display: 'block',
+                                                    textAlign: 'justify',
+                                                    whiteSpace: 'pre-wrap',
+                                                }}
+                                            >
+                                                {note.content &&
+                                                    note.content
+                                                        .split('\n')
+                                                        .map(
+                                                            (
+                                                                elem: $TSFixMe,
+                                                                index: $TSFixMe
+                                                            ) => (
+                                                                <Markdown
+                                                                    key={`${elem}-${index}`}
+                                                                    options={{
+                                                                        forceBlock: true,
+                                                                    }}
+                                                                >
+                                                                    {elem}
+                                                                </Markdown>
+                                                            )
+                                                        )}
+                                            </span>
+                                            {note.event_state ===
+                                                'Created' && (
+                                                    <span
+                                                        style={{
+                                                            display: 'block',
+                                                            marginTop: 10,
+                                                            color: '#AAA',
+                                                            fontSize: 12,
+                                                        }}
+                                                    >
+                                                        {this.AffectedResources(
+                                                            {
+                                                                event: scheduledEvent,
+                                                                monitorState: monitorState,
+                                                            }
+                                                        )}
+                                                    </span>
+                                                )}
+                                            <span
+                                                style={{
+                                                    display: 'flex',
+                                                    marginTop: 5,
+                                                    alignItems: 'center',
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        color: '#AAA',
+                                                        fontSize: 12,
+                                                        display: 'block',
+                                                    }}
+                                                >
+                                                    Posted on{' '}
+                                                    {moment(
+                                                        note.createdAt
+                                                    ).format(
+                                                        'MMMM Do YYYY, h:mm a'
                                                     )}
-                                        </span>
-                                        {note.event_state ===
-                                            'Created' && (
-                                            <span
-                                                style={{
-                                                    display: 'block',
-                                                    marginTop: 10,
-                                                    color: '#AAA',
-                                                    fontSize: 12,
-                                                }}
-                                            >
-                                                {this.AffectedResources(
-                                                    {
-                                                        event: scheduledEvent,
-                                                        monitorState: monitorState,
-                                                    }
-                                                )}
+                                                </span>
                                             </span>
-                                        )}
-                                        <span
-                                            style={{
-                                                display: 'flex',
-                                                marginTop: 5,
-                                                alignItems: 'center',
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    color: '#AAA',
-                                                    fontSize: 12,
-                                                    display: 'block',
-                                                }}
-                                            >
-                                                Posted on{' '}
-                                                {moment(
-                                                    note.createdAt
-                                                ).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>)}
+                                        </div>
+                                    </div>)}
 
                             {!fetchingNotes &&
                                 eventNotes &&
@@ -602,15 +602,15 @@ class ScheduledEvent extends Component {
                                                             </span>
                                                         </div>
                                                     ) : currentTime.isSameOrAfter(
-                                                          moment(
-                                                              scheduledEvent.startDate
-                                                          )
-                                                      ) &&
-                                                      currentTime.isBefore(
-                                                          moment(
-                                                              scheduledEvent.endDate
-                                                          )
-                                                      ) ? (
+                                                        moment(
+                                                            scheduledEvent.startDate
+                                                        )
+                                                    ) &&
+                                                        currentTime.isBefore(
+                                                            moment(
+                                                                scheduledEvent.endDate
+                                                            )
+                                                        ) ? (
                                                         <div
                                                             style={{
                                                                 marginLeft: 15,
@@ -630,10 +630,10 @@ class ScheduledEvent extends Component {
                                                             </span>
                                                         </div>
                                                     ) : currentTime.isBefore(
-                                                          moment(
-                                                              scheduledEvent.startDate
-                                                          )
-                                                      ) ? (
+                                                        moment(
+                                                            scheduledEvent.startDate
+                                                        )
+                                                    ) ? (
                                                         <div
                                                             style={{
                                                                 marginLeft: 15,
@@ -942,10 +942,10 @@ class ScheduledEvent extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ScheduledEvent.displayName = 'ScheduledEvent';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ScheduledEvent.propTypes = {
     fetchEventNote: PropTypes.func,
     match: PropTypes.object,

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -14,15 +14,15 @@ import { subProjectTeamLoading } from '../actions/team';
 
 class Groups extends Component {
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getGroups' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.getGroups();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectTeamLoading' does not exist on... Remove this comment to see the full error message
+
         this.props.subProjectTeamLoading(User.getCurrentProjectId());
     }
     renderSubProjectGroups = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+
         return this.props.projectGroups &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.projectGroups.map((project: $TSFixMe) => {
                 if (project.project.id === User.getCurrentProjectId()) {
                     return null;
@@ -30,7 +30,7 @@ class Groups extends Component {
                     return (
                         <GroupList
                             key={project.project.id}
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: any; groups: any; count: any; project... Remove this comment to see the full error message
+
                             groups={project.groups && project.groups.groups}
                             count={project.groups.count}
                             project={project.project}
@@ -43,15 +43,15 @@ class Groups extends Component {
     };
 
     renderProjectGroups = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+
         return this.props.projectGroups &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.projectGroups.map((project: $TSFixMe) => {
                 if (project.project.id === User.getCurrentProjectId()) {
                     return (
                         <GroupList
                             key={project.project.id}
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: any; groups: any; count: any; skip: a... Remove this comment to see the full error message
+
                             groups={project.groups && project.groups.groups}
                             count={project.groups.count}
                             skip={project.groups.skip}
@@ -59,9 +59,9 @@ class Groups extends Component {
                             project={project.project}
                             parentProject={true}
                             subProjects={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+
                                 this.props.projectGroups &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectGroups' does not exist on type 'R... Remove this comment to see the full error message
+
                                 this.props.projectGroups.length > 1
                             }
                         />
@@ -74,11 +74,11 @@ class Groups extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location: { pathname },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
+
             switchToProjectViewerNav,
         } = this.props;
         const projectName = currentProject ? currentProject.name : '';
@@ -90,11 +90,11 @@ class Groups extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+
                     route={getParentRoute(pathname)}
                     name="Project Settings"
                 />
@@ -120,7 +120,7 @@ class Groups extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Groups.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
@@ -132,7 +132,7 @@ Groups.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Groups.displayName = 'Groups';
 
 const mapStateToProps = (state: $TSFixMe) => {

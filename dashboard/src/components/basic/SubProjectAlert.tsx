@@ -5,7 +5,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class SubProjectAlert extends Component {
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, subProjects, activeSubProjectId } = this.props;
 
         const isSubProject = currentProject?._id !== activeSubProjectId;
@@ -51,10 +51,10 @@ class SubProjectAlert extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SubProjectAlert.displayName = 'SubProjectAlert';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SubProjectAlert.propTypes = {
     currentProject: PropTypes.object,
     activeSubProjectId: PropTypes.string,

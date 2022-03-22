@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { ValidateField } from '../../config';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import {
     setInvestigationNote,
@@ -33,75 +33,75 @@ class NewIncidentMessage extends Component {
     validate = (values: $TSFixMe) => {
         const errors = {};
         if (!ValidateField.text(values[`content`])) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
             errors.name = 'Incident Message is required.';
         }
         if (!ValidateField.text(values[`incident_state`])) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
             errors.name = 'Incident State is required.';
         }
         if (
             values[`incident_state`] === 'Others' &&
             !ValidateField.text(values[`custom_incident_state`])
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
             errors.name = 'Custom Incident State is required.';
         }
         return errors;
     };
     cancelEdit = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editIncidentMessageSwitch' does not exis... Remove this comment to see the full error message
+
         this.props.editIncidentMessageSwitch(this.props.incidentMessage);
     };
     onContentChange = (val: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         this.props.change('content', val);
     };
     submitForm = (values: $TSFixMe) => {
         const thisObj = this;
         const postObj = {};
         if (values.post_statuspage) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'post_statuspage' does not exist on type ... Remove this comment to see the full error message
+
             postObj.post_statuspage = values['post_statuspage'];
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'content' does not exist on type '{}'.
+
         postObj.content = values[`content`];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
+
         postObj.incident_state =
             values[`incident_state`] === 'Others'
                 ? values[`custom_incident_state`]
                 : values[`incident_state`];
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+
         postObj.type = this.props.data.type;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         if (this.props.data.edit) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'id' does not exist on type '{}'.
+
             postObj.id = this.props.data.incidentMessage._id;
         }
 
         const projectId =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             this.props.data.incident.projectId._id ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             this.props.data.incident.projectId ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             this.props.currentProject._id;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         if (this.props.data.type === 'investigation') {
             this.props
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInvestigationNote' does not exist on ... Remove this comment to see the full error message
+
                 .setInvestigationNote(
                     projectId,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                     this.props.data.incident._id,
                     postObj
                 )
                 .then(
                     () => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                         thisObj.props.reset();
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                         thisObj.props.closeModal();
                     },
                     (error: $TSFixMe) => {
@@ -112,27 +112,27 @@ class NewIncidentMessage extends Component {
                 );
         } else {
             this.props
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'setInternalNote' does not exist on type ... Remove this comment to see the full error message
+
                 .setInternalNote(
                     projectId,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                     this.props.data.incident._id,
                     postObj
                 )
                 .then(
                     () => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.closeModal();
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentMessages' does not exist on... Remove this comment to see the full error message
+
                         this.props.fetchIncidentMessages(
                             projectId,
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                             this.props.data.incident.slug,
                             0,
                             10,
                             'internal'
                         );
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                         thisObj.props.reset();
                     },
                     (error: $TSFixMe) => {
@@ -144,7 +144,7 @@ class NewIncidentMessage extends Component {
         }
     };
     handleKeyBoard = (event: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { closeModal, data } = this.props;
         if (event.target.localName !== 'textarea' && event.key) {
             switch (event.key) {
@@ -152,21 +152,21 @@ class NewIncidentMessage extends Component {
                     return closeModal();
                 case 'Enter':
                     return data.edit
-                        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                         ? document
-                              .getElementById(`${data.type}-editButton`)
-                              .click()
-                        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+                            .getElementById(`${data.type}-editButton`)
+                            .click()
+
                         : document
-                              .getElementById(`${data.type}-addButton`)
-                              .click();
+                            .getElementById(`${data.type}-addButton`)
+                            .click();
                 default:
                     return false;
             }
         }
     };
     onTemplateChange = (value: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { change, noteTemplates } = this.props;
 
         if (value) {
@@ -196,23 +196,23 @@ class NewIncidentMessage extends Component {
     };
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessageState' does not exist on ... Remove this comment to see the full error message
+
             incidentMessageState,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
+
             incident_state,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteTemplates' does not exist on type 'R... Remove this comment to see the full error message
+
             noteTemplates,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { edit, type } = this.props.data;
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -229,13 +229,12 @@ class NewIncidentMessage extends Component {
                                 >
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span id="incidentMessageTitleLabel">
-                                            {`${
-                                                edit ? 'Edit' : 'Add New'
-                                            } ${type
-                                                .charAt(0)
-                                                .toUpperCase()}${type.slice(
-                                                1
-                                            )} Note`}
+                                            {`${edit ? 'Edit' : 'Add New'
+                                                } ${type
+                                                    .charAt(0)
+                                                    .toUpperCase()}${type.slice(
+                                                        1
+                                                    )} Note`}
                                         </span>
                                     </span>
                                 </div>
@@ -395,8 +394,8 @@ class NewIncidentMessage extends Component {
                                                                 {`${type
                                                                     .charAt(0)
                                                                     .toUpperCase()}${type.slice(
-                                                                    1
-                                                                )} Notes`}
+                                                                        1
+                                                                    )} Notes`}
                                                             </label>
                                                         </ShouldRender>
                                                         <ShouldRender if={edit}>
@@ -404,8 +403,8 @@ class NewIncidentMessage extends Component {
                                                                 {`Update your ${type
                                                                     .charAt(0)
                                                                     .toUpperCase()}${type.slice(
-                                                                    1
-                                                                )} Note`}
+                                                                        1
+                                                                    )} Note`}
                                                             </label>
                                                         </ShouldRender>
                                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
@@ -483,7 +482,7 @@ class NewIncidentMessage extends Component {
                                                 if={
                                                     edit &&
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessageState' does not exist on ... Remove this comment to see the full error message
+
                                                         .incidentMessageState
                                                         .edit.error
                                                 }
@@ -497,7 +496,7 @@ class NewIncidentMessage extends Component {
                                                     >
                                                         {
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessageState' does not exist on ... Remove this comment to see the full error message
+
                                                                 .incidentMessageState
                                                                 .edit.error
                                                         }
@@ -508,7 +507,7 @@ class NewIncidentMessage extends Component {
                                                 if={
                                                     !edit &&
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessageState' does not exist on ... Remove this comment to see the full error message
+
                                                         .incidentMessageState
                                                         .create.error
                                                 }
@@ -522,7 +521,7 @@ class NewIncidentMessage extends Component {
                                                     >
                                                         {
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentMessageState' does not exist on ... Remove this comment to see the full error message
+
                                                                 .incidentMessageState
                                                                 .create.error
                                                         }
@@ -685,13 +684,13 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
         noteTemplates: state.incidentNoteTemplate.noteTemplates,
     };
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 NewIncidentMessage.displayName = 'NewIncidentMessage';
 const NewIncidentMessageForm = new reduxForm({
     destroyOnUnmount: true,
     enableReinitialize: true,
 })(NewIncidentMessage);
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 NewIncidentMessage.propTypes = {
     incident: PropTypes.object,
     incidentMessage: PropTypes.object,

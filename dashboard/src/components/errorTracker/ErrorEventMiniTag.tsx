@@ -4,7 +4,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class ErrorEventMiniTag extends Component {
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEvent' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         return (
@@ -45,8 +45,8 @@ class ErrorEventMiniTag extends Component {
                     </div> */}
                     <div className="Flex-flex Flex-wrap--wrap">
                         {errorEventDetails &&
-                        errorEventDetails.tags &&
-                        errorEventDetails.tags.length > 0 ? (
+                            errorEventDetails.tags &&
+                            errorEventDetails.tags.length > 0 ? (
                             errorEventDetails.tags.map((tag: $TSFixMe, i: $TSFixMe) => {
                                 return (
                                     <div
@@ -81,10 +81,10 @@ class ErrorEventMiniTag extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ErrorEventMiniTag.propTypes = {
     errorEvent: PropTypes.object,
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ErrorEventMiniTag.displayName = 'ErrorEventMiniTag';
 export default ErrorEventMiniTag;

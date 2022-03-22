@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import CountrySelector from '../basic/CountrySelector';
 import CompanySizeSelector from '../basic/CompanySizeSelector';
@@ -22,11 +22,11 @@ class CompanyForm extends Component {
                         <h2>
                             <span>
                                 {' '}
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                 {this.props.register.error ? (
                                     <span style={errorStyle}>
                                         {' '}
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                         {this.props.register.error}
                                     </span>
                                 ) : (
@@ -36,9 +36,9 @@ class CompanyForm extends Component {
                         </h2>
                     </div>
                     <form
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
                         onSubmit={this.props.handleSubmit(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'submitForm' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.submitForm
                         )}
                     >
@@ -142,14 +142,14 @@ class CompanyForm extends Component {
                                     type="submit"
                                     className="button blue medium"
                                     id="create-account-button"
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                     disabled={this.props.register.requesting}
                                 >
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                     {!this.props.register.requesting && (
                                         <span>Create OneUptime Account</span>
                                     )}
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'register' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                     {this.props.register.requesting && (
                                         <FlatLoader />
                                     )}
@@ -163,34 +163,34 @@ class CompanyForm extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CompanyForm.displayName = 'CompanyForm';
 
-const validate = function(values: $TSFixMe) {
+const validate = function (values: $TSFixMe) {
     const error = {};
 
     if (!Validate.text(values.companyName)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyName' does not exist on type '{}'... Remove this comment to see the full error message
+
         error.companyName = 'Company name is required.';
     }
 
     if (!Validate.text(values.companyRole)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyRole' does not exist on type '{}'... Remove this comment to see the full error message
+
         error.companyRole = 'Job Title is required.';
     }
 
     if (!Validate.text(values.companyPhoneNumber)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyPhoneNumber' does not exist on ty... Remove this comment to see the full error message
+
         error.companyPhoneNumber = 'Phone Number is required.';
     }
 
     if (!Validate.text(values.comapnySize)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'comapnySize' does not exist on type '{}'... Remove this comment to see the full error message
+
         error.comapnySize = 'Phone Number is required.';
     }
 
     if (!Validate.text(values.reference)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reference' does not exist on type '{}'.
+
         error.reference = 'This is required.';
     }
 
@@ -214,7 +214,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CompanyForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     register: PropTypes.object.isRequired,

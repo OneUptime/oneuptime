@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { formValueSelector } from 'redux-form';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
@@ -61,12 +61,12 @@ let RenderEscalation = ({
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type '({ ... Remove this comment to see the full error message
+
 RenderEscalation.displayName = 'RenderEscalation';
 
 const selector = formValueSelector('OnCallAlertBox');
 
-// @ts-expect-error ts-migrate(2322) FIXME: Type 'ConnectedComponent<({ fields, meta: { error,... Remove this comment to see the full error message
+
 RenderEscalation = connect(state => {
     const form = selector(state, 'OnCallAlertBox');
     return {
@@ -74,7 +74,7 @@ RenderEscalation = connect(state => {
     };
 })(RenderEscalation);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type '({ fi... Remove this comment to see the full error message
+
 RenderEscalation.propTypes = {
     subProjectId: PropTypes.string.isRequired,
     meta: PropTypes.object.isRequired,

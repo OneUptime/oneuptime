@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import Clipboard from '../Clipboard';
 
@@ -18,7 +18,7 @@ export class MonitorUrl extends React.Component {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -26,7 +26,7 @@ export class MonitorUrl extends React.Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
         const { closeThisDialog, data, currentProject } = this.props;
 
         return (
@@ -49,10 +49,9 @@ export class MonitorUrl extends React.Component {
                                 <p>Click to copy inbound URL?</p>
                                 <br />
                                 <Clipboard
-                                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
-                                    value={`https://oneuptime.com/api/monitors/${
-                                        currentProject._id
-                                    }/inbound/${data.data &&
+
+                                    value={`https://oneuptime.com/api/monitors/${currentProject._id
+                                        }/inbound/${data.data &&
                                         data.data.deviceId &&
                                         data.data.deviceId}`}
                                 >
@@ -82,10 +81,10 @@ export class MonitorUrl extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorUrl.displayName = 'MonitorUrl';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorUrl.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,

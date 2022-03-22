@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import PlanFields from './PlanFields';
@@ -20,19 +20,19 @@ import {
     StripeProvider,
     Elements,
     injectStripe,
-    // @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 } from '@stripe/react-stripe-js';
 
 function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.projectName)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Project Name is required!';
     }
 
     if (!Validate.text(values.planId)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Stripe PlanID is required!';
     }
 
@@ -71,10 +71,10 @@ class _ProjectForm extends React.Component {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideForm' does not exist on type 'Readon... Remove this comment to see the full error message
+
                 return this.props.hideForm();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('btnCreateProject').click();
             default:
                 return false;
@@ -85,19 +85,19 @@ class _ProjectForm extends React.Component {
         const cardRegistered =
             User.isCardRegistered() === 'false' ? false : true;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripe' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             stripe,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createProjectRequest' does not exist on ... Remove this comment to see the full error message
+
             createProjectRequest,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createProjectError' does not exist on ty... Remove this comment to see the full error message
+
             createProjectError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'checkCard' does not exist on type 'Reado... Remove this comment to see the full error message
+
             checkCard,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             email,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'companyName' does not exist on type 'Rea... Remove this comment to see the full error message
+
             companyName,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'submitForm' does not exist on type 'Read... Remove this comment to see the full error message
+
             submitForm,
         } = this.props;
         if (cardRegistered || !IS_SAAS_SERVICE) {
@@ -147,15 +147,15 @@ class _ProjectForm extends React.Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideForm' does not exist on type 'Readon... Remove this comment to see the full error message
+
             hideForm,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorStack' does not exist on type 'Read... Remove this comment to see the full error message
+
             errorStack,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activePlan' does not exist on type 'Read... Remove this comment to see the full error message
+
             activePlan,
         } = this.props;
         const cardRegistered = User.isCardRegistered();
@@ -166,7 +166,7 @@ class _ProjectForm extends React.Component {
                 onSubmit={handleSubmit(this.createToken)}
             >
                 <div className="bs-Modal bs-Modal--medium">
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideForm' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     <ClickOutside onClickOutside={this.props.hideForm}>
                         <div className="bs-Modal-header">
                             <div className="bs-Modal-header-copy">
@@ -256,7 +256,7 @@ class _ProjectForm extends React.Component {
                                         >
                                             <div className="bs-Fieldset-rows">
                                                 <div className="price-list-2c Margin-all--16">
-                                                    // @ts-expect-error ts-migrate(2786) FIXME: 'PlanFields' cannot be used as a JSX component.
+
                                                     <PlanFields
                                                         activePlan={activePlan}
                                                     />
@@ -280,11 +280,11 @@ class _ProjectForm extends React.Component {
                                                         <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                             <label>
                                                                 <CardElement
-                                                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+
                                                                     {...createOptions(
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'elementFontSize' does not exist on type ... Remove this comment to see the full error message
+
                                                                             .elementFontSize
                                                                     )}
                                                                 />
@@ -338,10 +338,10 @@ class _ProjectForm extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 _ProjectForm.displayName = '_ProjectForm';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 _ProjectForm.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     hideForm: PropTypes.func.isRequired,
@@ -407,7 +407,7 @@ const ProjectFormStripe = injectStripe(
 
 class ProjectFormWithCheckout extends React.Component {
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.state = {
             elementFontSize: window.innerWidth < 450 ? '14px' : '18px',
@@ -415,13 +415,13 @@ class ProjectFormWithCheckout extends React.Component {
         window.addEventListener('resize', () => {
             if (
                 window.innerWidth < 450 &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'elementFontSize' does not exist on type ... Remove this comment to see the full error message
+
                 this.state.elementFontSize !== '14px'
             ) {
                 this.setState({ elementFontSize: '14px' });
             } else if (
                 window.innerWidth >= 450 &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'elementFontSize' does not exist on type ... Remove this comment to see the full error message
+
                 this.state.elementFontSize !== '18px'
             ) {
                 this.setState({ elementFontSize: '18px' });
@@ -430,7 +430,7 @@ class ProjectFormWithCheckout extends React.Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'elementFontSize' does not exist on type ... Remove this comment to see the full error message
+
         const { elementFontSize } = this.state;
         return (
             <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
@@ -447,7 +447,7 @@ class ProjectFormWithCheckout extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectFormWithCheckout.displayName = 'ProjectFormWithCheckout';
 
 export default ProjectFormWithCheckout;

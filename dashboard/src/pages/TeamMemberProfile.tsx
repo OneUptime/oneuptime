@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import { API_URL } from '../config';
 import { LargeSpinner as Loader } from '../components/basic/Loader';
@@ -30,7 +30,7 @@ function TeamMemberProfile({
     currentProject,
     switchToProjectViewerNav
 }: $TSFixMe) {
-    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
     if (User.getActiveSubProjectId().length > 1) {
         projectId = User.getActiveSubProjectId();
     } else if (!projectId) {
@@ -68,11 +68,11 @@ function TeamMemberProfile({
                 name={projectName}
                 projectId={projectId}
                 slug={currentProject ? currentProject.slug : null}
-                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                 switchToProjectViewerNav={switchToProjectViewerNav}
             />
             <BreadCrumbItem
-                // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+
                 route={getParentRoute(match.url, projectId)}
                 name="Team Members"
             />

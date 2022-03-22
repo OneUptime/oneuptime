@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
@@ -17,7 +17,7 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!values.fieldName) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fieldName' does not exist on type '{}'.
+
         errors.fieldName = 'Field name is required';
     }
     return errors;
@@ -34,15 +34,15 @@ class UpdateMonitorCustomField extends React.Component {
 
     submitForm = (values: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCustomFieldModalId' does not exist... Remove this comment to see the full error message
+
             updateCustomFieldModalId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCustomField' does not exist on typ... Remove this comment to see the full error message
+
             updateCustomField,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
             initialValues,
         } = this.props;
         const postObj = {
@@ -56,7 +56,7 @@ class UpdateMonitorCustomField extends React.Component {
             customFieldId: initialValues._id,
             data: postObj,
         }).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateFieldError' does not exist on type... Remove this comment to see the full error message
+
             if (!this.props.updateFieldError) {
                 closeModal({
                     id: updateCustomFieldModalId,
@@ -70,7 +70,7 @@ class UpdateMonitorCustomField extends React.Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('updateCustomField').click();
             default:
                 return false;
@@ -78,29 +78,29 @@ class UpdateMonitorCustomField extends React.Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCustomFieldModalId' does not exist... Remove this comment to see the full error message
+
             id: this.props.updateCustomFieldModalId,
         });
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateFieldError' does not exist on type... Remove this comment to see the full error message
+
             updateFieldError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
         } = this.props;
 
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -292,7 +292,7 @@ class UpdateMonitorCustomField extends React.Component {
                                             onClick={() =>
                                                 closeModal({
                                                     id: this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateCustomFieldModalId' does not exist... Remove this comment to see the full error message
+
                                                         .updateCustomFieldModalId,
                                                 })
                                             }
@@ -329,10 +329,10 @@ class UpdateMonitorCustomField extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 UpdateMonitorCustomField.displayName = 'UpdateMonitorCustomField';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 UpdateMonitorCustomField.propTypes = {
     closeModal: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,
@@ -364,13 +364,13 @@ const mapStateToProps = (state: $TSFixMe) => {
     const initialValues = {};
 
     if (customFieldToBeUpdated) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fieldName' does not exist on type '{}'.
+
         initialValues.fieldName = customFieldToBeUpdated.fieldName;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fieldType' does not exist on type '{}'.
+
         initialValues.fieldType = customFieldToBeUpdated.fieldType;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property '_id' does not exist on type '{}'.
+
         initialValues._id = customFieldToBeUpdated._id;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'uniqueField' does not exist on type '{}'... Remove this comment to see the full error message
+
         initialValues.uniqueField = customFieldToBeUpdated.uniqueField;
     }
     return {

@@ -6,7 +6,7 @@ import {
     FieldArray,
     arrayPush,
     formValueSelector,
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 } from 'redux-form';
 import {
     updateStatusPageMonitors,
@@ -20,9 +20,9 @@ import PropTypes from 'prop-types';
 import { RenderMonitors } from './RenderMonitors';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 
 const grid = 0;
@@ -36,15 +36,15 @@ const getListStyle = (isDraggingOver: $TSFixMe) => ({
 
 class MonitorsWithCategory extends Component {
     renderAddMonitorButton = (subProject: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { category } = this.props;
 
         return (
             <ShouldRender
                 if={
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     this.props.monitors &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     this.props.monitors.length > 0 &&
                     (IsAdminSubProject(subProject) ||
                         IsOwnerSubProject(subProject))
@@ -55,7 +55,7 @@ class MonitorsWithCategory extends Component {
                     className="bs-Button bs-Button--icon bs-Button--new"
                     type="button"
                     onClick={() =>
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushArray' does not exist on type 'Reado... Remove this comment to see the full error message
+
                         this.props.pushArray(`${category.name}`, 'monitors', {
                             monitor: null,
                             description: '',
@@ -76,7 +76,7 @@ class MonitorsWithCategory extends Component {
     };
 
     onDragEnd = (result: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsInCategory' does not exist on ty... Remove this comment to see the full error message
+
         const { monitorsInCategory, change } = this.props;
         const { destination, source } = result;
 
@@ -106,21 +106,21 @@ class MonitorsWithCategory extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { category, statusPage, subProjects } = this.props;
         const { status } = statusPage;
         const subProject = !status.projectId
             ? null
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             : this.props.currentProject._id === status.projectId._id ||
-              // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
-              this.props.currentProject._id === status.projectId
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
-            ? this.props.currentProject
-            : subProjects.filter(
-                  (subProject: $TSFixMe) => subProject._id === status.projectId._id ||
-                  subProject._id === status.projectId
-              )[0];
+
+                this.props.currentProject._id === status.projectId
+
+                ? this.props.currentProject
+                : subProjects.filter(
+                    (subProject: $TSFixMe) => subProject._id === status.projectId._id ||
+                        subProject._id === status.projectId
+                )[0];
 
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -150,11 +150,11 @@ class MonitorsWithCategory extends Component {
                     <form>
                         <ShouldRender
                             if={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                 this.props.monitors.length > 0 &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                 !this.props.monitors.requesting &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsInForm' does not exist on type '... Remove this comment to see the full error message
+
                                 this.props.monitorsInForm
                             }
                         >
@@ -209,11 +209,11 @@ class MonitorsWithCategory extends Component {
                         </ShouldRender>
                         <ShouldRender
                             if={
-                                // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
+
                                 (!this.props.monitors.length > 0 &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                     !this.props.monitors.requesting) ||
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsInForm' does not exist on type '... Remove this comment to see the full error message
+
                                 !this.props.monitorsInForm
                             }
                         >
@@ -235,12 +235,12 @@ class MonitorsWithCategory extends Component {
                                                     marginBottom: '20px',
                                                 }}
                                             >
-                                                // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
+
                                                 {!this.props.monitors.length >
                                                     0 &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                                                !this.props.monitors
-                                                    .requesting ? (
+
+                                                    !this.props.monitors
+                                                        .requesting ? (
                                                     <>
                                                         No monitors are added to
                                                         this project.{' '}
@@ -248,7 +248,7 @@ class MonitorsWithCategory extends Component {
                                                             to={
                                                                 '/dashboard/project/' +
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                                     .currentProject
                                                                     .slug +
                                                                 '/components'
@@ -259,8 +259,8 @@ class MonitorsWithCategory extends Component {
                                                         </Link>
                                                     </>
                                                 ) : !this.props
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorsInForm' does not exist on type '... Remove this comment to see the full error message
-                                                      .monitorsInForm ? (
+
+                                                    .monitorsInForm ? (
                                                     <>
                                                         No monitors are added to
                                                         this status page
@@ -280,10 +280,10 @@ class MonitorsWithCategory extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorsWithCategory.displayName = 'MonitorsWithCategory';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorsWithCategory.propTypes = {
     updateStatusPageMonitors: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
@@ -336,21 +336,21 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const initialValues = {
         monitors: selectedMonitors
             ? selectedMonitors
-                  .filter(
-                      (monitor: $TSFixMe) => monitor.statusPageCategory &&
-                      String(
-                          monitor.statusPageCategory._id ||
-                              monitor.statusPageCategory
-                      ) === String(ownProps.category._id)
-                  )
-                  .map((monitor: $TSFixMe) => {
-                      if (monitor.statusPageCategory) {
-                          monitor.statusPageCategory =
-                              monitor.statusPageCategory._id ||
-                              monitor.statusPageCategory;
-                      }
-                      return monitor;
-                  })
+                .filter(
+                    (monitor: $TSFixMe) => monitor.statusPageCategory &&
+                        String(
+                            monitor.statusPageCategory._id ||
+                            monitor.statusPageCategory
+                        ) === String(ownProps.category._id)
+                )
+                .map((monitor: $TSFixMe) => {
+                    if (monitor.statusPageCategory) {
+                        monitor.statusPageCategory =
+                            monitor.statusPageCategory._id ||
+                            monitor.statusPageCategory;
+                    }
+                    return monitor;
+                })
             : [],
     };
 

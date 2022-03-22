@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -23,15 +23,15 @@ class Incident extends Component {
     handleIncidentStatus: $TSFixMe;
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match: { params },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusData,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncident' does not exist on type 'R... Remove this comment to see the full error message
+
             fetchIncident,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentNotes' does not exist on ty... Remove this comment to see the full error message
+
             fetchIncidentNotes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLastIncidentTimeline' does not exis... Remove this comment to see the full error message
+
             fetchLastIncidentTimeline,
         } = this.props;
         const { incidentSlug } = params;
@@ -63,13 +63,13 @@ class Incident extends Component {
             url = window.location.host;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getStatusPage' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.getStatusPage(statusPageSlug, url).catch((err: $TSFixMe) => {
             if (err.message === 'Request failed with status code 401') {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+
                     window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                 }
             }
@@ -84,15 +84,15 @@ class Incident extends Component {
 
     componentDidUpdate(prevProps: $TSFixMe) {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match: { params },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusData,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncident' does not exist on type 'R... Remove this comment to see the full error message
+
             fetchIncident,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentNotes' does not exist on ty... Remove this comment to see the full error message
+
             fetchIncidentNotes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLastIncidentTimeline' does not exis... Remove this comment to see the full error message
+
             fetchLastIncidentTimeline,
         } = this.props;
         const { incidentSlug } = params;
@@ -106,13 +106,13 @@ class Incident extends Component {
 
     more() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusData,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match: { params },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'moreIncidentNotes' does not exist on typ... Remove this comment to see the full error message
+
             moreIncidentNotes,
         } = this.props;
         const { incidentSlug } = params;
@@ -126,7 +126,7 @@ class Incident extends Component {
     }
 
     renderError = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { error } = this.props.status;
         if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
@@ -147,44 +147,43 @@ class Incident extends Component {
                 return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
             }
             if (monitors.length > 3) {
-                return `${monitors[0].monitorId.name}, ${
-                    monitors[1].monitorId.name
-                } and ${monitors.length - 2} others`;
+                return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
+                    } and ${monitors.length - 2} others`;
             }
         }
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             count,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             history,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingIncidentNotes' does not exist on... Remove this comment to see the full error message
+
             fetchingIncidentNotes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingIncident' does not exist on type... Remove this comment to see the full error message
+
             fetchingIncident,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
             incident,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentNotes' does not exist on type 'R... Remove this comment to see the full error message
+
             incidentNotes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'lastIncidentTimeline' does not exist on ... Remove this comment to see the full error message
+
             lastIncidentTimeline,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusData,
         } = this.props;
         const error = this.renderError();
 
         let downtimeColor, uptimeColor, degradedColor;
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingStatus' does not exist on type... Remove this comment to see the full error message
+
             !this.props.requestingStatus &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusData &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusData.colors
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             const colors = this.props.statusData.colors;
             downtimeColor = {
                 backgroundColor: `rgba(${colors.downtime.r}, ${colors.downtime.g}, ${colors.downtime.b})`,
@@ -202,7 +201,7 @@ class Incident extends Component {
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                 {this.props.statusData.theme === 'Clean Theme' && (
                     <div
                         className="new-main-container"
@@ -288,115 +287,115 @@ class Incident extends Component {
                                         }
                                     })
                                     .map((note: $TSFixMe) => <div
-                                    key={note._id}
-                                    style={{
-                                        width: '100%',
-                                        display: 'grid',
-                                        gridTemplateColumns: '1fr 3fr',
-                                        gridColumnGap: 10,
-                                        marginTop: 20,
-                                    }}
-                                >
-                                    <div>
-                                        <span
-                                            style={{
-                                                display: 'block',
-                                                fontWeight: 'bold',
-                                            }}
-                                        >
-                                            {note.incident_state}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span
-                                            style={{
-                                                color:
-                                                    'rgba(0, 0, 0, 0.6)',
-                                                fontSize: 14,
-                                                display: 'block',
-                                                textAlign: 'justify',
-                                            }}
-                                        >
-                                            {note.content && (
-                                                <div
-                                                    style={{
-                                                        whiteSpace:
-                                                            'pre-wrap',
-                                                    }}
-                                                >
-                                                    {note.content
-                                                        .split('\n')
-                                                        .map(
-                                                            (
-                                                                elem: $TSFixMe,
-                                                                index: $TSFixMe
-                                                            ) => (
-                                                                <Markdown
-                                                                    key={`${elem}-${index}`}
-                                                                    options={{
-                                                                        forceBlock: true,
-                                                                    }}
-                                                                >
-                                                                    {
-                                                                        elem
-                                                                    }
-                                                                </Markdown>
-                                                            )
-                                                        )}
-                                                </div>
-                                            )}
-                                        </span>
-                                        {note.incident_state ===
-                                            'Identified' && (
+                                        key={note._id}
+                                        style={{
+                                            width: '100%',
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 3fr',
+                                            gridColumnGap: 10,
+                                            marginTop: 20,
+                                        }}
+                                    >
+                                        <div>
                                             <span
                                                 style={{
                                                     display: 'block',
-                                                    marginTop: 10,
-                                                    color: '#AAA',
-                                                    fontSize: 12,
+                                                    fontWeight: 'bold',
+                                                }}
+                                            >
+                                                {note.incident_state}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span
+                                                style={{
+                                                    color:
+                                                        'rgba(0, 0, 0, 0.6)',
+                                                    fontSize: 14,
+                                                    display: 'block',
+                                                    textAlign: 'justify',
+                                                }}
+                                            >
+                                                {note.content && (
+                                                    <div
+                                                        style={{
+                                                            whiteSpace:
+                                                                'pre-wrap',
+                                                        }}
+                                                    >
+                                                        {note.content
+                                                            .split('\n')
+                                                            .map(
+                                                                (
+                                                                    elem: $TSFixMe,
+                                                                    index: $TSFixMe
+                                                                ) => (
+                                                                    <Markdown
+                                                                        key={`${elem}-${index}`}
+                                                                        options={{
+                                                                            forceBlock: true,
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            elem
+                                                                        }
+                                                                    </Markdown>
+                                                                )
+                                                            )}
+                                                    </div>
+                                                )}
+                                            </span>
+                                            {note.incident_state ===
+                                                'Identified' && (
+                                                    <span
+                                                        style={{
+                                                            display: 'block',
+                                                            marginTop: 10,
+                                                            color: '#AAA',
+                                                            fontSize: 12,
+                                                        }}
+                                                    >
+                                                        <span
+                                                            style={{
+                                                                fontWeight: 600,
+                                                            }}
+                                                        >
+                                                            <Translate>
+                                                                Resource
+                                                                Affected -
+                                                            </Translate>
+                                                        </span>{' '}
+                                                        <span>
+                                                            {this.handleMonitorList(
+                                                                incident.monitors
+                                                            )}
+                                                        </span>
+                                                    </span>
+                                                )}
+                                            <span
+                                                style={{
+                                                    display: 'flex',
+                                                    marginTop: 5,
+                                                    alignItems: 'center',
                                                 }}
                                             >
                                                 <span
                                                     style={{
-                                                        fontWeight: 600,
+                                                        color: '#AAA',
+                                                        fontSize: 12,
+                                                        display: 'block',
                                                     }}
                                                 >
-                                                    <Translate>
-                                                        Resource
-                                                        Affected -
-                                                    </Translate>
-                                                </span>{' '}
-                                                <span>
-                                                    {this.handleMonitorList(
-                                                        incident.monitors
+                                                    Posted on{' '}
+                                                    {moment(
+                                                        note.createdAt
+                                                    ).format(
+                                                        'MMMM Do YYYY, h:mm a'
                                                     )}
                                                 </span>
                                             </span>
-                                        )}
-                                        <span
-                                            style={{
-                                                display: 'flex',
-                                                marginTop: 5,
-                                                alignItems: 'center',
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    color: '#AAA',
-                                                    fontSize: 12,
-                                                    display: 'block',
-                                                }}
-                                            >
-                                                Posted on{' '}
-                                                {moment(
-                                                    note.createdAt
-                                                ).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </div>)}
+                                        </div>
+                                    </div>)}
 
                             {!fetchingIncidentNotes &&
                                 incidentNotes &&
@@ -430,7 +429,7 @@ class Incident extends Component {
                     </div>
                 )}
                 <div className="innernew">
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                     {this.props.statusData.theme === 'Classic Theme' && (
                         <>
                             <div
@@ -451,7 +450,7 @@ class Incident extends Component {
                                             paddingBottom: 20,
                                         }}
                                     >
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingStatus' does not exist on type... Remove this comment to see the full error message
+
                                         {!this.props.requestingStatus &&
                                             !fetchingIncident &&
                                             incident.incidentType && (
@@ -460,15 +459,15 @@ class Incident extends Component {
                                                     style={{
                                                         backgroundColor:
                                                             incident.incidentType ===
-                                                            'online'
-                                                                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+                                                                'online'
+
                                                                 ? uptimeColor.backgroundColor
                                                                 : incident.incidentType ===
-                                                                  'offline'
-                                                                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
-                                                                ? downtimeColor.backgroundColor
-                                                                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
-                                                                : degradedColor.backgroundColor,
+                                                                    'offline'
+
+                                                                    ? downtimeColor.backgroundColor
+
+                                                                    : degradedColor.backgroundColor,
                                                     }}
                                                 ></div>
                                             )}
@@ -845,10 +844,10 @@ class Incident extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Incident.displayName = 'Incident';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Incident.propTypes = {
     match: PropTypes.object,
     statusData: PropTypes.object,

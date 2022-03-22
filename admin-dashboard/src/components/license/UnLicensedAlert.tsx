@@ -23,7 +23,7 @@ class UnLicensedAlert extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 UnLicensedAlert.displayName = 'UnLicensedAlert';
 
 export default UnLicensedAlert;

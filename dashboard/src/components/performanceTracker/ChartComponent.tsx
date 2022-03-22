@@ -27,21 +27,21 @@ export class ChartComponent extends Component {
     startDate: $TSFixMe;
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
             performanceTracker,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             type,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchTimeMetrics' does not exist on type... Remove this comment to see the full error message
+
             fetchTimeMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchThroughputMetrics' does not exist o... Remove this comment to see the full error message
+
             fetchThroughputMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorMetrics' does not exist on typ... Remove this comment to see the full error message
+
             fetchErrorMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetTimeDate' does not exist on type 'R... Remove this comment to see the full error message
+
             resetTimeDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetThroughputDate' does not exist on t... Remove this comment to see the full error message
+
             resetThroughputDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetErrorDate' does not exist on type '... Remove this comment to see the full error message
+
             resetErrorDate,
         } = this.props;
 
@@ -84,19 +84,19 @@ export class ChartComponent extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             JSON.stringify(prevProps.performanceTracker) !==
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
             JSON.stringify(this.props.performanceTracker)
         ) {
             const {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
                 performanceTracker,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 type,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchTimeMetrics' does not exist on type... Remove this comment to see the full error message
+
                 fetchTimeMetrics,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchThroughputMetrics' does not exist o... Remove this comment to see the full error message
+
                 fetchThroughputMetrics,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorMetrics' does not exist on typ... Remove this comment to see the full error message
+
                 fetchErrorMetrics,
             } = this.props;
 
@@ -134,27 +134,27 @@ export class ChartComponent extends Component {
 
     handleStartDate = (val: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             type,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setTimeStartDate' does not exist on type... Remove this comment to see the full error message
+
             setTimeStartDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setThroughputStartDate' does not exist o... Remove this comment to see the full error message
+
             setThroughputStartDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setErrorStartDate' does not exist on typ... Remove this comment to see the full error message
+
             setErrorStartDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchTimeMetrics' does not exist on type... Remove this comment to see the full error message
+
             fetchTimeMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchThroughputMetrics' does not exist o... Remove this comment to see the full error message
+
             fetchThroughputMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorMetrics' does not exist on typ... Remove this comment to see the full error message
+
             fetchErrorMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeEndDate' does not exist on type 'Rea... Remove this comment to see the full error message
+
             timeEndDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'throughputEndDate' does not exist on typ... Remove this comment to see the full error message
+
             throughputEndDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEndDate' does not exist on type 'Re... Remove this comment to see the full error message
+
             errorEndDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
             performanceTracker,
         } = this.props;
 
@@ -193,27 +193,27 @@ export class ChartComponent extends Component {
 
     handleEndDate = (val: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             type,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setTimeEndDate' does not exist on type '... Remove this comment to see the full error message
+
             setTimeEndDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setThroughputEndDate' does not exist on ... Remove this comment to see the full error message
+
             setThroughputEndDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setErrorEndDate' does not exist on type ... Remove this comment to see the full error message
+
             setErrorEndDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchTimeMetrics' does not exist on type... Remove this comment to see the full error message
+
             fetchTimeMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchThroughputMetrics' does not exist o... Remove this comment to see the full error message
+
             fetchThroughputMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorMetrics' does not exist on typ... Remove this comment to see the full error message
+
             fetchErrorMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeStartDate' does not exist on type 'R... Remove this comment to see the full error message
+
             timeStartDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'throughputStartDate' does not exist on t... Remove this comment to see the full error message
+
             throughputStartDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorStartDate' does not exist on type '... Remove this comment to see the full error message
+
             errorStartDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
             performanceTracker,
         } = this.props;
 
@@ -252,19 +252,19 @@ export class ChartComponent extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'heading' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             heading,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             title,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subHeading' does not exist on type 'Read... Remove this comment to see the full error message
+
             subHeading,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             type,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'timeMetrics' does not exist on type 'Rea... Remove this comment to see the full error message
+
             timeMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'throughputMetrics' does not exist on typ... Remove this comment to see the full error message
+
             throughputMetrics,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorMetrics' does not exist on type 'Re... Remove this comment to see the full error message
+
             errorMetrics,
         } = this.props;
         const status = {
@@ -341,7 +341,7 @@ export class ChartComponent extends Component {
                                     >
                                         {type === 'transactionTime' && (
                                             <PerformanceChart
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
+
                                                 type={type}
                                                 data={timeMetrics.metrics}
                                                 name={'response time'}
@@ -353,7 +353,7 @@ export class ChartComponent extends Component {
                                         )}
                                         {type === 'throughput' && (
                                             <PerformanceChart
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
+
                                                 type={type}
                                                 data={throughputMetrics.metrics}
                                                 name={'request per time'}
@@ -365,7 +365,7 @@ export class ChartComponent extends Component {
                                         )}
                                         {type === 'errorRate' && (
                                             <PerformanceChart
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
+
                                                 type={type}
                                                 data={errorMetrics.metrics}
                                                 name={'request per time'}
@@ -410,10 +410,10 @@ export class ChartComponent extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ChartComponent.displayName = 'ChartComponent';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ChartComponent.propTypes = {
     heading: PropTypes.any,
     subHeading: PropTypes.any,

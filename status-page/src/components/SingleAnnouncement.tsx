@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { getSingleAnnouncement, getStatusPage } from '../actions/status';
@@ -11,23 +11,23 @@ import Markdown from 'markdown-to-jsx';
 class SingleAnnouncement extends Component {
     async componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match: {
                 params: { announcementSlug, statusPageSlug },
             },
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getStatusPage' does not exist on type 'R... Remove this comment to see the full error message
+
         await this.props.getStatusPage(statusPageSlug, 'null');
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSingleAnnouncement' does not exist on... Remove this comment to see the full error message
+
         await this.props.getSingleAnnouncement(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusPage.projectId._id,
             statusPageSlug,
             announcementSlug
         );
     }
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcement' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { announcement, monitorState } = this.props;
 
         return (
@@ -154,10 +154,10 @@ class SingleAnnouncement extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SingleAnnouncement.displayName = 'SingleAnnouncement';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SingleAnnouncement.propTypes = {
     statusPage: PropTypes.object,
     getSingleAnnouncement: PropTypes.func,

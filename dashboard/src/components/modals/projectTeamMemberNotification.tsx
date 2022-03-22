@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 
 class ProjectTeamMemberNotification extends Component {
@@ -18,10 +18,10 @@ class ProjectTeamMemberNotification extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -29,7 +29,7 @@ class ProjectTeamMemberNotification extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'team' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { team, closeThisDialog } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -60,7 +60,7 @@ class ProjectTeamMemberNotification extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -73,7 +73,7 @@ class ProjectTeamMemberNotification extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             type="button"
                                             onClick={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                                                 this.props.confirmThisDialog
                                             }
                                             disabled={
@@ -104,11 +104,11 @@ class ProjectTeamMemberNotification extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectTeamMemberNotification.displayName =
     'ProjectTeamMemberNotificationFormModal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectTeamMemberNotification.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,

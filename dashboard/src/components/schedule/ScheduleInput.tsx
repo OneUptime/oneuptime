@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field } from 'redux-form';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
@@ -13,7 +13,7 @@ const ScheduleInput = ({
     useEffect(() => {
         // add default schedule fields if none is available
         if (fields && !fields.length) {
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'schedule' implicitly has an 'any' type.
+
             schedules.forEach(schedule => {
                 fields.push({
                     [schedule._id.toString()]: false,
@@ -27,11 +27,10 @@ const ScheduleInput = ({
             {fields.map((fieldName: $TSFixMe, index: $TSFixMe) => {
                 return (
                     <div
-                        key={`${fieldName}.${
-                            schedules[index]
+                        key={`${fieldName}.${schedules[index]
                                 ? schedules[index]._id.toString()
                                 : index
-                        }`}
+                            }`}
                         className="Box-root Margin-vertical--8"
                     >
                         <div
@@ -42,24 +41,21 @@ const ScheduleInput = ({
                                 <Field
                                     component="input"
                                     type="checkbox"
-                                    name={`${fieldName}.${
-                                        schedules[index]
+                                    name={`${fieldName}.${schedules[index]
                                             ? schedules[index]._id.toString()
                                             : index
-                                    }`}
+                                        }`}
                                     defaultChecked={true}
-                                    data-testId={`${fieldName}.${
-                                        schedules[index]
+                                    data-testId={`${fieldName}.${schedules[index]
                                             ? schedules[index]._id.toString()
                                             : index
-                                    }`}
+                                        }`}
                                     data-test="RetrySettings-failedPaymentsCheckbox"
                                     className="Checkbox-source"
-                                    id={`${fieldName}.${
-                                        schedules[index]
+                                    id={`${fieldName}.${schedules[index]
                                             ? schedules[index]._id.toString()
                                             : index
-                                    }`}
+                                        }`}
                                     disabled={
                                         !IsAdminSubProject(currentProject) &&
                                         !IsOwnerSubProject(currentProject)

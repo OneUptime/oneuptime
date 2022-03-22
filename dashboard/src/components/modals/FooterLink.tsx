@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -27,9 +27,9 @@ class CreateFooterLink extends Component {
     }
 
     submitForm = (footerLinkValues: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { submitForm, footerName, index } = this.props.data;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'links' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const values = this.props.links;
 
         if (footerName) {
@@ -45,7 +45,7 @@ class CreateFooterLink extends Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('createFooter').click();
             default:
                 return false;
@@ -53,21 +53,21 @@ class CreateFooterLink extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createFooterLinkModalId' does not exist ... Remove this comment to see the full error message
+
             id: this.props.createFooterLinkModalId,
         });
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, data } = this.props;
 
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -138,9 +138,9 @@ class CreateFooterLink extends Component {
                                     <div className="bs-Modal-footer-actions">
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage.links
                                                     .error
                                             }
@@ -164,7 +164,7 @@ class CreateFooterLink extends Component {
                                                         >
                                                             {
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                     .statusPage
                                                                     .links.error
                                                             }
@@ -177,10 +177,10 @@ class CreateFooterLink extends Component {
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             onClick={e => {
                                                 e.preventDefault();
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.closeModal({
                                                     id: this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createFooterLinkModalId' does not exist ... Remove this comment to see the full error message
+
                                                         .createFooterLinkModalId,
                                                 });
                                             }}
@@ -195,21 +195,21 @@ class CreateFooterLink extends Component {
                                             id="createFooter"
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             disabled={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage.links
                                                     .requesting
                                             }
                                             type="submit"
                                         >
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             {this.props.statusPage.links &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 !this.props.statusPage.links
                                                     .requesting && (
                                                     <>
                                                         <span>
                                                             {data &&
-                                                            data.footerName
+                                                                data.footerName
                                                                 ? 'Update'
                                                                 : 'Add'}
                                                         </span>
@@ -218,9 +218,9 @@ class CreateFooterLink extends Component {
                                                         </span>
                                                     </>
                                                 )}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             {this.props.statusPage.links &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage.links
                                                     .requesting && (
                                                     <FormLoader />
@@ -237,7 +237,7 @@ class CreateFooterLink extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CreateFooterLink.displayName = 'CreateFooterLink';
 
 //Client side validation
@@ -245,11 +245,11 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.name)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Name is not in text format.';
     }
     if (!Validate.text(values.url)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'url' does not exist on type '{}'.
+
         errors.url = 'Url is invalid.';
     }
     return errors;
@@ -291,13 +291,13 @@ function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
         createFooterLinkModalId: state.modal.modals[0].id,
         initialValues:
             links.length > 0
-                // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'obj' implicitly has an 'any' type.
+
                 ? links.filter(obj => obj.name === ownProps.data.footerName)[0]
                 : {},
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CreateFooterLink.propTypes = {
     createFooterLinkModalId: PropTypes.string,
     handleSubmit: PropTypes.func.isRequired,

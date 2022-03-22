@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 
 class DeleteApplicationLog extends Component {
@@ -17,10 +17,10 @@ class DeleteApplicationLog extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -28,18 +28,18 @@ class DeleteApplicationLog extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
         const { closeThisDialog } = this.props;
         let deleting = false;
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogState' does not exist on t... Remove this comment to see the full error message
+
             this.props.applicationLogState &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogState' does not exist on t... Remove this comment to see the full error message
+
             this.props.applicationLogState.deleteApplicationLog &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogState' does not exist on t... Remove this comment to see the full error message
+
             this.props.applicationLogState.deleteApplicationLog ===
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                this.props.data.applicationLog._id
+
+            this.props.data.applicationLog._id
         ) {
             deleting = true;
         }
@@ -72,7 +72,7 @@ class DeleteApplicationLog extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -85,7 +85,7 @@ class DeleteApplicationLog extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             type="button"
                                             onClick={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                                                 this.props.confirmThisDialog
                                             }
                                             disabled={deleting}
@@ -112,10 +112,10 @@ class DeleteApplicationLog extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DeleteApplicationLog.displayName = 'DeleteApplicationLogFormModal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DeleteApplicationLog.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,

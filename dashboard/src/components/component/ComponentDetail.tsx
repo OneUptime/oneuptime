@@ -17,14 +17,14 @@ import { animateSidebar } from '../../actions/animateSidebar';
 export class ComponentDetail extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
     }
 
     prevClicked = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { component } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponentResources' does not exist ... Remove this comment to see the full error message
+
         this.props.fetchComponentResources(
             component.projectId._id,
             component._id,
@@ -34,9 +34,9 @@ export class ComponentDetail extends Component {
     };
 
     nextClicked = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { component } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponentResources' does not exist ... Remove this comment to see the full error message
+
         this.props.fetchComponentResources(
             component.projectId._id,
             component._id,
@@ -47,18 +47,18 @@ export class ComponentDetail extends Component {
 
     handleKeyBoard = (e: $TSFixMe) => {
         const canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.component &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
-            this.props.component.count &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
-            this.props.component.count >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
+                this.props.component.count &&
+
+                this.props.component.count >
+
                 this.props.component.skip + this.props.component.limit
                 ? true
                 : false;
         const canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.component && this.props.component.skip <= 0
                 ? false
                 : true;
@@ -74,23 +74,23 @@ export class ComponentDetail extends Component {
 
     deleteComponent = (componentId: $TSFixMe) => {
         const projectId =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.component.projectId._id ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.component.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteComponent' does not exist on type ... Remove this comment to see the full error message
+
         const promise = this.props.deleteComponent(componentId, projectId);
         history.push(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             `/dashboard/project/${this.props.currentProject.slug}/components`
         );
 
         return promise;
     };
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { component } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponentResources' does not exist ... Remove this comment to see the full error message
+
         this.props.fetchComponentResources(
             component.projectId._id,
             component._id,
@@ -100,7 +100,7 @@ export class ComponentDetail extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { component, componentState, currentProject } = this.props;
         component.error = null;
         if (
@@ -121,24 +121,24 @@ export class ComponentDetail extends Component {
         return (
             <div
                 className="Box-root Card-shadow--medium"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
             >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'shouldRenderProjectType' does not exist ... Remove this comment to see the full error message
+
                 <ShouldRender if={this.props.shouldRenderProjectType}>
                     <div className="Box-root Padding-top--20 Padding-left--20">
                         <Badge
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type 'Rea... Remove this comment to see the full error message
+
                             id={`badge_${this.props.projectName}`}
                             color={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                 this.props.projectType === 'project'
                                     ? 'red'
                                     : 'blue'
                             }
                         >
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type 'Rea... Remove this comment to see the full error message
+
                             {this.props.projectName}
                         </Badge>
                     </div>
@@ -187,17 +187,17 @@ export class ComponentDetail extends Component {
                                     setTimeout(() => {
                                         history.push(
                                             '/dashboard/project/' +
-                                                currentProject.slug +
-                                                '/component/' +
-                                                component.slug +
-                                                '/monitoring'
+                                            currentProject.slug +
+                                            '/component/' +
+                                            component.slug +
+                                            '/monitoring'
                                         );
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                                         this.props.animateSidebar(false);
                                     }, 200);
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                                     this.props.animateSidebar(true);
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCurrentComponent' does not exist on t... Remove this comment to see the full error message
+
                                     this.props.addCurrentComponent(component);
                                 }}
                             >
@@ -215,20 +215,20 @@ export class ComponentDetail extends Component {
                                         <div>
                                             <ResourceTabularList
                                                 componentId={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                     this.props.component._id
                                                 }
                                                 componentSlug={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                     this.props.component.slug
                                                 }
                                                 componentResources={
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentResources' does not exist on ty... Remove this comment to see the full error message
+
                                                         .componentResources
                                                 }
                                                 currentProject={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                     this.props.currentProject
                                                 }
                                                 componentName={component.name}
@@ -245,7 +245,7 @@ export class ComponentDetail extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ComponentDetail.displayName = 'ComponentDetail';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
@@ -270,7 +270,7 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
         }
     ).monitors.filter(
         (monitor: $TSFixMe) => monitor.componentId &&
-        monitor.componentId._id === props.component._id
+            monitor.componentId._id === props.component._id
     );
     return {
         componentMonitors,
@@ -281,7 +281,7 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ComponentDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
     component: PropTypes.object.isRequired,

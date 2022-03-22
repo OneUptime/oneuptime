@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 import AffectedResources from './basic/AffectedResources';
 import PropTypes from 'prop-types';
@@ -8,15 +8,15 @@ import moment from 'moment';
 class OngoingSchedule extends Component {
     render() {
         return <>
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             {this.props.ongoing &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.ongoing.length > 0 &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                 this.props.statusData &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                 this.props.statusData._id &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.ongoing.map(
                     (event: $TSFixMe) => !event.cancelled && (
                         <div
@@ -27,9 +27,9 @@ class OngoingSchedule extends Component {
                             }}
                             key={event._id}
                             onClick={() => {
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                 this.props.history.push(
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     `/status-page/${this.props.statusData.slug}/scheduledEvent/${event.slug}`
                                 );
                             }}
@@ -83,7 +83,7 @@ class OngoingSchedule extends Component {
                                                 event={event}
                                                 monitorState={
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                         .monitorState
                                                 }
                                             />
@@ -120,10 +120,10 @@ class OngoingSchedule extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 OngoingSchedule.displayName = 'OngoingSchedule';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 OngoingSchedule.propTypes = {
     monitorState: PropTypes.array,
     statusData: PropTypes.object,

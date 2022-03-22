@@ -103,7 +103,7 @@ function HTD7() {
     return (
         <td
             id="overflow"
-            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
             type="action"
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
             style={{ height: '1px' }}
@@ -342,18 +342,16 @@ function TD7({
                                         style={{ height: '100%' }}
                                     >
                                         <div
-                                            className={`Badge ${
-                                                text === 'Success'
+                                            className={`Badge ${text === 'Success'
                                                     ? 'Badge--color--green'
                                                     : 'Badge--color--red'
-                                            } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                         >
                                             <span
-                                                className={`Badge-text ${
-                                                    text === 'Success'
+                                                className={`Badge-text ${text === 'Success'
                                                         ? 'Text-color--green'
                                                         : 'Text-color--red'
-                                                } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                             >
                                                 <span>{text}</span>
                                             </span>
@@ -396,11 +394,11 @@ function TD8({
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         {isIncidentStatus ? (
                             <div
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                 className={`Badge Badge--color--${incidentStatusColor[text]} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                             >
                                 <span
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                     className={`Badge-text Text-color--${incidentStatusColor[text]} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                 >
                                     {text}
@@ -442,31 +440,31 @@ function AlertTableRows({
 }: $TSFixMe) {
     return alerts.length > 0
         ? alerts.map((alert: $TSFixMe, index: $TSFixMe) => (
-              <tr
-                  key={`alert ${index}`}
-                  className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-              >
-                  <TD1
-                      text={
-                          alert.userId
-                              ? alert.userId.name || alert.userId.email
-                              : null
-                      }
-                      alertId={
-                          alert.userId && alert.userId._id
-                              ? alert.userId._id
-                              : null
-                      }
-                  />
-                  <TD2 text={alert.monitorId ? alert.monitorId.name : null} />
-                  <TD3 />
-                  <TD4 text={alert.alertVia} />
-                  <TD5 />
-                  <TD6 text={alert.createdAt} />
-                  <TD8 text={alert.eventType} />
-                  <TD7 text={alert.alertStatus || alert.errorMessage} />
-              </tr>
-          ))
+            <tr
+                key={`alert ${index}`}
+                className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+            >
+                <TD1
+                    text={
+                        alert.userId
+                            ? alert.userId.name || alert.userId.email
+                            : null
+                    }
+                    alertId={
+                        alert.userId && alert.userId._id
+                            ? alert.userId._id
+                            : null
+                    }
+                />
+                <TD2 text={alert.monitorId ? alert.monitorId.name : null} />
+                <TD3 />
+                <TD4 text={alert.alertVia} />
+                <TD5 />
+                <TD6 text={alert.createdAt} />
+                <TD8 text={alert.eventType} />
+                <TD7 text={alert.alertStatus || alert.errorMessage} />
+            </tr>
+        ))
         : null;
 }
 

@@ -10,7 +10,7 @@ import PropTypes from 'prop-types';
 
 class AceCodeEditor extends Component {
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'value' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { value, mode, name, height, markers, theme } = this.props;
         return (
             <AceEditor
@@ -31,9 +31,9 @@ class AceCodeEditor extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AceCodeEditor.displayName = 'AceCodeEditor';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 AceCodeEditor.propTypes = {
     value: PropTypes.string,
     mode: PropTypes.string,

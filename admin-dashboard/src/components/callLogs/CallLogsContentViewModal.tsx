@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 class CallLogsContentViewModal extends Component {
@@ -16,7 +16,7 @@ class CallLogsContentViewModal extends Component {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -24,7 +24,7 @@ class CallLogsContentViewModal extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { isRequesting, error, closeThisDialog, content } = this.props;
 
         return (
@@ -118,7 +118,7 @@ class CallLogsContentViewModal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CallLogsContentViewModal.displayName = 'CallLogsContentViewModal';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -134,7 +134,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CallLogsContentViewModal.propTypes = {
     isRequesting: PropTypes.oneOfType([
         PropTypes.bool,

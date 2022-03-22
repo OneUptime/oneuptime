@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import { connect } from 'react-redux';
 import PropsType from 'prop-types';
@@ -24,81 +24,81 @@ class ErrorEventView extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             String(prevProps.componentSlug) !==
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             String(this.props.componentSlug) ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             prevProps.currentProject !== this.props.currentProject
         ) {
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.currentProject &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.currentProject._id &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
                 this.props.componentSlug
             ) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.fetchComponent(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     this.props.currentProject._id,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
                     this.props.componentSlug
                 );
             }
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorTrackers' does not exist on ty... Remove this comment to see the full error message
+
             this.props.fetchErrorTrackers(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.currentProject._id,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 this.props.componentId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerSkip' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 this.props.trackerSkip,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerLimit' does not exist on type 'Re... Remove this comment to see the full error message
+
                 this.props.trackerLimit
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorEvent' does not exist on type ... Remove this comment to see the full error message
+
             this.props.fetchErrorEvent(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.currentProject._id,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 this.props.componentId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
+
                 this.props.errorTracker[0]._id,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 this.props.match.params.errorEventId
             );
         }
     }
     ready = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const componentId = this.props.componentId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const projectId = this.props.currentProject
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             ? this.props.currentProject._id
             : null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
+
         const errorTrackerId = this.props.errorTracker
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
+
             ? this.props.errorTracker[0]._id
             : null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const errorEventId = this.props.match.params.errorEventId
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             ? this.props.match.params.errorEventId
             : null;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             componentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
+
             fetchComponent,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerLimit' does not exist on type 'Re... Remove this comment to see the full error message
+
             trackerLimit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerSkip' does not exist on type 'Rea... Remove this comment to see the full error message
+
             trackerSkip,
         } = this.props;
         if (projectId && componentSlug) {
@@ -106,7 +106,7 @@ class ErrorEventView extends Component {
         }
 
         // fetching error trackers is necessary incase a reload is done on error event details page
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorTrackers' does not exist on ty... Remove this comment to see the full error message
+
         this.props.fetchErrorTrackers(
             projectId,
             componentId,
@@ -115,7 +115,7 @@ class ErrorEventView extends Component {
         );
 
         // TODO fetch the current issues based on the limit and skip in the redux
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorEvent' does not exist on type ... Remove this comment to see the full error message
+
         this.props.fetchErrorEvent(
             projectId,
             componentId,
@@ -126,18 +126,18 @@ class ErrorEventView extends Component {
     };
     navigationLink = (errorEventId: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
+
             errorTracker,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
             componentId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             componentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setCurrentErrorEvent' does not exist on ... Remove this comment to see the full error message
+
             setCurrentErrorEvent,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorEvent' does not exist on type ... Remove this comment to see the full error message
+
         this.props.fetchErrorEvent(
             currentProject._id,
             componentId,
@@ -158,21 +158,21 @@ class ErrorEventView extends Component {
     };
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location: { pathname },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             component,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTracker' does not exist on type 'Re... Remove this comment to see the full error message
+
             errorTracker,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEvent' does not exist on type 'Read... Remove this comment to see the full error message
+
             errorEvent,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             componentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
             componentId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
+
             switchToProjectViewerNav,
         } = this.props;
 
@@ -188,7 +188,7 @@ class ErrorEventView extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
@@ -240,7 +240,7 @@ class ErrorEventView extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ErrorEventView.displayName = 'ErrorEventView';
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
@@ -294,7 +294,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
         trackerLimit: state.errorTracker.errorTrackersList.limit || 5,
     };
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ErrorEventView.propTypes = {
     component: PropsType.object,
     currentProject: PropsType.object,

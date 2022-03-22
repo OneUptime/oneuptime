@@ -1,6 +1,6 @@
 import React from 'react';
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import CreatableSelect from 'react-select/creatable';
 
 const FilterSelect = (props: $TSFixMe) => <CreatableSelect
@@ -15,7 +15,7 @@ const FilterSelect = (props: $TSFixMe) => <CreatableSelect
             minHeight: 'unset',
             height: '30px'
         }),
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'provided' implicitly has an 'any' type.
+
         option: (provided, state) => ({
             ...provided,
             backgroundColor: state.isSelected ? 'black' : 'unset',

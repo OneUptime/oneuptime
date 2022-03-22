@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
+
 import { PropTypes } from 'prop-types';
 import ShouldRender from './ShouldRender';
 
@@ -14,7 +14,7 @@ const DropDownMenu = ({
     const container = useRef(null);
 
     const handleClickOutside = (event: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
         if (container.current && !container.current.contains(event.target)) {
             setOpen(false);
         }

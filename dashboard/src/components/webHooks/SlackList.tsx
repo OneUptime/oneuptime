@@ -16,9 +16,9 @@ import { User } from '../../config';
 
 class SlackList extends React.Component {
     ready() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSlackMonitor' does not exist on type ... Remove this comment to see the full error message
+
         const { getSlackMonitor, monitorId, getSlack } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId } = this.props;
         if (monitorId) {
             getSlackMonitor(projectId, monitorId);
@@ -32,7 +32,7 @@ class SlackList extends React.Component {
     }
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
         this.props.paginate('reset');
     }
 
@@ -49,17 +49,17 @@ class SlackList extends React.Component {
 
     prevClicked = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slacks' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             slacks: { skip, limit },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSlackMonitor' does not exist on type ... Remove this comment to see the full error message
+
             getSlackMonitor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
             paginate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             monitorId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSlack' does not exist on type 'Readon... Remove this comment to see the full error message
+
             getSlack,
         } = this.props;
 
@@ -84,17 +84,17 @@ class SlackList extends React.Component {
 
     nextClicked = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slacks' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             slacks: { skip, limit },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSlackMonitor' does not exist on type ... Remove this comment to see the full error message
+
             getSlackMonitor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
             paginate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             monitorId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSlack' does not exist on type 'Readon... Remove this comment to see the full error message
+
             getSlack,
         } = this.props;
 
@@ -108,7 +108,7 @@ class SlackList extends React.Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slacks' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { slacks, isRequesting, monitorId } = this.props;
         const { count, skip, limit } = slacks;
         let { slacks: webHooks } = slacks;
@@ -151,7 +151,7 @@ class SlackList extends React.Component {
                             <ShouldRender if={numberOfWebHooks > 0}>
                                 {(webHooks ? webHooks : []).map((hook: $TSFixMe) => <SlackItem
                                     key={`${hook._id}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: string; data: any; monitorId: any; mo... Remove this comment to see the full error message
+
                                     data={hook}
                                     monitorId={monitorId}
                                     monitors={hook.monitors}
@@ -198,15 +198,11 @@ class SlackList extends React.Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
-                                        ? `Page ${
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                              this.props.pages.counter
-                                          } of ${numberOfPages} (${count} Slack${
-                                              count === 1 ? '' : 's'
-                                          })`
-                                        : `${count} Slack${
-                                              count === 1 ? '' : 's'
-                                          }`}
+                                        ? `Page ${this.props.pages.counter
+                                        } of ${numberOfPages} (${count} Slack${count === 1 ? '' : 's'
+                                        })`
+                                        : `${count} Slack${count === 1 ? '' : 's'
+                                        }`}
                                 </span>
                             </span>
                         </span>
@@ -218,11 +214,10 @@ class SlackList extends React.Component {
                         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                             <div className="Box-root Margin-right--8">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${
-                                        !canPaginateBackward
+                                    className={`Button bs-ButtonLegacy ${!canPaginateBackward
                                             ? 'Is--disabled'
                                             : ''
-                                    }`}
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!canPaginateBackward}
                                     type="button"
@@ -238,11 +233,10 @@ class SlackList extends React.Component {
                             </div>
                             <div className="Box-root">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${
-                                        !canPaginateForward
+                                    className={`Button bs-ButtonLegacy ${!canPaginateForward
                                             ? 'Is--disabled'
                                             : ''
-                                    }`}
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!canPaginateForward}
                                     type="button"
@@ -264,7 +258,7 @@ class SlackList extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SlackList.displayName = 'SlackList';
 
 const mapStateToProps = (state: $TSFixMe) => ({
@@ -289,7 +283,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SlackList.propTypes = {
     getSlack: PropTypes.func,
     projectId: PropTypes.string,

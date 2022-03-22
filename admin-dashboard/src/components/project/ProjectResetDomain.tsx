@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -15,7 +15,7 @@ import {
 
 class ProjectResetDomain extends Component {
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetProjectDomainOnMount' does not exis... Remove this comment to see the full error message
+
         this.props.resetProjectDomainOnMount();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -32,26 +32,26 @@ class ProjectResetDomain extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainId' does not exist on type 'Readon... Remove this comment to see the full error message
+
             id: this.props.domainId,
         });
     };
 
     handleResetDomain = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetProjectDomain' does not exist on ty... Remove this comment to see the full error message
+
             resetProjectDomain,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectDomains' does not exist on t... Remove this comment to see the full error message
+
             fetchProjectDomains,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainId' does not exist on type 'Readon... Remove this comment to see the full error message
+
             domainId,
         } = this.props;
         resetProjectDomain(projectId, domainId).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetError' does not exist on type 'Read... Remove this comment to see the full error message
+
             if (!this.props.resetError) {
                 fetchProjectDomains(projectId, 0, 10);
                 this.handleCloseModal();
@@ -60,7 +60,7 @@ class ProjectResetDomain extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { requesting, resetError } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -183,10 +183,10 @@ class ProjectResetDomain extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectResetDomain.displayName = 'ProjectResetDomain';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectResetDomain.propTypes = {
     closeModal: PropTypes.func,
     resetProjectDomain: PropTypes.func,

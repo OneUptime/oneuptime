@@ -10,18 +10,18 @@ import { openModal, closeModal } from '../../actions/modal';
 export class ProjectRestoreBox extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
     }
 
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'restoreProject' does not exist on type '... Remove this comment to see the full error message
+
         const { restoreProject, project } = this.props;
         return restoreProject(project._id);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { isRequesting } = this.props;
 
         return (
@@ -66,7 +66,7 @@ export class ProjectRestoreBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectRestoreBox.displayName = 'ProjectRestoreBox';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ restoreProject, openModal, closeModal }, dispatch);
@@ -82,14 +82,14 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectRestoreBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     project: PropTypes.object.isRequired,
     restoreProject: PropTypes.func.isRequired,
 };
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 ProjectRestoreBox.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectRestoreBox);

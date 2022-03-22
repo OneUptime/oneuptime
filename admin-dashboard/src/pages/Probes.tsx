@@ -6,7 +6,7 @@ import ProbeList from '../components/probe/ProbeList';
 import { getProbes } from '../actions/probe';
 import ShouldRender from '../components/basic/ShouldRender';
 import { FormLoader } from '../components/basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import ProbeAddModal from '../components/probe/ProbeAddModal';
@@ -21,7 +21,7 @@ class Probes extends React.Component {
 
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getProbes' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.getProbes(0, 10);
     }
 
@@ -30,9 +30,9 @@ class Probes extends React.Component {
     }
 
     handleKeyboard = (event: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { modalId, modalList } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addModalId' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { addModalId } = this.state;
 
         if (event.target.localName === 'body' && event.key) {
@@ -51,26 +51,26 @@ class Probes extends React.Component {
     };
 
     prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getProbes' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.getProbes(
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getProbes' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.getProbes(skip + limit, 10);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page + 1 });
     };
 
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addModalId' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { addModalId } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: addModalId,
             onConfirm: () => true,
@@ -174,10 +174,10 @@ class Probes extends React.Component {
                                             </div>
                                         </div>
                                         <ProbeList
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ prevClicked: (skip: any, limit: any) => vo... Remove this comment to see the full error message
+
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                             page={this.state.page}
                                         />
                                     </div>
@@ -191,7 +191,7 @@ class Probes extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Probes.displayName = 'Probes';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
@@ -205,7 +205,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Probes.propTypes = {
     getProbes: PropTypes.func.isRequired,
     openModal: PropTypes.func,

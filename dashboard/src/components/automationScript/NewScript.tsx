@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field, FieldArray, reset } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
@@ -37,7 +37,7 @@ class NewScript extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetScripts' does not exist on type 'Re... Remove this comment to see the full error message
+
         this.props.resetScripts();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -47,7 +47,7 @@ class NewScript extends Component {
     }
 
     handleKeyBoard = (e: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleNewScript' does not exist on type ... Remove this comment to see the full error message
+
         if (e.key === 'Escape') this.props.toggleNewScript();
     };
 
@@ -92,21 +92,21 @@ class NewScript extends Component {
             return;
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { type, script } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProject' does not exist on type 'R... Remove this comment to see the full error message
+
         const { activeProject } = this.props;
         const payload = { ...values, scriptType: type, script };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAutomatedScript' does not exist on... Remove this comment to see the full error message
+
         this.props.createAutomatedScript(activeProject, payload).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAutomatedScript' does not exist on ... Remove this comment to see the full error message
+
             this.props.fetchAutomatedScript(activeProject, 0, 10);
             dispatch(reset('newScript'));
             this.setState({
                 type: 'JavaScript',
                 script: defaultScript,
             });
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleNewScript' does not exist on type ... Remove this comment to see the full error message
+
             this.props.toggleNewScript();
         });
     };
@@ -114,7 +114,7 @@ class NewScript extends Component {
     renderSuccessEvent = ({
         fields
     }: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { script, schedules, successEventValues } = this.props;
         const scheduleOption =
             schedules && schedules.length > 0
@@ -210,7 +210,7 @@ class NewScript extends Component {
                         </div>
                         <div
                             className="Box-root Flex-flex Flex-alignItems--center bs-script-btn"
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'false | "-27px"' is not assignable to type '... Remove this comment to see the full error message
+
                             style={{ marginBottom: index === 0 && '-27px' }}
                         >
                             <button
@@ -262,7 +262,7 @@ class NewScript extends Component {
     renderFailureEvent = ({
         fields
     }: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { script, schedules, failureEventValues } = this.props;
         const scheduleOption =
             schedules && schedules.length > 0
@@ -358,7 +358,7 @@ class NewScript extends Component {
                         </div>
                         <div
                             className="Box-root Flex-flex Flex-alignItems--center bs-script-btn"
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'false | "-27px"' is not assignable to type '... Remove this comment to see the full error message
+
                             style={{ marginBottom: index === 0 && '-27px' }}
                         >
                             <button
@@ -408,7 +408,7 @@ class NewScript extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addScriptsError' does not exist on type ... Remove this comment to see the full error message
+
         const { addScriptsError, requesting } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -432,7 +432,7 @@ class NewScript extends Component {
 
                         <form
                             id="form-new-component"
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
                             onSubmit={this.props.handleSubmit(this.submit)}
                         >
                             <div
@@ -485,7 +485,7 @@ class NewScript extends Component {
                                                                 },
                                                             ]}
                                                             value={
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                 this.state.type
                                                             }
                                                             updateState={(val: $TSFixMe) => this.setState({
@@ -502,8 +502,8 @@ class NewScript extends Component {
                                                         Script
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{...Remove this comment to see the full error message
-                                                            {this.state.type ===
+
+                                                        {this.state.type ===
                                                             'JavaScript' && (
                                                                 <AceEditor
                                                                     placeholder="Enter script here"
@@ -511,7 +511,7 @@ class NewScript extends Component {
                                                                     theme="github"
                                                                     value={
                                                                         this.state
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                                                                             .script
                                                                     }
                                                                     defaultValue={
@@ -526,7 +526,7 @@ class NewScript extends Component {
                                                                             '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
                                                                     }}
                                                                     name={`automated-script`}
-                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
+
                                                                     id="automatedScript"
                                                                     editorProps={{
                                                                         $blockScrolling: true,
@@ -551,8 +551,8 @@ class NewScript extends Component {
                                                                     }
                                                                 />
                                                             )}
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                            {this.state.type ===
+
+                                                        {this.state.type ===
                                                             'Bash' && (
                                                                 <AceEditor
                                                                     placeholder="echo Hello World"
@@ -560,7 +560,7 @@ class NewScript extends Component {
                                                                     theme="github"
                                                                     value={
                                                                         this.state
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'script' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                                                                             .script
                                                                     }
                                                                     defaultValue={
@@ -575,7 +575,7 @@ class NewScript extends Component {
                                                                             '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
                                                                     }}
                                                                     name={`automated-script`}
-                                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ placeholder: string; mode: string; theme: ... Remove this comment to see the full error message
+
                                                                     id="automatedScript"
                                                                     editorProps={{
                                                                         $blockScrolling: true,
@@ -636,7 +636,7 @@ class NewScript extends Component {
                                             component={this.renderSuccessEvent}
                                         />
                                         <ShouldRender
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'successEventError' does not exist on typ... Remove this comment to see the full error message
+
                                             if={this.state.successEventError}
                                         >
                                             <div
@@ -659,7 +659,7 @@ class NewScript extends Component {
                                                     >
                                                         {
                                                             this.state
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'successEventError' does not exist on typ... Remove this comment to see the full error message
+
                                                                 .successEventError
                                                         }
                                                     </span>
@@ -697,7 +697,7 @@ class NewScript extends Component {
                                             component={this.renderFailureEvent}
                                         />
                                         <ShouldRender
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'failureEventError' does not exist on typ... Remove this comment to see the full error message
+
                                             if={this.state.failureEventError}
                                         >
                                             <div
@@ -720,7 +720,7 @@ class NewScript extends Component {
                                                     >
                                                         {
                                                             this.state
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'failureEventError' does not exist on typ... Remove this comment to see the full error message
+
                                                                 .failureEventError
                                                         }
                                                     </span>
@@ -763,7 +763,7 @@ class NewScript extends Component {
                                         className="bs-Button bs-DeprecatedButton"
                                         title="Cancel"
                                         disabled={false}
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleNewScript' does not exist on type ... Remove this comment to see the full error message
+
                                         onClick={this.props.toggleNewScript}
                                     >
                                         <span>Cancel</span>
@@ -795,7 +795,7 @@ class NewScript extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 NewScript.displayName = 'NewScript';
 
 const NewScriptForm = new reduxForm({
@@ -839,7 +839,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 NewScript.propTypes = {
     createAutomatedScript: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,

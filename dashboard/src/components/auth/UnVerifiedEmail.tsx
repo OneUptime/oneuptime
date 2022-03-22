@@ -7,28 +7,28 @@ import { ListLoader } from '../basic/Loader';
 
 class UnVerifiedEmailBox extends Component {
     handleSendEmailVerification = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
         const { email } = this.props.initialValues;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'sendEmailVerificationLink' does not exis... Remove this comment to see the full error message
+
         this.props.sendEmailVerificationLink({ email });
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailVerificationRequesting' does not ex... Remove this comment to see the full error message
+
             emailVerificationRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailVerificationError' does not exist o... Remove this comment to see the full error message
+
             emailVerificationError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailVerificationData' does not exist on... Remove this comment to see the full error message
+
             emailVerificationData,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
             initialValues,
         } = this.props;
         let initialUserEmail;
         let email;
 
         if (initialValues) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
             initialUserEmail = this.props.initialValues.email;
             email = initialUserEmail;
             if (emailVerificationData.data) {
@@ -44,27 +44,27 @@ class UnVerifiedEmailBox extends Component {
                             !emailVerificationRequesting &&
                             !emailVerificationData.data) ||
                             initialUserEmail !== email) && (
-                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
-                                    <span>
-                                        Your email is not verified, Please click
-                                        the resend button if you did not receive
-                                        a verification link or check your email.
+                                <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                    <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                        <span>
+                                            Your email is not verified, Please click
+                                            the resend button if you did not receive
+                                            a verification link or check your email.
+                                        </span>
                                     </span>
-                                </span>
-                                <button
-                                    className="bs-Button bs-Button--grey"
-                                    disabled={emailVerificationRequesting}
-                                    type="button"
-                                    onClick={this.handleSendEmailVerification}
-                                >
-                                    <span>Resend email verification.</span>
-                                    {emailVerificationRequesting && (
-                                        <ListLoader />
-                                    )}
-                                </button>
-                            </div>
-                        )}
+                                    <button
+                                        className="bs-Button bs-Button--grey"
+                                        disabled={emailVerificationRequesting}
+                                        type="button"
+                                        onClick={this.handleSendEmailVerification}
+                                    >
+                                        <span>Resend email verification.</span>
+                                        {emailVerificationRequesting && (
+                                            <ListLoader />
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         {(emailVerificationError ||
                             emailVerificationData.data) &&
                             !emailVerificationRequesting &&
@@ -108,10 +108,10 @@ function mapStateToProps(state: $TSFixMe) {
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ sendEmailVerificationLink }, dispatch);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 UnVerifiedEmailBox.displayName = 'UnVerifiedEmailBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 UnVerifiedEmailBox.propTypes = {
     initialValues: PropTypes.object,
     emailVerificationRequesting: PropTypes.bool,

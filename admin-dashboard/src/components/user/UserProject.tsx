@@ -7,29 +7,29 @@ import { fetchUserProjects } from '../../actions/project';
 
 class UserProject extends React.Component {
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.state = { page: 1 };
     }
     prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { userId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserProjects' does not exist on typ... Remove this comment to see the full error message
+
         this.props.fetchUserProjects(
             userId,
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { userId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserProjects' does not exist on typ... Remove this comment to see the full error message
+
         this.props.fetchUserProjects(userId, skip + limit, 10);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page + 1 });
     };
     render() {
@@ -56,13 +56,13 @@ class UserProject extends React.Component {
                             </div>
                         </div>
                         <ProjectList
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projects: any; prevClicked: (skip: any, li... Remove this comment to see the full error message
+
                             projects={this.props.projects || {}}
                             prevClicked={this.prevClicked}
                             nextClicked={this.nextClicked}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                             userId={this.props.userId}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                             page={this.state.page}
                         />
                     </div>
@@ -72,7 +72,7 @@ class UserProject extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 UserProject.displayName = 'UserProject';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
@@ -87,7 +87,7 @@ const mapStateToProps = (state: $TSFixMe) => {
         projects: state.project.userProjects,
     };
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 UserProject.propTypes = {
     fetchUserProjects: PropTypes.func.isRequired,
     userId: PropTypes.string,

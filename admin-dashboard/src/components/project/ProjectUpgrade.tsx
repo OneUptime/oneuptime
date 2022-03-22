@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -14,7 +14,7 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.planId)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Stripe PlanID is required!';
     }
 
@@ -47,9 +47,9 @@ class ProjectUpgrade extends Component {
     }
 
     shouldTogglePlans = (prevState: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isAnnual' does not exist on type 'Readon... Remove this comment to see the full error message
+
         if (this.state.isAnnual !== prevState.isAnnual) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isAnnual' does not exist on type 'Readon... Remove this comment to see the full error message
+
             if (this.state.isAnnual) {
                 this.setState({
                     plans: this.getPlansFromToggle('annual', this.plansArr),
@@ -63,12 +63,12 @@ class ProjectUpgrade extends Component {
     };
 
     handlePlanToggle = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isAnnual' does not exist on type 'Readon... Remove this comment to see the full error message
+
         this.setState(prevState => ({ isAnnual: !prevState.isAnnual }));
     };
 
     submit = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { project, changePlan } = this.props;
         let oldPlan, newPlan;
         const { _id, name, stripePlanId } = project;
@@ -82,31 +82,31 @@ class ProjectUpgrade extends Component {
             oldPlan = this.enterprisePlan.category;
 
             const {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
+
                 category: newCategory,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
+
                 type: newType,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
+
                 details: newDetails,
             } = PricingPlan.getPlanById(values.planId);
             newPlan = `${newCategory} ${newType}ly (${newDetails})`;
         } else {
             const {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
+
                 category: oldCategory,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
+
                 type: oldType,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
+
                 details: oldDetails,
             } = PricingPlan.getPlanById(stripePlanId);
             oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
 
             const {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'category' does not exist on type '{ cate... Remove this comment to see the full error message
+
                 category: newCategory,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ category... Remove this comment to see the full error message
+
                 type: newType,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'details' does not exist on type '{ categ... Remove this comment to see the full error message
+
                 details: newDetails,
             } = PricingPlan.getPlanById(values.planId);
             newPlan = `${newCategory} ${newType}ly (${newDetails})`;
@@ -117,9 +117,9 @@ class ProjectUpgrade extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, isRequesting, error, activeForm } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isAnnual' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { isAnnual, plans } = this.state;
 
         return (
@@ -184,12 +184,11 @@ class ProjectUpgrade extends Component {
                                                         }}
                                                     >
                                                         <div
-                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
-                                                                activeForm ===
-                                                                plan.planId
+                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${activeForm ===
+                                                                    plan.planId
                                                                     ? 'price-list-item--active'
                                                                     : ''
-                                                            }`}
+                                                                }`}
                                                             style={{
                                                                 flex: 1,
                                                                 padding: 0,
@@ -206,7 +205,7 @@ class ProjectUpgrade extends Component {
                                                                         plan.category
                                                                     }{' '}
                                                                     {plan.type ===
-                                                                    'month'
+                                                                        'month'
                                                                         ? 'Monthly'
                                                                         : 'Yearly'}{' '}
                                                                     Plan
@@ -243,12 +242,11 @@ class ProjectUpgrade extends Component {
                                                         }}
                                                     >
                                                         <div
-                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${
-                                                                activeForm ===
-                                                                'enterprise'
+                                                            className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${activeForm ===
+                                                                    'enterprise'
                                                                     ? 'price-list-item--active'
                                                                     : ''
-                                                            }`}
+                                                                }`}
                                                             style={{
                                                                 flex: 1,
                                                                 padding: 0,
@@ -362,10 +360,10 @@ class ProjectUpgrade extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectUpgrade.displayName = 'Project Upgrade';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectUpgrade.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     isRequesting: PropTypes.bool,

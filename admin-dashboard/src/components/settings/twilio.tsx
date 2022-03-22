@@ -1,7 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
@@ -14,22 +14,22 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values['account-sid'])) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         errors['account-sid'] = 'Account SID is not valid.';
     }
 
     if (!Validate.text(values['authentication-token'])) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         errors['authentication-token'] = 'Authentication token is not valid.';
     }
 
     if (!Validate.text(values.phone)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'phone' does not exist on type '{}'.
+
         errors.phone = 'Phone is not valid.';
     }
 
     if (!Validate.number(values['alert-limit'])) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         errors['alert-limit'] = 'Alert limit is not valid.';
     }
 
@@ -109,17 +109,17 @@ const fields = [
 export class Component extends React.Component {
     handleKeyBoard: $TSFixMe;
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSettings' does not exist on type 'R... Remove this comment to see the full error message
+
         await this.props.fetchSettings(settingsType);
     }
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'saveSettings' does not exist on type 'Re... Remove this comment to see the full error message
+
         this.props.saveSettings(settingsType, values);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'settings' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { settings, handleSubmit } = this.props;
         return (
             <div
@@ -233,10 +233,10 @@ export class Component extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Component.displayName = 'SettingsForm';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Component.propTypes = {
     settings: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,

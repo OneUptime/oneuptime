@@ -9,7 +9,7 @@ import { renewAlertLimit } from '../../actions/project';
 export class ProjectAlertLimitBox extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             alertLimit:
@@ -25,15 +25,15 @@ export class ProjectAlertLimitBox extends Component {
     };
 
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'renewAlertLimit' does not exist on type ... Remove this comment to see the full error message
+
         const { renewAlertLimit, project } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertLimit' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { alertLimit } = this.state;
         renewAlertLimit(project._id, alertLimit);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { requesting } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -66,7 +66,7 @@ export class ProjectAlertLimitBox extends Component {
                                                         placeholder="100"
                                                         value={
                                                             this.state
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertLimit' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                 .alertLimit
                                                         }
                                                         onChange={this.onChange}
@@ -103,7 +103,7 @@ export class ProjectAlertLimitBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectAlertLimitBox.displayName = 'ProjectAlertLimitBox';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ renewAlertLimit }, dispatch);
@@ -119,14 +119,14 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectAlertLimitBox.propTypes = {
     project: PropTypes.object,
     renewAlertLimit: PropTypes.func,
     requesting: PropTypes.bool,
 };
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 ProjectAlertLimitBox.contextTypes = {};
 
 export default connect(

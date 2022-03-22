@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'huma... Remove this comment to see the full error message
+
 import humanize from 'humanize-duration';
 import { ListLoader } from '../basic/Loader';
 import {
@@ -28,13 +28,13 @@ class MembersList extends Component {
 
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getActiveMembers' does not exist on type... Remove this comment to see the full error message
+
             getActiveMembers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate,
         } = this.props;
 
@@ -42,7 +42,7 @@ class MembersList extends Component {
             currentProject,
             startDate,
             endDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             this.state.skip,
             10
         );
@@ -58,18 +58,18 @@ class MembersList extends Component {
         } = nextProps;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate !== this.props.startDate ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate !== this.props.endDate ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject !== this.props.currentProject
         ) {
             getActiveMembers(
                 currentProject,
                 startDate,
                 endDate,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 this.state.skip,
                 10
             );
@@ -85,21 +85,21 @@ class MembersList extends Component {
     handleNext(event: $TSFixMe) {
         event.preventDefault();
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getActiveMembers' does not exist on type... Remove this comment to see the full error message
+
             getActiveMembers,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const skip = this.state.skip + this.state.limit;
         getActiveMembers(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             page: this.state.page + 1,
         });
     }
@@ -107,45 +107,45 @@ class MembersList extends Component {
     handlePrevious(event: $TSFixMe) {
         event.preventDefault();
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getActiveMembers' does not exist on type... Remove this comment to see the full error message
+
             getActiveMembers,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const skip = this.state.skip - this.state.limit;
         getActiveMembers(currentProject, startDate, endDate, skip, 10);
         this.setState({
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     }
 
     render() {
         const count =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.activeMembers &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.activeMembers.members &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.activeMembers.members.length;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         let canNext = count > this.state.skip + this.state.limit ? true : false;
         let canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.activeMembers && this.state.skip <= 0 ? false : true;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.activeMembers &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
             (this.props.activeMembers.requesting ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
                 !this.props.activeMembers.members)
         ) {
             canNext = false;
@@ -219,7 +219,7 @@ class MembersList extends Component {
                                 </td>
                                 <td
                                     id="overflow"
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -231,7 +231,7 @@ class MembersList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'members' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                             {this.state.members.map((member: $TSFixMe) => {
                                 const {
                                     memberName,
@@ -367,10 +367,10 @@ class MembersList extends Component {
                         </tbody>
                     </table>
                 </div>
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
                 {this.props.activeMembers &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
-                this.props.activeMembers.requesting ? (
+
+                    this.props.activeMembers.requesting ? (
                     <ListLoader />
                 ) : null}
                 <div
@@ -380,21 +380,21 @@ class MembersList extends Component {
                         padding: '0 10px',
                     }}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
                     {this.props.activeMembers &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
-                    (!this.props.activeMembers.members ||
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
-                        !this.props.activeMembers.members.length) &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
-                    !this.props.activeMembers.requesting &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
-                    !this.props.activeMembers.error
+
+                        (!this.props.activeMembers.members ||
+
+                            !this.props.activeMembers.members.length) &&
+
+                        !this.props.activeMembers.requesting &&
+
+                        !this.props.activeMembers.error
                         ? "We don't have any reports for this period"
                         : null}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
                     {this.props.activeMembers && this.props.activeMembers.error
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeMembers' does not exist on type 'R... Remove this comment to see the full error message
+
                         ? this.props.activeMembers.error
                         : null}
                 </div>
@@ -404,12 +404,9 @@ class MembersList extends Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
-                                        ? `Page ${
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                              this.state.page
-                                          } of ${numberOfPages} (${count} Member${
-                                              count === 1 ? '' : 's'
-                                          })`
+                                        ? `Page ${this.state.page
+                                        } of ${numberOfPages} (${count} Member${count === 1 ? '' : 's'
+                                        })`
                                         : null}
                                 </span>
                             </span>
@@ -478,10 +475,10 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MembersList.displayName = 'MembersList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MembersList.propTypes = {
     getActiveMembers: PropTypes.func,
     activeMembers: PropTypes.object,

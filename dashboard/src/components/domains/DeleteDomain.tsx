@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
@@ -15,7 +15,7 @@ import {
 
 class DeleteDomain extends Component {
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetDeleteProjectDomain' does not exist... Remove this comment to see the full error message
+
         this.props.resetDeleteProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -36,26 +36,26 @@ class DeleteDomain extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainId' does not exist on type 'Readon... Remove this comment to see the full error message
+
             id: this.props.domainId,
         });
     };
 
     handleDelete = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteError' does not exist on type 'Rea... Remove this comment to see the full error message
+
             deleteError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainId' does not exist on type 'Readon... Remove this comment to see the full error message
+
             domainId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteProjectDomain' does not exist on t... Remove this comment to see the full error message
+
             deleteProjectDomain,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectDomains' does not exist on t... Remove this comment to see the full error message
+
             fetchProjectDomains,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
         } = this.props;
 
@@ -68,7 +68,7 @@ class DeleteDomain extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { isRequesting, deleteError } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -170,10 +170,10 @@ class DeleteDomain extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DeleteDomain.displayName = 'DeleteDomain';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DeleteDomain.propTypes = {
     isRequesting: PropTypes.bool,
     deleteError: PropTypes.string,

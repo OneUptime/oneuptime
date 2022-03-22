@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 
 class DisabledMessage extends Component {
@@ -16,7 +16,7 @@ class DisabledMessage extends Component {
         switch (e.key) {
             case 'Escape':
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -24,7 +24,7 @@ class DisabledMessage extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
         const { closeThisDialog } = this.props;
         return (
             <div
@@ -63,7 +63,7 @@ class DisabledMessage extends Component {
                                                 textAlign: 'center',
                                             }}
                                             type="button"
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                                             onClick={this.props.closeThisDialog}
                                             autoFocus={true}
                                         >
@@ -83,10 +83,10 @@ class DisabledMessage extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DisabledMessage.displayName = 'DisabledMessage';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DisabledMessage.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
 };

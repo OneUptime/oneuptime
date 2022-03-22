@@ -19,7 +19,7 @@ export class ProjectDetails extends Component {
                                             type="submit"
                                             style={{ float: 'right' }}
                                             onClick={() =>
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+
                                                 (window.location = `${DASHBOARD_URL}/project/${this.props.project.slug}`)
                                             }
                                         >
@@ -68,14 +68,14 @@ export class ProjectDetails extends Component {
                                                             marginTop: '6px',
                                                         }}
                                                     >
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                         {this.props.project !==
                                                             null &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                        this.props.project.name
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
+                                                            this.props.project.name
+
                                                             ? this.props.project
-                                                                  .name
+                                                                .name
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
@@ -108,14 +108,14 @@ export class ProjectDetails extends Component {
                                                             marginTop: '6px',
                                                         }}
                                                     >
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                         {this.props.project !==
                                                             null &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                        this.props.project._id
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
+                                                            this.props.project._id
+
                                                             ? this.props.project
-                                                                  ._id
+                                                                ._id
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
@@ -148,15 +148,15 @@ export class ProjectDetails extends Component {
                                                             marginTop: '6px',
                                                         }}
                                                     >
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                         {this.props.project !==
                                                             null &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                        this.props.project
-                                                            .apiKey
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
+                                                            this.props.project
+                                                                .apiKey
+
                                                             ? this.props.project
-                                                                  .apiKey
+                                                                .apiKey
                                                             : 'LOADING...'}
                                                     </span>
                                                 </div>
@@ -194,57 +194,55 @@ export class ProjectDetails extends Component {
                                                     >
                                                         {
                                                             <div
-                                                                className={`Badge Badge--color--${
-                                                                    this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+                                                                className={`Badge Badge--color--${this.props
+
                                                                         .project
                                                                         .deleted
                                                                         ? 'red'
                                                                         : this
-                                                                              .props
-                                                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                              .project
-                                                                              .isBlocked
-                                                                        ? 'yellow'
-                                                                        : 'green'
-                                                                } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                                            .props
+
+                                                                            .project
+                                                                            .isBlocked
+                                                                            ? 'yellow'
+                                                                            : 'green'
+                                                                    } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                             >
                                                                 <span
-                                                                    className={`Badge-text Text-color--${
-                                                                        this
+                                                                    className={`Badge-text Text-color--${this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                             .project
                                                                             .deleted
                                                                             ? 'red'
                                                                             : this
-                                                                                  .props
-                                                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                  .project
-                                                                                  .isBlocked
-                                                                            ? 'yellow'
-                                                                            : 'green'
-                                                                    } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                                                                                .props
+
+                                                                                .project
+                                                                                .isBlocked
+                                                                                ? 'yellow'
+                                                                                : 'green'
+                                                                        } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                 >
                                                                     <span>
                                                                         {this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                             .project !==
-                                                                        null
+                                                                            null
                                                                             ? this
-                                                                                  .props
-                                                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                  .project
-                                                                                  .deleted
+                                                                                .props
+
+                                                                                .project
+                                                                                .deleted
                                                                                 ? 'Deleted'
                                                                                 : this
-                                                                                      .props
-                                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                                                                      .project
-                                                                                      .isBlocked
-                                                                                ? 'Blocked'
-                                                                                : 'Active'
+                                                                                    .props
+
+                                                                                    .project
+                                                                                    .isBlocked
+                                                                                    ? 'Blocked'
+                                                                                    : 'Active'
                                                                             : 'LOADING...'}
                                                                     </span>
                                                                 </span>
@@ -270,7 +268,7 @@ export class ProjectDetails extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectDetails.displayName = 'ProjectDetails';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -283,12 +281,12 @@ const mapStateToProps = (state: $TSFixMe) => {
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectDetails.propTypes = {
     project: PropTypes.object.isRequired,
 };
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 ProjectDetails.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectDetails);

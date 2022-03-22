@@ -77,7 +77,7 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                             </td>
                             <td
                                 id="overflow"
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                 type="action"
                                 className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                 style={{ height: '1px' }}
@@ -130,8 +130,8 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                                 {log.probeId
                                                                     .probeName
                                                                     ? log
-                                                                          .probeId
-                                                                          .probeName
+                                                                        .probeId
+                                                                        .probeName
                                                                     : 'Unknown Probe'}
                                                             </span>
                                                         </div>
@@ -170,9 +170,9 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                                 ) {
                                                                     history.push(
                                                                         '/dashboard/profile/' +
-                                                                            log
-                                                                                .createdById
-                                                                                ._id
+                                                                        log
+                                                                            .createdById
+                                                                            ._id
                                                                     );
                                                                 }
                                                             }}
@@ -180,9 +180,9 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                             <img
                                                                 src={
                                                                     log.createdById &&
-                                                                    log
-                                                                        .createdById
-                                                                        .name
+                                                                        log
+                                                                            .createdById
+                                                                            .name
                                                                         ? '/dashboard/assets/img/profile-user.svg'
                                                                         : '/dashboard/assets/img/ou-wb.svg'
                                                                 }
@@ -193,20 +193,20 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                                         '-5px',
                                                                     backgroundColor:
                                                                         log.createdById &&
-                                                                        log
-                                                                            .createdById
-                                                                            .name
+                                                                            log
+                                                                                .createdById
+                                                                                .name
                                                                             ? '#fff'
                                                                             : '#121212',
                                                                 }}
                                                             />
                                                             <span>
                                                                 {log.createdById &&
-                                                                log.createdById
-                                                                    .name
+                                                                    log.createdById
+                                                                        .name
                                                                     ? log
-                                                                          .createdById
-                                                                          .name
+                                                                        .createdById
+                                                                        .name
                                                                     : 'OneUptime'}
                                                             </span>
                                                         </div>
@@ -229,19 +229,19 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                                             <span>
                                                                                 {currentTimeZone
                                                                                     ? momentTz(
-                                                                                          log.createdAt
-                                                                                      )
-                                                                                          .tz(
-                                                                                              currentTimeZone
-                                                                                          )
-                                                                                          .format(
-                                                                                              'lll'
-                                                                                          )
+                                                                                        log.createdAt
+                                                                                    )
+                                                                                        .tz(
+                                                                                            currentTimeZone
+                                                                                        )
+                                                                                        .format(
+                                                                                            'lll'
+                                                                                        )
                                                                                     : moment(
-                                                                                          log.createdAt
-                                                                                      ).format(
-                                                                                          'lll'
-                                                                                      )}
+                                                                                        log.createdAt
+                                                                                    ).format(
+                                                                                        'lll'
+                                                                                    )}
                                                                             </span>
                                                                         </span>
                                                                     </div>
@@ -263,10 +263,10 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                             <div className="Box-root Flex-flex">
                                                                 <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                     {log &&
-                                                                    log.status &&
-                                                                    (log.status ===
-                                                                        'closed' ||
-                                                                        log.status ===
+                                                                        log.status &&
+                                                                        (log.status ===
+                                                                            'closed' ||
+                                                                            log.status ===
                                                                             'offline') ? (
                                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
@@ -278,11 +278,11 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                                             </span>
                                                                         </div>
                                                                     ) : log &&
-                                                                      log.status &&
-                                                                      (log.status ===
-                                                                          'resolved' ||
-                                                                          log.status ===
-                                                                              'online') ? (
+                                                                        log.status &&
+                                                                        (log.status ===
+                                                                            'resolved' ||
+                                                                            log.status ===
+                                                                            'online') ? (
                                                                         <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                 <span>
@@ -293,11 +293,11 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                                             </span>
                                                                         </div>
                                                                     ) : log &&
-                                                                      log.status &&
-                                                                      (log.status ===
-                                                                          'acknowledged' ||
-                                                                          log.status ===
-                                                                              'degraded') ? (
+                                                                        log.status &&
+                                                                        (log.status ===
+                                                                            'acknowledged' ||
+                                                                            log.status ===
+                                                                            'degraded') ? (
                                                                         <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                 <span>
@@ -308,13 +308,13 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                                             </span>
                                                                         </div>
                                                                     ) : log &&
-                                                                      log.status &&
-                                                                      (log.status ===
-                                                                          'created' ||
-                                                                          log.status ===
-                                                                              'internal notes added' ||
-                                                                          log.status ===
-                                                                              'investigation notes added') ? (
+                                                                        log.status &&
+                                                                        (log.status ===
+                                                                            'created' ||
+                                                                            log.status ===
+                                                                            'internal notes added' ||
+                                                                            log.status ===
+                                                                            'investigation notes added') ? (
                                                                         <div className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--blue Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                 <span>
@@ -325,11 +325,11 @@ const IncidentTimelineList = (props: $TSFixMe) => {
                                                                             </span>
                                                                         </div>
                                                                     ) : log &&
-                                                                      log.status &&
-                                                                      (log.status ===
-                                                                          'internal notes updated' ||
-                                                                          log.status ===
-                                                                              'investigation notes updated') ? (
+                                                                        log.status &&
+                                                                        (log.status ===
+                                                                            'internal notes updated' ||
+                                                                            log.status ===
+                                                                            'investigation notes updated') ? (
                                                                         <div className="Badge Badge--color--purple Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                             <span className="Badge-text Text-color--purple Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                 <span>

@@ -37,27 +37,27 @@ class Tutorial extends React.Component {
                         height="75"
                         width="75"
                         style={{
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | null' is not assignable to type 'Wi... Remove this comment to see the full error message
+
                             width:
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                 this.props.type === 'gitCredentials'
                                     ? '6rem'
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                     : this.props.type === 'dockerCredentials'
-                                    ? '4rem'
-                                    : null,
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | null' is not assignable to type 'He... Remove this comment to see the full error message
+                                        ? '4rem'
+                                        : null,
+
                             height:
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                 this.props.type === 'gitCredentials'
                                     ? '8rem'
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                     : this.props.type === 'dockerCredentials'
-                                    ? '4rem'
-                                    : null,
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '"cover" | null' is not assignable to type 'O... Remove this comment to see the full error message
+                                        ? '4rem'
+                                        : null,
+
                             objectFit:
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                 this.props.type === 'gitCredentials'
                                     ? 'cover'
                                     : null,
@@ -85,8 +85,8 @@ class Tutorial extends React.Component {
 
     loopCard() {
         const self = this;
-        setInterval(function() {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentSlide' does not exist on type 'Re... Remove this comment to see the full error message
+        setInterval(function () {
+
             const { currentSlide } = self.state;
             if (currentSlide === 's1') self.changeSlide('s2');
 
@@ -101,9 +101,9 @@ class Tutorial extends React.Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deprecated' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { deprecated, type } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentSlide' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { currentSlide } = this.state;
 
         const note = tutorials
@@ -268,10 +268,10 @@ class Tutorial extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Tutorial.displayName = 'Tutorial';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Tutorial.propTypes = {
     deprecated: PropTypes.bool,
     type: PropTypes.string,

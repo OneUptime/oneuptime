@@ -17,51 +17,51 @@ import Badge from '../common/Badge';
 export class MonitorTabularList extends Component {
     render() {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors.skip &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             typeof this.props.monitors.skip === 'string'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors.skip = parseInt(this.props.monitors.skip, 10);
         }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors.limit &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             typeof this.props.monitors.limit === 'string'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors.limit = parseInt(this.props.monitors.limit, 10);
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
         if (!this.props.monitors.skip) this.props.monitors.skip = 0;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
         if (!this.props.monitors.limit) this.props.monitors.limit = 0;
 
         let canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-            this.props.monitors.count &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-            this.props.monitors.count >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
+                this.props.monitors.count &&
+
+                this.props.monitors.count >
+
                 this.props.monitors.skip + this.props.monitors.limit
                 ? true
                 : false;
         let canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors && this.props.monitors.skip <= 0 ? false : true;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.monitors &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             (this.props.monitors.requesting || !this.props.monitors)
         ) {
             canNext = false;
@@ -159,39 +159,39 @@ export class MonitorTabularList extends Component {
                             </tr>
                         </thead>
                         <tbody className="Table-body">
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                             {this.props.monitors &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                            this.props.monitors &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                            this.props.monitors.length > 0 ? (
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
+                                this.props.monitors &&
+
+                                this.props.monitors.length > 0 ? (
+
                                 this.props.monitors.map((monitor: $TSFixMe, i: $TSFixMe) => {
                                     const probe =
                                         monitor &&
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
-                                        this.props.probes &&
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
-                                        this.props.probes.length > 0
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
+
+                                            this.props.probes &&
+
+                                            this.props.probes.length > 0
+
                                             ? this.props.probes[
-                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
-                                                  this.props.probes.length < 2
-                                                      ? 0
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
-                                                      : this.props.activeProbe
-                                              ]
+
+                                            this.props.probes.length < 2
+                                                ? 0
+
+                                                : this.props.activeProbe
+                                            ]
                                             : null;
 
                                     const { logs } = filterProbeData(
                                         monitor,
                                         probe,
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         this.props.startDate,
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                         this.props.endDate
                                     );
-                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+
                                     const status = getMonitorStatus(
                                         monitor.incidents,
                                         logs
@@ -207,16 +207,16 @@ export class MonitorTabularList extends Component {
                                             onClick={() => {
                                                 history.push(
                                                     '/dashboard/project/' +
-                                                        this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
-                                                            .currentProject
-                                                            .slug +
-                                                        '/component/' +
-                                                        this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                                                            .componentSlug +
-                                                        '/monitoring/' +
-                                                        monitor.slug
+                                                    this.props
+
+                                                        .currentProject
+                                                        .slug +
+                                                    '/component/' +
+                                                    this.props
+
+                                                        .componentSlug +
+                                                    '/monitoring/' +
+                                                    monitor.slug
                                                 );
                                             }}
                                         >
@@ -378,19 +378,19 @@ export class MonitorTabularList extends Component {
                     </table>
                 </div>
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                 {(this.props.monitors && this.props.monitors.requesting) ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
-                (this.props.monitorState &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
-                    this.props.monitorState.fetchMonitorsIncidentRequest &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                    this.props.monitors &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                    this.props.monitors[0] &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
-                    this.props.monitorState.fetchMonitorsIncidentRequest ===
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
+                    (this.props.monitorState &&
+
+                        this.props.monitorState.fetchMonitorsIncidentRequest &&
+
+                        this.props.monitors &&
+
+                        this.props.monitors[0] &&
+
+                        this.props.monitorState.fetchMonitorsIncidentRequest ===
+
                         this.props.monitors[0].monitorId) ? (
                     <ListLoader />
                 ) : null}
@@ -402,19 +402,19 @@ export class MonitorTabularList extends Component {
                         padding: '0 10px',
                     }}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     {this.props.monitors &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                    (!this.props.monitors || !this.props.monitors.length) &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                    !this.props.monitors.requesting &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                    !this.props.monitors.error
+
+                        (!this.props.monitors || !this.props.monitors.length) &&
+
+                        !this.props.monitors.requesting &&
+
+                        !this.props.monitors.error
                         ? "We don't have any monitors added yet"
                         : null}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     {this.props.monitors && this.props.monitors.error
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         ? this.props.monitors.error
                         : null}
                 </div>
@@ -423,18 +423,18 @@ export class MonitorTabularList extends Component {
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                     {this.props.monitors &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                                    this.props.monitors.count
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
+                                        this.props.monitors.count
+
                                         ? this.props.monitors.count +
-                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                                          (this.props.monitors &&
-                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                                          this.props.monitors.count > 1
-                                              ? ' Monitors'
-                                              : ' Monitor')
+
+                                        (this.props.monitors &&
+
+                                            this.props.monitors.count > 1
+                                            ? ' Monitors'
+                                            : ' Monitor')
                                         : null}
                                 </span>
                             </span>
@@ -446,16 +446,16 @@ export class MonitorTabularList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.prevClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                             this.props.monitors
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                 ? this.props.monitors._id
                                                 : null,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                             this.props.monitors.skip,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                             this.props.monitors.limit
                                         );
                                     }}
@@ -478,16 +478,16 @@ export class MonitorTabularList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.nextClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                             this.props.monitors
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                 ? this.props.monitors._id
                                                 : null,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                             this.props.monitors.skip,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                             this.props.monitors.limit
                                         );
                                     }}
@@ -534,10 +534,10 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorTabularList.displayName = 'MonitorTabularList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorTabularList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,

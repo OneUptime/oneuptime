@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import {
@@ -15,7 +15,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { setRevealVariable } from '../../actions/smsTemplates';
 import { openModal, closeModal } from '../../actions/modal';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import ResetSmsTemplate from '../modals/ResetSmsTemplate';
@@ -37,7 +37,7 @@ const bulletpoints = {
 function validate(values: $TSFixMe) {
     const errors = {};
     if (!Validate.text(values.body)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type '{}'.
+
         errors.body = 'Please enter sms body';
     }
     return errors;
@@ -46,38 +46,38 @@ function validate(values: $TSFixMe) {
 export class SmsTemplatesFormBox extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             openSmsTemplateResetModalId: uuidv4(),
         };
     }
     resetTemplate = (id: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetTemplate' does not exist on type 'R... Remove this comment to see the full error message
+
         const promise = this.props.resetTemplate(id);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSmsTemplateResetModalId' does not ex... Remove this comment to see the full error message
+
             id: this.state.openSmsTemplateResetModalId,
         });
         return promise;
     };
     closeModalLocal() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSmsTemplateResetModalId' does not ex... Remove this comment to see the full error message
+
             id: this.state.openSmsTemplateResetModalId,
         });
     }
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'template' does not exist on type 'Readon... Remove this comment to see the full error message
+
             template,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editSmsTemplates' does not exist on type... Remove this comment to see the full error message
+
             editSmsTemplates,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSmsTemplates' does not exist on typ... Remove this comment to see the full error message
+
             resetSmsTemplates,
         } = this.props;
         return (
@@ -91,7 +91,7 @@ export class SmsTemplatesFormBox extends Component {
                             <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                 <span>
                                     {template
-                                        // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
+
                                         ? smsTemplateTitles[[template.smsType]]
                                         : 'Default SMS Template'}
                                 </span>
@@ -100,9 +100,9 @@ export class SmsTemplatesFormBox extends Component {
                                 <span>
                                     {template
                                         ? smsTemplateDescriptions[
-                                              // @ts-expect-error ts-migrate(2538) FIXME: Type 'any[]' cannot be used as an index type.
-                                              [template.smsType]
-                                          ]
+
+                                        [template.smsType]
+                                        ]
                                         : 'Default SMS Template'}
                                 </span>
                             </p>
@@ -110,7 +110,7 @@ export class SmsTemplatesFormBox extends Component {
                     </div>
                     <form
                         id="frmSmsTemplate"
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'submitForm' does not exist on type 'Read... Remove this comment to see the full error message
+
                         onSubmit={handleSubmit(this.props.submitForm)}
                     >
                         <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
@@ -149,12 +149,12 @@ export class SmsTemplatesFormBox extends Component {
                                                 if={
                                                     !(
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariable' does not exist on type '... Remove this comment to see the full error message
+
                                                             .revealVariable &&
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariable' does not exist on type '... Remove this comment to see the full error message
+
                                                             .revealVariable ===
-                                                            template.smsType
+                                                        template.smsType
                                                     )
                                                 }
                                             >
@@ -168,7 +168,7 @@ export class SmsTemplatesFormBox extends Component {
                                                     <button
                                                         className="button-as-anchor"
                                                         onClick={() =>
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setRevealVariable' does not exist on typ... Remove this comment to see the full error message
+
                                                             this.props.setRevealVariable(
                                                                 template.smsType
                                                             )
@@ -182,12 +182,12 @@ export class SmsTemplatesFormBox extends Component {
                                             </ShouldRender>
                                             <ShouldRender
                                                 if={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariable' does not exist on type '... Remove this comment to see the full error message
+
                                                     this.props.revealVariable &&
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariable' does not exist on type '... Remove this comment to see the full error message
+
                                                         .revealVariable ===
-                                                        template.smsType
+                                                    template.smsType
                                                 }
                                             >
                                                 <span
@@ -216,7 +216,7 @@ export class SmsTemplatesFormBox extends Component {
                                                                     <span
                                                                         key={j}
                                                                         className="template-variables"
-                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ display: string; listStyleType: string; li... Remove this comment to see the full error message
+
                                                                         style={
                                                                             bulletpoints
                                                                         }
@@ -304,10 +304,10 @@ export class SmsTemplatesFormBox extends Component {
                                         className="bs-Button"
                                         type="button"
                                         onClick={() =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.openModal({
                                                 id: this.state
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSmsTemplateResetModalId' does not ex... Remove this comment to see the full error message
+
                                                     .openSmsTemplateResetModalId,
                                                 onClose: () => '',
                                                 onConfirm: () =>
@@ -367,10 +367,10 @@ export class SmsTemplatesFormBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SmsTemplatesFormBox.displayName = 'SmsTemplatesFormBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SmsTemplatesFormBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     setRevealVariable: PropTypes.func.isRequired,

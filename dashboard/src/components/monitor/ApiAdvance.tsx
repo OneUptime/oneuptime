@@ -2,7 +2,7 @@ import React from 'react';
 //import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, FieldArray, formValueSelector, arrayPush } from 'redux-form';
 import { RenderTextArea } from '../basic/RenderTextArea';
 import PropTypes from 'prop-types';
@@ -28,7 +28,7 @@ const textboxstyle = {
 const newSelector = formValueSelector('NewMonitor');
 export class ApiAdvance extends Component {
     addValue = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushArray' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.pushArray('NewMonitor', `headers_${this.props.index}`, {
             key: '',
             value: '',
@@ -36,7 +36,7 @@ export class ApiAdvance extends Component {
     };
 
     addRows = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pushArray' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.pushArray('NewMonitor', `formData_${this.props.index}`, {
             key: '',
             value: '',
@@ -44,7 +44,7 @@ export class ApiAdvance extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'bodytype' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { bodytype } = this.props;
         return (
             <div
@@ -87,7 +87,7 @@ export class ApiAdvance extends Component {
                                 <fieldset className="bs-Fieldset">
                                     <div className="bs-Fieldset-rows">
                                         <FieldArray
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                             name={`headers_${this.props.index}`}
                                             component={RenderHeaders}
                                         />
@@ -146,7 +146,7 @@ export class ApiAdvance extends Component {
                                                 <Field
                                                     className="db-select-nw"
                                                     component={RenderSelect}
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                     name={`bodyType_${this.props.index}`}
                                                     id="bodyType"
                                                     placeholder="Body Type"
@@ -207,11 +207,11 @@ export class ApiAdvance extends Component {
                                             if={
                                                 bodytype === 'form-data' ||
                                                 bodytype ===
-                                                    'x-www-form-urlencoded'
+                                                'x-www-form-urlencoded'
                                             }
                                         >
                                             <FieldArray
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                 name={`formData_${this.props.index}`}
                                                 component={RenderHeaders}
                                             />
@@ -238,18 +238,18 @@ export class ApiAdvance extends Component {
                                                             RenderTextArea
                                                         }
                                                         className="db-FeedbackForm-textarea fixed"
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'index' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                         name={`text_${this.props.index}`}
                                                         style={textboxstyle}
                                                         rows={10}
                                                         validate={
                                                             bodytype &&
-                                                            bodytype ===
+                                                                bodytype ===
                                                                 'application/json'
                                                                 ? [
-                                                                      ValidateField.required,
-                                                                      ValidateField.isJson,
-                                                                  ]
+                                                                    ValidateField.required,
+                                                                    ValidateField.isJson,
+                                                                ]
                                                                 : ValidateField.required
                                                         }
                                                     />
@@ -267,10 +267,10 @@ export class ApiAdvance extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ApiAdvance.displayName = 'ApiAdvance';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ApiAdvance.propTypes = {
     pushArray: PropTypes.func,
     bodytype: PropTypes.string,

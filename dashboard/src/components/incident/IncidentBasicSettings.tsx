@@ -1,5 +1,5 @@
 import React from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -8,7 +8,7 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { ValidateField } from '../../config';
 import {
-    // @ts-expect-error ts-migrate(2305) FIXME: Module '"../../actions/incidentBasicsSettings"' ha... Remove this comment to see the full error message
+
     updateBasicIncidentSettings,
     setRevealIncidentSettingsVariables,
 } from '../../actions/incidentBasicsSettings';
@@ -18,10 +18,10 @@ import { RenderSelect } from '../basic/RenderSelect';
 
 class IncidentBasicSettings extends React.Component {
     submit = async (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const projectId = this.props.currentProject._id;
         const { title, description, incidentPriority } = values;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateBasicIncidentSettings' does not ex... Remove this comment to see the full error message
+
         await this.props.updateBasicIncidentSettings(
             projectId,
             title,
@@ -30,7 +30,7 @@ class IncidentBasicSettings extends React.Component {
         );
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, reset } = this.props;
         return (
             <div
@@ -80,7 +80,7 @@ class IncidentBasicSettings extends React.Component {
                                                             id="incidentPriority"
                                                             name="incidentPriority"
                                                             options={[
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriorities' does not exist on ty... Remove this comment to see the full error message
+
                                                                 ...this.props.incidentPriorities.map(
                                                                     (incidentPriority: $TSFixMe) => ({
                                                                         value:
@@ -93,7 +93,7 @@ class IncidentBasicSettings extends React.Component {
                                                             ]}
                                                             disabled={
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentBasicSettings' does not ex... Remove this comment to see the full error message
+
                                                                     .updateIncidentBasicSettings
                                                                     .requesting
                                                             }
@@ -116,7 +116,7 @@ class IncidentBasicSettings extends React.Component {
                                                             }
                                                             disabled={
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentBasicSettings' does not ex... Remove this comment to see the full error message
+
                                                                     .updateIncidentBasicSettings
                                                                     .requesting
                                                             }
@@ -147,7 +147,7 @@ class IncidentBasicSettings extends React.Component {
                                                             wrapEnabled={true}
                                                             disabled={
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentBasicSettings' does not ex... Remove this comment to see the full error message
+
                                                                     .updateIncidentBasicSettings
                                                                     .requesting
                                                             }
@@ -161,7 +161,7 @@ class IncidentBasicSettings extends React.Component {
                                                         <ShouldRender
                                                             if={
                                                                 !this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariables' does not exist on type ... Remove this comment to see the full error message
+
                                                                     .revealVariables
                                                             }
                                                         >
@@ -174,7 +174,7 @@ class IncidentBasicSettings extends React.Component {
                                                             >
                                                                 <button
                                                                     onClick={() =>
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setRevealIncidentSettingsVariables' does... Remove this comment to see the full error message
+
                                                                         this.props.setRevealIncidentSettingsVariables(
                                                                             true
                                                                         )
@@ -192,7 +192,7 @@ class IncidentBasicSettings extends React.Component {
                                                         <ShouldRender
                                                             if={
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'revealVariables' does not exist on type ... Remove this comment to see the full error message
+
                                                                     .revealVariables
                                                             }
                                                         >
@@ -203,7 +203,7 @@ class IncidentBasicSettings extends React.Component {
                                                                         'block',
                                                                 }}
                                                             >
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'settingsVariables' does not exist on typ... Remove this comment to see the full error message
+
                                                                 {this.props.settingsVariables.map(
                                                                     (
                                                                         variable: $TSFixMe,
@@ -238,7 +238,7 @@ class IncidentBasicSettings extends React.Component {
                                         <ShouldRender
                                             if={
                                                 this.props
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentBasicSettings' does not ex... Remove this comment to see the full error message
+
                                                     .updateIncidentBasicSettings
                                                     .error
                                             }
@@ -262,7 +262,7 @@ class IncidentBasicSettings extends React.Component {
                                                         >
                                                             {
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentBasicSettings' does not ex... Remove this comment to see the full error message
+
                                                                     .updateIncidentBasicSettings
                                                                     .error
                                                             }
@@ -280,7 +280,7 @@ class IncidentBasicSettings extends React.Component {
                                                 type="button"
                                                 disabled={
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentBasicSettings' does not ex... Remove this comment to see the full error message
+
                                                         .updateIncidentBasicSettings
                                                         .requesting
                                                 }
@@ -300,7 +300,7 @@ class IncidentBasicSettings extends React.Component {
                                                 type="submit"
                                                 disabled={
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentBasicSettings' does not ex... Remove this comment to see the full error message
+
                                                         .updateIncidentBasicSettings
                                                         .requesting
                                                 }
@@ -308,7 +308,7 @@ class IncidentBasicSettings extends React.Component {
                                                 <div className="Box-root bs-Button bs-DeprecatedButton bs-Button--blue Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                     <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                         {this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncidentBasicSettings' does not ex... Remove this comment to see the full error message
+
                                                             .updateIncidentBasicSettings
                                                             .requesting ? (
                                                             <FormLoader />
@@ -330,9 +330,9 @@ class IncidentBasicSettings extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 IncidentBasicSettings.displayName = 'IncidentBasicSettings';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 IncidentBasicSettings.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,

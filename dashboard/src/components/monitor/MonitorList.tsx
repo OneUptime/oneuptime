@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -32,7 +32,7 @@ function MonitorList(props: $TSFixMe) {
                     subProjectId={monitor.projectId._id || monitor.projectId}
                 >
                     <MonitorDetail
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ shouldRenderProjectType: boolean; projectN... Remove this comment to see the full error message
+
                         shouldRenderProjectType={false}
                         projectName={props.projectName}
                         projectType={props.projectType}
@@ -59,7 +59,7 @@ function MonitorList(props: $TSFixMe) {
         <div>
             {monitorDetails}
 
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
             <div className="Box-root Card-shadow--medium" tabIndex="0">
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">

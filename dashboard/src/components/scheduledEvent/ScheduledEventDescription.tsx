@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -46,14 +46,14 @@ function ScheduledEventDescription({
         } else {
             return affectedMonitors.length <= 3
                 ? affectedMonitors
-                      // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'monitor' implicitly has an 'any' type.
-                      .map(monitor => capitalize(monitor.name))
-                      .join(', ')
-                      .replace(/, ([^,]*)$/, ' and $1')
+
+                    .map(monitor => capitalize(monitor.name))
+                    .join(', ')
+                    .replace(/, ([^,]*)$/, ' and $1')
                 : affectedMonitors.length > 3 &&
-                      `${capitalize(affectedMonitors[0].name)}, ${capitalize(
-                          affectedMonitors[1].name
-                      )} and ${affectedMonitors.length - 2} other monitors.`;
+                `${capitalize(affectedMonitors[0].name)}, ${capitalize(
+                    affectedMonitors[1].name
+                )} and ${affectedMonitors.length - 2} other monitors.`;
         }
     };
 
@@ -180,24 +180,24 @@ function ScheduledEventDescription({
                                                     >
                                                         {scheduledEvent.description
                                                             ? scheduledEvent.description
-                                                                  .split('\n')
-                                                                  .map(
-                                                                      (
-                                                                          elem: $TSFixMe,
-                                                                          index: $TSFixMe
-                                                                      ) => (
-                                                                          <Markdown
-                                                                              key={`${elem}-${index}`}
-                                                                              options={{
-                                                                                  forceBlock: true,
-                                                                              }}
-                                                                          >
-                                                                              {
-                                                                                  elem
-                                                                              }
-                                                                          </Markdown>
-                                                                      )
-                                                                  )
+                                                                .split('\n')
+                                                                .map(
+                                                                    (
+                                                                        elem: $TSFixMe,
+                                                                        index: $TSFixMe
+                                                                    ) => (
+                                                                        <Markdown
+                                                                            key={`${elem}-${index}`}
+                                                                            options={{
+                                                                                forceBlock: true,
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                elem
+                                                                            }
+                                                                        </Markdown>
+                                                                    )
+                                                                )
                                                             : null}
                                                     </span>
                                                 </div>
@@ -312,7 +312,7 @@ function ScheduledEventDescription({
                                                                 >
                                                                     <label
                                                                         className="bs-Button bs-DeprecatedButton bs-FileUploadButton bs-Button--icon bs-Button--check"
-                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; className: string; type... Remove this comment to see the full error message
+
                                                                         type="button"
                                                                         onClick={
                                                                             handleResolve

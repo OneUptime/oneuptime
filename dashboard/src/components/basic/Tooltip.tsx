@@ -7,13 +7,13 @@ import { bindActionCreators } from 'redux';
 
 class Tooltip extends Component {
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: 'tooltip_modal',
             content: TooltipModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'title' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             title: this.props.title,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'body' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             body: this.props.body || this.props.children,
             closeModal,
         });
@@ -46,10 +46,10 @@ class Tooltip extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Tooltip.displayName = 'Tooltip';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Tooltip.propTypes = {
     title: PropTypes.string,
     openModal: PropTypes.func,

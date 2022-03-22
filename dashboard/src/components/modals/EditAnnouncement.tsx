@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { connect } from 'react-redux';
 import { closeModal } from '../../actions/modal';
@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, FieldArray, reduxForm } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -21,11 +21,11 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!values.name) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Announcement name is required';
     }
     if (!values.description) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+
         errors.description = 'Announcement description is required';
     }
     return errors;
@@ -37,24 +37,24 @@ class EditAnnouncement extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'EditAnnouncementId' does not exist on ty... Remove this comment to see the full error message
+
             id: this.props.EditAnnouncementId,
         });
     };
 
     submitForm = (values: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'mergeMonitors' does not exist on type 'R... Remove this comment to see the full error message
+
             mergeMonitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateAnnouncement' does not exist on ty... Remove this comment to see the full error message
+
             updateAnnouncement,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             data: { projectId, statusPage, announcement },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
+
             fetchAnnouncements,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
+
             formValues,
         } = this.props;
         const postObj = {};
@@ -62,24 +62,24 @@ class EditAnnouncement extends Component {
             const monitors = values.monitors.filter(
                 (monitorId: $TSFixMe) => typeof monitorId === 'string'
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
             postObj.monitors = monitors;
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
             postObj.monitors = [];
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         postObj.name = values.name;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+
         postObj.description = values.description;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'update' does not exist on type '{}'.
+
         postObj.update = true;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideAnnouncement' does not exist on type... Remove this comment to see the full error message
+
         postObj.hideAnnouncement = announcement.hideAnnouncement;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
         const isDuplicate = postObj.monitors
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
             ? postObj.monitors.length === new Set(postObj.monitors).size
                 ? false
                 : true
@@ -93,7 +93,7 @@ class EditAnnouncement extends Component {
         }
 
         if (formValues && formValues.selectAllMonitors) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
             postObj.monitors = mergeMonitors.map((monitor: $TSFixMe) => monitor._id);
         }
 
@@ -114,7 +114,7 @@ class EditAnnouncement extends Component {
     };
 
     onContentChange = (val: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         this.props.change('description', val);
     };
 
@@ -122,7 +122,7 @@ class EditAnnouncement extends Component {
         fields
     }: $TSFixMe) => {
         const { monitorError } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { formValues, mergeMonitors } = this.props;
 
         return <>
@@ -326,19 +326,19 @@ class EditAnnouncement extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateError' does not exist on type 'Rea... Remove this comment to see the full error message
+
             updateError,
         } = this.props;
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -500,7 +500,7 @@ class EditAnnouncement extends Component {
                                             onClick={() =>
                                                 closeModal({
                                                     id: this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'EditAnnouncementId' does not exist on ty... Remove this comment to see the full error message
+
                                                         .EditAnnouncementId,
                                                 })
                                             }
@@ -537,7 +537,7 @@ class EditAnnouncement extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 EditAnnouncement.displayName = 'EditAnnouncement';
 
 const EditAnnouncementForm = reduxForm({
@@ -546,7 +546,7 @@ const EditAnnouncementForm = reduxForm({
     destroyOnUnmount: true,
 })(EditAnnouncement);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 EditAnnouncement.propTypes = {
     closeModal: PropTypes.func,
     EditAnnouncementId: PropTypes.string,
@@ -579,14 +579,14 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
             : [];
 
     const initialValues = {};
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
     initialValues.name = announcement.name;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'description' does not exist on type '{}'... Remove this comment to see the full error message
+
     initialValues.description = announcement.description;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectAllMonitors' does not exist on typ... Remove this comment to see the full error message
+
     initialValues.selectAllMonitors =
         announcement.monitors.length === 0 && false;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
     initialValues.monitors = [...monitorIds];
 
     const monitors = state.statusPage.status.monitors;

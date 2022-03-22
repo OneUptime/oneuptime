@@ -1,7 +1,7 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import {
     incidentRequest,
@@ -27,7 +27,7 @@ import { getMonitorLogs } from '../actions/monitor';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import {
     fetchIncidentTemplates,
@@ -45,7 +45,7 @@ import ShouldRender from '../components/basic/ShouldRender';
 class Incident extends React.Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             tabIndex: 0,
@@ -68,12 +68,12 @@ class Incident extends React.Component {
         //     return this.ready();
         // }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             prevProps.projectId !== this.props.projectId ||
             (prevProps.incident && prevProps.incident._id) !==
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
             (this.props.incident && this.props.incident._id) ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             prevProps.componentSlug !== this.props.componentSlug
         ) {
             // this.props.getIncident(this.props.projectId, this.props.incidentId);
@@ -82,32 +82,32 @@ class Incident extends React.Component {
 
         if (
             JSON.stringify(prevProps.currentProject) !==
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             JSON.stringify(this.props.currentProject)
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchDefaultTemplate' does not exist on ... Remove this comment to see the full error message
+
             this.props.fetchDefaultTemplate({
                 projectId:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     this.props.currentProject._id || this.props.currentProject,
             });
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentTemplates' does not exist o... Remove this comment to see the full error message
+
             this.props.fetchIncidentTemplates({
                 projectId:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     this.props.currentProject._id || this.props.currentProject,
                 skip: 0,
                 limit: 0,
             });
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProjectId' does not exist on type ... Remove this comment to see the full error message
+
         if (prevProps.activeProjectId !== this.props.activeProjectId) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             if (!this.props.componentSlug) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.history.push(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     `/dashboard/project/${this.props.currentProject.slug}/incidents`
                 );
             }
@@ -115,102 +115,102 @@ class Incident extends React.Component {
     }
 
     nextAlerts = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentAlert' does not exist on ty... Remove this comment to see the full error message
+
         this.props.fetchIncidentAlert(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.incidentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             parseInt(this.props.skip, 10) + parseInt(this.props.limit, 10),
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             parseInt(this.props.limit, 10)
         );
         this.setState({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertLogPage' does not exist on type 'Re... Remove this comment to see the full error message
+
             alertLogPage: this.state.alertLogPage + 1,
         });
     };
 
     previousAlerts = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentAlert' does not exist on ty... Remove this comment to see the full error message
+
         this.props.fetchIncidentAlert(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.incidentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             parseInt(this.props.skip, 10) - parseInt(this.props.limit, 10),
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             parseInt(this.props.limit, 10)
         );
         this.setState({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertLogPage' does not exist on type 'Re... Remove this comment to see the full error message
+
             alertLogPage: this.state.alertLogPage - 1,
         });
     };
 
     nextSubscribers = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSubscriberAlert' does not exist on ... Remove this comment to see the full error message
+
         this.props.fetchSubscriberAlert(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.incidentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
+
             parseInt(this.props.subscribersAlerts.skip, 10) +
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
+
             parseInt(this.props.subscribersAlerts.limit, 10),
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
+
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
         this.setState({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribeAlertPage' does not exist on ty... Remove this comment to see the full error message
+
             subscribeAlertPage: this.state.subscribeAlertPage + 1,
         });
     };
 
     previousSubscribers = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSubscriberAlert' does not exist on ... Remove this comment to see the full error message
+
         this.props.fetchSubscriberAlert(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.incidentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
+
             parseInt(this.props.subscribersAlerts.skip, 10) -
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
+
             parseInt(this.props.subscribersAlerts.limit, 10),
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribersAlerts' does not exist on typ... Remove this comment to see the full error message
+
             parseInt(this.props.subscribersAlerts.limit, 10)
         );
         this.setState({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribeAlertPage' does not exist on ty... Remove this comment to see the full error message
+
             subscribeAlertPage: this.state.subscribeAlertPage - 1,
         });
     };
     tabSelected = (index: $TSFixMe) => {
         const tabSlider = document.getElementById('tab-slider');
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         this.setState({
             tabIndex: index,
         });
         if (index === 2) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentAlert' does not exist on ty... Remove this comment to see the full error message
+
             this.props.fetchIncidentAlert(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 this.props.projectId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
                 this.props.incidentSlug,
                 0,
                 10
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSubscriberAlert' does not exist on ... Remove this comment to see the full error message
+
             this.props.fetchSubscriberAlert(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 this.props.projectId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
                 this.props.incidentSlug,
                 0,
                 10
@@ -219,39 +219,39 @@ class Incident extends React.Component {
     };
 
     fetchAllIncidentData() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         if (this.props.currentProject) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentPriorities' does not exist ... Remove this comment to see the full error message
+
             this.props.fetchIncidentPriorities(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.currentProject && this.props.currentProject._id,
                 0,
                 0
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentTemplates' does not exist o... Remove this comment to see the full error message
+
             this.props.fetchIncidentTemplates({
                 projectId:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     this.props.currentProject._id || this.props.currentProject,
                 skip: 0,
                 limit: 0,
             });
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchDefaultTemplate' does not exist on ... Remove this comment to see the full error message
+
             this.props.fetchDefaultTemplate({
                 projectId:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     this.props.currentProject._id || this.props.currentProject,
             });
         }
 
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
             .getIncident(this.props.projectId, this.props.incidentSlug)
             .then((data: $TSFixMe) => {
                 if (data.data && data.data._id) {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'getIncidentTimeline' does not exist on t... Remove this comment to see the full error message
+
                     this.props.getIncidentTimeline(
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                         this.props.projectId,
                         data.data._id,
                         0,
@@ -259,35 +259,35 @@ class Incident extends React.Component {
                     );
                 }
             });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentAlert' does not exist on ty... Remove this comment to see the full error message
+
         this.props.fetchIncidentAlert(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.incidentSlug,
             0,
             10
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSubscriberAlert' does not exist on ... Remove this comment to see the full error message
+
         this.props.fetchSubscriberAlert(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.incidentSlug,
             0,
             10
         );
 
         const monitors =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
             this.props.incident && this.props.incident.monitors
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                 ? this.props.incident.monitors.map((monitor: $TSFixMe) => monitor.monitorId)
                 : [];
         for (const monitor of monitors) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getMonitorLogs' does not exist on type '... Remove this comment to see the full error message
+
             this.props.getMonitorLogs(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 this.props.projectId,
                 monitor._id,
                 0,
@@ -299,20 +299,20 @@ class Incident extends React.Component {
                 monitor.type
             );
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentMessages' does not exist on... Remove this comment to see the full error message
+
         this.props.fetchIncidentMessages(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.incidentSlug,
             0,
             10
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentMessages' does not exist on... Remove this comment to see the full error message
+
         this.props.fetchIncidentMessages(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.incidentSlug,
             0,
             10,
@@ -323,19 +323,19 @@ class Incident extends React.Component {
     ready = () => {
         // const incidentId = this.props.incidentId;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             componentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchComponent' does not exist on type '... Remove this comment to see the full error message
+
             fetchComponent,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectSlug' does not exist on type 'Rea... Remove this comment to see the full error message
+
             projectSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectSlug' does not exist on type... Remove this comment to see the full error message
+
             fetchProjectSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentSlug' does not exist on type 'Re... Remove this comment to see the full error message
+
             incidentSlug,
         } = this.props;
 
@@ -346,9 +346,9 @@ class Incident extends React.Component {
         }
         if (projectId) {
             this.fetchAllIncidentData();
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentStatusPages' does not exist... Remove this comment to see the full error message
+
             this.props.fetchIncidentStatusPages(projectId, incidentSlug);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchDefaultCommunicationSla' does not e... Remove this comment to see the full error message
+
             this.props.fetchDefaultCommunicationSla(projectId);
         }
     };
@@ -390,31 +390,31 @@ class Incident extends React.Component {
     render() {
         let variable = null;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             history,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduleWarning' does not exist on type ... Remove this comment to see the full error message
+
             scheduleWarning,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultSchedule' does not exist on type ... Remove this comment to see the full error message
+
             defaultSchedule,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             monitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'allMonitors' does not exist on type 'Rea... Remove this comment to see the full error message
+
             allMonitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             componentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
+
             switchToProjectViewerNav,
         } = this.props;
         const slug = currentProject ? currentProject.slug : null;
         const redirectTo = `/dashboard/project/${slug}/on-call`;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             component,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location: { pathname },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingComponent' does not exist on t... Remove this comment to see the full error message
+
             requestingComponent,
         } = this.props;
 
@@ -479,19 +479,19 @@ class Incident extends React.Component {
             );
         }
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
         if (this.props.incident) {
             variable = (
                 <div>
                     <Tabs
                         selectedTabClassName={'custom-tab-selected'}
                         onSelect={(tabIndex: $TSFixMe) => this.tabSelected(tabIndex)}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tabIndex' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         selectedIndex={this.state.tabIndex}
                     >
                         <ShouldRender
                             if={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                 this.props.incident && !this.props.errorIncident
                             }
                         >
@@ -537,11 +537,11 @@ class Incident extends React.Component {
                             </div>
                         </ShouldRender>
                         <div>{scheduleAlert}</div>
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         {this.props.incident &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                             this.props.incident.countDown &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                             this.props.incident.countDown !== '0' && (
                                 <div
                                     className="Box-root Margin-vertical--12"
@@ -568,7 +568,7 @@ class Incident extends React.Component {
                                                         update the incident note
                                                         for this incident in{' '}
                                                         {secondsToHms(
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                             this.props.incident
                                                                 .countDown
                                                         )}
@@ -579,9 +579,9 @@ class Incident extends React.Component {
                                     </div>
                                 </div>
                             )}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         {this.props.incident &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                             this.props.incident.breachedCommunicationSla && (
                                 <div
                                     className="Box-root Margin-vertical--12"
@@ -615,21 +615,21 @@ class Incident extends React.Component {
                             <Fade>
                                 <ShouldRender
                                     if={
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorIncident' does not exist on type 'R... Remove this comment to see the full error message
+
                                         !this.props.errorIncident &&
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                         this.props.incident
                                     }
                                 >
                                     <IncidentStatus
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                         incident={this.props.incident}
                                         count={0}
                                         route={pathname}
                                         editable={true}
                                     />
                                     <IncidentInternal
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                         incident={this.props.incident}
                                     />
                                 </ShouldRender>
@@ -644,7 +644,7 @@ class Incident extends React.Component {
                                     >
                                         <MonitorViewLogsBox
                                             incidentId={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                 this.props.incident._id
                                             }
                                             monitorId={monitor._id}
@@ -663,7 +663,7 @@ class Incident extends React.Component {
                                         >
                                             <MonitorViewLogsBox
                                                 incidentId={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                     this.props.incident._id
                                                 }
                                                 monitorId={monitorList[0]._id}
@@ -686,20 +686,20 @@ class Incident extends React.Component {
                         <TabPanel>
                             <Fade>
                                 <IncidentAlert
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ next: () => void; previous: () => void; pa... Remove this comment to see the full error message
+
                                     next={this.nextAlerts}
                                     previous={this.previousAlerts}
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertLogPage' does not exist on type 'Re... Remove this comment to see the full error message
+
                                     page={this.state.alertLogPage}
                                 />
 
                                 <SubscriberAlert
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ next: () => void; previous: () => void; in... Remove this comment to see the full error message
+
                                     next={this.nextSubscribers}
                                     previous={this.previousSubscribers}
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                     incident={this.props.incident}
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribeAlertPage' does not exist on ty... Remove this comment to see the full error message
+
                                     page={this.state.subscribeAlertPage}
                                 />
                             </Fade>
@@ -710,28 +710,28 @@ class Incident extends React.Component {
                                     {!requestingComponent && (
                                         <>
                                             <HideIncidentBox
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ incident: any; currentProject: any; }' is ... Remove this comment to see the full error message
+
                                                 incident={this.props.incident}
                                                 currentProject={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                     this.props.currentProject
                                                 }
                                             />
                                             <IncidentDeleteBox
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ incident: any; deleting: any; currentProje... Remove this comment to see the full error message
+
                                                 incident={this.props.incident}
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleting' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                                 deleting={this.props.deleting}
                                                 currentProject={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                     this.props.currentProject
                                                 }
                                                 componentSlug={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
                                                     this.props.componentSlug
                                                 }
                                                 componentId={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                                     this.props.componentId
                                                 }
                                             />
@@ -746,18 +746,18 @@ class Incident extends React.Component {
         } else {
             variable = (
                 <ShouldRender
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorIncident' does not exist on type 'R... Remove this comment to see the full error message
+
                     if={this.props.errorIncident || !this.props.incident}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorIncident' does not exist on type 'R... Remove this comment to see the full error message
+
                     <ShouldRender if={this.props.errorIncident}>
                         <div className="bs-ContentSection Card-root Card-shadow--medium Padding-horizontal--20 Padding-vertical--16 bs-u-center">
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorIncident' does not exist on type 'R... Remove this comment to see the full error message
+
                             {this.props.errorIncident}
                         </div>
                     </ShouldRender>
                     <ShouldRender
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'successIncident' does not exist on type ... Remove this comment to see the full error message
+
                         if={this.props.successIncident && !this.props.incident}
                     >
                         <div className="bs-ContentSection Card-root Card-shadow--medium Padding-horizontal--20 Padding-vertical--16 bs-u-center">
@@ -777,7 +777,7 @@ class Incident extends React.Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 {componentSlug && componentName ? (
@@ -824,7 +824,7 @@ class Incident extends React.Component {
                                 <span>
                                     <div>
                                         <div>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingIncident' does not exist on ty... Remove this comment to see the full error message
+
                                             {this.props.requestingIncident
                                                 ? this.loader()
                                                 : variable}
@@ -943,7 +943,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Incident.propTypes = {
     currentProject: PropTypes.object,
     deleting: PropTypes.bool.isRequired,
@@ -991,7 +991,7 @@ Incident.propTypes = {
     activeProjectId: PropTypes.string,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Incident.displayName = 'Incident';
 
 export default connect(mapStateToProps, mapDispatchToProps)(Incident);

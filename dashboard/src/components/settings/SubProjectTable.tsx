@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import SubProjectForm from './SubProjectForm';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
@@ -22,77 +22,77 @@ export class SubProjectTable extends Component {
     }
 
     handleRevealAPIKey = (userId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal, subProject, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject) &&
-        !isSubProjectViewer(userId, subProject)
+            !isSubProjectViewer(userId, subProject)
             ? openModal({
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(SubProjectApiKey, {
-                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                      subProjectModalId: this.state.subProjectModalId,
-                      subProjectId: subProject._id,
-                      subProjectTitle: subProject.name,
-                  }),
-              })
+
+                id: this.state.subProjectModalId,
+                content: DataPathHoC(SubProjectApiKey, {
+
+                    subProjectModalId: this.state.subProjectModalId,
+                    subProjectId: subProject._id,
+                    subProjectTitle: subProject.name,
+                }),
+            })
             : openModal({
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                  id: this.state.subProjectModalId,
-                  // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
-                  content: DataPathHoC(Unauthorised),
-              });
+
+                id: this.state.subProjectModalId,
+
+                content: DataPathHoC(Unauthorised),
+            });
     };
 
     handleEdit = (userId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal, subProject, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject) &&
-        !isSubProjectViewer(userId, subProject)
+            !isSubProjectViewer(userId, subProject)
             ? openModal({
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(SubProjectForm, {
-                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                      subProjectModalId: this.state.subProjectModalId,
-                      editSubProject: true,
-                      subProjectId: subProject._id,
-                      subProjectTitle: subProject.name,
-                  }),
-              })
+
+                id: this.state.subProjectModalId,
+                content: DataPathHoC(SubProjectForm, {
+
+                    subProjectModalId: this.state.subProjectModalId,
+                    editSubProject: true,
+                    subProjectId: subProject._id,
+                    subProjectTitle: subProject.name,
+                }),
+            })
             : openModal({
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                  id: this.state.subProjectModalId,
-                  // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
-                  content: DataPathHoC(Unauthorised),
-              });
+
+                id: this.state.subProjectModalId,
+
+                content: DataPathHoC(Unauthorised),
+            });
     };
 
     handleRemove = (userId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { openModal, subProject, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject) &&
-        !isSubProjectViewer(userId, subProject)
+            !isSubProjectViewer(userId, subProject)
             ? openModal({
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(RemoveSubProject, {
-                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                      subProjectModalId: this.state.subProjectModalId,
-                      subProjectId: subProject._id,
-                      subProjectTitle: subProject.name,
-                  }),
-              })
+
+                id: this.state.subProjectModalId,
+                content: DataPathHoC(RemoveSubProject, {
+
+                    subProjectModalId: this.state.subProjectModalId,
+                    subProjectId: subProject._id,
+                    subProjectTitle: subProject.name,
+                }),
+            })
             : openModal({
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                  id: this.state.subProjectModalId,
-                  // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
-                  content: DataPathHoC(Unauthorised),
-              });
+
+                id: this.state.subProjectModalId,
+
+                content: DataPathHoC(Unauthorised),
+            });
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProject' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { subProject, subProjectState } = this.props;
         const disabled =
             subProjectState.subProjects.requesting ||
@@ -120,7 +120,7 @@ export class SubProjectTable extends Component {
                     <div className="bs-ObjectList-cell-row">
                         {subProject.parentProjectId
                             ? subProject.parentProjectId._id ||
-                              subProject.parentProjectId
+                            subProject.parentProjectId
                             : ''}
                     </div>
                 </div>
@@ -142,7 +142,7 @@ export class SubProjectTable extends Component {
                         <div className="Flex-flex Flex-alignContent--spaceBetween">
                             <button
                                 title="apiKey"
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'loop' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                 id={`sub_project_api_key_${this.props.loop}`}
                                 disabled={disabled}
                                 className="bs-Button bs-DeprecatedButton"
@@ -179,10 +179,10 @@ export class SubProjectTable extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SubProjectTable.displayName = 'SubProjectTable';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SubProjectTable.propTypes = {
     loop: PropTypes.number,
     openModal: PropTypes.func,

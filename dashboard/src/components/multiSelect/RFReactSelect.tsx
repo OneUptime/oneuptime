@@ -57,7 +57,7 @@ const RFReactSelect = ({
     const transformedValue = transformValue(value, options, isMulti);
     return (
         <Select
-            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ valueKey: any; labelKey: any; placeholder:... Remove this comment to see the full error message
+
             valueKey={valueKey || 'value'}
             labelKey={labelKey || 'name'}
             placeholder={placeholder}

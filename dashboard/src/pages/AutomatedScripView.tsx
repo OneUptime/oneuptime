@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import PropTypes from 'prop-types';
 import getParentRoute from '../utils/getParentRoute';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
@@ -13,19 +13,19 @@ import DataPathHoC from '../components/DataPathHoC';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { openModal } from '../actions/modal';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { fetchSingleAutomatedScript } from '../actions/automatedScript';
 import Badge from '../components/common/Badge';
 import ViewScriptLogs from '../components/modals/ViewScriptLogs';
-// @ts-expect-error ts-migrate(1192) FIXME: Module '"/home/nawazdhandala/Projects/OneUptime/ap... Remove this comment to see the full error message
+
 import UpdateScript from '../components/automationScript/UpdateScript';
 import RunAutomationScript from '../components/modals/RunAutomationScript';
 import moment from 'moment';
 
 const AutomatedScripView = (props: $TSFixMe) => {
     const { history } = props;
-    // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 1.
+
     const parentRoute = getParentRoute(history.location.pathname);
 
     const [tabIndex, setTabIndex] = useState(0);
@@ -64,7 +64,7 @@ const AutomatedScripView = (props: $TSFixMe) => {
         const tabSlider = document.getElementById('tab-slider');
 
         setTimeout(() => {
-            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
             tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
         });
         setTabIndex(index);
@@ -131,7 +131,7 @@ const AutomatedScripView = (props: $TSFixMe) => {
                 name={projectName}
                 projectId={projectId || ''}
                 slug={props.currentProject ? props.currentProject.slug : null}
-                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                 switchToProjectViewerNav={props.switchToProjectViewerNav}
             />
             <BreadCrumbItem route={parentRoute} name="Automation Scripts" />

@@ -8,7 +8,7 @@ const TableEmptyRow = () => (
                 height: '1px',
                 minWidth: '270px',
             }}
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
             colSpan="5"
         >
             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">

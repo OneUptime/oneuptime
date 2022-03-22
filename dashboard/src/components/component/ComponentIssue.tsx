@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(2724) FIXME: '"../../actions/component"' has no exported member... Remove this comment to see the full error message
+
 import { fetchComponentIssues } from '../../actions/component';
 import { fetchErrorTrackers } from '../../actions/errorTracker';
 import { ErrorTrackerList } from '../errorTracker/ErrorTrackerList';
@@ -10,15 +10,15 @@ import { ErrorTrackerList } from '../errorTracker/ErrorTrackerList';
 class ComponentIssue extends Component {
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             component,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProjectId' does not exist on type... Remove this comment to see the full error message
+
             currentProjectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchErrorTrackers' does not exist on ty... Remove this comment to see the full error message
+
             fetchErrorTrackers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerSkip' does not exist on type 'Rea... Remove this comment to see the full error message
+
             trackerSkip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'trackerLimit' does not exist on type 'Re... Remove this comment to see the full error message
+
             trackerLimit,
         } = this.props;
         fetchErrorTrackers(
@@ -29,12 +29,12 @@ class ComponentIssue extends Component {
         );
     }
     generateUrlLink(componentIssue: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { component, currentProject } = this.props;
         return `/dashboard/project/${currentProject.slug}/component/${component._id}/error-trackers/${componentIssue.errorTrackerId.slug}`;
     }
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { component, errorTrackers } = this.props;
 
         const errorTrackersList =
@@ -84,9 +84,9 @@ function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
         trackerLimit: state.errorTracker.errorTrackersList.limit || 5,
     };
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ComponentIssue.displayName = 'ComponentIssue';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ComponentIssue.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     component: PropTypes.object,

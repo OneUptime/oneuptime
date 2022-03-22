@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
@@ -32,27 +32,27 @@ class RemoveResourceCategory extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({});
     };
 
     handleDeleteCategory = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             data,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteStatusPageCategory' does not exist... Remove this comment to see the full error message
+
             deleteStatusPageCategory,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             limit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageCategories' does not exis... Remove this comment to see the full error message
+
             fetchStatusPageCategories,
         } = this.props;
         const { projectId, statusPageCategoryId, statusPageId } = data;
         deleteStatusPageCategory({ projectId, statusPageCategoryId }).then(
             () => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteError' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 if (!this.props.deleteError) {
                     fetchStatusPageCategories({
                         projectId,
@@ -67,7 +67,7 @@ class RemoveResourceCategory extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deletingCategory' does not exist on type... Remove this comment to see the full error message
+
         const { deletingCategory } = this.props;
 
         return (
@@ -136,10 +136,10 @@ class RemoveResourceCategory extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 RemoveResourceCategory.displayName = 'RemoveResourceCategory';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 RemoveResourceCategory.propTypes = {
     closeModal: PropTypes.func.isRequired,
     deleteStatusPageCategory: PropTypes.func,

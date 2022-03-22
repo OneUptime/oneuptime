@@ -13,7 +13,7 @@ const Tutorials = ({
     currentProjectId
 }: $TSFixMe) => (
     <div
-        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
         tabIndex="0"
         className="Box-root Margin-vertical--12"
         id={`quick-tip-${type}`}
@@ -50,7 +50,7 @@ const Tutorials = ({
                 <div className="db-Trends-content">
                     <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                         <ShouldRender if={type !== 'api'}>
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; }' is not assignable to type 'I... Remove this comment to see the full error message
+
                             <Tutorial type={type} />
                         </ShouldRender>
 

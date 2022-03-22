@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
@@ -17,10 +17,10 @@ export class DeleteSiteUrl extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -28,7 +28,7 @@ export class DeleteSiteUrl extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
         const { closeThisDialog } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -58,7 +58,7 @@ export class DeleteSiteUrl extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -70,15 +70,15 @@ export class DeleteSiteUrl extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             type="button"
                                             onClick={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                                                 this.props.confirmThisDialog
                                             }
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             disabled={this.props.requesting}
                                             id="websiteUrlDelete"
                                             autoFocus={true}
                                         >
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             {!this.props.requesting && (
                                                 <>
                                                     <span>Delete</span>
@@ -87,7 +87,7 @@ export class DeleteSiteUrl extends Component {
                                                     </span>
                                                 </>
                                             )}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             {this.props.requesting && (
                                                 <FormLoader />
                                             )}
@@ -103,7 +103,7 @@ export class DeleteSiteUrl extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DeleteSiteUrl.displayName = 'DeleteSiteUrl';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -112,7 +112,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DeleteSiteUrl.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,

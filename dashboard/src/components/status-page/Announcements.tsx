@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import CreateAnnouncement from '../modals/CreateAnnouncement';
@@ -28,9 +28,9 @@ class Announcements extends Component {
     }
 
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
+
         const { fetchAnnouncements, projectId, statusPage } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         fetchAnnouncements(projectId, statusPage._id, 0, this.state.limit);
     }
 
@@ -48,15 +48,14 @@ class Announcements extends Component {
             return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
         }
 
-        return `${monitors[0].monitorId.name}, ${
-            monitors[1].monitorId.name
-        } and ${monitors.length - 2} others`;
+        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
+            } and ${monitors.length - 2} others`;
     };
 
     prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
+
         const { fetchAnnouncements, statusPage } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { limit } = this.state;
         fetchAnnouncements(
             projectId,
@@ -67,9 +66,9 @@ class Announcements extends Component {
     };
 
     nextClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncements' does not exist on ty... Remove this comment to see the full error message
+
         const { fetchAnnouncements, statusPage } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { limit } = this.state;
         fetchAnnouncements(
             projectId,
@@ -80,18 +79,18 @@ class Announcements extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createAnnounceentModalId' does not exist... Remove this comment to see the full error message
+
         const { createAnnounceentModalId, deleteModalId } = this.state;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'announcements' does not exist on type 'R... Remove this comment to see the full error message
+
             announcements,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'announceError' does not exist on type 'R... Remove this comment to see the full error message
+
             announceError,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -120,7 +119,7 @@ class Announcements extends Component {
                                 <button
                                     id="addAnnouncementButton"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         this.props.openModal({
                                             id: createAnnounceentModalId,
                                             content: DataPathHoC(
@@ -191,7 +190,7 @@ class Announcements extends Component {
                                 {announcements &&
                                     announcements.allAnnouncements &&
                                     announcements.allAnnouncements.length >
-                                        0 &&
+                                    0 &&
                                     announcements.allAnnouncements.map(
                                         (announcement: $TSFixMe) => {
                                             return (
@@ -278,7 +277,7 @@ class Announcements extends Component {
                                                                 marginLeft: 10,
                                                             }}
                                                             onClick={() =>
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                 this.props.openModal(
                                                                     {
                                                                         id: deleteModalId,
@@ -314,7 +313,7 @@ class Announcements extends Component {
                                                                 marginLeft: 10,
                                                             }}
                                                             onClick={() => {
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                 this.props.openModal(
                                                                     {
                                                                         id: deleteModalId,
@@ -349,7 +348,7 @@ class Announcements extends Component {
                                                                 marginLeft: 10,
                                                             }}
                                                             onClick={() =>
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                 this.props.openModal(
                                                                     {
                                                                         id: deleteModalId,
@@ -421,8 +420,8 @@ class Announcements extends Component {
                                         (announcements.allAnnouncements &&
                                             announcements.allAnnouncements
                                                 .length === 0)) &&
-                                    !requesting &&
-                                    !announceError
+                                        !requesting &&
+                                        !announceError
                                         ? 'You have no announcement at this time'
                                         : null}
                                     {announceError ? announceError : null}
@@ -453,7 +452,7 @@ class Announcements extends Component {
                                                         }
                                                     </span>{' '}
                                                     {announcements &&
-                                                    announcements.count > 1
+                                                        announcements.count > 1
                                                         ? 'Announcements'
                                                         : 'Announcement'}
                                                 </ShouldRender>
@@ -523,7 +522,7 @@ class Announcements extends Component {
                 </div>
             </div>
             <AnnouncementLog
-                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; statusPage: any; }' is not... Remove this comment to see the full error message
+
                 projectId={projectId}
                 statusPage={statusPage}
             />
@@ -531,10 +530,10 @@ class Announcements extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Announcements.displayName = 'Announcements';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Announcements.propTypes = {
     openModal: PropTypes.func,
     projectId: PropTypes.string,

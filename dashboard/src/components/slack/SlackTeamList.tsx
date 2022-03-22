@@ -12,11 +12,11 @@ class SlackTeamList extends React.Component {
     handleKeyBoard: $TSFixMe;
     ready() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teams' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             teams: { teams },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSlackTeams' does not exist on type 'R... Remove this comment to see the full error message
+
             getSlackTeams,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
         } = this.props;
         if (teams.length === 0 && projectId) {
@@ -29,19 +29,19 @@ class SlackTeamList extends React.Component {
     }
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
         this.props.paginate('reset');
     }
 
     prevClicked = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teams' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             teams: { skip, limit },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSlackTeams' does not exist on type 'R... Remove this comment to see the full error message
+
             getSlackTeams,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
             paginate,
         } = this.props;
 
@@ -55,13 +55,13 @@ class SlackTeamList extends React.Component {
 
     nextClicked = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teams' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             teams: { skip, limit },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSlackTeams' does not exist on type 'R... Remove this comment to see the full error message
+
             getSlackTeams,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'paginate' does not exist on type 'Readon... Remove this comment to see the full error message
+
             paginate,
         } = this.props;
 
@@ -70,7 +70,7 @@ class SlackTeamList extends React.Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId, teams } = this.props;
         const { error, requesting } = teams;
         const { count } = teams;
@@ -100,7 +100,7 @@ class SlackTeamList extends React.Component {
                             <ShouldRender if={teams.teams.length > 0}>
                                 {teams.teams.map((res: Response) => <SlackTeamItem
                                     key={`${res._id}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ key: string; team: any; projectId: any; }'... Remove this comment to see the full error message
+
                                     team={res}
                                     projectId={projectId}
                                 />)}
@@ -218,7 +218,7 @@ class SlackTeamList extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SlackTeamList.displayName = 'SlackTeamList';
 
 const mapStateToProps = (state: $TSFixMe) => ({
@@ -235,7 +235,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SlackTeamList.propTypes = {
     getSlackTeams: PropTypes.func,
     projectId: PropTypes.string,

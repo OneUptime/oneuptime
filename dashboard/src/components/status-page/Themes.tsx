@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { ValidateField } from '../../config';
 import { connect } from 'react-redux';
@@ -21,18 +21,18 @@ export class Themes extends Component {
         this.setState({ type: value });
     };
     submitForm = (value: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { statusPageId, projectId } = this.props.data;
         const data = {
             ...value,
             statusPageId,
         };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateTheme' does not exist on type 'Rea... Remove this comment to see the full error message
+
         this.props.updateTheme(projectId, data);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, statusPage } = this.props;
         const requesting = statusPage.theme.requesting;
         const error = statusPage.theme.error;
@@ -88,15 +88,14 @@ export class Themes extends Component {
                                                             <div
                                                                 className={`radio-field monitor-type-item Box-background--white bs-theme-block`}
                                                                 style={{
-                                                                    border: `1px solid ${
-                                                                        this
+                                                                    border: `1px solid ${this
                                                                             .state
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                             .type ===
-                                                                        theme.value
+                                                                            theme.value
                                                                             ? 'black'
                                                                             : 'rgba(0,0,0,0.2)'
-                                                                    }`,
+                                                                        }`,
                                                                 }}
                                                             >
                                                                 <div className="bs-radio-input">
@@ -137,9 +136,9 @@ export class Themes extends Component {
                                                                                 fontWeight:
                                                                                     this
                                                                                         .state
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                                         .type ===
-                                                                                    theme.value
+                                                                                        theme.value
                                                                                         ? '600'
                                                                                         : '400',
                                                                                 marginLeft:
@@ -208,7 +207,7 @@ export class Themes extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Themes.displayName = 'Themes';
 
 const ThemesForm = new reduxForm({
@@ -224,7 +223,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Themes.propTypes = {
     statusPage: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,

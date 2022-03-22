@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import {
     editMonitorSwitch,
@@ -22,7 +22,7 @@ import DisabledMessage from '../modals/DisabledMessage';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
 import { history } from '../../store';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
 import MonitorChart from './MonitorChart';
 import StatusIndicator from './StatusIndicator';
@@ -34,7 +34,7 @@ import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 export class MonitorDetail extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             createIncidentModalId: uuidv4(),
@@ -47,9 +47,9 @@ export class MonitorDetail extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorLogs' does not exist on type... Remove this comment to see the full error message
+
         const { fetchMonitorLogs, monitor } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { startDate, endDate } = this.state;
 
         fetchMonitorLogs(
@@ -93,18 +93,18 @@ export class MonitorDetail extends Component {
 
     handleStartDateTimeChange = (val: $TSFixMe) => {
         const startDate = moment(val);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         this.handleDateChange(startDate, this.state.endDate);
     };
     handleEndDateTimeChange = (val: $TSFixMe) => {
         const endDate = moment(val);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.handleDateChange(this.state.startDate, endDate);
     };
     handleDateChange = (startDate: $TSFixMe, endDate: $TSFixMe) => {
         this.setState({ startDate, endDate });
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorLogs' does not exist on type... Remove this comment to see the full error message
+
         const { fetchMonitorLogs, fetchMonitorStatuses, monitor } = this.props;
 
         fetchMonitorLogs(
@@ -122,30 +122,30 @@ export class MonitorDetail extends Component {
     };
 
     selectbutton = (data: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedProbe' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.selectedProbe(data);
     };
 
     prevClicked = () => {
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsIncidents' does not exist o... Remove this comment to see the full error message
+
             .fetchMonitorsIncidents(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.monitor.projectId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.monitor._id,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.monitor.skip
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     ? parseInt(this.props.monitor.skip, 10) - 3
                     : 3,
                 3
             )
             .then(() => {
                 this.setState({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     [this.props.monitor._id]:
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                         this.state[this.props.monitor._id] - 1,
                 });
             });
@@ -153,30 +153,30 @@ export class MonitorDetail extends Component {
 
     nextClicked = () => {
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsIncidents' does not exist o... Remove this comment to see the full error message
+
             .fetchMonitorsIncidents(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.monitor.projectId,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.monitor._id,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 this.props.monitor.skip
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     ? parseInt(this.props.monitor.skip, 10) + 3
                     : 3,
                 3
             )
             .then(() => {
                 const numberOfPage = Math.ceil(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     parseInt(this.props.monitor && this.props.monitor.count) / 3
                 );
                 this.setState({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     [this.props.monitor._id]: this.state[this.props.monitor._id]
-                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                         ? this.state[this.props.monitor._id] < numberOfPage
-                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                             ? this.state[this.props.monitor._id] + 1
                             : numberOfPage
                         : 2,
@@ -185,24 +185,24 @@ export class MonitorDetail extends Component {
     };
 
     editMonitor = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorSwitch' does not exist on typ... Remove this comment to see the full error message
+
         this.props.editMonitorSwitch(this.props.index);
     };
 
     handleKeyBoard = (e: $TSFixMe) => {
         const canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-            this.props.monitor.count &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
-            this.props.monitor.count >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
+                this.props.monitor.count &&
+
+                this.props.monitor.count >
+
                 this.props.monitor.skip + this.props.monitor.limit
                 ? true
                 : false;
         const canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor && this.props.monitor.skip <= 0 ? false : true;
         switch (e.key) {
             case 'ArrowRight':
@@ -222,38 +222,38 @@ export class MonitorDetail extends Component {
     };
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
+
         if (this.state.nowHandler) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
+
             clearTimeout(this.state.nowHandler);
         }
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentModalId' does not exist on... Remove this comment to see the full error message
+
         const { createIncidentModalId, startDate, endDate } = this.state;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             monitor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'create' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             create,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
             monitorState,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
+
             activeProbe,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             probes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeIncident' does not exist on type '... Remove this comment to see the full error message
+
             activeIncident,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
             componentId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             componentSlug,
         } = this.props;
         const numberOfPage = Math.ceil(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             parseInt(this.props.monitor && this.props.monitor.count) / 3
         );
         const probe =
@@ -274,9 +274,9 @@ export class MonitorDetail extends Component {
         const status = monitorDisabled
             ? 'disabled'
             : requesting
-            ? 'requesting'
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
-            : getMonitorStatus(monitor.incidents, logs);
+                ? 'requesting'
+
+                : getMonitorStatus(monitor.incidents, logs);
 
         const creating = create || false;
 
@@ -284,8 +284,8 @@ export class MonitorDetail extends Component {
             monitor && monitor.data && monitor.data.url
                 ? monitor.data.url
                 : monitor && monitor.data && monitor.data.link
-                ? monitor.data.link
-                : null;
+                    ? monitor.data.link
+                    : null;
         const probeUrl = `/dashboard/project/${currentProject.slug}/settings/probe`;
 
         monitor.error = null;
@@ -317,44 +317,42 @@ export class MonitorDetail extends Component {
 
         const isCurrentlyNotMonitoring =
             (lastAlive &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'now' does not exist on type 'Readonly<{}... Remove this comment to see the full error message
+
                 moment(this.state.now).diff(moment(lastAlive), 'seconds') >=
-                    300) ||
+                300) ||
             !lastAlive;
         return (
             <div
                 className="Box-root Card-shadow--medium"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
             >
                 <div className="Flex-flex Flex-direction--row">
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'shouldRenderProjectType' does not exist ... Remove this comment to see the full error message
+
                     <ShouldRender if={this.props.shouldRenderProjectType}>
                         <div className="Box-root Padding-top--20 Padding-left--20">
                             <Badge
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                 id={`badge_${this.props.projectName}`}
                                 color={
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectType' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                     this.props.projectType === 'project'
                                         ? 'red'
                                         : 'blue'
                                 }
                             >
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectName' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                 {this.props.projectName}
                             </Badge>
                         </div>
                     </ShouldRender>
                     <ShouldRender if={monitor && monitor.resourceCategory}>
                         <div
-                            className={`Box-root Padding-top--20 ${
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'shouldRenderProjectType' does not exist ... Remove this comment to see the full error message
-                                this.props.shouldRenderProjectType
+                            className={`Box-root Padding-top--20 ${this.props.shouldRenderProjectType
                                     ? 'Padding-left--4'
                                     : 'Padding-left--20'
-                            }`}
+                                }`}
                         >
                             <Badge
                                 color={'slate5'}
@@ -379,7 +377,7 @@ export class MonitorDetail extends Component {
                                     >
                                         <StatusIndicator
                                             status={status}
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: any; monitorName: any; }' is not a... Remove this comment to see the full error message
+
                                             monitorName={monitor.name}
                                         />
                                         <span
@@ -390,12 +388,12 @@ export class MonitorDetail extends Component {
                                     </span>
                                     <ShouldRender if={monitor && monitor.type}>
                                         {monitor.type === 'url' ||
-                                        monitor.type === 'api' ||
-                                        monitor.type === 'script' ||
-                                        monitor.type === 'ip' ? (
+                                            monitor.type === 'api' ||
+                                            monitor.type === 'script' ||
+                                            monitor.type === 'ip' ? (
                                             <ShouldRender
                                                 if={
-                                                    // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
+
                                                     probes && !probes.length > 0
                                                 }
                                             >
@@ -430,7 +428,7 @@ export class MonitorDetail extends Component {
                                                 </a>
                                             </span>
                                         ) : monitor.type ===
-                                              'incomingHttpRequest' && url ? (
+                                            'incomingHttpRequest' && url ? (
                                             <span>
                                                 <a
                                                     href={url}
@@ -544,7 +542,7 @@ export class MonitorDetail extends Component {
                                 disabled={creating}
                                 id={`create_incident_${monitor.name}`}
                                 onClick={() =>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                     this.props.openModal({
                                         id: createIncidentModalId,
                                         content: DataPathHoC(
@@ -555,7 +553,7 @@ export class MonitorDetail extends Component {
                                                 monitorId: monitor._id,
                                                 projectId:
                                                     monitor.projectId._id ||
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                     this.props.monitor
                                                         .projectId,
                                                 monitor,
@@ -592,11 +590,11 @@ export class MonitorDetail extends Component {
                                 onClick={() => {
                                     history.push(
                                         '/dashboard/project/' +
-                                            currentProject.slug +
-                                            '/component/' +
-                                            componentSlug +
-                                            '/monitoring/' +
-                                            monitor.slug
+                                        currentProject.slug +
+                                        '/component/' +
+                                        componentSlug +
+                                        '/monitoring/' +
+                                        monitor.slug
                                     );
                                 }}
                             >
@@ -628,11 +626,11 @@ export class MonitorDetail extends Component {
                                     const checkLogs = logs && logs.length > 0;
                                     const status = checkLogs
                                         ? logs[0].status
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+
                                         : getMonitorStatus(
-                                              monitor.incidents,
-                                              logs
-                                          );
+                                            monitor.incidents,
+                                            logs
+                                        );
                                     const probe = probes.filter(
                                         (probe: $TSFixMe) => probe._id === location._id
                                     );
@@ -668,9 +666,9 @@ export class MonitorDetail extends Component {
 
                 {monitor && monitor.type ? (
                     monitor.type === 'url' ||
-                    monitor.type === 'api' ||
-                    monitor.type === 'script' ||
-                    monitor.type === 'ip' ? (
+                        monitor.type === 'api' ||
+                        monitor.type === 'script' ||
+                        monitor.type === 'ip' ? (
                         <div>
                             <ShouldRender if={probes && probes.length > 0}>
                                 {monitor && probes && probes.length < 2 ? (
@@ -727,15 +725,15 @@ export class MonitorDetail extends Component {
                                                             this.nextClicked
                                                         }
                                                         page={
-                                                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                                             this.state[
                                                                 monitor._id
                                                             ]
-                                                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                                                 ? this.state[
-                                                                      monitor
-                                                                          ._id
-                                                                  ]
+                                                                monitor
+                                                                    ._id
+                                                                ]
                                                                 : 1
                                                         }
                                                         numberOfPage={
@@ -748,7 +746,7 @@ export class MonitorDetail extends Component {
                                     </div>
                                 </div>
                             </ShouldRender>
-                            // @ts-expect-error ts-migrate(2365) FIXME: Operator '>' cannot be applied to types 'boolean' ... Remove this comment to see the full error message
+
                             <ShouldRender if={probes && !probes.length > 0}>
                                 <div className="Margin-bottom--12"></div>
                             </ShouldRender>
@@ -804,12 +802,12 @@ export class MonitorDetail extends Component {
                                                         this.nextClicked
                                                     }
                                                     page={
-                                                        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                                         this.state[monitor._id]
-                                                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                                             ? this.state[
-                                                                  monitor._id
-                                                              ]
+                                                            monitor._id
+                                                            ]
                                                             : 1
                                                     }
                                                     numberOfPage={numberOfPage}
@@ -829,7 +827,7 @@ export class MonitorDetail extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorDetail.displayName = 'MonitorDetail';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
@@ -862,7 +860,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorDetail.propTypes = {
     currentProject: PropTypes.object.isRequired,
     componentId: PropTypes.string.isRequired,

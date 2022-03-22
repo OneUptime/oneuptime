@@ -53,7 +53,7 @@ const IncidentProjectBox = (props: $TSFixMe) => {
                         case 'n':
                             if (modalList.length === 0) {
                                 event.preventDefault();
-                                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                                 return document
                                     .getElementById(
                                         `btnCreateIncident_${props.subProjectName}`
@@ -103,7 +103,7 @@ const IncidentProjectBox = (props: $TSFixMe) => {
                                     your monitor goes down. Here&#39;s a log of
                                     all of your incidents for{' '}
                                     {props.currentProjectId !==
-                                    props.subProjectIncident._id
+                                        props.subProjectIncident._id
                                         ? `${props.subProjectName} sub-project`
                                         : `${props.subProjectName} project`}
                                     .

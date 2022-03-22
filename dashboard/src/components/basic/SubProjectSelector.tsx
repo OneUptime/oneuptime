@@ -34,15 +34,15 @@ const SubProjectSelector = ({
     );
 
     const filteredOpt = useRef();
-    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ value: string; label: string; }[]' is not ... Remove this comment to see the full error message
+
     filteredOpt.current = options.filter(opt => opt.value === input.value);
 
     const [value, setValue] = useState({
         value: input.value,
         label:
-            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
             filteredOpt.current.length > 0
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
                 ? filteredOpt.current[0].label
                 : 'Select Sub-Project',
     });
@@ -51,9 +51,9 @@ const SubProjectSelector = ({
         setValue({
             value: input.value,
             label:
-                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
                 filteredOpt.current.length > 0
-                    // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
                     ? filteredOpt.current[0].label
                     : 'Select Sub-Project',
         });
@@ -70,7 +70,7 @@ const SubProjectSelector = ({
         <span>
             <div style={{ ...style, height: '28px' }}>
                 <Select
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: any; value: { value: any; label: any... Remove this comment to see the full error message
+
                     name={input.name}
                     value={value}
                     onChange={handleChange}
@@ -78,7 +78,7 @@ const SubProjectSelector = ({
                     id={id}
                     isDisabled={disabled || false}
                     options={options.filter(opt =>
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'show' does not exist on type '{ value: s... Remove this comment to see the full error message
+
                         opt.show !== undefined ? opt.show : true
                     )}
                 />

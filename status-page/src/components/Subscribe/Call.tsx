@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -31,30 +31,30 @@ class Call extends Component {
         event.preventDefault();
 
         const projectId =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statuspage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statuspage &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statuspage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statuspage.projectId &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statuspage' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statuspage.projectId._id;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statuspage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const statusPageId = this.props.statuspage._id;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statuspage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const selectIndividualMonitors = this.props.statuspage
             .selectIndividualMonitors;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'phone_number' does not exist on type 'Re... Remove this comment to see the full error message
+
         if (this.state.phone_number && this.state.phone_number.length) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'phone_number' does not exist on type 'Re... Remove this comment to see the full error message
+
             const validnumber = this.validation(this.state.phone_number);
             if (validnumber) {
                 const values = this.state;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'method' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                 values.method = 'sms';
 
                 if (!selectIndividualMonitors) {
                     const monitors: $TSFixMe = [];
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribeUser' does not exist on type 'R... Remove this comment to see the full error message
+
                     return this.props.subscribeUser(
                         values,
                         monitors,
@@ -63,16 +63,16 @@ class Call extends Component {
                     );
                 }
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'userData' does not exist on type 'Readon... Remove this comment to see the full error message
+
                 this.props.userData(values);
             } else {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'validationError' does not exist on type ... Remove this comment to see the full error message
+
                 this.props.validationError(
                     'Please enter a valid phone number.'
                 );
             }
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'validationError' does not exist on type ... Remove this comment to see the full error message
+
             this.props.validationError('Please enter your phone number.');
         }
     };
@@ -87,20 +87,20 @@ class Call extends Component {
 
     handleClose = (e: $TSFixMe) => {
         e.preventDefault();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userDataReset' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.userDataReset();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openSubscribeMenu' does not exist on typ... Remove this comment to see the full error message
+
         this.props.openSubscribeMenu();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleCloseButtonClick' does not exist o... Remove this comment to see the full error message
+
         this.props.handleCloseButtonClick();
     };
     render() {
         return (
             <div>
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
+
                 {this.props.subscribed &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
-                this.props.subscribed.success ? null : (
+
+                    this.props.subscribed.success ? null : (
                     <div className="directions">
                         <Translate>
                             {' '}
@@ -112,13 +112,13 @@ class Call extends Component {
                 <form
                     id="subscribe-form-sms"
                     onSubmit={
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.subscribed && this.props.subscribed.success
                             ? this.handleClose
                             : this.handleSubmit
                     }
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
+
                     {this.props.subscribed && this.props.subscribed.success ? (
                         <div style={{ textAlign: 'center', margin: '15px 0' }}>
                             <span
@@ -135,7 +135,7 @@ class Call extends Component {
                     ) : (
                         <>
                             <select
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'country' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                 value={this.state.country}
                                 onChange={this.handleChange}
                                 name="country"
@@ -391,25 +391,25 @@ class Call extends Component {
                     <input
                         type="submit"
                         value={
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.subscribed &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
-                            this.props.subscribed.success
+
+                                this.props.subscribed.success
                                 ? 'Close'
                                 : 'Subscribe'
                         }
                         className={
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                             this.props.theme
                                 ? 'subscribe-btn-full bs-theme-btn'
                                 : 'subscribe-btn-full'
                         }
                         id="subscribe-btn-sms"
                     />
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
+
                     {this.props.subscribed &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
-                    this.props.subscribed.success ? null : (
+
+                        this.props.subscribed.success ? null : (
                         <div
                             className="terms_and_privacy_information small"
                             style={{ marginTop: '10px' }}
@@ -424,7 +424,7 @@ class Call extends Component {
                                 target="_blank"
                                 href="https://www.atlassian.com/legal/cloud-terms-of-service"
                                 rel="noopener noreferrer"
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                 style={{ fontSize: this.props.theme && '12px' }}
                             >
                                 Cloud Terms of Service
@@ -434,16 +434,16 @@ class Call extends Component {
                     )}
                 </form>
                 <ShouldRender
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
+
                     if={this.props.subscribed && this.props.subscribed.error}
                 >
                     <div className="validation-error">
                         <span className="validation-error-icon"></span>
                         <span className="error-text">
                             <Translate>
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 {this.props.subscribed &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribed' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     this.props.subscribed.error}
                             </Translate>
                         </span>
@@ -454,7 +454,7 @@ class Call extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Call.displayName = 'Call';
 
 const mapStateToProps = (state: $TSFixMe) => ({
@@ -474,7 +474,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Call.propTypes = {
     userData: PropTypes.func,
     validationError: PropTypes.func,

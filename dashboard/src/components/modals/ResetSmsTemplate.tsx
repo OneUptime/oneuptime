@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 
 class ResetSmsTemplate extends Component {
@@ -17,10 +17,10 @@ class ResetSmsTemplate extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -28,13 +28,13 @@ class ResetSmsTemplate extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
         const { closeThisDialog } = this.props;
         let deleting = false;
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSmsTemplates' does not exist on typ... Remove this comment to see the full error message
+
             this.props.resetSmsTemplates &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSmsTemplates' does not exist on typ... Remove this comment to see the full error message
+
             this.props.resetSmsTemplates.requesting
         ) {
             deleting = true;
@@ -70,7 +70,7 @@ class ResetSmsTemplate extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                                             onClick={this.props.closeThisDialog}
                                         >
                                             <span>Cancel</span>
@@ -83,7 +83,7 @@ class ResetSmsTemplate extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             type="button"
                                             onClick={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                                                 this.props.confirmThisDialog
                                             }
                                             disabled={deleting}
@@ -110,10 +110,10 @@ class ResetSmsTemplate extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ResetSmsTemplate.displayName = 'ResetSmsTemplateFormModal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ResetSmsTemplate.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,

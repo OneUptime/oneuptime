@@ -27,13 +27,13 @@ function viewMore(
 ) {
     return history.push(
         '/dashboard/project/' +
-            slug +
-            '/component/' +
-            componentSlug +
-            '/error-trackers/' +
-            errorTrackerSlug +
-            '/events/' +
-            errorEventId
+        slug +
+        '/component/' +
+        componentSlug +
+        '/error-trackers/' +
+        errorTrackerSlug +
+        '/events/' +
+        errorEventId
     );
 }
 function isSelected(selectedErrorEvents: $TSFixMe, id: $TSFixMe) {
@@ -144,9 +144,9 @@ function ErrorTrackerIssue({
                                 {errorTrackerIssue.description
                                     ? errorTrackerIssue.description.length > 100
                                         ? `${errorTrackerIssue.description.substr(
-                                              0,
-                                              100
-                                          )} ...`
+                                            0,
+                                            100
+                                        )} ...`
                                         : errorTrackerIssue.description
                                     : ''}
                             </div>
@@ -179,12 +179,12 @@ function ErrorTrackerIssue({
                                         }}
                                     />
                                     <span className="Padding-left--8">
-                                        // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
+
                                         {moment(
                                             errorTrackerIssue.latestOccurennce
                                         ).fromNow()}{' '}
                                         -{' '}
-                                        // @ts-expect-error ts-migrate(2349) FIXME: This expression is not callable.
+
                                         {moment(
                                             errorTrackerIssue.earliestOccurennce
                                         ).fromNow()}
@@ -246,11 +246,11 @@ function ErrorTrackerIssue({
                                                 {member.userId.name
                                                     ? member.userId.name
                                                     : member.userId.email
-                                                    ? member.userId.email
-                                                    : 'N/A'}
+                                                        ? member.userId.email
+                                                        : 'N/A'}
                                                 {i <
-                                                errorTrackerIssue.members
-                                                    .length -
+                                                    errorTrackerIssue.members
+                                                        .length -
                                                     1
                                                     ? ', '
                                                     : null}
@@ -284,14 +284,13 @@ function ErrorTrackerIssue({
                             <span>Assign Members</span>
                         </button>
                         <button
-                            className={`bs-Button ${
-                                errorTrackerStatus &&
-                                errorTrackerStatus[errorTrackerIssue._id] &&
-                                errorTrackerStatus[errorTrackerIssue._id]
-                                    .requestingResolve
+                            className={`bs-Button ${errorTrackerStatus &&
+                                    errorTrackerStatus[errorTrackerIssue._id] &&
+                                    errorTrackerStatus[errorTrackerIssue._id]
+                                        .requestingResolve
                                     ? ''
                                     : 'bs-Button--icon bs-Button--check'
-                            }  `}
+                                }  `}
                             type="button"
                             disabled={errorTrackerIssue.resolved}
                             onClick={() =>
@@ -300,9 +299,9 @@ function ErrorTrackerIssue({
                         >
                             <span>
                                 {errorTrackerStatus &&
-                                errorTrackerStatus[errorTrackerIssue._id] &&
-                                errorTrackerStatus[errorTrackerIssue._id]
-                                    .requestingResolve ? (
+                                    errorTrackerStatus[errorTrackerIssue._id] &&
+                                    errorTrackerStatus[errorTrackerIssue._id]
+                                        .requestingResolve ? (
                                     <FormLoader2 />
                                 ) : (
                                     <span>

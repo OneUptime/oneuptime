@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { OnCallTableBody } from './OnCallData';
 import { history } from '../../store';
@@ -99,25 +99,25 @@ function OnCallTableRows({
 }: $TSFixMe) {
     return schedules.length > 0
         ? schedules.map((schedule: $TSFixMe, index: $TSFixMe) => {
-              if (Array.isArray(schedule)) return null;
-              schedule = parseSchedule(schedule);
-              return (
-                  <Row
-                      name={schedule.name}
-                      users={schedule.users}
-                      monitors={schedule.monitors}
-                      // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: any; users: any; monitors: any; isRe... Remove this comment to see the full error message
-                      isRequesting={isRequesting}
-                      id={schedule.id}
-                      key={`oncall ${index}`}
-                      match={match}
-                      subProjectId={subProjectId}
-                      bottonTitle={bottonTitle}
-                      slug={slug}
-                      scheduleSlug={schedule.slug}
-                  />
-              );
-          })
+            if (Array.isArray(schedule)) return null;
+            schedule = parseSchedule(schedule);
+            return (
+                <Row
+                    name={schedule.name}
+                    users={schedule.users}
+                    monitors={schedule.monitors}
+
+                    isRequesting={isRequesting}
+                    id={schedule.id}
+                    key={`oncall ${index}`}
+                    match={match}
+                    subProjectId={subProjectId}
+                    bottonTitle={bottonTitle}
+                    slug={slug}
+                    scheduleSlug={schedule.slug}
+                />
+            );
+        })
         : null;
 }
 

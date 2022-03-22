@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import { RenderSearchField } from '../basic/RenderSearchField';
 import ShouldRender from '../basic/ShouldRender';
@@ -16,7 +16,7 @@ const SearchInput = (props: $TSFixMe) => {
     const [error, setError] = useState(null);
 
     const handleClickOutside = (event: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
         if (container.current && !container.current.contains(event.target)) {
             setOpen(false);
         }
@@ -96,7 +96,7 @@ const SearchInput = (props: $TSFixMe) => {
         if (typeof val === 'object') {
             const testRegex = /^now(-\d{1,2}h)?$/;
             if (!testRegex.test(val.log_from) || !testRegex.test(val.log_to)) {
-                // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '"The input does not match format... Remove this comment to see the full error message
+
                 setError('The input does not match format');
             } else {
                 const log_from = val.log_from.split('-');
@@ -107,17 +107,17 @@ const SearchInput = (props: $TSFixMe) => {
                     : 0;
                 const extendTo = log_to[1] ? log_to[1].split('h').join('') : 0;
                 const payload = {};
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'log_from' does not exist on type '{}'.
+
                 payload.log_from = new Date(
                     nowDate.getTime() - extendFrom * 60 * 60000
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'log_to' does not exist on type '{}'.
+
                 payload.log_to = new Date(
                     nowDate.getTime() - extendTo * 60 * 60000
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'log_from' does not exist on type '{}'.
+
                 if (payload.log_from > payload.log_to) {
-                    // @ts-expect-error ts-migrate(2345) FIXME: Argument of type '"'From' time should be lesser th... Remove this comment to see the full error message
+
                     setError(`'From' time should be lesser than 'To' time`);
                     return;
                 }
@@ -139,7 +139,7 @@ const SearchInput = (props: $TSFixMe) => {
                 props.searchLog(projectId, componentId, applicationLogId, {
                     duration: val,
                 });
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'time' does not exist on type '{ time: st... Remove this comment to see the full error message
+
                 const { time } = items.find(
                     item => String(item.timeDiff) === String(val)
                 );
@@ -150,7 +150,7 @@ const SearchInput = (props: $TSFixMe) => {
     };
 
     const setAutoFocus = () => {
-        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
         document.getElementById('log_from_id').focus();
     };
 
@@ -211,14 +211,14 @@ const SearchInput = (props: $TSFixMe) => {
                                                     key={index}
                                                     onClick={() =>
                                                         item.time ===
-                                                        'Everything'
+                                                            'Everything'
                                                             ? fetchLogs()
                                                             : item.timeDiff
-                                                            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
-                                                            ? handleSearch(
-                                                                  item.timeDiff
-                                                              )
-                                                            : setAutoFocus()
+
+                                                                ? handleSearch(
+                                                                    item.timeDiff
+                                                                )
+                                                                : setAutoFocus()
                                                     }
                                                 >
                                                     {item.time}

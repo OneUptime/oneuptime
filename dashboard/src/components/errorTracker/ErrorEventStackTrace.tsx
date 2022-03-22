@@ -6,7 +6,7 @@ import AceCodeEditor from '../basic/AceCodeEditor';
 class ErrorEventStackTrace extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             currentFrameIndex: 0,
@@ -16,7 +16,7 @@ class ErrorEventStackTrace extends Component {
         // if current frame is not the same as the index, set it as the current frame
         // if current frame is the same, remove it to produce the toggle effect
         this.setState(state => ({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentFrameIndex' does not exist on typ... Remove this comment to see the full error message
+
             currentFrameIndex: state.currentFrameIndex !== index ? index : null,
         }));
     };
@@ -37,7 +37,7 @@ class ErrorEventStackTrace extends Component {
             codeSnippet = (
                 <div>
                     <AceCodeEditor
-                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                         value={codeContent}
                         name={`codeContent`}
                         readOnly={true}
@@ -60,7 +60,7 @@ class ErrorEventStackTrace extends Component {
         return codeSnippet;
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEvent' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
         return (
@@ -127,10 +127,10 @@ class ErrorEventStackTrace extends Component {
 
                     <div className="Stacktrace-Listing">
                         {errorEventDetails &&
-                        errorEventDetails.content &&
-                        errorEventDetails.content.stacktrace &&
-                        errorEventDetails.content.stacktrace.frames &&
-                        errorEventDetails.content.stacktrace.frames.length >
+                            errorEventDetails.content &&
+                            errorEventDetails.content.stacktrace &&
+                            errorEventDetails.content.stacktrace.frames &&
+                            errorEventDetails.content.stacktrace.frames.length >
                             0 ? (
                             errorEventDetails.content.stacktrace.frames.map(
                                 (frame: $TSFixMe, i: $TSFixMe) => {
@@ -156,9 +156,8 @@ class ErrorEventStackTrace extends Component {
                                                 </span>{' '}
                                                 at line{' '}
                                                 <span className="Text-fontWeight--bold">
-                                                    {`${
-                                                        frame.lineNumber
-                                                    }:${frame.columnNumber ||
+                                                    {`${frame.lineNumber
+                                                        }:${frame.columnNumber ||
                                                         0}`}
                                                 </span>
                                                 <span> {frame.renderCode}</span>
@@ -166,7 +165,7 @@ class ErrorEventStackTrace extends Component {
                                             <ShouldRender
                                                 if={
                                                     this.state
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentFrameIndex' does not exist on typ... Remove this comment to see the full error message
+
                                                         .currentFrameIndex === i
                                                 }
                                             >
@@ -185,10 +184,10 @@ class ErrorEventStackTrace extends Component {
         );
     }
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ErrorEventStackTrace.propTypes = {
     errorEvent: PropTypes.object,
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ErrorEventStackTrace.displayName = 'ErrorEventStackTrace';
 export default ErrorEventStackTrace;

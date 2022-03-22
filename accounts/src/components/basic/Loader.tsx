@@ -1,5 +1,5 @@
 import React from 'react';
-// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
+
 import { PropTypes } from 'prop-types';
 
 const loaderStyle = {
@@ -82,9 +82,8 @@ export const Spinner = () => (
 Spinner.displayName = 'Spinner';
 
 export const ButtonSpinner = (props: $TSFixMe) => <div
-    className={`Spinner bs-SpinnerLegacy Spinner--color--${
-        props && props.color ? props.color : 'white'
-    } Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center`}
+    className={`Spinner bs-SpinnerLegacy Spinner--color--${props && props.color ? props.color : 'white'
+        } Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center`}
     style={{ marginTop: 4 }}
 >
     <svg

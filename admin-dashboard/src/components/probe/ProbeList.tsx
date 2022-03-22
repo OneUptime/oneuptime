@@ -9,9 +9,9 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import { updateProbe } from '../../actions/probe';
 import ProbeDeleteModal from './ProbeDeleteModal';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { UploadFile } from '../basic/UploadFile';
 import { API_URL } from '../../config';
@@ -19,15 +19,15 @@ import { API_URL } from '../../config';
 export class ProbeList extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = { deleteModalId: uuidv4(), selectedProbe: '' };
     }
 
     handleClick = (probeId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
+
         const { deleteModalId } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: deleteModalId,
             content: ProbeDeleteModal,
@@ -48,7 +48,7 @@ export class ProbeList extends Component {
         try {
             reader.readAsDataURL(file);
             const data = { id: probe._id, probeImage: file };
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateProbe' does not exist on type 'Rea... Remove this comment to see the full error message
+
             this.props.updateProbe(data);
         } catch (error) {
             return;
@@ -56,18 +56,18 @@ export class ProbeList extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedProbe' does not exist on type 'R... Remove this comment to see the full error message
+
         const { selectedProbe } = this.state;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             probes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteRequesting' does not exist on type... Remove this comment to see the full error message
+
             deleteRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probeRequesting' does not exist on type ... Remove this comment to see the full error message
+
             probeRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addRequesting' does not exist on type 'R... Remove this comment to see the full error message
+
             addRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateRequesting' does not exist on type... Remove this comment to see the full error message
+
             updateRequesting,
         } = this.props;
         if (probes && probes.skip && typeof probes.skip === 'string') {
@@ -174,8 +174,8 @@ export class ProbeList extends Component {
                                     </tr>
                                 </Fragment>
                             ) : probes &&
-                              probes.data &&
-                              probes.data.length > 0 ? (
+                                probes.data &&
+                                probes.data.length > 0 ? (
                                 probes.data.map((probe: $TSFixMe) => {
                                     const fileData =
                                         probe && probe.probeImage
@@ -190,7 +190,7 @@ export class ProbeList extends Component {
                                             style={{
                                                 width: '25px',
                                                 height: '25px',
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'false | "0.3"' is not assignable to type 'Op... Remove this comment to see the full error message
+
                                                 opacity:
                                                     !probe.probeImage && '0.3',
                                             }}
@@ -245,10 +245,10 @@ export class ProbeList extends Component {
                                                                 <span>
                                                                     {probe.lastAlive
                                                                         ? moment(
-                                                                              probe.lastAlive
-                                                                          ).format(
-                                                                              'dddd, MMMM Do YYYY, h:mm a'
-                                                                          )
+                                                                            probe.lastAlive
+                                                                        ).format(
+                                                                            'dddd, MMMM Do YYYY, h:mm a'
+                                                                        )
                                                                         : ''}
                                                                 </span>
                                                             </div>
@@ -301,7 +301,7 @@ export class ProbeList extends Component {
                                                                 'flex-end',
                                                         }}
                                                     >
-                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'true' is not assignable to type 'FormEventHa... Remove this comment to see the full error message
+
                                                         <form onSubmit>
                                                             <div className="bs-Button bs-DeprecatedButton Margin-left--8">
                                                                 <ShouldRender
@@ -342,9 +342,9 @@ export class ProbeList extends Component {
                                                                     disabled={
                                                                         updateRequesting &&
                                                                         selectedProbe ===
-                                                                            probe.id
+                                                                        probe.id
                                                                     }
-                                                                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+
                                                                     fileInputKey={Math.round()}
                                                                 />
                                                             </div>
@@ -395,9 +395,9 @@ export class ProbeList extends Component {
                 </div>
                 <div style={{ textAlign: 'center', marginTop: '10px' }}>
                     {probes &&
-                    (!probes.data || !probes.data.length) &&
-                    !probes.requesting &&
-                    !probes.error
+                        (!probes.data || !probes.data.length) &&
+                        !probes.requesting &&
+                        !probes.error
                         ? "We don't have any probes yet"
                         : null}
                     {probes && probes.error ? probes.error : null}
@@ -408,15 +408,12 @@ export class ProbeList extends Component {
                             <span>
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {probes && probes.count
-                                        ? `Page ${
-                                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                              this.props.page
-                                          } of ${numberOfPages} (${probes &&
-                                              probes.count} Probe${
-                                              probes && probes.count === 1
-                                                  ? ''
-                                                  : 's'
-                                          })`
+                                        ? `Page ${this.props.page
+                                        } of ${numberOfPages} (${probes &&
+                                        probes.count} Probe${probes && probes.count === 1
+                                            ? ''
+                                            : 's'
+                                        })`
                                         : null}
                                 </span>
                             </span>
@@ -428,7 +425,7 @@ export class ProbeList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.prevClicked(
                                             probes.skip,
                                             probes.limit
@@ -453,7 +450,7 @@ export class ProbeList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.nextClicked(
                                             probes.skip,
                                             probes.limit
@@ -498,10 +495,10 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProbeList.displayName = 'ProbeList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProbeList.propTypes = {
     addRequesting: PropTypes.bool,
     deleteRequesting: PropTypes.bool,

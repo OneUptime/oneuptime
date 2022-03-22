@@ -28,15 +28,15 @@ class Incidents extends Component {
 
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getIncidents' does not exist on type 'Re... Remove this comment to see the full error message
+
             getIncidents,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             filter,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate,
         } = this.props;
 
@@ -54,13 +54,13 @@ class Incidents extends Component {
         } = nextProps;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filter' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             filter !== this.props.filter ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate !== this.props.startDate ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate !== this.props.endDate ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject !== this.props.currentProject
         ) {
             getIncidents(currentProject, filter, startDate, endDate);
@@ -74,17 +74,17 @@ class Incidents extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { incidents } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentReports' does not exist on type ... Remove this comment to see the full error message
+
         const { incidentReports, filter } = this.props;
 
         const chartData: $TSFixMe = [];
         incidents.map((element: $TSFixMe) => {
             const value = {};
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveTime' does not exist on type '{}'... Remove this comment to see the full error message
+
             value.resolveTime = element.incidents;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'date' does not exist on type '{}'.
+
             value.date = element[filter];
             chartData.push(value);
             return element;
@@ -228,7 +228,7 @@ class Incidents extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Incidents.displayName = 'Incidents';
 
 const actionCreators = {
@@ -246,7 +246,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Incidents.propTypes = {
     getIncidents: PropTypes.func,
     filter: PropTypes.string,

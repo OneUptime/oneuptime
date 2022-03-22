@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
@@ -13,7 +13,7 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.planId)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Please select a plan.';
     }
 
@@ -61,7 +61,7 @@ export const UpgradeForm = (this: $TSFixMe, props: $TSFixMe) => {
                                         className="bs-Fieldset-row .Flex-justifyContent--center"
                                         style={{ padding: 0 }}
                                     >
-                                        // @ts-expect-error ts-migrate(2786) FIXME: 'UpgradePlanFields' cannot be used as a JSX compon... Remove this comment to see the full error message
+
                                         <UpgradePlanFields {...props} />
                                     </div>
                                 </div>

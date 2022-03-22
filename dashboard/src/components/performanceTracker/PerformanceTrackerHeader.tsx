@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import { openModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
@@ -25,15 +25,15 @@ class PerformanceTrackerHeader extends Component {
 
     submitForm = (values: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             project,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             component,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
             performanceTracker,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatePerformanceTracker' does not exist... Remove this comment to see the full error message
+
             updatePerformanceTracker,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateTrackerObj' does not exist on type... Remove this comment to see the full error message
+
             updateTrackerObj,
         } = this.props;
 
@@ -56,17 +56,17 @@ class PerformanceTrackerHeader extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
             performanceTracker,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             project,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
             componentSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateTrackerObj' does not exist on type... Remove this comment to see the full error message
+
             updateTrackerObj,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
         } = this.props;
 
@@ -80,7 +80,7 @@ class PerformanceTrackerHeader extends Component {
                 <div
                     className="Box-root Card-shadow--medium"
                     style={{ marginTop: '10px', marginBottom: '10px' }}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                     tabIndex="0"
                 >
                     <div>
@@ -326,10 +326,10 @@ class PerformanceTrackerHeader extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 PerformanceTrackerHeader.displayName = 'PerformanceTrackerHeader';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 PerformanceTrackerHeader.propTypes = {
     performanceTracker: PropTypes.object,
     componentSlug: PropTypes.string,

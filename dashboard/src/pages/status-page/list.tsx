@@ -21,13 +21,13 @@ class StatusPages extends Page {
         });
     }
 
-    componentDidMount() {}
+    componentDidMount() { }
 
     render() {
         return this.renderCommon(
             <>
                 <Table
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ id: string; title: string; description: st... Remove this comment to see the full error message
+
                     id="status-page-table"
                     title="Status Page"
                     description="Status Pages helps your team and your customers to view real-time status and health of your monitors. Status Page helps improve transparency and trust in your organization and with your customers."
@@ -50,8 +50,8 @@ class StatusPages extends Page {
                             visibleForAll: false,
                         },
                     ]}
-                    onNextClicked={() => {}}
-                    onPreviousClicked={() => {}}
+                    onNextClicked={() => { }}
+                    onPreviousClicked={() => { }}
                     totalItemsCount={0}
                     friendlyName="Status Page"
                     friendlyNamePlural="Status Pages"
@@ -106,13 +106,13 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 StatusPages.propTypes = {
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultPropTypes' does not exist on type... Remove this comment to see the full error message
+
     ...Page.defaultPropTypes,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 StatusPages.displayName = 'StatusPages';
 
 export default connect(mapStateToProps, mapDispatchToProps)(StatusPages);

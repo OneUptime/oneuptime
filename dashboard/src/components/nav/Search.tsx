@@ -1,6 +1,6 @@
 import React, { Component, createRef } from 'react';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { RenderSearchField } from '../basic/RenderSearchField';
 import { connect } from 'react-redux';
@@ -33,7 +33,7 @@ class Search extends Component {
     activeRef: $TSFixMe;
     containerRef: $TSFixMe;
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.activeRef = createRef();
         this.containerRef = createRef();
@@ -52,13 +52,13 @@ class Search extends Component {
     scrollToViewPort() {
         const panel = this.containerRef.current;
         const node = this.activeRef.current;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const searchObj = this.props.searcResult;
 
         if (
             searchObj.length > 0 &&
             this.state.scroll ===
-                searchObj[searchObj.length - 1].values.length - 1 &&
+            searchObj[searchObj.length - 1].values.length - 1 &&
             this.state.sectionActive === searchObj.length - 1
         ) {
             panel.scrollTop = 0;
@@ -68,7 +68,7 @@ class Search extends Component {
     }
     ArrowUp = () => {
         this.scrollToViewPort();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const searchObj = this.props.searcResult;
         for (let i = 0; i < searchObj.length; i++) {
             if (i === this.state.sectionActive) {
@@ -82,10 +82,10 @@ class Search extends Component {
                         scroll:
                             this.state.sectionActive !== 0
                                 ? searchObj[this.state.sectionActive - 1].values
-                                      .length - 1
+                                    .length - 1
                                 : this.state.scroll === 0
-                                ? 0
-                                : this.state.scroll - 1,
+                                    ? 0
+                                    : this.state.scroll - 1,
                     });
                 } else {
                     return this.setState({
@@ -97,7 +97,7 @@ class Search extends Component {
     };
     ArrowDown = () => {
         this.scrollToViewPort();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const searchObj = this.props.searcResult;
         for (let i = 0; i < searchObj.length; i++) {
             if (i === this.state.sectionActive) {
@@ -106,7 +106,7 @@ class Search extends Component {
                     return this.setState({
                         sectionActive:
                             searchObj.length - 1 === this.state.sectionActive &&
-                            searchObj[i].values.length - 1 === this.state.scroll
+                                searchObj[i].values.length - 1 === this.state.scroll
                                 ? 0
                                 : this.state.sectionActive + 1,
                         scroll: 0,
@@ -122,7 +122,7 @@ class Search extends Component {
 
     //generate monitor url
     generateUrlLink(searchObj: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject } = this.props;
         const baseUrl = `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/`;
         let route = '';
@@ -157,7 +157,7 @@ class Search extends Component {
     }
 
     switchStatusPages = (searchObj: $TSFixMe, path: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchStatusPage' does not exist on type... Remove this comment to see the full error message
+
         this.props.switchStatusPage(searchObj);
         history.push(path);
     };
@@ -170,12 +170,12 @@ class Search extends Component {
         history.push(this.generateUrlLink(searchObj));
         //fetch monitor resources as this does not load on search
         const monitor = searchObj;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitors' does not exist on type 'R... Remove this comment to see the full error message
+
         await this.props.fetchMonitors(currentProject._id);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getProbes' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.getProbes(monitor.projectId, 0, 10); //
         if (monitor.type === 'url') {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLighthouseLogs' does not exist on t... Remove this comment to see the full error message
+
             this.props.fetchLighthouseLogs(
                 monitor.projectId,
                 monitor.monitorId,
@@ -183,7 +183,7 @@ class Search extends Component {
                 1,
                 monitor.data.url
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLighthouseLogs' does not exist on t... Remove this comment to see the full error message
+
             this.props.fetchLighthouseLogs(
                 monitor.projectId,
                 monitor.monitorId,
@@ -191,7 +191,7 @@ class Search extends Component {
                 5
             ); //0 -> skip, 10-> limit.
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorsIncidents' does not exist o... Remove this comment to see the full error message
+
         this.props.fetchMonitorsIncidents(
             monitor.projectId,
             monitor.monitorId,
@@ -199,7 +199,7 @@ class Search extends Component {
             10
         ); //0 -> skip, 5-> limit.
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getMonitorLogs' does not exist on type '... Remove this comment to see the full error message
+
         this.props.getMonitorLogs(
             monitor.projectId,
             monitor.monitorId,
@@ -214,9 +214,9 @@ class Search extends Component {
             monitor.type
         ); //0 -> skip, 5-> limit.
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorSlas' does not exist on type... Remove this comment to see the full error message
+
         this.props.fetchMonitorSlas(monitor.projectId);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCommunicationSlas' does not exist o... Remove this comment to see the full error message
+
         this.props.fetchCommunicationSlas(monitor.projectId);
     };
 
@@ -224,39 +224,39 @@ class Search extends Component {
         setTimeout(() => {
             history.push(
                 '/dashboard/project/' +
-                    currentProject.slug +
-                    '/incidents/' +
-                    searchObj.incidentSlug
+                currentProject.slug +
+                '/incidents/' +
+                searchObj.incidentSlug
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addIncident' does not exist on type 'Rea... Remove this comment to see the full error message
+
             this.props.addIncident(searchObj.incident);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
             this.props.animateSidebar(false);
         }, 200);
         const notifications = [{ notificationId: searchObj.notificationId }];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'markAsRead' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.markAsRead(this.props.currentProject._id, notifications);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
         this.props.animateSidebar(true);
     };
     loadErrorTracker = (currentProject: $TSFixMe, searchObj: $TSFixMe) => {
         history.push(
             '/dashboard/project/' +
-                currentProject.slug +
-                '/component/' +
-                searchObj.componentSlug +
-                '/error-trackers/' +
-                searchObj.errorTrackerSlug
+            currentProject.slug +
+            '/component/' +
+            searchObj.componentSlug +
+            '/error-trackers/' +
+            searchObj.errorTrackerSlug
         );
     };
     loadLogContainer = (currentProject: $TSFixMe, searchObj: $TSFixMe) => {
         history.push(
             '/dashboard/project/' +
-                currentProject.slug +
-                '/component/' +
-                searchObj.componentSlug +
-                '/application-logs/' +
-                searchObj.logContainerSlug
+            currentProject.slug +
+            '/component/' +
+            searchObj.componentSlug +
+            '/application-logs/' +
+            searchObj.logContainerSlug
         );
     };
 
@@ -264,12 +264,12 @@ class Search extends Component {
         history.push(
             `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/performance-tracker/${searchObj.performanceTrackerSlug}`
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addPerformanceTracker' does not exist on... Remove this comment to see the full error message
+
         this.props.addPerformanceTracker(searchObj.performanceTracker);
     };
 
     navigate = (type: $TSFixMe, searchObj: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, componentList } = this.props;
         let component, publicStatusPageUrl, path, userId;
         switch (type) {
@@ -290,14 +290,14 @@ class Search extends Component {
                             ? this.loadMonitor(currentProject, searchObj)
                             : this.loadComponent(currentProject, searchObj);
 
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                         this.props.animateSidebar(false);
                     },
                     type === 'Monitors' ? 500 : 200
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.animateSidebar(true);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCurrentComponent' does not exist on t... Remove this comment to see the full error message
+
                 this.props.addCurrentComponent(component);
                 break;
             case 'Status Pages':
@@ -328,7 +328,7 @@ class Search extends Component {
                 history.push(
                     `/dashboard/project/${currentProject.slug}/scheduledEvents/${searchObj.scheduleEventSlug}`
                 );
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'addScheduleEvent' does not exist on type... Remove this comment to see the full error message
+
                 this.props.addScheduleEvent(searchObj.scheduleEvents);
                 break;
             case 'Incidents':
@@ -349,26 +349,26 @@ class Search extends Component {
     };
     handleEnter = () => {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
             this.props.searcResult.length > 0 &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchValues' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.searchValues &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchValues' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.searchValues.search !== ''
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
             const searchObj = this.props.searcResult[this.state.sectionActive]
                 .values[this.state.scroll];
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
             const type = this.props.searcResult[this.state.sectionActive].title;
             this.navigate(type, searchObj);
             this.handleBlur();
         }
     };
     handleSearchClick = (sectionActive: $TSFixMe, scroll: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const searchObj = this.props.searcResult[sectionActive].values[scroll];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const type = this.props.searcResult[sectionActive].title;
         this.navigate(type, searchObj);
         this.handleBlur();
@@ -382,19 +382,19 @@ class Search extends Component {
             case 'Enter':
                 return this.handleEnter();
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSearch' does not exist on type 'Rea... Remove this comment to see the full error message
+
                 return this.props.resetSearch();
             default:
                 return false;
         }
     };
     handleBlur = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetSearch' does not exist on type 'Rea... Remove this comment to see the full error message
+
         this.props.resetSearch();
     };
     handleSearch = (val: $TSFixMe) => {
         if (val) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'search' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             this.props.search(this.props.currentProject._id, { search: val });
         } else {
             this.setState({
@@ -466,9 +466,9 @@ class Search extends Component {
         }
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searcResult' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const searchObj = this.props.searcResult;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchValues' does not exist on type 'Re... Remove this comment to see the full error message
+
         const searchValues = this.props.searchValues;
         return <>
             <Field
@@ -518,7 +518,7 @@ class Search extends Component {
                         boxShadow: '0 2px 15px rgb(84 96 103 / 25%)',
                         borderRadius: '4px',
                     }}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeSearchBar' does not exist on type '... Remove this comment to see the full error message
+
                     onClick={this.props.closeSearchBar}
                 >
                     {searchValues &&
@@ -563,17 +563,17 @@ class Search extends Component {
                                                 background:
                                                     this.state.scroll ===
                                                         i &&
-                                                    j ===
+                                                        j ===
                                                         this.state
                                                             .sectionActive
                                                         ? '#eee'
                                                         : '',
                                             }}
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                             tabIndex="-1"
                                             ref={
                                                 this.state.scroll === i &&
-                                                j ===
+                                                    j ===
                                                     this.state.sectionActive
                                                     ? this.activeRef
                                                     : null
@@ -583,7 +583,7 @@ class Search extends Component {
                                             }
                                         >
                                             {result.title ===
-                                            'Team Members' ? (
+                                                'Team Members' ? (
                                                 <span>
                                                     <img
                                                         src="/dashboard/assets/img/profile-user.svg"
@@ -591,9 +591,9 @@ class Search extends Component {
                                                         alt=""
                                                     />
                                                 </span>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProject' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             ) : this.props.subProject
-                                                  .count > 0 ? (
+                                                .count > 0 ? (
                                                 <Badge
                                                     color={
                                                         val.parentProject
@@ -611,10 +611,10 @@ class Search extends Component {
                                                     paddingLeft:
                                                         result.title ===
                                                             'Team Members' ||
-                                                        this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProject' does not exist on type 'Read... Remove this comment to see the full error message
-                                                            .subProject
-                                                            .count === 0
+                                                            this.props
+
+                                                                .subProject
+                                                                .count === 0
                                                             ? '0'
                                                             : '10px',
                                                 }}
@@ -639,7 +639,7 @@ class Search extends Component {
         </>;
     }
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Search.displayName = 'Search';
 
 const SearchBox = new reduxForm({
@@ -647,7 +647,7 @@ const SearchBox = new reduxForm({
     enableReinitialize: true,
 })(Search);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Search.propTypes = {
     searcResult: PropTypes.array,
     searchValues: PropTypes.object,

@@ -1,20 +1,20 @@
 import React, { Component } from 'react';
 import getParentRoute from '../utils/getParentRoute';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { showDeleteModal } from '../actions/component';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import { openModal } from '../actions/modal';
 import DeleteComponent from '../components/modals/DeleteComponent';
 import { deleteComponent } from '../actions/component';
 import { history } from '../store';
 import DataPathHoC from '../components/DataPathHoC';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 
 class ComponentSettingsAdvanced extends Component {
@@ -26,19 +26,19 @@ class ComponentSettingsAdvanced extends Component {
     }
 
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'showDeleteModal' does not exist on type ... Remove this comment to see the full error message
+
         this.props.showDeleteModal();
     };
 
     deleteComponent = (componentId: $TSFixMe) => {
         const projectId =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.component.projectId._id ||
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.component.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteComponent' does not exist on type ... Remove this comment to see the full error message
+
         const promise = this.props.deleteComponent(componentId, projectId);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         history.push(`/dashboard/project/${this.props.slug}/components`);
 
         return promise;
@@ -46,17 +46,17 @@ class ComponentSettingsAdvanced extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location: { pathname },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
             component,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'switchToProjectViewerNav' does not exist... Remove this comment to see the full error message
+
             switchToProjectViewerNav,
         } = this.props;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteComponentModalId' does not exist o... Remove this comment to see the full error message
+
         const { deleteComponentModalId } = this.state;
         const componentName = component && component.name;
 
@@ -69,7 +69,7 @@ class ComponentSettingsAdvanced extends Component {
                     name={projectName}
                     projectId={projectId}
                     slug={currentProject ? currentProject.slug : null}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ route: string; name: any; projectId: any; ... Remove this comment to see the full error message
+
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
@@ -118,7 +118,7 @@ class ComponentSettingsAdvanced extends Component {
                                                                     className="bs-Button bs-Button--red"
                                                                     id={`delete-component-${componentName}`}
                                                                     onClick={() =>
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                         this.props.openModal(
                                                                             {
                                                                                 id: deleteComponentModalId,
@@ -133,7 +133,7 @@ class ComponentSettingsAdvanced extends Component {
                                                                                     {
                                                                                         component: this
                                                                                             .props
-                                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'component' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                                             .component,
                                                                                     }
                                                                                 ),
@@ -163,10 +163,10 @@ class ComponentSettingsAdvanced extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ComponentSettingsAdvanced.displayName = 'ComponentSettingsAdvanced';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ComponentSettingsAdvanced.propTypes = {
     showDeleteModal: PropTypes.func,
     openModal: PropTypes.func,

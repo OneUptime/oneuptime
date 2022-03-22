@@ -9,11 +9,11 @@ import {
 } from '../../actions/notification';
 import { User, IS_SAAS_SERVICE } from '../../config';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../../config';
 
@@ -23,20 +23,20 @@ class NotificationMenu extends Component {
     };
 
     markAllAsRead(projectId: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'markAllAsRead' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.markAllAsRead(projectId);
     }
 
     markAsRead(notification: $TSFixMe) {
         const notificationIds = [{ notificationId: notification._id }];
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'markAsRead' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.markAsRead(notification.projectId._id, notificationIds);
     }
 
     handlePaymentIntent = (notification: $TSFixMe) => {
         const { client_secret } = notification.meta;
         const { projectId, _id } = notification;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'stripe' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { stripe, billingActionTaken, openModal, balance } = this.props;
         const { MessageBoxId } = this.state;
         stripe.handleCardPayment(client_secret).then((result: $TSFixMe) => {
@@ -81,29 +81,29 @@ class NotificationMenu extends Component {
     render() {
         const userId = User.getUserId();
         const allRead =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
             this.props.notifications &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
                 this.props.notifications.notifications &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
                 this.props.notifications.notifications.length
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
                 ? this.props.notifications.notifications.filter(
                     (notification: $TSFixMe) => notification &&
                         notification.read &&
                         notification.read.indexOf(userId) <= -1
                 ).length
                 : null;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notificationsVisible' does not exist on ... Remove this comment to see the full error message
+
         return this.props.notificationsVisible ? (
             <div
                 className="notifications ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
                 style={{
                     top: '49px',
                     width: '450px',
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'position' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     left: this.props.position
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'position' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         ? `${this.props.position - 391.5}px`
                         : 'unset',
                     right: '40px',
@@ -159,7 +159,7 @@ class NotificationMenu extends Component {
                                                 style={{ cursor: 'pointer' }}
                                                 onClick={() =>
                                                     this.markAllAsRead(
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                         this.props.projectId
                                                     )
                                                 }
@@ -172,14 +172,14 @@ class NotificationMenu extends Component {
                                     </div>
                                 </div>
                                 <div className="Box-root Padding-vertical--8">
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
                                     {this.props.notifications &&
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
                                         this.props.notifications.notifications &&
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
                                         this.props.notifications.notifications
                                             .length ? (
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'notifications' does not exist on type 'R... Remove this comment to see the full error message
+
                                         this.props.notifications.notifications.map(
                                             (notification: $TSFixMe, key: $TSFixMe) => {
                                                 if (
@@ -212,8 +212,8 @@ class NotificationMenu extends Component {
                                                             <div className="Notify-oneuptime">
                                                                 <img
                                                                     src={`/dashboard/assets/img/${notification.icon
-                                                                            ? notification.icon
-                                                                            : 'information'
+                                                                        ? notification.icon
+                                                                        : 'information'
                                                                         }.svg`}
                                                                     className="Notify-oneuptime-row-primary"
                                                                     style={{
@@ -277,8 +277,8 @@ class NotificationMenu extends Component {
                                                         <div className="Notify-oneuptime">
                                                             <img
                                                                 src={`/dashboard/assets/img/${notification.icon
-                                                                        ? notification.icon
-                                                                        : 'information'
+                                                                    ? notification.icon
+                                                                    : 'information'
                                                                     }.svg`}
                                                                 className="Notify-oneuptime-row-primary"
                                                                 style={{
@@ -337,7 +337,7 @@ class NotificationMenu extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 NotificationMenu.displayName = 'NotificationMenu';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -360,7 +360,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 NotificationMenu.propTypes = {
     markAsRead: PropTypes.func,
     markAllAsRead: PropTypes.func,
@@ -391,5 +391,5 @@ export default class NotificationWithCheckout extends Component {
         );
     }
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 NotificationWithCheckout.displayName = 'NotificationWithCheckout';

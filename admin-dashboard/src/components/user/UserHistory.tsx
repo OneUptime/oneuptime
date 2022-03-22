@@ -7,29 +7,29 @@ import { fetchUserloginHistory } from '../../actions/user';
 
 class UserHistory extends React.Component {
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.state = { page: 1 };
     }
     prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { userId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserloginHistory' does not exist on... Remove this comment to see the full error message
+
         this.props.fetchUserloginHistory(
             userId,
             (skip || 0) > (limit || 10) ? skip - limit : 0,
             10
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { userId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUserloginHistory' does not exist on... Remove this comment to see the full error message
+
         this.props.fetchUserloginHistory(userId, skip + limit, 10);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page + 1 });
     };
     render() {
@@ -55,7 +55,7 @@ class UserHistory extends React.Component {
                             </div>
                         </div>
                         <HistoryList
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ history: any; prevClicked: (skip: any, lim... Remove this comment to see the full error message
+
                             history={this.props.history}
                             prevClicked={this.prevClicked}
                             nextClicked={this.nextClicked}
@@ -67,14 +67,14 @@ class UserHistory extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 UserHistory.displayName = 'UserHistory';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ fetchUserloginHistory }, dispatch);
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 UserHistory.propTypes = {
     fetchUserloginHistory: PropTypes.func.isRequired,
     userId: PropTypes.string,

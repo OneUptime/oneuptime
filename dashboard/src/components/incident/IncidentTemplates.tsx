@@ -18,7 +18,7 @@ import DeleteIncidentTemplate from '../modals/DeleteIncidentTemplate';
 class IncidentTemplates extends Component {
     limit: $TSFixMe;
     constructor() {
-        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1-2 arguments, but got 0.
+
         super();
         this.limit = 10;
         this.state = {
@@ -28,7 +28,7 @@ class IncidentTemplates extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, fetchIncidentTemplates } = this.props;
         if (currentProject) {
             fetchIncidentTemplates({
@@ -42,14 +42,14 @@ class IncidentTemplates extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             JSON.stringify(prevProps.currentProject) !==
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             JSON.stringify(this.props.currentProject)
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             if (this.props.currentProject) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentTemplates' does not exist o... Remove this comment to see the full error message
+
                 this.props.fetchIncidentTemplates({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     projectId: this.props.currentProject._id,
                     skip: 0,
                     limit: this.limit,
@@ -59,7 +59,7 @@ class IncidentTemplates extends Component {
     }
 
     prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, fetchIncidentTemplates } = this.props;
         if (currentProject) {
             this.setState({
@@ -73,14 +73,14 @@ class IncidentTemplates extends Component {
             });
 
             this.setState({
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 page: this.state.page > 1 ? this.state.page - 1 : 1,
             });
         }
     };
 
     nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, fetchIncidentTemplates } = this.props;
         if (currentProject) {
             this.setState({
@@ -93,11 +93,11 @@ class IncidentTemplates extends Component {
             });
             this.setState({
                 page:
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                     this.state.page < this.props.count
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                         ? this.state.page + 1
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                         : this.props.count,
             });
         }
@@ -107,7 +107,7 @@ class IncidentTemplates extends Component {
         projectId,
         templateId
     }: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setDefaultTemplate' does not exist on ty... Remove this comment to see the full error message
+
         const { setDefaultTemplate, setActiveTemplate } = this.props;
         setActiveTemplate(templateId);
         setDefaultTemplate({ projectId, templateId });
@@ -115,194 +115,194 @@ class IncidentTemplates extends Component {
 
     handleTemplateList = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingTemplates' does not exist on typ... Remove this comment to see the full error message
+
             fetchingTemplates,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeTemplate' does not exist on type '... Remove this comment to see the full error message
+
             activeTemplate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'templates' does not exist on type 'Reado... Remove this comment to see the full error message
+
             templates,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'settingDefaultTemplate' does not exist o... Remove this comment to see the full error message
+
             settingDefaultTemplate,
         } = this.props;
 
         return !fetchingTemplates &&
-        currentProject &&
-        templates &&
-        templates.length > 0 &&
-        templates.map((template: $TSFixMe) => {
-            return (
-                <div
-                    key={template._id}
-                    id={`incident_template_${template.name}`}
-                    className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                    style={{
-                        backgroundColor: 'white',
-                        cursor: 'pointer',
-                    }}
-                >
-                    {template.isDefault ? (
-                        <div
-                            className="bs-ObjectList-cell bs-u-v-middle"
-                            style={{
-                                display: 'flex',
-                                width: '20vw',
-                            }}
-                        >
-                            <div className="bs-ObjectList-cell-row">
-                                {template.name}
-                            </div>
-                            <div
-                                style={{
-                                    marginLeft: 5,
-                                }}
-                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                            >
-                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                    <span>Default</span>
-                                </span>
-                            </div>
-                        </div>
-                    ) : (
-                        <div
-                            className="bs-ObjectList-cell bs-u-v-middle"
-                            style={{
-                                display: 'flex',
-                                width: '20vw',
-                            }}
-                        >
-                            <div className="bs-ObjectList-cell-row">
-                                {template.name}
-                            </div>
-                        </div>
-                    )}
+            currentProject &&
+            templates &&
+            templates.length > 0 &&
+            templates.map((template: $TSFixMe) => {
+                return (
                     <div
-                        className="bs-ObjectList-cell bs-u-v-middle"
-                        style={{ width: '20vw' }}
+                        key={template._id}
+                        id={`incident_template_${template.name}`}
+                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                        style={{
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                        }}
                     >
-                        <div
-                            className="bs-ObjectList-cell-row"
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'flex-end',
-                                marginRight: 15,
-                            }}
-                        >
-                            <ShouldRender if={!template.isDefault}>
-                                <button
-                                    id={`defaultIncidentTemplateBtn_${template.name}`}
-                                    title="set default"
-                                    className="bs-Button bs-DeprecatedButton"
-                                    style={{
-                                        marginLeft: 20,
-                                        minWidth: 100,
-                                    }}
-                                    type="button"
-                                    onClick={() => {
-                                        this.setAsDefault({
-                                            projectId: currentProject._id,
-                                            templateId: template._id,
-                                        });
-                                        this.setState({
-                                            flag: true,
-                                        });
-                                    }}
-                                    disabled={
-                                        fetchingTemplates &&
-                                        settingDefaultTemplate
-                                    }
-                                >
-                                    <ShouldRender
-                                        if={
-                                            !settingDefaultTemplate ||
-                                            String(activeTemplate) !==
-                                                String(template._id)
-                                        }
-                                    >
-                                        <span>Set as Default</span>
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={
-                                            settingDefaultTemplate &&
-                                            String(activeTemplate) ===
-                                                String(template._id)
-                                        }
-                                    >
-                                        <ListLoader
-                                            style={{
-                                                marginTop: 0,
-                                            }}
-                                        />
-                                    </ShouldRender>
-                                </button>
-                            </ShouldRender>
-                            <button
-                                id={`editIncidentTemplateBtn_${template.name}`}
-                                title="edit"
-                                className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                        {template.isDefault ? (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
                                 style={{
-                                    marginLeft: 20,
-                                }}
-                                type="button"
-                                onClick={() => {
-                                    openModal({
-                                        id: template._id,
-                                        content: DataPathHoC(
-                                            EditIncidentTemplate,
-                                            { template }
-                                        ),
-                                    });
+                                    display: 'flex',
+                                    width: '20vw',
                                 }}
                             >
-                                <span>Edit</span>
-                            </button>
-                            {!template.isDefault && (
+                                <div className="bs-ObjectList-cell-row">
+                                    {template.name}
+                                </div>
+                                <div
+                                    style={{
+                                        marginLeft: 5,
+                                    }}
+                                    className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                >
+                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                        <span>Default</span>
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="bs-ObjectList-cell bs-u-v-middle"
+                                style={{
+                                    display: 'flex',
+                                    width: '20vw',
+                                }}
+                            >
+                                <div className="bs-ObjectList-cell-row">
+                                    {template.name}
+                                </div>
+                            </div>
+                        )}
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{ width: '20vw' }}
+                        >
+                            <div
+                                className="bs-ObjectList-cell-row"
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'flex-end',
+                                    marginRight: 15,
+                                }}
+                            >
+                                <ShouldRender if={!template.isDefault}>
+                                    <button
+                                        id={`defaultIncidentTemplateBtn_${template.name}`}
+                                        title="set default"
+                                        className="bs-Button bs-DeprecatedButton"
+                                        style={{
+                                            marginLeft: 20,
+                                            minWidth: 100,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            this.setAsDefault({
+                                                projectId: currentProject._id,
+                                                templateId: template._id,
+                                            });
+                                            this.setState({
+                                                flag: true,
+                                            });
+                                        }}
+                                        disabled={
+                                            fetchingTemplates &&
+                                            settingDefaultTemplate
+                                        }
+                                    >
+                                        <ShouldRender
+                                            if={
+                                                !settingDefaultTemplate ||
+                                                String(activeTemplate) !==
+                                                String(template._id)
+                                            }
+                                        >
+                                            <span>Set as Default</span>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                settingDefaultTemplate &&
+                                                String(activeTemplate) ===
+                                                String(template._id)
+                                            }
+                                        >
+                                            <ListLoader
+                                                style={{
+                                                    marginTop: 0,
+                                                }}
+                                            />
+                                        </ShouldRender>
+                                    </button>
+                                </ShouldRender>
                                 <button
-                                    id={`deleteIncidentTemplateBtn_${template.name}`}
-                                    title="delete"
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                    id={`editIncidentTemplateBtn_${template.name}`}
+                                    title="edit"
+                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
                                     style={{
                                         marginLeft: 20,
                                     }}
                                     type="button"
                                     onClick={() => {
                                         openModal({
-                                            content: DeleteIncidentTemplate,
-                                            templateId: template._id,
-                                            projectId: currentProject._id,
+                                            id: template._id,
+                                            content: DataPathHoC(
+                                                EditIncidentTemplate,
+                                                { template }
+                                            ),
                                         });
                                     }}
                                 >
-                                    <span>Delete</span>
+                                    <span>Edit</span>
                                 </button>
-                            )}
+                                {!template.isDefault && (
+                                    <button
+                                        id={`deleteIncidentTemplateBtn_${template.name}`}
+                                        title="delete"
+                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                        style={{
+                                            marginLeft: 20,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            openModal({
+                                                content: DeleteIncidentTemplate,
+                                                templateId: template._id,
+                                                projectId: currentProject._id,
+                                            });
+                                        }}
+                                    >
+                                        <span>Delete</span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            );
-        });
+                );
+            });
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             limit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             count,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingTemplates' does not exist on typ... Remove this comment to see the full error message
+
             fetchingTemplates,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchTemplateError' does not exist on ty... Remove this comment to see the full error message
+
             fetchTemplateError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'setDefaultTemplateError' does not exist ... Remove this comment to see the full error message
+
             setDefaultTemplateError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'templates' does not exist on type 'Reado... Remove this comment to see the full error message
+
             templates,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
@@ -310,7 +310,7 @@ class IncidentTemplates extends Component {
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
         const projectName = currentProject ? currentProject.name : '';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
@@ -333,7 +333,7 @@ class IncidentTemplates extends Component {
                                 <button
                                     id="addIncidentTemplateBtn"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                         this.props.openModal({
                                             id: currentProject
                                                 ? currentProject._id
@@ -402,7 +402,7 @@ class IncidentTemplates extends Component {
                             </div>
                         </div>
                         <ShouldRender
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'flag' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                             if={fetchingTemplates && !this.state.flag}
                         >
                             <ListLoader />
@@ -425,9 +425,9 @@ class IncidentTemplates extends Component {
                             >
                                 <span>
                                     {(!templates || templates.length === 0) &&
-                                    !fetchingTemplates &&
-                                    !fetchTemplateError &&
-                                    !setDefaultTemplateError
+                                        !fetchingTemplates &&
+                                        !fetchTemplateError &&
+                                        !setDefaultTemplateError
                                         ? 'You have no incident template'
                                         : null}
                                     {fetchTemplateError
@@ -451,27 +451,17 @@ class IncidentTemplates extends Component {
                                             className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                         >
                                             {numberOfPages > 0
-                                                ? `Page ${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                      this.state.page
-                                                  } of ${numberOfPages} (${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count
-                                                  } Template${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count === 1
-                                                          ? ''
-                                                          : 's'
-                                                  })`
-                                                : `${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count
-                                                  } Template${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                      this.props.count === 1
-                                                          ? ''
-                                                          : 's'
-                                                  }`}
+                                                ? `Page ${this.state.page
+                                                } of ${numberOfPages} (${this.props.count
+                                                } Template${this.props.count === 1
+                                                    ? ''
+                                                    : 's'
+                                                })`
+                                                : `${this.props.count
+                                                } Template${this.props.count === 1
+                                                    ? ''
+                                                    : 's'
+                                                }`}
                                         </span>
                                     </span>
                                 </span>
@@ -530,10 +520,10 @@ class IncidentTemplates extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 IncidentTemplates.displayName = 'IncidentTemplates';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 IncidentTemplates.propTypes = {
     openModal: PropTypes.func.isRequired,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

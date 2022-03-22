@@ -11,7 +11,7 @@ import { ListLoader } from '../basic/Loader';
 
 class PerformanceTrackerList extends Component {
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLastMetrics' does not exist on type... Remove this comment to see the full error message
+
         const { fetchLastMetrics, performanceTracker, projectId } = this.props;
 
         const endDate = moment(Date.now()).format();
@@ -28,7 +28,7 @@ class PerformanceTrackerList extends Component {
     }
 
     viewMore = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
         const { componentSlug, projectSlug, performanceTracker } = this.props;
         history.push(
             `/dashboard/project/${projectSlug}/component/${componentSlug}/performance-tracker/${performanceTracker.slug}`
@@ -36,14 +36,14 @@ class PerformanceTrackerList extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
         const { performanceTracker, lastMetricsObj } = this.props;
 
         const metrics = lastMetricsObj
             ? lastMetricsObj.metrics.filter(
-                  (metric: $TSFixMe) => String(metric.performanceTrackerId) ===
-                  String(performanceTracker._id)
-              )
+                (metric: $TSFixMe) => String(metric.performanceTrackerId) ===
+                    String(performanceTracker._id)
+            )
             : [];
 
         return (
@@ -51,7 +51,7 @@ class PerformanceTrackerList extends Component {
                 <div
                     className="Box-root Card-shadow--medium"
                     style={{ marginTop: '10px', marginBottom: '10px' }}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                     tabIndex="0"
                 >
                     <div>
@@ -102,7 +102,7 @@ class PerformanceTrackerList extends Component {
                                 }
                             >
                                 <AlertPanel
-                                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                                     id={`${performanceTracker.name}-no-log-warning`}
                                     message={
                                         <span>
@@ -167,7 +167,7 @@ class PerformanceTrackerList extends Component {
                                                     {' '}
                                                     <span className="chart-font">
                                                         {metric.throughput ===
-                                                        0
+                                                            0
                                                             ? '-'
                                                             : metric.throughput}
                                                     </span>
@@ -196,9 +196,9 @@ class PerformanceTrackerList extends Component {
                                                     <span className="chart-font">
                                                         {metric.time ===
                                                             0 &&
-                                                        metric.throughput ===
+                                                            metric.throughput ===
                                                             0 &&
-                                                        metric.errorRate ===
+                                                            metric.errorRate ===
                                                             0
                                                             ? '-'
                                                             : metric.errorRate}
@@ -217,10 +217,10 @@ class PerformanceTrackerList extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 PerformanceTrackerList.displayName = 'PerformanceTrackerList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 PerformanceTrackerList.propTypes = {
     performanceTracker: PropTypes.object,
     componentSlug: PropTypes.string,

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -15,7 +15,7 @@ import { User } from '../../config';
 class PaymentCard extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             createCardModalId: uuidv4(),
@@ -24,9 +24,9 @@ class PaymentCard extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { userId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCards' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.fetchCards(userId);
 
         window.addEventListener('keydown', this.handleKeyboard);
@@ -37,16 +37,16 @@ class PaymentCard extends Component {
     }
 
     handleKeyboard = (event: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { modalId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createCardModalId' does not exist on typ... Remove this comment to see the full error message
+
         const { createCardModalId } = this.state;
 
         switch (event.key) {
             case 'N':
             case 'n':
                 if (modalId !== createCardModalId) {
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                     return document.getElementById('addCardButton').click();
                 }
                 return false;
@@ -56,18 +56,18 @@ class PaymentCard extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createCardModalId' does not exist on typ... Remove this comment to see the full error message
+
         const { createCardModalId, confirmCardDeleteModalId } = this.state;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'cards' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             cards,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'settingDefaultCard' does not exist on ty... Remove this comment to see the full error message
+
             settingDefaultCard,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingDefaultCardId' does not exist ... Remove this comment to see the full error message
+
             requestingDefaultCardId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             userId,
         } = this.props;
         return (
@@ -100,7 +100,7 @@ class PaymentCard extends Component {
                                                 <div className="Box-root">
                                                     <button
                                                         onClick={() => {
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                             this.props.openModal(
                                                                 {
                                                                     id: createCardModalId,
@@ -359,7 +359,7 @@ class PaymentCard extends Component {
                                                                             <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                                                                 {card.exp_month.toString()
                                                                                     .length ===
-                                                                                1 ? (
+                                                                                    1 ? (
                                                                                     <span>{`0${card.exp_month}/${card.exp_year}`}</span>
                                                                                 ) : (
                                                                                     <span>{`${card.exp_month}/${card.exp_year}`}</span>
@@ -436,7 +436,7 @@ class PaymentCard extends Component {
                                                                             <div
                                                                                 id={`deleteCard${i}`}
                                                                                 onClick={() =>
-                                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                                     this.props.openModal(
                                                                                         {
                                                                                             id: confirmCardDeleteModalId,
@@ -469,7 +469,7 @@ class PaymentCard extends Component {
                                                                                     id={`setDefaultCard${i}`}
                                                                                     className="Box-root"
                                                                                     onClick={() =>
-                                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'setDefaultCard' does not exist on type '... Remove this comment to see the full error message
+
                                                                                         this.props.setDefaultCard(
                                                                                             userId,
                                                                                             card.id
@@ -485,7 +485,7 @@ class PaymentCard extends Component {
                                                                                             }
                                                                                         >
                                                                                             {requestingDefaultCardId ===
-                                                                                            card.id ? (
+                                                                                                card.id ? (
                                                                                                 <div className="Button-fill bs-ButtonLegacy-fill Box-root Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                                                                     <div
                                                                                                         style={{
@@ -530,15 +530,15 @@ class PaymentCard extends Component {
                                                         id="cardsCount"
                                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                                     >
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                         {this.props.count
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                             ? this.props.count +
-                                                              (this.props
-                                                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                                  .count > 1
-                                                                  ? ' Cards'
-                                                                  : ' Card')
+                                                            (this.props
+
+                                                                .count > 1
+                                                                ? ' Cards'
+                                                                : ' Card')
                                                             : '0 Card'}
                                                     </span>
                                                 </span>
@@ -555,10 +555,10 @@ class PaymentCard extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 PaymentCard.displayName = 'PaymentCard';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 PaymentCard.propTypes = {
     userId: PropTypes.string,
     fetchCards: PropTypes.func.isRequired,

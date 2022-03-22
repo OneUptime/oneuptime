@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -26,10 +26,10 @@ class EditIncident extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('saveIncident').click();
             default:
                 return false;
@@ -37,12 +37,12 @@ class EditIncident extends Component {
     };
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { incidentId } = this.props.data;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const projectId = this.props.currentProject._id;
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateIncident' does not exist on type '... Remove this comment to see the full error message
+
             .updateIncident(
                 projectId,
                 incidentId,
@@ -51,25 +51,25 @@ class EditIncident extends Component {
                 values.description,
                 values.incidentPriority === '' ? null : values.incidentPriority
             )
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             .then(() => this.props.closeThisDialog());
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editIncident' does not exist on type 'Re... Remove this comment to see the full error message
+
             editIncident,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentPriorities' does not exist on ty... Remove this comment to see the full error message
+
             incidentPriorities,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             closeThisDialog,
         } = this.props;
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -119,7 +119,7 @@ class EditIncident extends Component {
                                                             name="incidentPriority"
                                                             disabled={
                                                                 this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editIncident' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                     .editIncident
                                                                     .requesting
                                                             }
@@ -157,7 +157,7 @@ class EditIncident extends Component {
                                                         placeholder="Incident title"
                                                         disabled={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editIncident' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                                 .editIncident
                                                                 .requesting
                                                         }
@@ -215,7 +215,7 @@ class EditIncident extends Component {
                                         <button
                                             className="bs-Button bs-DeprecatedButton btn__modal"
                                             onClick={() =>
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                                                 this.props.closeThisDialog()
                                             }
                                         >
@@ -258,9 +258,9 @@ class EditIncident extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 EditIncident.displayName = 'EditIncident';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 EditIncident.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
 };
@@ -296,7 +296,7 @@ function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 EditIncident.propTypes = {
     updateIncident: PropTypes.func.isRequired,
     data: PropTypes.object,

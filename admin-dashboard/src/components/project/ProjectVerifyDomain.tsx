@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import { bindActionCreators } from 'redux';
@@ -15,7 +15,7 @@ import {
 
 class ProjectVerifyDomain extends Component {
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetVerifyProjectDomain' does not exist... Remove this comment to see the full error message
+
         this.props.resetVerifyProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -36,26 +36,26 @@ class ProjectVerifyDomain extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainId' does not exist on type 'Readon... Remove this comment to see the full error message
+
             id: this.props.domainId,
         });
     };
 
     handleVerifyDomain = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'domainId' does not exist on type 'Readon... Remove this comment to see the full error message
+
             domainId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifyProjectDomain' does not exist on t... Remove this comment to see the full error message
+
             verifyProjectDomain,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchProjectDomains' does not exist on t... Remove this comment to see the full error message
+
             fetchProjectDomains,
         } = this.props;
         verifyProjectDomain({ projectId, domainId }).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifyError' does not exist on type 'Rea... Remove this comment to see the full error message
+
             if (!this.props.verifyError) {
                 fetchProjectDomains(projectId, 0, 10);
                 this.handleCloseModal();
@@ -64,7 +64,7 @@ class ProjectVerifyDomain extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { requesting, verificationToken, verifyError } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -293,7 +293,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     projectId: state.modal.modals[0].projectId
 });
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProjectVerifyDomain.displayName = 'ProjectVerifyDomain';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
@@ -306,7 +306,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProjectVerifyDomain.propTypes = {
     closeModal: PropTypes.func,
     domainId: PropTypes.string,

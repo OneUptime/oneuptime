@@ -130,7 +130,7 @@ export class PerformanceView extends Component {
         return (
             <div
                 className="Box-root Card-shadow--medium"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
             >
@@ -151,7 +151,7 @@ export class PerformanceView extends Component {
                             </label>
                             <div className="bs-Fieldset-fields">
                                 <Select
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; value: { value: string; labe... Remove this comment to see the full error message
+
                                     name="transaction_type"
                                     value={{ value: '', label: 'All' }}
                                     placeholder="Web"
@@ -180,7 +180,7 @@ export class PerformanceView extends Component {
                             </label>
                             <div className="bs-Fieldset-fields">
                                 <Select
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; value: { value: string; labe... Remove this comment to see the full error message
+
                                     name="compare_with"
                                     value={{ value: '', label: 'All' }}
                                     placeholder="All"
@@ -209,7 +209,7 @@ export class PerformanceView extends Component {
                             </label>
                             <div className="bs-Fieldset-fields">
                                 <Select
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ name: string; value: { value: string; labe... Remove this comment to see the full error message
+
                                     name="instances"
                                     value={{ value: '', label: 'All' }}
                                     placeholder="All"
@@ -233,10 +233,10 @@ export class PerformanceView extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 PerformanceView.displayName = 'PerformanceView';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 PerformanceView.propTypes = {};
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getMonitorLogs }, dispatch);
@@ -250,7 +250,7 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 PerformanceView.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(PerformanceView);

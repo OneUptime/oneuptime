@@ -1,5 +1,5 @@
 import React from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { deleteAutomatedScript } from '../../actions/automatedScript';
 import { openModal, closeModal } from '../../actions/modal';
@@ -51,7 +51,7 @@ const DeleteScriptBox = (props: $TSFixMe) => {
                                             id: deleteModalId,
                                             onClose: () => '',
                                             onConfirm: () => deleteScript(),
-                                            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
+
                                             content: DataPathHoC(
                                                 DeleteAutomatedScript
                                             ),

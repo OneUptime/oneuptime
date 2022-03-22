@@ -12,7 +12,7 @@ import SearchInput from '../search/SearchInput';
 class ApplicationLogDetailView extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             display: null,
@@ -21,30 +21,30 @@ class ApplicationLogDetailView extends Component {
 
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
             fetchLogs,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
             componentId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
+
             applicationLog,
         } = this.props;
         fetchLogs(projectId, componentId, applicationLog._id, 0, 10);
     }
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
             componentId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLog' does not exist on type '... Remove this comment to see the full error message
+
             applicationLog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'applicationLogId' does not exist on type... Remove this comment to see the full error message
+
             applicationLogId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'stats' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             stats,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             logs,
         } = this.props;
         return (
@@ -54,12 +54,12 @@ class ApplicationLogDetailView extends Component {
                         !(stats && !stats.requesting && stats.stats.all > 0) &&
                         logs &&
                         logs.logs.length < 1 &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'display' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                         !this.state.display
                     }
                 >
                     <AlertPanel
-                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                         id={`${applicationLog.name}-no-log-warning`}
                         message={
                             <span>
@@ -94,13 +94,13 @@ class ApplicationLogDetailView extends Component {
                     >
                         <div className="bs-app-log">
                             <SearchInput
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; componentId: any; applicat... Remove this comment to see the full error message
+
                                 projectId={projectId}
                                 componentId={componentId}
                                 applicationLogId={applicationLogId}
                                 setDisplay={(val: $TSFixMe) => this.setState({ display: val })
                                 }
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'display' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                 display={this.state.display}
                             />
                         </div>
@@ -121,14 +121,14 @@ class ApplicationLogDetailView extends Component {
         );
     }
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ApplicationLogDetailView.displayName = 'ApplicationLogDetailView';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ fetchLogs }, dispatch);
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ApplicationLogDetailView.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,

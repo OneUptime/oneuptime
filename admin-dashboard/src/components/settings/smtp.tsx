@@ -1,9 +1,9 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { RenderField } from '../basic/RenderField';
 import { Validate, IS_INTERNAL_SMTP_DEPLOYED } from '../../config';
@@ -19,32 +19,32 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.email(values.email)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
+
         errors.email = 'Email is not valid.';
     }
 
     if (!Validate.text(values.password)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type '{}'.
+
         errors.password = 'Password is not valid.';
     }
 
     if (!Validate.text(values['from-name'])) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         errors['from-name'] = 'Name is not valid.';
     }
 
     if (!Validate.email(values['from'])) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         errors['from'] = 'Email is not valid.';
     }
 
     if (!Validate.text(values['smtp-server'])) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         errors['smtp-server'] = 'SMTP Server is not valid.';
     }
 
     if (!Validate.text(values['smtp-port'])) {
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         errors['smtp-port'] = 'SMTP Port is not valid.';
     }
 
@@ -196,22 +196,22 @@ export class Component extends React.Component {
     }
 
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSettings' does not exist on type 'R... Remove this comment to see the full error message
+
         await this.props.fetchSettings(settingsType);
     }
 
     handleTestSmtp = (e: $TSFixMe) => {
         e.preventDefault();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'testSmtp' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { testSmtp, smtpForm } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'testModalId' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { testModalId } = this.state;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: testModalId,
             onConfirm: (testForm: $TSFixMe) => {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'smtpTestForm' does not exist on type 'Re... Remove this comment to see the full error message
+
                 const { smtpToUse } = this.props.smtpTestForm.values;
                 const { 'test-email': email } = testForm;
                 const {
@@ -244,9 +244,9 @@ export class Component extends React.Component {
                     if (res && typeof res === 'string') {
                         // prevent dismissal of modal if errored
                         // res will only be a string if errored
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                         return this.props.openModal({
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'messageModalId' does not exist on type '... Remove this comment to see the full error message
+
                             id: this.state.messageModalId,
                             content: (props: $TSFixMe) => {
                                 return (
@@ -255,9 +255,9 @@ export class Component extends React.Component {
                             },
                         });
                     }
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                     return this.props.openModal({
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'messageModalId' does not exist on type '... Remove this comment to see the full error message
+
                         id: this.state.messageModalId,
                         content: (props: $TSFixMe) => {
                             return <MessageModal {...props} email={email} />;
@@ -272,7 +272,7 @@ export class Component extends React.Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({ id: this.state.testModalId });
             default:
                 return false;
@@ -280,12 +280,12 @@ export class Component extends React.Component {
     };
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'saveSettings' does not exist on type 'Re... Remove this comment to see the full error message
+
         this.props.saveSettings(settingsType, values);
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'settings' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { settings, handleSubmit, smtpForm } = this.props;
         return (
             <div
@@ -335,12 +335,12 @@ export class Component extends React.Component {
                                                     >
                                                         <Field
                                                             className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ key: str... Remove this comment to see the full error message
+
                                                             type={field.type}
                                                             name={field.key}
                                                             id={field.key}
                                                             placeholder={
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'placeholder' does not exist on type '{ k... Remove this comment to see the full error message
+
                                                                 field.placeholder ||
                                                                 field.label
                                                             }
@@ -352,11 +352,11 @@ export class Component extends React.Component {
                                                                 settings.requesting
                                                             }
                                                         />
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'explanation' does not exist on type '{k... Remove this comment to see the full error message
+
                                                         {field.explanation && (
                                                             <p className="bs-Fieldset-explanation">
                                                                 {
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'explanation' does not exist on type '{ k... Remove this comment to see the full error message
+
                                                                     field.explanation
                                                                 }
                                                             </p>
@@ -393,7 +393,7 @@ export class Component extends React.Component {
                                                                 <Field
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                     type={
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{ key: str... Remove this comment to see the full error message
+
                                                                         field.type
                                                                     }
                                                                     name={
@@ -403,7 +403,7 @@ export class Component extends React.Component {
                                                                         field.key
                                                                     }
                                                                     placeholder={
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'placeholder' does not exist on type '{ k... Remove this comment to see the full error message
+
                                                                         field.placeholder ||
                                                                         field.label
                                                                     }
@@ -453,7 +453,7 @@ export class Component extends React.Component {
                                                                 name={field.key}
                                                                 id={field.key}
                                                                 placeholder={
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'placeholder' does not exist on type '{ k... Remove this comment to see the full error message
+
                                                                     field.placeholder ||
                                                                     field.label
                                                                 }
@@ -517,10 +517,10 @@ export class Component extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Component.displayName = 'SettingsForm';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Component.propTypes = {
     settings: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,

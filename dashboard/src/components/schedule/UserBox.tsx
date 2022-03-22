@@ -2,14 +2,14 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import UserInputs from './UserInputs';
 import { FormLoader, Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addUsers } from '../../actions/schedule';
 import { teamLoading } from '../../actions/team';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm } from 'redux-form';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderIfMember from '../basic/RenderIfMember';
@@ -28,9 +28,9 @@ function submitUserForm(values: $TSFixMe, dispatch: $TSFixMe, props: $TSFixMe) {
 
 export class UserBox extends Component {
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         if (this.props.projectId && this.props.users.length === 0) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamLoading' does not exist on type 'Rea... Remove this comment to see the full error message
+
             this.props.teamLoading(this.props.projectId);
         }
     }
@@ -41,7 +41,7 @@ export class UserBox extends Component {
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <form
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
                             onSubmit={this.props.handleSubmit(submitUserForm)}
                         >
                             <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
@@ -76,10 +76,10 @@ export class UserBox extends Component {
                                             <div className="bs-Fieldset-rows">
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                         this.props.users
                                                             .length === 0 &&
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                         !this.props.isRequesting
                                                     }
                                                 >
@@ -96,7 +96,7 @@ export class UserBox extends Component {
 
                                                 <ShouldRender
                                                     if={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                         this.props.users
                                                             .length > 0
                                                     }
@@ -120,13 +120,13 @@ export class UserBox extends Component {
                                                                     users={
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                                             .users
                                                                     }
                                                                     project={
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                                             .currentProject
                                                                     }
                                                                 />
@@ -136,7 +136,7 @@ export class UserBox extends Component {
                                                 </ShouldRender>
 
                                                 <ShouldRender
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
                                                     if={this.props.isRequesting}
                                                 >
                                                     <div
@@ -154,7 +154,7 @@ export class UserBox extends Component {
                                 </div>
                             </div>
 
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                             <ShouldRender if={this.props.users.length > 0}>
                                 <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                                     <span className="db-SettingsForm-footerMessage"></span>
@@ -164,18 +164,18 @@ export class UserBox extends Component {
                                                 className="bs-Button bs-Button--blue"
                                                 disabled={
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addUserRequesting' does not exist on typ... Remove this comment to see the full error message
+
                                                         .addUserRequesting ||
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                     this.props.users.length ===
-                                                        0
+                                                    0
                                                 }
                                                 type="submit"
                                             >
                                                 <ShouldRender
                                                     if={
                                                         !this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addUserRequesting' does not exist on typ... Remove this comment to see the full error message
+
                                                             .addUserRequesting
                                                     }
                                                 >
@@ -185,7 +185,7 @@ export class UserBox extends Component {
                                                 <ShouldRender
                                                     if={
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addUserRequesting' does not exist on typ... Remove this comment to see the full error message
+
                                                             .addUserRequesting
                                                     }
                                                 >
@@ -204,10 +204,10 @@ export class UserBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 UserBox.displayName = 'UserBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 UserBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     teamLoading: PropTypes.func.isRequired,
@@ -249,7 +249,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
         users.forEach(({
             userId
         }: $TSFixMe) => {
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             initialValues[userId] = scheduleUserIds.some((id: $TSFixMe) => userId === id);
         });
     }

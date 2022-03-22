@@ -3,7 +3,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import MonitorChart from './MonitorChart';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import MonitorTitle from './MonitorTitle';
 import ProbeBar from './ProbeBar';
@@ -34,7 +34,7 @@ import { updateprobebysocket } from '../../actions/socket';
 export class MonitorViewHeader extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
         this.state = {
             deleteModalId: uuidv4(),
@@ -48,15 +48,15 @@ export class MonitorViewHeader extends Component {
 
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorLogs' does not exist on type... Remove this comment to see the full error message
+
             fetchMonitorLogs,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorStatuses' does not exist on ... Remove this comment to see the full error message
+
             fetchMonitorStatuses,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             monitor,
             // updateprobebysocket,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { startDate, endDate } = this.state;
 
         // socket.on(`updateProbe`, function(data) {
@@ -81,12 +81,12 @@ export class MonitorViewHeader extends Component {
     }
     handleStartDateTimeChange = (val: $TSFixMe) => {
         const startDate = moment(val);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         this.handleDateChange(startDate, this.state.endDate);
     };
     handleEndDateTimeChange = (val: $TSFixMe) => {
         const endDate = moment(val);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.handleDateChange(this.state.startDate, endDate);
     };
     handleDateChange = (startDate: $TSFixMe, endDate: $TSFixMe) => {
@@ -94,11 +94,11 @@ export class MonitorViewHeader extends Component {
             this.setState({ startDate, endDate });
 
             const {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorLogs' does not exist on type... Remove this comment to see the full error message
+
                 fetchMonitorLogs,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchMonitorStatuses' does not exist on ... Remove this comment to see the full error message
+
                 fetchMonitorStatuses,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                 monitor,
             } = this.props;
 
@@ -118,22 +118,22 @@ export class MonitorViewHeader extends Component {
     };
 
     editMonitor = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editMonitorSwitch' does not exist on typ... Remove this comment to see the full error message
+
         this.props.editMonitorSwitch(this.props.index);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleEdit' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.toggleEdit(true);
     };
 
     deleteMonitor = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteMonitor' does not exist on type 'R... Remove this comment to see the full error message
+
         const promise = this.props.deleteMonitor(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor.projectId._id || this.props.monitor.projectId
         );
         history.push(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
         );
 
@@ -141,14 +141,14 @@ export class MonitorViewHeader extends Component {
     };
 
     selectbutton = (data: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedProbe' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.selectedProbe(data);
     };
 
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({ id: this.state.deleteModalId });
             default:
                 return false;
@@ -157,28 +157,28 @@ export class MonitorViewHeader extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteModalId' does not exist on type 'R... Remove this comment to see the full error message
+
             deleteModalId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'startDate' does not exist on type 'Reado... Remove this comment to see the full error message
+
             startDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'endDate' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             endDate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentModalId' does not exist on... Remove this comment to see the full error message
+
             createIncidentModalId,
         } = this.state;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             monitor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
+
             subProjects,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
             monitorState,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
+
             activeProbe,
             // currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             probes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'creating' does not exist on type 'Readon... Remove this comment to see the full error message
+
             creating,
         } = this.props;
 
@@ -203,12 +203,12 @@ export class MonitorViewHeader extends Component {
         const status = monitorDisabled
             ? 'disabled'
             : requesting
-            ? 'requesting'
-            : getMonitorStatus(
-                  monitor.incidents,
-                  logs,
-                  monitorType.replace('-', ' ')
-              );
+                ? 'requesting'
+                : getMonitorStatus(
+                    monitor.incidents,
+                    logs,
+                    monitorType.replace('-', ' ')
+                );
         let deleting = false;
         if (
             monitorState &&
@@ -239,12 +239,11 @@ export class MonitorViewHeader extends Component {
                     )} */}
                     <ShouldRender if={monitor && monitor.resourceCategory}>
                         <div
-                            className={`Box-root Padding-top--20 ${
-                                (subProjects && subProjects.length > 0) ||
-                                (subProject && subProject.name)
+                            className={`Box-root Padding-top--20 ${(subProjects && subProjects.length > 0) ||
+                                    (subProject && subProject.name)
                                     ? 'Padding-left--4'
                                     : 'Padding-left--20'
-                            }`}
+                                }`}
                         >
                             <Badge
                                 color={'slate5'}
@@ -261,7 +260,7 @@ export class MonitorViewHeader extends Component {
                 <div className="Box-root">
                     <div className="db-Trends-header">
                         <MonitorTitle
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ monitor: any; logs: any; status: any; }' i... Remove this comment to see the full error message
+
                             monitor={monitor}
                             logs={logs}
                             status={status}
@@ -297,7 +296,7 @@ export class MonitorViewHeader extends Component {
                                         disabled={creating}
                                         id={`monitorCreateIncident_${monitor.name}`}
                                         onClick={() =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.openModal({
                                                 id: createIncidentModalId,
                                                 content: DataPathHoC(
@@ -343,7 +342,7 @@ export class MonitorViewHeader extends Component {
                                         type="button"
                                         disabled={deleting}
                                         onClick={() =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.openModal({
                                                 id: deleteModalId,
                                                 onClose: () => '',
@@ -391,11 +390,11 @@ export class MonitorViewHeader extends Component {
                                             logs && logs.length > 0;
                                         const status = checkLogs
                                             ? logs[0].status
-                                            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+
                                             : getMonitorStatus(
-                                                  monitor.incidents,
-                                                  logs
-                                              );
+                                                monitor.incidents,
+                                                logs
+                                            );
                                         const probe = probes.filter(
                                             (probe: $TSFixMe) => probe._id === location._id
                                         );
@@ -450,10 +449,10 @@ export class MonitorViewHeader extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorViewHeader.displayName = 'MonitorViewHeader';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorViewHeader.propTypes = {
     componentSlug: PropTypes.string.isRequired,
     monitor: PropTypes.object.isRequired,

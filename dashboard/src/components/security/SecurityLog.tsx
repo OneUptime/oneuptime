@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import IssueLabel from './IssueLabel';
 import ShouldRender from '../basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { RenderSelect } from '../basic/RenderSelect';
 import paginate from '../../utils/paginate';
@@ -34,7 +34,7 @@ const SecurityLog = ({
             );
         }
 
-        // @ts-expect-error ts-migrate(2740) FIXME: Type '{ pre_page: number | null; next_page: number... Remove this comment to see the full error message
+
         applicationLogs = paginate(applicationLogs, page);
     }
 
@@ -49,7 +49,7 @@ const SecurityLog = ({
             );
         }
 
-        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ pre_page: number | null; next_page: number... Remove this comment to see the full error message
+
         containerLogs = paginate(containerLogs, page);
     }
 
@@ -143,16 +143,16 @@ const SecurityLog = ({
                             <tbody className="Table-body">
                                 <ShouldRender if={applicationSecurityLog}>
                                     {applicationSecurityLog &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'any[]'.
-                                    applicationLogs.data &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'any[]'.
-                                    applicationLogs.data.length > 0 ? (
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'any[]'.
+
+                                        applicationLogs.data &&
+
+                                        applicationLogs.data.length > 0 ? (
+
                                         applicationLogs.data.map((advisory: $TSFixMe) => {
                                             return (
                                                 <tr
                                                     className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
-                                                    onClick={() => {}}
+                                                    onClick={() => { }}
                                                     style={{
                                                         borderBottom:
                                                             '2px solid #f7f7f7',
@@ -191,7 +191,7 @@ const SecurityLog = ({
                                                             <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                 {advisory.via.map(
                                                                     (v: $TSFixMe) => advisory.severity ===
-                                                                    v.severity
+                                                                        v.severity
                                                                         ? v.title
                                                                         : ''
                                                                 ) ||
@@ -223,7 +223,7 @@ const SecurityLog = ({
                                                     textAlign: 'center',
                                                     padding: '15px 10px 0px',
                                                 }}
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                                 colSpan="3"
                                             >
                                                 No security issue detected for
@@ -234,17 +234,17 @@ const SecurityLog = ({
                                 </ShouldRender>
                                 <ShouldRender if={containerSecurityLog}>
                                     {containerSecurityLog &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'any[]'.
-                                    containerLogs.data &&
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'any[]'.
-                                    containerLogs.data.length > 0 ? (
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'any[]'.
+
+                                        containerLogs.data &&
+
+                                        containerLogs.data.length > 0 ? (
+
                                         containerLogs.data.map(
                                             (vulnerability: $TSFixMe, index: $TSFixMe) => {
                                                 return (
                                                     <tr
                                                         className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
-                                                        onClick={() => {}}
+                                                        onClick={() => { }}
                                                         style={{
                                                             borderBottom:
                                                                 '2px solid #f7f7f7',
@@ -327,7 +327,7 @@ const SecurityLog = ({
                                                     textAlign: 'center',
                                                     padding: '15px 10px 0px',
                                                 }}
-                                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                                 colSpan="3"
                                             >
                                                 No security issue detected for
@@ -353,21 +353,21 @@ const SecurityLog = ({
                         >
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
+
                                     {applicationLogs.count
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
+
                                         ? applicationLogs.count
                                         : 0}{' '}
                                     Security Issue
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
+
                                     {applicationLogs.count > 1
                                         ? 's'
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
+
                                         : !applicationLogs.count ||
-                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
-                                          applicationLogs.count === 0
-                                        ? 's'
-                                        : ''}
+
+                                            applicationLogs.count === 0
+                                            ? 's'
+                                            : ''}
                                 </span>
                             </div>
                         </div>
@@ -384,21 +384,21 @@ const SecurityLog = ({
                         >
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
+
                                     {containerLogs.count
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
+
                                         ? containerLogs.count
                                         : 0}{' '}
                                     Security Issue
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
+
                                     {containerLogs.count > 1
                                         ? 's'
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
+
                                         : !containerLogs.count ||
-                                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'any[]'.
-                                          containerLogs.count === 0
-                                        ? 's'
-                                        : ''}
+
+                                            containerLogs.count === 0
+                                            ? 's'
+                                            : ''}
                                 </span>
                             </div>
                         </div>
@@ -410,10 +410,10 @@ const SecurityLog = ({
                             <div className="Box-root Margin-right--8">
                                 <button
                                     id="btnPrev"
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pre_page' does not exist on type 'any[]'... Remove this comment to see the full error message
+
                                     className={`Button bs-ButtonLegacy ${!applicationLogs.pre_page &&
                                         'Is--disabled'}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
+
                                     disabled=""
                                     type="button"
                                     onClick={prev}
@@ -428,10 +428,10 @@ const SecurityLog = ({
                             <div className="Box-root">
                                 <button
                                     id="btnNext"
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'next_page' does not exist on type 'any[]... Remove this comment to see the full error message
+
                                     className={`Button bs-ButtonLegacy ${!applicationLogs.next_page &&
                                         'Is--disabled'}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
+
                                     disabled=""
                                     type="button"
                                     onClick={next}
@@ -450,10 +450,10 @@ const SecurityLog = ({
                             <div className="Box-root Margin-right--8">
                                 <button
                                     id="btnPrev"
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pre_page' does not exist on type 'any[]'... Remove this comment to see the full error message
+
                                     className={`Button bs-ButtonLegacy ${!containerLogs.pre_page &&
                                         'Is--disabled'}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
+
                                     disabled=""
                                     type="button"
                                     onClick={prev}
@@ -468,10 +468,10 @@ const SecurityLog = ({
                             <div className="Box-root">
                                 <button
                                     id="btnNext"
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'next_page' does not exist on type 'any[]... Remove this comment to see the full error message
+
                                     className={`Button bs-ButtonLegacy ${!containerLogs.next_page &&
                                         'Is--disabled'}`}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'boolean |... Remove this comment to see the full error message
+
                                     disabled=""
                                     type="button"
                                     onClick={next}

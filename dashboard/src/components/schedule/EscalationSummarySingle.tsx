@@ -119,8 +119,8 @@ const EscalationSummarySingle = ({
                                         {member.groupId
                                             ? member.groups.name
                                             : membersFromList.name
-                                            ? membersFromList.name
-                                            : membersFromList.email}
+                                                ? membersFromList.name
+                                                : membersFromList.email}
                                     </span>
                                 </div>
                             );
@@ -166,13 +166,13 @@ const EscalationSummarySingle = ({
                 <div className="bs-Fieldset-fields labelfield">
                     {data && data.rotationStartTime
                         ? DateTime.format(
-                              DateTime.convertToCurrentTimezone(
-                                  data.rotationStartTime,
-                                  // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
-                                  data.rotationTimezone
-                              ),
-                              'ddd, Do MMM: hh:mm A'
-                          )
+                            DateTime.convertToCurrentTimezone(
+                                data.rotationStartTime,
+
+                                data.rotationTimezone
+                            ),
+                            'ddd, Do MMM: hh:mm A'
+                        )
                         : ''}
                 </div>
             </div>
@@ -186,13 +186,13 @@ const EscalationSummarySingle = ({
                 <div className="bs-Fieldset-fields labelfield">
                     {data && data.rotationEndTime
                         ? DateTime.format(
-                              DateTime.convertToCurrentTimezone(
-                                  data.rotationEndTime,
-                                  // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 2.
-                                  data.rotationTimezone
-                              ),
-                              'ddd, Do MMM: hh:mm A'
-                          )
+                            DateTime.convertToCurrentTimezone(
+                                data.rotationEndTime,
+
+                                data.rotationTimezone
+                            ),
+                            'ddd, Do MMM: hh:mm A'
+                        )
                         : ''}
                 </div>
             </div>
@@ -212,193 +212,193 @@ const EscalationSummarySingle = ({
 
         {((isNextActiveTeam && teamMembersOnPartialDutyCount > 0) ||
             isActiveTeam) && (
-            <div className="bs-Fieldset-row">
-                <label className="bs-Fieldset-label">
-                    <b id="onCallDutyNote">Note:</b>{' '}
-                </label>
-                <div className="bs-Fieldset-fields labelfield">
-                    {hasNextEscalationPolicy && isActiveTeam && (
-                        <span>
-                            If the current active team does not respond,
-                            then the incident will be escalated to
-                            Escalation Policy{' '}
-                            {currentEscalationPolicyCount + 1} <br />
-                            <br />
-                        </span>
-                    )}
-                    {teamMembers &&
-                        teamMembers.filter((member: $TSFixMe) => {
-                            return (
-                                member.startTime &&
-                                member.startTime !== '' &&
-                                member.endTime &&
-                                member.endTime !== ''
-                            );
-                        }).length > 0 && (
+                <div className="bs-Fieldset-row">
+                    <label className="bs-Fieldset-label">
+                        <b id="onCallDutyNote">Note:</b>{' '}
+                    </label>
+                    <div className="bs-Fieldset-fields labelfield">
+                        {hasNextEscalationPolicy && isActiveTeam && (
                             <span>
-                                {' '}
-                                Team Members: <br />
-                                <br />{' '}
+                                If the current active team does not respond,
+                                then the incident will be escalated to
+                                Escalation Policy{' '}
+                                {currentEscalationPolicyCount + 1} <br />
+                                <br />
                             </span>
                         )}
-                    {teamMembers &&
-                        teamMembers
-                            .filter((member: $TSFixMe) => {
+                        {teamMembers &&
+                            teamMembers.filter((member: $TSFixMe) => {
                                 return (
                                     member.startTime &&
                                     member.startTime !== '' &&
                                     member.endTime &&
                                     member.endTime !== ''
                                 );
-                            })
-                            .map((member: $TSFixMe) => {
-                                let membersFromList = teamMemberList
-                                    .concat(groupList || [])
-                                    .filter((memberFromList: $TSFixMe) => {
-                                        return (
-                                            memberFromList.userId ===
-                                                member.userId ||
-                                            memberFromList._id ===
-                                                member.groupId
-                                        );
-                                    });
-
-                                if (membersFromList.length > 0) {
-                                    membersFromList = membersFromList[0];
-                                }
-
-                                return (
-                                    <div
-                                        key={membersFromList._id}
-                                        className="Box-root Margin-right--16 pointer"
-                                    >
-                                        <img
-                                            src={
-                                                member.groupId
-                                                    ? '/dashboard/assets/img/group-image.png'
-                                                    : '/dashboard/assets/img/profile-user.svg'
-                                            }
-                                            className="userIcon"
-                                            alt=""
-                                        />
-                                        <span>
-                                            {membersFromList.name ||
-                                                membersFromList.email}
-                                        </span>
-                                        <span>
-                                            {' '}
-                                            <br />
-                                            <br /> Will only be active from{' '}
-                                            {moment(
-                                                moment(
-                                                    member.startTime
-                                                ).format('HH:mm'),
-                                                'HH:mm'
-                                            ).format('hh:mm A')}{' '}
-                                            and{' '}
-                                            {moment(
-                                                moment(
-                                                    member.endTime
-                                                ).format('HH:mm'),
-                                                'HH:mm'
-                                            ).format('hh:mm A')}{' '}
-                                            everyday. <br />
-                                            <br />
-                                        </span>
-                                        {isActiveTeam && (
-                                            <>
-                                                <span>
-                                                    <b>Important: </b>If
-                                                    there&#39;s no team
-                                                    member on-duty when this
-                                                    member is not on-duty
-                                                    the incident is at the
-                                                    risk of being{' '}
-                                                    {hasNextEscalationPolicy
-                                                        ? 'escalated'
-                                                        : 'ignored'}
-                                                    . <br /> <br />
-                                                </span>
-                                            </>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                    {isActiveTeam && (
-                        <>
-                            <div>
-                                <p>
-                                    <b>Reminders: </b>
-                                    {escalation.call && (
-                                        <span>
-                                            {escalation.callReminders} Call
-                                            reminders
-                                        </span>
-                                    )}{' '}
-                                    {escalation.call && escalation.sms && (
-                                        <span>,</span>
-                                    )}{' '}
-                                    {escalation.sms && (
-                                        <span>
-                                            {escalation.smsReminders} SMS
-                                            reminders
-                                        </span>
-                                    )}{' '}
-                                    {(escalation.sms || escalation.call) &&
-                                        escalation.email && (
-                                            <span>,</span>
-                                        )}{' '}
-                                    {escalation.email && (
-                                        <span>
-                                            {escalation.emailReminders}{' '}
-                                            Email reminders
-                                        </span>
-                                    )}{' '}
-                                    {(escalation.sms ||
-                                        escalation.call ||
-                                        escalation.email) && (
-                                        <span>,</span>
-                                    )}{' '}
-                                    {escalation.push && (
-                                        <span>
-                                            {escalation.pushReminders} Push
-                                            Notification reminders
-                                        </span>
-                                    )}{' '}
-                                    <span>
-                                        {' '}
-                                        will be sent to each member of this
-                                        team if they do not respond. <br />
-                                    </span>
-                                </p>
-                            </div>
-                            {hasNextEscalationPolicy && (
-                                <span>
-                                    <br />
-                                    <b>Information: </b>If they do not
-                                    respond. The inident will be escalated
-                                    to escalation policy{' '}
-                                    {currentEscalationPolicyCount + 1}{' '}
-                                    <br />
-                                </span>
-                            )}
-                            {!hasNextEscalationPolicy && (
+                            }).length > 0 && (
                                 <span>
                                     {' '}
-                                    <br />
-                                    <b>
-                                        <span className="red">Alert:</span>{' '}
-                                    </b>
-                                    If they do not respond. Then the
-                                    incident is at the risk of being
-                                    ignored. <br />
+                                    Team Members: <br />
+                                    <br />{' '}
                                 </span>
                             )}
-                        </>
-                    )}
+                        {teamMembers &&
+                            teamMembers
+                                .filter((member: $TSFixMe) => {
+                                    return (
+                                        member.startTime &&
+                                        member.startTime !== '' &&
+                                        member.endTime &&
+                                        member.endTime !== ''
+                                    );
+                                })
+                                .map((member: $TSFixMe) => {
+                                    let membersFromList = teamMemberList
+                                        .concat(groupList || [])
+                                        .filter((memberFromList: $TSFixMe) => {
+                                            return (
+                                                memberFromList.userId ===
+                                                member.userId ||
+                                                memberFromList._id ===
+                                                member.groupId
+                                            );
+                                        });
+
+                                    if (membersFromList.length > 0) {
+                                        membersFromList = membersFromList[0];
+                                    }
+
+                                    return (
+                                        <div
+                                            key={membersFromList._id}
+                                            className="Box-root Margin-right--16 pointer"
+                                        >
+                                            <img
+                                                src={
+                                                    member.groupId
+                                                        ? '/dashboard/assets/img/group-image.png'
+                                                        : '/dashboard/assets/img/profile-user.svg'
+                                                }
+                                                className="userIcon"
+                                                alt=""
+                                            />
+                                            <span>
+                                                {membersFromList.name ||
+                                                    membersFromList.email}
+                                            </span>
+                                            <span>
+                                                {' '}
+                                                <br />
+                                                <br /> Will only be active from{' '}
+                                                {moment(
+                                                    moment(
+                                                        member.startTime
+                                                    ).format('HH:mm'),
+                                                    'HH:mm'
+                                                ).format('hh:mm A')}{' '}
+                                                and{' '}
+                                                {moment(
+                                                    moment(
+                                                        member.endTime
+                                                    ).format('HH:mm'),
+                                                    'HH:mm'
+                                                ).format('hh:mm A')}{' '}
+                                                everyday. <br />
+                                                <br />
+                                            </span>
+                                            {isActiveTeam && (
+                                                <>
+                                                    <span>
+                                                        <b>Important: </b>If
+                                                        there&#39;s no team
+                                                        member on-duty when this
+                                                        member is not on-duty
+                                                        the incident is at the
+                                                        risk of being{' '}
+                                                        {hasNextEscalationPolicy
+                                                            ? 'escalated'
+                                                            : 'ignored'}
+                                                        . <br /> <br />
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                        {isActiveTeam && (
+                            <>
+                                <div>
+                                    <p>
+                                        <b>Reminders: </b>
+                                        {escalation.call && (
+                                            <span>
+                                                {escalation.callReminders} Call
+                                                reminders
+                                            </span>
+                                        )}{' '}
+                                        {escalation.call && escalation.sms && (
+                                            <span>,</span>
+                                        )}{' '}
+                                        {escalation.sms && (
+                                            <span>
+                                                {escalation.smsReminders} SMS
+                                                reminders
+                                            </span>
+                                        )}{' '}
+                                        {(escalation.sms || escalation.call) &&
+                                            escalation.email && (
+                                                <span>,</span>
+                                            )}{' '}
+                                        {escalation.email && (
+                                            <span>
+                                                {escalation.emailReminders}{' '}
+                                                Email reminders
+                                            </span>
+                                        )}{' '}
+                                        {(escalation.sms ||
+                                            escalation.call ||
+                                            escalation.email) && (
+                                                <span>,</span>
+                                            )}{' '}
+                                        {escalation.push && (
+                                            <span>
+                                                {escalation.pushReminders} Push
+                                                Notification reminders
+                                            </span>
+                                        )}{' '}
+                                        <span>
+                                            {' '}
+                                            will be sent to each member of this
+                                            team if they do not respond. <br />
+                                        </span>
+                                    </p>
+                                </div>
+                                {hasNextEscalationPolicy && (
+                                    <span>
+                                        <br />
+                                        <b>Information: </b>If they do not
+                                        respond. The inident will be escalated
+                                        to escalation policy{' '}
+                                        {currentEscalationPolicyCount + 1}{' '}
+                                        <br />
+                                    </span>
+                                )}
+                                {!hasNextEscalationPolicy && (
+                                    <span>
+                                        {' '}
+                                        <br />
+                                        <b>
+                                            <span className="red">Alert:</span>{' '}
+                                        </b>
+                                        If they do not respond. Then the
+                                        incident is at the risk of being
+                                        ignored. <br />
+                                    </span>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
-            </div>
-        )}
+            )}
     </>;
 };
 

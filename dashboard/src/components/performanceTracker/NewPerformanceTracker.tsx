@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -29,7 +29,7 @@ class NewPerformanceTracker extends Component {
     validate = (values: $TSFixMe) => {
         const errors = {};
         if (!ValidateField.text(values[`name`])) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
             errors.name = 'Performance Tracker Name is required.';
         }
         return errors;
@@ -38,7 +38,7 @@ class NewPerformanceTracker extends Component {
         switch (e.key) {
             case 'Enter':
                 if (document.getElementById('editPerformanceTrackerButton'))
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                     return document
                         .getElementById('editPerformanceTrackerButton')
                         .click();
@@ -50,27 +50,27 @@ class NewPerformanceTracker extends Component {
 
     submitForm = (values: $TSFixMe) => {
         const postObj = {};
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         postObj.name = values[`name`];
         if (values[`resourceCategory`]) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
+
             postObj.resourceCategory = values[`resourceCategory`];
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'edit' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         if (!this.props.edit) {
             this.props
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createPerformanceTracker' does not exist... Remove this comment to see the full error message
+
                 .createPerformanceTracker({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     projectId: this.props.currentProject._id,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
                     componentId: this.props.componentId,
                     values: postObj,
                 })
                 .then(
                     (data: $TSFixMe) => {
                         history.push(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/performance-tracker/${data.data.slug}`
                         );
                     },
@@ -82,20 +82,20 @@ class NewPerformanceTracker extends Component {
                 );
         } else {
             this.props
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatePerformanceTracker' does not exist... Remove this comment to see the full error message
+
                 .updatePerformanceTracker({
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     projectId: this.props.currentProject._id,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentId' does not exist on type 'Rea... Remove this comment to see the full error message
+
                     componentId: this.props.componentId,
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTracker' does not exist on ty... Remove this comment to see the full error message
+
                     performanceTrackerId: this.props.performanceTracker._id,
                     values: postObj,
                 })
                 .then(
                     (data: $TSFixMe) => {
                         history.push(
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                             `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/performance-tracker/${data.data.slug}`
                         );
                     },
@@ -109,7 +109,7 @@ class NewPerformanceTracker extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, edit, performanceTracker } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
@@ -185,7 +185,7 @@ class NewPerformanceTracker extends Component {
                                     <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'newPerformanceTracker' does not exist on... Remove this comment to see the full error message
+
                                                 this.props.newPerformanceTracker
                                                     .error
                                             }
@@ -197,7 +197,7 @@ class NewPerformanceTracker extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'newPerformanceTracker' does not exist on... Remove this comment to see the full error message
+
                                                             .newPerformanceTracker
                                                             .error
                                                     }
@@ -207,7 +207,7 @@ class NewPerformanceTracker extends Component {
                                         <ShouldRender
                                             if={
                                                 this.props
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerUpdate' does not exist... Remove this comment to see the full error message
+
                                                     .performanceTrackerUpdate
                                                     .error
                                             }
@@ -219,7 +219,7 @@ class NewPerformanceTracker extends Component {
                                                 <span style={{ color: 'red' }}>
                                                     {
                                                         this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerUpdate' does not exist... Remove this comment to see the full error message
+
                                                             .performanceTrackerUpdate
                                                             .error
                                                     }
@@ -232,9 +232,9 @@ class NewPerformanceTracker extends Component {
                                     <div>
                                         <ShouldRender
                                             if={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'showCancelBtn' does not exist on type 'R... Remove this comment to see the full error message
+
                                                 this.props.showCancelBtn &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.toggleForm
                                             }
                                         >
@@ -242,11 +242,11 @@ class NewPerformanceTracker extends Component {
                                                 className="bs-Button"
                                                 disabled={
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerUpdate' does not exist... Remove this comment to see the full error message
+
                                                         .performanceTrackerUpdate
                                                         .requesting
                                                 }
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleForm' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 onClick={this.props.toggleForm}
                                                 type="button"
                                             >
@@ -261,7 +261,7 @@ class NewPerformanceTracker extends Component {
                                             <ShouldRender
                                                 if={
                                                     !this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'newPerformanceTracker' does not exist on... Remove this comment to see the full error message
+
                                                         .newPerformanceTracker
                                                         .requesting
                                                 }
@@ -274,7 +274,7 @@ class NewPerformanceTracker extends Component {
                                             <ShouldRender
                                                 if={
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'newPerformanceTracker' does not exist on... Remove this comment to see the full error message
+
                                                         .newPerformanceTracker
                                                         .requesting
                                                 }
@@ -290,7 +290,7 @@ class NewPerformanceTracker extends Component {
                                             className="bs-Button"
                                             disabled={
                                                 this.props
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerUpdate' does not exist... Remove this comment to see the full error message
+
                                                     .performanceTrackerUpdate
                                                     .requesting
                                             }
@@ -307,7 +307,7 @@ class NewPerformanceTracker extends Component {
                                             <ShouldRender
                                                 if={
                                                     !this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerUpdate' does not exist... Remove this comment to see the full error message
+
                                                         .performanceTrackerUpdate
                                                         .requesting
                                                 }
@@ -320,7 +320,7 @@ class NewPerformanceTracker extends Component {
                                             <ShouldRender
                                                 if={
                                                     this.props
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'performanceTrackerUpdate' does not exist... Remove this comment to see the full error message
+
                                                         .performanceTrackerUpdate
                                                         .requesting
                                                 }
@@ -339,7 +339,7 @@ class NewPerformanceTracker extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 NewPerformanceTracker.displayName = 'NewPerformanceTracker';
 
 const NewPerformanceTrackerForm = new reduxForm({
@@ -367,7 +367,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 NewPerformanceTracker.propTypes = {
     performanceTracker: PropTypes.object,
     handleSubmit: PropTypes.func.isRequired,

@@ -6,11 +6,11 @@ import UserList from '../components/user/UserList';
 import { fetchUsers, searchUsers } from '../actions/user';
 import { ListLoader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import UserAddModal from '../components/user/UserAddModal';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import * as _ from 'lodash';
 
 class Users extends Component {
@@ -26,7 +26,7 @@ class Users extends Component {
 
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUsers' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.fetchUsers();
     }
 
@@ -35,9 +35,9 @@ class Users extends Component {
     }
 
     handleKeyboard = (event: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { modalId } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addModalId' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { addModalId } = this.state;
 
         if (event.target.localName === 'body' && event.key) {
@@ -56,9 +56,9 @@ class Users extends Component {
     };
 
     prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchBox' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { searchBox } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUsers' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { fetchUsers, searchUsers } = this.props;
 
         if (searchBox && searchBox !== '') {
@@ -70,14 +70,14 @@ class Users extends Component {
         } else {
             fetchUsers((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchBox' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { searchBox } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchUsers' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { fetchUsers, searchUsers } = this.props;
 
         if (searchBox && searchBox !== '') {
@@ -85,13 +85,13 @@ class Users extends Component {
         } else {
             fetchUsers(skip + limit, 10);
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page + 1 });
     };
 
     onChange = (e: $TSFixMe) => {
         const value = e.target.value;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchUsers' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { searchUsers } = this.props;
 
         this.setState({ searchBox: value });
@@ -100,9 +100,9 @@ class Users extends Component {
     };
 
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addModalId' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { addModalId } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: addModalId,
             onConfirm: () => true,
@@ -111,29 +111,29 @@ class Users extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'users' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { users, user, requesting } = this.props;
         let canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             this.props.user.users &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-            this.props.user.users.count &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-            this.props.user.users.count >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
+                this.props.user.users.count &&
+
+                this.props.user.users.count >
+
                 this.props.user.users.skip + this.props.user.users.limit
                 ? true
                 : false;
         let canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             this.props.user.users && this.props.user.users.skip <= 0
                 ? false
                 : true;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             this.props.user.users &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             (this.props.user.users.requesting || !this.props.user.users)
         ) {
             canNext = false;
@@ -289,32 +289,27 @@ class Users extends Component {
                                                 <div className="bs-Tail-copy">
                                                     <span>
                                                         {numberOfPages > 0
-                                                            ? `Page ${
-                                                                  this.state
-                                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                                      .page
-                                                              } of ${numberOfPages} (${
-                                                                  user.users
-                                                                      .count
-                                                              } OneUptime User${
-                                                                  user.users
-                                                                      .count ===
-                                                                  1
-                                                                      ? ''
-                                                                      : 's'
-                                                              })`
+                                                            ? `Page ${this.state
+
+                                                                .page
+                                                            } of ${numberOfPages} (${user.users
+                                                                .count
+                                                            } OneUptime User${user.users
+                                                                .count ===
+                                                                1
+                                                                ? ''
+                                                                : 's'
+                                                            })`
                                                             : user.users
-                                                                  .count &&
-                                                              `${
-                                                                  user.users
-                                                                      .count
-                                                              } OneUptime User${
-                                                                  user.users
-                                                                      .count ===
-                                                                  1
-                                                                      ? ''
-                                                                      : 's'
-                                                              }`}
+                                                                .count &&
+                                                            `${user.users
+                                                                .count
+                                                            } OneUptime User${user.users
+                                                                .count ===
+                                                                1
+                                                                ? ''
+                                                                : 's'
+                                                            }`}
                                                     </span>
                                                 </div>
                                                 <div className="bs-Tail-actions">
@@ -326,13 +321,13 @@ class Users extends Component {
                                                                     this.prevClicked(
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                             .user
                                                                             .users
                                                                             .skip,
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                             .user
                                                                             .users
                                                                             .limit
@@ -366,13 +361,13 @@ class Users extends Component {
                                                                     this.nextClicked(
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                             .user
                                                                             .users
                                                                             .skip,
                                                                         this
                                                                             .props
-                                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'user' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                             .user
                                                                             .users
                                                                             .limit
@@ -435,10 +430,10 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 Users.contextTypes = {};
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Users.propTypes = {
     user: PropTypes.object.isRequired,
     users: PropTypes.array,
@@ -449,7 +444,7 @@ Users.propTypes = {
     modalId: PropTypes.string,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Users.displayName = 'Users';
 
 export default connect(mapStateToProps, mapDispatchToProps)(Users);

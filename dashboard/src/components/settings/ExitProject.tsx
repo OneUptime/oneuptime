@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../config';
 import { connect } from 'react-redux';
@@ -16,25 +16,25 @@ import { history } from '../../store';
 export class ExitProjectBox extends Component {
     handleClick = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             userId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextProject' does not exist on type 'Rea... Remove this comment to see the full error message
+
             nextProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'exitProject' does not exist on type 'Rea... Remove this comment to see the full error message
+
             exitProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'dispatch' does not exist on type 'Readon... Remove this comment to see the full error message
+
             dispatch,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
             id: uuidv4(),
             onConfirm: () => {
-                return exitProject(projectId, userId).then(function() {
+                return exitProject(projectId, userId).then(function () {
                     if (nextProject) {
                         window.location.reload();
-                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 2-3 arguments, but got 1.
+
                         switchProject(nextProject);
                     } else {
                         history.push('/');
@@ -48,7 +48,7 @@ export class ExitProjectBox extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { isRequesting } = this.props;
 
         return (
@@ -91,7 +91,7 @@ export class ExitProjectBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ExitProjectBox.displayName = 'ExitProjectBox';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
@@ -116,9 +116,9 @@ const mapStateToProps = (state: $TSFixMe) => {
     const nextProject =
         projects.length > 0
             ? projects.find(
-                  (project: $TSFixMe) => project._id !== projectId &&
-                  project.users.some((user: $TSFixMe) => user.userId === userId)
-              )
+                (project: $TSFixMe) => project._id !== projectId &&
+                    project.users.some((user: $TSFixMe) => user.userId === userId)
+            )
             : null;
 
     const isRequesting = state.project.exitProject.requesting;
@@ -126,7 +126,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     return { projectId, userId, nextProject, isRequesting };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ExitProjectBox.propTypes = {
     openModal: PropTypes.func.isRequired,
     exitProject: PropTypes.func.isRequired,

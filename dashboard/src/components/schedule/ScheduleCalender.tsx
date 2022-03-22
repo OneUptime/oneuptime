@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
@@ -27,7 +27,7 @@ function ScheduleCalender({
     });
 
     const extendedSchedule: $TSFixMe = [];
-    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'schedule' implicitly has an 'any' type.
+
     teamSchedules.forEach(schedule => {
         for (let i = 0; i <= dayOffset; i++) {
             const currentStart = new Date(schedule.startTime);

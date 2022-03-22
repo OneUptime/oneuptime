@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { User } from '../../config';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import About from '../modals/About';
 import { openModal, closeModal } from '../../actions/modal';
@@ -17,17 +17,17 @@ export class ProfileMenu extends Component {
     }
 
     logout() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'logoutUser' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { logoutUser } = this.props;
         logoutUser();
     }
 
     showAboutModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideProfileMenu' does not exist on type ... Remove this comment to see the full error message
+
         this.props.hideProfileMenu();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
         this.props.openModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'aboutId' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             id: this.state.aboutId,
             onClose: () => '',
             content: About,
@@ -44,7 +44,7 @@ export class ProfileMenu extends Component {
 
     handleShortcut = (event: $TSFixMe) => {
         // Only execute keyboard shortcut when profile menu is open
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'visible' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         if (this.props.visible) {
             if (event.key === 'a' || event.key === 'A') {
                 this.showAboutModal();
@@ -56,16 +56,16 @@ export class ProfileMenu extends Component {
         const name = User.getName();
         const email = User.getEmail();
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'visible' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         return this.props.visible ? (
             <div
                 className="ContextualLayer-layer--topright ContextualLayer-layer--anytop ContextualLayer-layer--anyright ContextualLayer-context--bottom ContextualLayer-context--anybottom ContextualLayer-container ContextualLayer--pointerEvents"
                 style={{
                     top: '49px',
                     width: '232px',
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'position' does not exist on type 'Readon... Remove this comment to see the full error message
+
                     left: this.props.position
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'position' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         ? `${this.props.position - 214.25}px`
                         : 'unset',
                     right: '40px',
@@ -168,7 +168,7 @@ export class ProfileMenu extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProfileMenu.displayName = 'ProfileMenu';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -184,7 +184,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProfileMenu.propTypes = {
     visible: PropTypes.bool,
     logoutUser: PropTypes.func.isRequired,
@@ -193,7 +193,7 @@ ProfileMenu.propTypes = {
     hideProfileMenu: PropTypes.func,
 };
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 ProfileMenu.contextTypes = {};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProfileMenu);

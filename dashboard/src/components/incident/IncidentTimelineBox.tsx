@@ -8,20 +8,20 @@ import { getIncidentTimeline } from '../../actions/incident';
 export class IncidentTimelineBox extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
             prevProps.incident !== this.props.incident &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
             !this.props.incident.timeline
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getIncidentTimeline' does not exist on t... Remove this comment to see the full error message
+
             this.props.getIncidentTimeline(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                 this.props.currentProject._id,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                 this.props.incident._id,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTimeline' does not exist on type... Remove this comment to see the full error message
+
                 parseInt(this.props.incidentTimeline.skip, 10),
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTimeline' does not exist on type... Remove this comment to see the full error message
+
                 parseInt(this.props.incidentTimeline.limit, 10)
             );
         }
@@ -47,11 +47,11 @@ export class IncidentTimelineBox extends Component {
                 </div>
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <IncidentTimelineList
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         incident={this.props.incident}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'previous' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         prevClicked={this.props.previous}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'next' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                         nextClicked={this.props.next}
                     />
                 </div>
@@ -60,10 +60,10 @@ export class IncidentTimelineBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 IncidentTimelineBox.displayName = 'IncidentTimelineBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 IncidentTimelineBox.propTypes = {
     currentProject: PropTypes.object,
     getIncidentTimeline: PropTypes.func,
@@ -82,7 +82,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2551) FIXME: Property 'contextTypes' does not exist on type 'ty... Remove this comment to see the full error message
+
 IncidentTimelineBox.contextTypes = {};
 
 export default connect(

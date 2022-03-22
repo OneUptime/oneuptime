@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, formValueSelector, change } from 'redux-form';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -120,12 +120,11 @@ let RenderMonitor = ({
                                     ...allMonitors
                                         .filter((m: $TSFixMe) => getParentComponent(m))
                                         .map((m: $TSFixMe) => ({
-                                        value: m._id,
+                                            value: m._id,
 
-                                        label: `${
-                                            getParentComponent(m).name
-                                        } / ${m.name}`
-                                    })),
+                                            label: `${getParentComponent(m).name
+                                                } / ${m.name}`
+                                        })),
                                 ]}
                                 onChange={() => resetSelectedCharts()}
                             />
@@ -308,7 +307,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const allComponents = state.component.componentList.components
         .filter(
             (component: $TSFixMe) => String(component._id._id || component._id) ===
-            String(subProjectId)
+                String(subProjectId)
         )
         .map((component: $TSFixMe) => component.components)
         .flat();
@@ -342,12 +341,12 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2322) FIXME: Type 'ConnectedComponent<({ subProject, monitorInd... Remove this comment to see the full error message
+
 RenderMonitor = connect(mapStateToProps)(RenderMonitor);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type '({ ... Remove this comment to see the full error message
+
 RenderMonitor.displayName = 'RenderMonitor';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type '({ su... Remove this comment to see the full error message
+
 RenderMonitor.propTypes = {
     subProject: PropTypes.object.isRequired,
     monitorIndex: PropTypes.number.isRequired,

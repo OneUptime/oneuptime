@@ -12,17 +12,17 @@ import DeleteSlack from '../modals/DeleteSlackWebhook';
 class SlackItem extends React.Component {
     deleteItem = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             monitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             monitorId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             data,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updateSlack' does not exist on type 'Rea... Remove this comment to see the full error message
+
             updateSlack,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSlack' does not exist on type 'Rea... Remove this comment to see the full error message
+
             deleteSlack,
         } = this.props;
 
@@ -33,32 +33,32 @@ class SlackItem extends React.Component {
             const newMonitors = monitors
                 .filter((monitor: $TSFixMe) => monitor.monitorId._id !== monitorId)
                 .map((monitor: $TSFixMe) => ({
-                monitorId: monitor.monitorId._id
-            }));
+                    monitorId: monitor.monitorId._id
+                }));
 
             if (newMonitors.length > 0) {
                 const postObj = {};
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'endpoint' does not exist on type '{}'.
+
                 postObj.endpoint = data && data.data.endpoint;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'webHookName' does not exist on type '{}'... Remove this comment to see the full error message
+
                 postObj.webHookName = data && data.webHookName;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type '{}'.
+
                 postObj.monitors = newMonitors;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type '{}'.
+
                 postObj.type = 'slack';
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'endpointType' does not exist on type '{}... Remove this comment to see the full error message
+
                 postObj.endpointType = data && data.data.endpointType;
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentCreated' does not exist on type ... Remove this comment to see the full error message
+
                 postObj.incidentCreated =
                     data && data.notificationOptions.incidentCreated;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentResolved' does not exist on type... Remove this comment to see the full error message
+
                 postObj.incidentResolved =
                     data && data.notificationOptions.incidentResolved;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentAcknowledged' does not exist on ... Remove this comment to see the full error message
+
                 postObj.incidentAcknowledged =
                     data && data.notificationOptions.incidentAcknowledged;
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentNoteAdded' does not exist on typ... Remove this comment to see the full error message
+
                 postObj.incidentNoteAdded =
                     data && data.notificationOptions.incidentNoteAdded;
 
@@ -83,16 +83,15 @@ class SlackItem extends React.Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { data, monitorId, webhooks, monitors } = this.props;
         const { webHookName } = data.data;
         let deleting = false;
         const monitorName = monitors && monitors[0].monitorId.name;
         const monitorTitle =
             monitors && monitors.length > 1
-                ? `${monitorName} and ${monitors?.length - 1} other${
-                      monitors?.length - 1 === 1 ? '' : 's'
-                  }`
+                ? `${monitorName} and ${monitors?.length - 1} other${monitors?.length - 1 === 1 ? '' : 's'
+                }`
                 : monitorName;
         if (
             webhooks &&
@@ -154,7 +153,7 @@ class SlackItem extends React.Component {
                                         className="bs-Button bs-DeprecatedButton"
                                         type="button"
                                         onClick={() =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.openModal({
                                                 id: data._id,
                                                 onClose: () => '',
@@ -175,7 +174,7 @@ class SlackItem extends React.Component {
                                         className="bs-Button bs-DeprecatedButton"
                                         type="button"
                                         onClick={() =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.openModal({
                                                 id: data._id,
                                                 onClose: () => '',
@@ -200,7 +199,7 @@ class SlackItem extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SlackItem.displayName = 'SlackItem';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
@@ -219,7 +218,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject
 });
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SlackItem.propTypes = {
     currentProject: PropTypes.object.isRequired,
     deleteSlack: PropTypes.func.isRequired,

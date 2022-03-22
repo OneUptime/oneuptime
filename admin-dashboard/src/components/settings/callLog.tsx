@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { FormLoader } from '../basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -13,7 +13,7 @@ import {
 class CallLog extends Component {
     handleKeyBoard: $TSFixMe;
     async componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchCallLogStatus' does not exist on ty... Remove this comment to see the full error message
+
         await this.props.fetchCallLogStatus();
     }
     toggleComponent = ({
@@ -32,11 +32,11 @@ class CallLog extends Component {
         </label>
     );
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'callLogStatusChange' does not exist on t... Remove this comment to see the full error message
+
         this.props.callLogStatusChange({ status: values.callStatusToggler });
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeCallLogStatus' does not exist on t... Remove this comment to see the full error message
+
         const { changeCallLogStatus, handleSubmit } = this.props;
         return (
             <div
@@ -152,7 +152,7 @@ class CallLog extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CallLog.displayName = 'CallLog';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
@@ -181,7 +181,7 @@ const ReduxFormComponent = reduxForm({
     enableReinitialize: true,
 })(CallLog);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CallLog.propTypes = {
     changeCallLogStatus: PropTypes.object,
     handleSubmit: PropTypes.func,

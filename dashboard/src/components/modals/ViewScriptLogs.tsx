@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { closeModal } from '../../actions/modal';
 import ConsoleLogView from '../monitor/ConsoleLogView';
@@ -27,9 +27,9 @@ class ViewScriptLogs extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             id: this.props.data.viewScriptLogModalId,
         });
     };
@@ -40,7 +40,7 @@ class ViewScriptLogs extends Component {
             title,
             consoleLogs,
             rootName,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         } = this.props.data;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -60,11 +60,11 @@ class ViewScriptLogs extends Component {
                                             <span
                                                 id={
                                                     title &&
-                                                    typeof title === 'string'
+                                                        typeof title === 'string'
                                                         ? title.replace(
-                                                              / /g,
-                                                              '_'
-                                                          )
+                                                            / /g,
+                                                            '_'
+                                                        )
                                                         : 'console_logs'
                                                 }
                                             >
@@ -89,7 +89,7 @@ class ViewScriptLogs extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
                                             type="button"
                                             onClick={() =>
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.closeModal({
                                                     id: viewScriptLogModalId,
                                                 })
@@ -112,10 +112,10 @@ class ViewScriptLogs extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ViewScriptLogs.displayName = 'ViewScriptLogs';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ViewScriptLogs.propTypes = {
     closeModal: PropTypes.func.isRequired,
     data: PropTypes.object,

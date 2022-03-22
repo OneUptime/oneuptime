@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
@@ -14,7 +14,7 @@ import DataPathHoC from '../DataPathHoC';
 import { history } from '../../store';
 import { capitalize } from '../../config';
 import { ListLoader } from '../basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
 import Badge from '../common/Badge';
 import MessageBox from '../modals/MessageBox';
@@ -57,13 +57,13 @@ class EventBox extends Component {
 
     handleScheduledEventDetail = (scheduledEventSlug: $TSFixMe) => {
         history.push(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             `/dashboard/project/${this.props.slug}/scheduledEvents/${scheduledEventSlug}`
         );
     };
 
     handleKeyboard = (event: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalList' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { modalList, allScheduleEventLength } = this.props;
 
         if (allScheduleEventLength === 1) {
@@ -73,7 +73,7 @@ class EventBox extends Component {
                     case 'n':
                         if (modalList.length === 0) {
                             event.preventDefault();
-                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                             return document
                                 .getElementById('addScheduledEventButton')
                                 .click();
@@ -87,44 +87,44 @@ class EventBox extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createScheduledEventModalId' does not ex... Remove this comment to see the full error message
+
         const { createScheduledEventModalId } = this.state;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'scheduledEvents' does not exist on type ... Remove this comment to see the full error message
+
             scheduledEvents,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             limit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             count,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             skip,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             error,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
             requesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchingMonitors' does not exist on type... Remove this comment to see the full error message
+
             fetchingMonitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             monitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentSubProject' does not exist on typ... Remove this comment to see the full error message
+
             currentSubProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
+
             subProjects,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
             prevClicked,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
             nextClicked,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'parentProjectId' does not exist on type ... Remove this comment to see the full error message
+
             parentProjectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'allScheduleEventLength' does not exist o... Remove this comment to see the full error message
+
             allScheduleEventLength,
         } = this.props;
         const footerBorderTopStyle = { margin: 0, padding: 0 };
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
@@ -188,7 +188,7 @@ class EventBox extends Component {
                                         <button
                                             id="addScheduledEventButton"
                                             onClick={() => {
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 this.props.openModal({
                                                     id: createScheduledEventModalId,
                                                     content: DataPathHoC(
@@ -235,7 +235,7 @@ class EventBox extends Component {
                                         <button
                                             id="addScheduledEventButton"
                                             onClick={() => {
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 this.props.openModal({
                                                     id: createScheduledEventModalId,
                                                     content: DataPathHoC(
@@ -387,7 +387,7 @@ class EventBox extends Component {
                                                             <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
                                                                 {
                                                                     this.props
-                                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                                         .name
                                                                 }
                                                             </div>
@@ -522,7 +522,7 @@ class EventBox extends Component {
                                         No monitors was added to this project.{' '}
                                         {parentProjectId ? (
                                             <Link
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                 to={`/dashboard/project/${this.props.slug}/components`}
                                                 style={{
                                                     textDecoration: 'underline',
@@ -532,7 +532,7 @@ class EventBox extends Component {
                                             </Link>
                                         ) : (
                                             <Link
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                 to={`/dashboard/project/${this.props.slug}/components`}
                                                 style={{
                                                     textDecoration: 'underline',
@@ -584,32 +584,22 @@ class EventBox extends Component {
                                                 className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                             >
                                                 {numberOfPages > 0
-                                                    ? `Page ${
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                    !this.props.pages[
+                                                    ? `Page ${!this.props.pages[
                                                         projectId
                                                     ]
                                                         ? 1
                                                         : this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pages' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                                             .pages[
                                                         projectId
                                                         ]
-                                                    } of ${numberOfPages} (${
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                    this.props.count
-                                                    } Event${
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                    this.props.count === 1
+                                                    } of ${numberOfPages} (${this.props.count
+                                                    } Event${this.props.count === 1
                                                         ? ''
                                                         : 's'
                                                     })`
-                                                    : `${
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                    this.props.count
-                                                    } Event${
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'count' does not exist on type 'Readonly<... Remove this comment to see the full error message
-                                                    this.props.count === 1
+                                                    : `${this.props.count
+                                                    } Event${this.props.count === 1
                                                         ? ''
                                                         : 's'
                                                     }`}
@@ -676,10 +666,10 @@ class EventBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 EventBox.displayName = 'EventBox';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 EventBox.propTypes = {
     openModal: PropTypes.func.isRequired,
     skip: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

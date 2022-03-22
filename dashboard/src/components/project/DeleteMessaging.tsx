@@ -16,7 +16,7 @@ class DeleteMessaging extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hide' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 return this.props.hide();
             case 'Enter':
                 if (e.target.localName !== 'textarea') {
@@ -29,11 +29,11 @@ class DeleteMessaging extends Component {
     };
 
     handleClick = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeDeleteModal' does not exist on typ... Remove this comment to see the full error message
+
         this.props.changeDeleteModal();
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'hide' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { hide, requesting } = this.props;
         return (
             <div className="bs-Modal bs-Modal--medium">
@@ -123,9 +123,9 @@ class DeleteMessaging extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DeleteMessaging.displayName = 'DeleteMessaging';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DeleteMessaging.propTypes = {
     changeDeleteModal: PropTypes.func.isRequired,
     hide: PropTypes.func.isRequired,

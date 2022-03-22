@@ -2,7 +2,7 @@ import React from 'react';
 import { logLibraries } from '../../config';
 import PropTypes from 'prop-types';
 import { RenderSelect } from '../basic/RenderSelect';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import AceCodeEditor from '../basic/AceCodeEditor';
@@ -41,9 +41,9 @@ function renderLanguageQuickStart(
         .getQuickStarts(errorTracker, applicationLog)
         .filter(quickStart => quickStart.id === library);
     const libraryDoc = currentLibrary[0]
-        // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
         ? currentLibrary[0][type]
-            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
             ? currentLibrary[0][type]
             : ''
         : '';
@@ -70,7 +70,7 @@ function renderLanguageQuickStart(
 
                 <div>
                     <AceCodeEditor
-                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                         value={
                             libraryDoc.installation
                                 ? libraryDoc.installation.command
@@ -87,7 +87,7 @@ function renderLanguageQuickStart(
                 </span>
                 <div>
                     <AceCodeEditor
-                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                         value={libraryDoc.usage ? libraryDoc.usage : ''}
                         name={`quickstart-${type}`}
                         readOnly={true}
@@ -126,7 +126,7 @@ const LibraryList = ({
     close,
     setShow
 }: $TSFixMe) => (
-    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
             <div
@@ -186,22 +186,22 @@ const LibraryList = ({
                                                                 label:
                                                                     'Select library',
                                                             },
-                                                            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
+
                                                             ...(logLibraries.getQuickStarts() &&
-                                                            // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
-                                                            logLibraries.getQuickStarts()
-                                                                .length > 0
+
+                                                                logLibraries.getQuickStarts()
+                                                                    .length > 0
                                                                 ? logLibraries
-                                                                      // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 0.
-                                                                      .getQuickStarts()
-                                                                      .map(
-                                                                          library => ({
-                                                                              value:
-                                                                                  library.id,
-                                                                              label:
-                                                                                  library.language,
-                                                                          })
-                                                                      )
+
+                                                                    .getQuickStarts()
+                                                                    .map(
+                                                                        library => ({
+                                                                            value:
+                                                                                library.id,
+                                                                            label:
+                                                                                library.language,
+                                                                        })
+                                                                    )
                                                                 : []),
                                                         ]}
                                                     />

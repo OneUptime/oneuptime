@@ -1,4 +1,4 @@
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
@@ -19,15 +19,15 @@ export class MonitorViewDisableBox extends Component {
 
     disableMonitor = async () => {
         const projectId =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor.projectId._id || this.props.monitor.projectId;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'disableMonitor' does not exist on type '... Remove this comment to see the full error message
+
         const promise = await this.props.disableMonitor(
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor._id,
             projectId
         );
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tabSelected' does not exist on type 'Rea... Remove this comment to see the full error message
+
         this.props.tabSelected(0);
 
         return promise;
@@ -36,7 +36,7 @@ export class MonitorViewDisableBox extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                 return this.props.closeModal({ id: this.state.disableModalId });
             default:
                 return false;
@@ -46,19 +46,19 @@ export class MonitorViewDisableBox extends Component {
     render() {
         let disabling = false;
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.monitorState &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.monitorState.disableMonitor &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
             this.props.monitorState.disableMonitor === this.props.monitor._id
         ) {
             disabling = true;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'disableModalId' does not exist on type '... Remove this comment to see the full error message
+
         const { disableModalId } = this.state;
         const disabledMonitor =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             this.props.monitor && this.props.monitor.disabled;
         return (
             <div
@@ -90,10 +90,10 @@ export class MonitorViewDisableBox extends Component {
                                     <button
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey"
                                         disabled={disabling}
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                         id={`disable_${this.props.monitor.name}`}
                                         onClick={() =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.openModal({
                                                 id: disableModalId,
                                                 onClose: () => '',
@@ -103,7 +103,7 @@ export class MonitorViewDisableBox extends Component {
                                                     DisableMonitor,
                                                     {
                                                         monitor: this.props
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitor' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                             .monitor,
                                                     }
                                                 ),
@@ -131,7 +131,7 @@ export class MonitorViewDisableBox extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 MonitorViewDisableBox.displayName = 'MonitorViewDisableBox';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal, disableMonitor }, dispatch);
@@ -143,7 +143,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 MonitorViewDisableBox.propTypes = {
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,

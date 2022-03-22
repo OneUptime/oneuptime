@@ -1,5 +1,5 @@
 import React, { Component, useState } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translator, Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import UptimeLegend from './UptimeLegend';
@@ -18,7 +18,7 @@ import {
     cacheProvider,
 } from '../config';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -94,12 +94,12 @@ class Main extends Component {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
             JSON.stringify(prevProps.probes) !==
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             JSON.stringify(this.props.probes)
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
+
             if (this.state.nowHandler) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
+
                 clearTimeout(this.state.nowHandler);
             }
 
@@ -107,28 +107,28 @@ class Main extends Component {
         }
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             prevProps.statusData.customJS !== this.props.statusData.customJS &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusData.customJS
         ) {
             const javascript = document
                 .createRange()
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
         }
 
         if (
             !prevProps?.status?.statusPage?.twitterHandle &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             this.props.status?.statusPage?.twitterHandle
         )
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchTweets' does not exist on type 'Rea... Remove this comment to see the full error message
+
             this.props.fetchTweets(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                 this.props.status?.statusPage?.twitterHandle,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                 this.props.status?.statusPage?.projectId?._id
             );
     }
@@ -177,7 +177,7 @@ class Main extends Component {
             });
         });
         let range;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'windowSize' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { windowSize } = this.state;
         if (windowSize <= 600) {
             range = 30;
@@ -189,17 +189,17 @@ class Main extends Component {
             range = 90;
         }
         this.props
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getAllStatusPageResource' does not exist... Remove this comment to see the full error message
+
             .getAllStatusPageResource(statusPageSlug, url, range)
             .catch((err: $TSFixMe) => {
                 if (err.message === 'Request failed with status code 401') {
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                     const { loginRequired } = this.props.login;
                     if (loginRequired) {
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'Location'... Remove this comment to see the full error message
+
                         window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                     }
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
+
                     this.selectbutton(this.props.activeProbe);
                 }
             });
@@ -221,18 +221,18 @@ class Main extends Component {
 
     groupedMonitors = (range: $TSFixMe) => {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusData &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusData.monitorsData !== undefined &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusData.monitorsData.length > 0
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             let monitorArrangement = this.props.statusData.monitors.map(
                 (monitorObj: $TSFixMe) => monitorObj.monitor._id || monitorObj.monitor
             );
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             let monitorData = this.props.statusData.monitorsData;
             monitorArrangement = monitorArrangement.map((id: $TSFixMe) => monitorData.find((data: $TSFixMe) => data._id === id)
             );
@@ -243,7 +243,7 @@ class Main extends Component {
             );
             const uncategorized = monitorData.filter(
                 (mon: $TSFixMe) => mon.statusPageCategory === undefined ||
-                !mon.statusPageCategory
+                    !mon.statusPageCategory
             );
 
             return (
@@ -251,11 +251,11 @@ class Main extends Component {
                     className="uptime-graph-header"
                     style={{ flexDirection: 'column' }}
                 >
-                    // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'categoryName' implicitly has an 'any' t... Remove this comment to see the full error message
+
                     {resourceCategories.map(categoryName => {
                         const filteredResource = monitorData.filter(
                             (resource: $TSFixMe) => resource.statusPageCategory &&
-                            resource.statusPageCategory.name ===
+                                resource.statusPageCategory.name ===
                                 categoryName
                         );
 
@@ -280,7 +280,7 @@ class Main extends Component {
     };
 
     CollapsableGroup = (categoryName: $TSFixMe, monitors: $TSFixMe, range: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { probes, activeProbe, statusData } = this.props;
         const theme = statusData.theme === 'Clean Theme' ? true : false;
 
@@ -289,7 +289,7 @@ class Main extends Component {
                 probes && probes.length > 0
                     ? probes[probes.length < 2 ? 0 : activeProbe]
                     : null;
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+
             const statuses = filterProbeData(monitor, probe);
             const monitorStatus = monitor.status
                 ? monitor.status
@@ -300,8 +300,8 @@ class Main extends Component {
         const categoryStatusBk = categoryStatuses.includes('offline')
             ? 'rgba(250, 109, 70, 1)'
             : categoryStatuses.includes('degraded')
-            ? 'rgba(255, 222, 36, 1)'
-            : 'rgba(108, 219, 86, 1)';
+                ? 'rgba(255, 222, 36, 1)'
+                : 'rgba(108, 219, 86, 1)';
 
         const collapsibleStyle = {
             backgroundColor: 'rgb(246 246 246)',
@@ -325,7 +325,7 @@ class Main extends Component {
 
         return (
             <Collapsible
-                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: any; trigger: any; triggerStyle:... Remove this comment to see the full error message
+
                 trigger={
                     categoryName.charAt(0).toUpperCase() + categoryName.slice(1)
                 }
@@ -351,7 +351,7 @@ class Main extends Component {
                             range={range}
                             monitor={monitor}
                             selectedCharts={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                                 this.props.monitors.filter(
                                     (m: $TSFixMe) => monitor._id === m.monitor._id
                                 )[0]
@@ -362,9 +362,9 @@ class Main extends Component {
                             resourceCategory={monitor.statusPageCategory}
                             isGroupedByMonitorCategory={false}
                             theme={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.theme ===
-                                'Clean Theme'
+                                    'Clean Theme'
                                     ? true
                                     : false
                             }
@@ -378,27 +378,27 @@ class Main extends Component {
                                 statusData.degradedText || 'Degraded'
                             }
                         />
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
                         {this.props.monitors.some(
                             (m: $TSFixMe) => monitor._id === m.monitor._id
                         ) && (
-                            <LineChartsContainer
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ monitor: any; selectedCharts: any; }' is n... Remove this comment to see the full error message
-                                monitor={monitor}
-                                selectedCharts={
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
-                                    this.props.monitors.filter(
-                                        (m: $TSFixMe) => monitor._id === m.monitor._id
-                                    )[0]
-                                }
-                            />
-                        )}
+                                <LineChartsContainer
+
+                                    monitor={monitor}
+                                    selectedCharts={
+
+                                        this.props.monitors.filter(
+                                            (m: $TSFixMe) => monitor._id === m.monitor._id
+                                        )[0]
+                                    }
+                                />
+                            )}
 
                         {i < monitors.length - 1 ||
-                        (i === monitors.length - 1 &&
-                            categoryName.toLowerCase() ===
+                            (i === monitors.length - 1 &&
+                                categoryName.toLowerCase() ===
                                 'uncategorized' &&
-                            !theme) ? (
+                                !theme) ? (
                             <div
                                 style={{
                                     margin: '30px 0px',
@@ -407,12 +407,12 @@ class Main extends Component {
                                 }}
                             />
                         ) : (i === monitors.length - 1 &&
-                              categoryName.toLowerCase() !==
-                                  'uncategorized') ||
-                          (i === monitors.length - 1 &&
-                              categoryName.toLowerCase() ===
-                                  'uncategorized' &&
-                              theme) ? (
+                            categoryName.toLowerCase() !==
+                            'uncategorized') ||
+                            (i === monitors.length - 1 &&
+                                categoryName.toLowerCase() ===
+                                'uncategorized' &&
+                                theme) ? (
                             <div
                                 style={{
                                     marginBottom: '30px',
@@ -426,12 +426,12 @@ class Main extends Component {
     };
 
     selectbutton = (index: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'selectedProbe' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.selectedProbe(index);
     };
 
     renderError = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { error } = this.props.status;
         if (error === 'Input data schema mismatch.') {
             return 'Page Not Found';
@@ -441,9 +441,9 @@ class Main extends Component {
     };
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
+
         if (this.state.nowHandler) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'nowHandler' does not exist on type 'Read... Remove this comment to see the full error message
+
             clearTimeout(this.state.nowHandler);
         }
         window.removeEventListener('resize', () => {
@@ -462,10 +462,10 @@ class Main extends Component {
             onlineText = 'operational',
             offlineText = 'offline',
             degradedText = 'degraded',
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
         } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const probes = this.props.probes;
         let view = false;
         let status = '';
@@ -488,19 +488,19 @@ class Main extends Component {
             disabled,
             noteBackgroundColor;
         let statusBackground;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
         if (this.props.statusData && this.props.statusData.monitorsData) {
-            // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
+
             serviceStatus = getServiceStatus(this.props.monitorState, probes);
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             isGroupedByMonitorCategory = this.props.statusData
                 .isGroupedByMonitorCategory;
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             const colors = this.props.statusData.colors;
             const disabledMonitors =
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
                 this.props.monitorState &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
                 this.props.monitorState.filter((m: $TSFixMe) => m.disabled);
             disabled =
                 disabledMonitors && disabledMonitors.length ? true : false;
@@ -579,7 +579,7 @@ class Main extends Component {
                         : degradedColor.backgroundColor;
             }
 
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             if (this.props.ongoing && this.props.ongoing.length > 0) {
                 statusBackground = degradedColor;
             } else if (serviceStatus === 'all') {
@@ -608,7 +608,7 @@ class Main extends Component {
             smsNotification,
             webhookNotification,
             emailNotification,
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         } = this.props.statusPage;
         const showSubscriberOption =
             enableRSSFeed ||
@@ -616,7 +616,7 @@ class Main extends Component {
             webhookNotification ||
             emailNotification;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
         const availableMonitors = this.props.statusData.monitors;
 
         const defaultLayout = {
@@ -646,7 +646,7 @@ class Main extends Component {
         };
 
         let visibleLayout =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
             this.props.statusData && this.props.statusData.layout;
         //check if the layout has been set if not fall back to the default layout
         if (!visibleLayout) {
@@ -654,7 +654,7 @@ class Main extends Component {
         }
 
         let range: $TSFixMe;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'windowSize' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { windowSize } = this.state;
         if (windowSize <= 600) {
             range = 30;
@@ -670,22 +670,22 @@ class Main extends Component {
             header: (
                 <>
                     <HelemtCard
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         statusData={this.props.statusData}
                         faviconurl={faviconurl}
                     />
                     <ShouldRender
                         if={
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData.logoPath
                         }
                     >
                         <div className="logo_section pad-left">
                             <span>
                                 <img
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     src={`${API_URL}/file/${this.props.statusData.logoPath}`}
                                     alt=""
                                     className="logo"
@@ -706,15 +706,15 @@ class Main extends Component {
                             </div>
                         </React.Fragment>
                     </ShouldRender>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                     {this.props.statusData &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
-                    this.props.statusData.bannerPath ? (
+
+                        this.props.statusData.bannerPath ? (
                         <div className="banner-container">
                             <div className="page-main-wrapper">
                                 <span>
                                     <img
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                         src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
                                         alt=""
                                         className="banner"
@@ -727,9 +727,9 @@ class Main extends Component {
                     )}
                     <ShouldRender
                         if={
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData.title ||
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isSubscriberEnabled' does not exist on t... Remove this comment to see the full error message
+
                             (this.props.isSubscriberEnabled === true &&
                                 showSubscriberOption)
                         }
@@ -742,15 +742,15 @@ class Main extends Component {
                                         color: '#fff',
                                     }}
                                 >
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     {this.props.statusData.title}
                                 </span>
                                 <ShouldRender
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     if={this.props.statusData.description}
                                 >
                                     <div className="bs-page_desc">
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                         {this.props.statusData.description}
                                     </div>
                                 </ShouldRender>
@@ -758,9 +758,9 @@ class Main extends Component {
                             <div style={{ display: 'flex' }}>
                                 <ShouldRender
                                     if={
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isSubscriberEnabled' does not exist on t... Remove this comment to see the full error message
+
                                         this.props.isSubscriberEnabled ===
-                                            true && showSubscriberOption
+                                        true && showSubscriberOption
                                     }
                                 >
                                     <NewThemeSubscriber />
@@ -773,13 +773,13 @@ class Main extends Component {
 
             ongoingSchedule: (
                 <OngoingSchedule
-                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                     monitorState={this.props.monitorState}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     ongoing={this.props.ongoing}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     history={this.props.history}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                     statusData={this.props.statusData}
                 />
             ),
@@ -789,7 +789,7 @@ class Main extends Component {
                     className="sy-op"
                     style={{
                         backgroundColor:
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                             this.props.ongoing && this.props.ongoing.length > 0
                                 ? 'rgb(227, 159, 72)'
                                 : newbg,
@@ -797,7 +797,7 @@ class Main extends Component {
                     id="status-note"
                 >
                     <Translate>
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                         {this.props.ongoing && this.props.ongoing.length > 0
                             ? 'Ongoing Scheduled Maintenance Event'
                             : newStatusMessage}
@@ -806,33 +806,33 @@ class Main extends Component {
             ),
             services: (
                 <>
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                     <ShouldRender if={!this.props.statusData.hideProbeBar}>
                         <div className="bs-probes">
                             <Probes
                                 probes={probes}
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ background: string; } | undefined' is not ... Remove this comment to see the full error message
+
                                 backgroundMain={backgroundMain}
                                 contentBackground={contentBackground}
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                 activeProbe={this.props.activeProbe}
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
                                 monitorState={this.props.monitorState}
                                 greenBackground={greenBackground}
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ backgroundColor: string; } | undefined' is... Remove this comment to see the full error message
+
                                 uptimeColor={uptimeColor}
                                 greyBackground={greyBackground}
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'object'.
+
                                 serviceStatus={serviceStatus}
                                 redBackground={redBackground}
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ backgroundColor: string; } | undefined' is... Remove this comment to see the full error message
+
                                 downtimeColor={downtimeColor}
                                 yellowBackground={yellowBackground}
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ backgroundColor: string; } | undefined' is... Remove this comment to see the full error message
+
                                 degradedColor={degradedColor}
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ color: string; } | undefined' is not assig... Remove this comment to see the full error message
+
                                 heading={heading}
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'now' does not exist on type 'Readonly<{}... Remove this comment to see the full error message
+
                                 now={this.state.now}
                                 selectbutton={index => this.selectbutton(index)}
                                 theme={theme}
@@ -862,21 +862,21 @@ class Main extends Component {
                                     >
                                         {this.groupedMonitors(range)}
                                     </div>
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 ) : this.props.statusData &&
-                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
-                                  this.props.statusData.monitorsData !==
-                                      undefined &&
-                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
-                                  this.props.statusData.monitorsData.length >
-                                      0 ? (
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
+                                    this.props.statusData.monitorsData !==
+                                    undefined &&
+
+                                    this.props.statusData.monitorsData.length >
+                                    0 ? (
+
                                     this.props.monitors
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                         .filter((monitor: $TSFixMe) => this.props.statusData.monitorsData.some(
-                                        (m: $TSFixMe) => m._id ===
-                                        monitor.monitor._id
-                                    )
+                                            (m: $TSFixMe) => m._id ===
+                                                monitor.monitor._id
+                                        )
                                         )
                                         .map((monitor: $TSFixMe, i: $TSFixMe) => (
                                             <div
@@ -891,11 +891,11 @@ class Main extends Component {
                                                 <MonitorInfo
                                                     range={range}
                                                     monitor={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                         this.props.statusData.monitorsData.filter(
                                                             (m: $TSFixMe) => m._id ===
-                                                            monitor.monitor
-                                                                ._id
+                                                                monitor.monitor
+                                                                    ._id
                                                         )[0]
                                                     }
                                                     selectedCharts={monitor}
@@ -906,32 +906,32 @@ class Main extends Component {
                                                     }
                                                     theme={'clean'}
                                                     onlineText={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                         this.props.statusData
                                                             .onlineText ||
                                                         'Operational'
                                                     }
                                                     offlineText={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                         this.props.statusData
                                                             .offlineText ||
                                                         'Offline'
                                                     }
                                                     degradedText={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                         this.props.statusData
                                                             .degradedText ||
                                                         'Degraded'
                                                     }
                                                 />
                                                 <LineChartsContainer
-                                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ monitor: any; selectedCharts: any; key: st... Remove this comment to see the full error message
+
                                                     monitor={
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                         this.props.statusData.monitorsData.filter(
                                                             (m: $TSFixMe) => m._id ===
-                                                            monitor.monitor
-                                                                ._id
+                                                                monitor.monitor
+                                                                    ._id
                                                         )[0]
                                                     }
                                                     selectedCharts={monitor}
@@ -969,19 +969,19 @@ class Main extends Component {
                         <Translate>Incidents</Translate>
                     </div>
                     <NotesMain
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; statusPageId: any; theme: ... Remove this comment to see the full error message
+
                         projectId={
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData.projectId &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData.projectId._id
                         }
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         statusPageId={this.props.statusData._id}
                         theme={theme}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         statusPageSlug={this.props.statusData.slug}
                     />
                 </div>
@@ -989,9 +989,9 @@ class Main extends Component {
             maintenance: (
                 <ShouldRender
                     if={
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'futureEvents' does not exist on type 'Re... Remove this comment to see the full error message
+
                         this.props.futureEvents &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'futureEvents' does not exist on type 'Re... Remove this comment to see the full error message
+
                         this.props.futureEvents.length > 0
                     }
                 >
@@ -1004,18 +1004,18 @@ class Main extends Component {
                         </div>
                         <NewThemeEvent
                             projectId={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.projectId &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.projectId._id
                             }
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             statusPageId={this.props.statusData._id}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             statusPageSlug={this.props.statusData.slug}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                             history={this.props.history}
                             noteBackgroundColor={noteBackgroundColor}
                             type={'future'}
@@ -1026,9 +1026,9 @@ class Main extends Component {
             pastEvents: (
                 <ShouldRender
                     if={
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.pastEvents &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'pastEvents' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.pastEvents.length > 0
                     }
                 >
@@ -1041,18 +1041,18 @@ class Main extends Component {
                         </div>
                         <NewThemeEvent
                             projectId={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.projectId &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.projectId._id
                             }
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             statusPageId={this.props.statusData._id}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             statusPageSlug={this.props.statusData.slug}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                             history={this.props.history}
                             noteBackgroundColor={noteBackgroundColor}
                             type={'past'}
@@ -1062,7 +1062,7 @@ class Main extends Component {
             ),
             anouncement: (
                 <Announcement
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children?: ReactNode; monitorState: any; t... Remove this comment to see the full error message
+
                     monitorState={this.props.monitorState}
                     theme={theme}
                     heading={heading}
@@ -1072,18 +1072,18 @@ class Main extends Component {
             AnnouncementLogs: (
                 <div>
                     <AnnouncementLogs
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; statusPageId: any; monitor... Remove this comment to see the full error message
+
                         projectId={
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData.projectId &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData.projectId._id
                         }
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         statusPageId={this.props.statusData}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
                         monitorState={this.props.monitorState}
                         theme={theme}
                     />
@@ -1098,7 +1098,7 @@ class Main extends Component {
                     }}
                 >
                     <div className="font-largest">External Services</div>
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ theme: any; }' is not assignable to type '... Remove this comment to see the full error message
+
                     <ExternalStatusPages theme={theme} />
                 </div>
             ),
@@ -1106,11 +1106,11 @@ class Main extends Component {
                 <div>
                     <Twitter
                         theme={theme}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tweetData' does not exist on type 'Reado... Remove this comment to see the full error message
+
                         tweets={this.props.tweetData}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                         loading={this.props.status.tweets.requesting}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                         error={this.props.status.tweets.error}
                     />
                 </div>
@@ -1119,7 +1119,7 @@ class Main extends Component {
                 <div className="powered">
                     <FooterCard
                         footerHTML={footerHTML}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         statusData={this.props.statusData}
                         primaryText={primaryText}
                         secondaryText={secondaryText}
@@ -1132,7 +1132,7 @@ class Main extends Component {
         const theme2Obj = {
             anouncement: (
                 <Announcement
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children?: ReactNode; monitorState: any; t... Remove this comment to see the full error message
+
                     monitorState={this.props.monitorState}
                     theme={theme}
                     heading={heading}
@@ -1141,18 +1141,18 @@ class Main extends Component {
             ),
             incidents: (
                 <NotesMain
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; statusPageId: any; statusP... Remove this comment to see the full error message
+
                     projectId={
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData.projectId &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData.projectId._id
                     }
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                     statusPageId={this.props.statusData._id}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                     statusPageSlug={this.props.statusData.slug}
                 />
             ),
@@ -1196,10 +1196,10 @@ class Main extends Component {
                             <div className="title-wrapper">
                                 <span className="title" style={heading}>
                                     <Translate>
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                         {this.props.ongoing &&
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
-                                        this.props.ongoing.length > 0
+
+                                            this.props.ongoing.length > 0
                                             ? 'Ongoing Scheduled Maintenance Event'
                                             : statusMessage}
                                     </Translate>
@@ -1236,33 +1236,33 @@ class Main extends Component {
                             }}
                         >
                             <ShouldRender
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 if={!this.props.statusData.hideProbeBar}
                             >
                                 <Probes
                                     probes={probes}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ background: string; } | undefined' is not ... Remove this comment to see the full error message
+
                                     backgroundMain={backgroundMain}
                                     contentBackground={contentBackground}
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'activeProbe' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                     activeProbe={this.props.activeProbe}
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
                                     monitorState={this.props.monitorState}
                                     greenBackground={greenBackground}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ backgroundColor: string; } | undefined' is... Remove this comment to see the full error message
+
                                     uptimeColor={uptimeColor}
                                     greyBackground={greyBackground}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'object'.
+
                                     serviceStatus={serviceStatus}
                                     redBackground={redBackground}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ backgroundColor: string; } | undefined' is... Remove this comment to see the full error message
+
                                     downtimeColor={downtimeColor}
                                     yellowBackground={yellowBackground}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ backgroundColor: string; } | undefined' is... Remove this comment to see the full error message
+
                                     degradedColor={degradedColor}
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ color: string; } | undefined' is not assig... Remove this comment to see the full error message
+
                                     heading={heading}
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'now' does not exist on type 'Readonly<{}... Remove this comment to see the full error message
+
                                     now={this.state.now}
                                     selectbutton={index =>
                                         this.selectbutton(index)
@@ -1284,35 +1284,35 @@ class Main extends Component {
                                     }
                                 >
                                     {isGroupedByMonitorCategory ? (
-                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 1 arguments, but got 0.
+
                                         this.groupedMonitors()
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                     ) : this.props.statusData &&
-                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
-                                      this.props.statusData.monitorsData !==
-                                          undefined &&
-                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
-                                      this.props.statusData.monitorsData
-                                          .length > 0 ? (
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
+                                        this.props.statusData.monitorsData !==
+                                        undefined &&
+
+                                        this.props.statusData.monitorsData
+                                            .length > 0 ? (
+
                                         this.props.monitors
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             .filter((monitor: $TSFixMe) => this.props.statusData.monitorsData.some(
-                                            (m: $TSFixMe) => m._id ===
-                                            monitor.monitor._id
-                                        )
+                                                (m: $TSFixMe) => m._id ===
+                                                    monitor.monitor._id
+                                            )
                                             )
                                             .map((monitor: $TSFixMe, i: $TSFixMe) => (
                                                 <>
                                                     <MonitorInfo
                                                         range={range}
                                                         monitor={
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                             this.props.statusData.monitorsData.filter(
                                                                 (m: $TSFixMe) => m._id ===
-                                                                monitor
-                                                                    .monitor
-                                                                    ._id
+                                                                    monitor
+                                                                        .monitor
+                                                                        ._id
                                                             )[0]
                                                         }
                                                         selectedCharts={monitor}
@@ -1323,69 +1323,69 @@ class Main extends Component {
                                                         }
                                                         onlineText={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                 .statusData
                                                                 .onlineText ||
                                                             'Operational'
                                                         }
                                                         offlineText={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                 .statusData
                                                                 .offlineText ||
                                                             'Offline'
                                                         }
                                                         degradedText={
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                                 .statusData
                                                                 .degradedText ||
                                                             'Degraded'
                                                         }
                                                     />
                                                     <LineChartsContainer
-                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ monitor: any; selectedCharts: any; key: st... Remove this comment to see the full error message
+
                                                         monitor={
-                                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                             this.props.statusData.monitorsData.filter(
                                                                 (m: $TSFixMe) => m._id ===
-                                                                monitor
-                                                                    .monitor
-                                                                    ._id
+                                                                    monitor
+                                                                        .monitor
+                                                                        ._id
                                                             )[0]
                                                         }
                                                         selectedCharts={monitor}
                                                         key={`line-charts-${i}`}
                                                     />
                                                     {i <
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                         this.props.statusData
                                                             .monitorsData
                                                             .length -
-                                                            1 && (
-                                                        <div
-                                                            style={{
-                                                                margin:
-                                                                    '30px 0px',
-                                                                backgroundColor:
-                                                                    '#e8e8e8',
-                                                                height: '1px',
-                                                            }}
-                                                        />
-                                                    )}
+                                                        1 && (
+                                                            <div
+                                                                style={{
+                                                                    margin:
+                                                                        '30px 0px',
+                                                                    backgroundColor:
+                                                                        '#e8e8e8',
+                                                                    height: '1px',
+                                                                }}
+                                                            />
+                                                        )}
                                                 </>
                                             ))
                                     ) : (
                                         <NoMonitor />
                                     )}
                                 </div>
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 {this.props.statusData &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
-                                this.props.statusData.monitorsData !==
+
+                                    this.props.statusData.monitorsData !==
                                     undefined &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
-                                this.props.statusData.monitorsData.length >
+
+                                    this.props.statusData.monitorsData.length >
                                     0 ? (
                                     <UptimeLegend
                                         background={contentBackground}
@@ -1403,7 +1403,7 @@ class Main extends Component {
                         </div>
                     </div>
                     <HelemtCard
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         statusData={this.props.statusData}
                         faviconurl={faviconurl}
                     />
@@ -1411,44 +1411,44 @@ class Main extends Component {
             ),
             ongoingSchedule: (
                 <OngoingSchedule
-                    // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                     monitorState={this.props.monitorState}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'ongoing' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     ongoing={this.props.ongoing}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                     history={this.props.history}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                     statusData={this.props.statusData}
                 />
             ),
             maintenance: (
                 <ShouldRender
                     if={
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData.projectId &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData._id
                     }
                 >
                     <ShouldRender
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         if={this.props.statusData.showScheduledEvents}
                     >
                         <EventsMain
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; statusPageId: any; statusP... Remove this comment to see the full error message
+
                             projectId={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.projectId &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.projectId._id
                             }
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             statusPageId={this.props.statusData._id}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             statusPageSlug={this.props.statusData.slug}
                             type={'future'}
                         />
@@ -1458,31 +1458,31 @@ class Main extends Component {
             pastEvents: (
                 <ShouldRender
                     if={
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData.projectId &&
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.statusData._id
                     }
                 >
                     <ShouldRender
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         if={this.props.statusData.showScheduledEvents}
                     >
                         <PastEvent
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; statusPageId: any; statusP... Remove this comment to see the full error message
+
                             projectId={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.projectId &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.projectId._id
                             }
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             statusPageId={this.props.statusData._id}
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             statusPageSlug={this.props.statusData.slug}
                             type={'past'}
                         />
@@ -1492,29 +1492,29 @@ class Main extends Component {
             AnnouncementLogs: (
                 <div>
                     <AnnouncementLogs
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; statusPageId: any; monitor... Remove this comment to see the full error message
+
                         projectId={
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData.projectId &&
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                             this.props.statusData.projectId._id
                         }
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                         statusPageId={this.props.statusData}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
                         monitorState={this.props.monitorState}
                     />
                 </div>
             ),
             header:
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                 this.props.statusData && this.props.statusData.bannerPath ? (
                     <div>
                         <span>
                             <img
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 src={`${API_URL}/file/${this.props.statusData.bannerPath}`}
                                 alt=""
                                 className="banner"
@@ -1522,9 +1522,9 @@ class Main extends Component {
                         </span>
                         <ShouldRender
                             if={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                 this.props.statusData.logoPath
                             }
                         >
@@ -1532,7 +1532,7 @@ class Main extends Component {
                                 <div>
                                     <span>
                                         <img
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             src={`${API_URL}/file/${this.props.statusData.logoPath}`}
                                             alt=""
                                             className="logo"
@@ -1548,7 +1548,7 @@ class Main extends Component {
             externalStatusPage: (
                 <div>
                     {' '}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ theme: any; }' is not assignable to type '... Remove this comment to see the full error message
+
                     <ExternalStatusPages theme={theme} />
                 </div>
             ),
@@ -1556,11 +1556,11 @@ class Main extends Component {
                 <div>
                     <Twitter
                         theme={theme}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'tweetData' does not exist on type 'Reado... Remove this comment to see the full error message
+
                         tweets={this.props.tweetData}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                         loading={this.props.status.tweets.requesting}
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                         error={this.props.status.tweets.error}
                     />
                 </div>
@@ -1568,7 +1568,7 @@ class Main extends Component {
             footer: (
                 <FooterCard
                     footerHTML={footerHTML}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusData' does not exist on type 'Read... Remove this comment to see the full error message
+
                     statusData={this.props.statusData}
                     primaryText={primaryText}
                     secondaryText={secondaryText}
@@ -1586,7 +1586,7 @@ class Main extends Component {
             <Translator
                 cacheProvider={cacheProvider}
                 from="en"
-                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                 to={langObj[this.props.language]}
                 googleApiKey={process.env.REACT_APP_GOOGLE_TRANSLATE_API_KEY}
             >
@@ -1595,9 +1595,9 @@ class Main extends Component {
                         <div
                             className="new-theme"
                             style={
-                                // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
                                 backgroundMain.background ===
-                                'rgba(247, 247, 247, 1)'
+                                    'rgba(247, 247, 247, 1)'
                                     ? { background: 'rgba(255, 255, 255, 1)' }
                                     : backgroundMain
                             }
@@ -1607,7 +1607,7 @@ class Main extends Component {
                                     if (layout.key === 'header') {
                                         return (
                                             <div key={layout.key}>
-                                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                                 {layoutObj[layout.key]}
                                             </div>
                                         );
@@ -1617,7 +1617,7 @@ class Main extends Component {
                                                 key={layout.key}
                                                 className="new-main-container"
                                             >
-                                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                                 {layoutObj[layout.key]}
                                             </div>
                                         );
@@ -1632,7 +1632,7 @@ class Main extends Component {
                                 {visibleLayout &&
                                     visibleLayout.visible.map((layout: $TSFixMe) => {
                                         if (layout.key === 'header') {
-                                            // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                             return <>{theme2Obj[layout.key]}</>;
                                         } else {
                                             return (
@@ -1640,7 +1640,7 @@ class Main extends Component {
                                                     key={layout.key}
                                                     className="innernew"
                                                 >
-                                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                                     {theme2Obj[layout.key]}
                                                 </div>
                                             );
@@ -1683,15 +1683,15 @@ class Main extends Component {
 
                         <ShouldRender
                             if={
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                                 this.props.status &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                                 (this.props.status.requesting ||
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                                     this.props.status.logs.some(
                                         (log: $TSFixMe) => log.requesting
                                     )) &&
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'requestingEvents' does not exist on type... Remove this comment to see the full error message
+
                                 this.props.requestingEvents
                             }
                         >
@@ -1739,7 +1739,7 @@ class Main extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Main.displayName = 'Main';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -1790,7 +1790,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Main.propTypes = {
     statusData: PropTypes.object,
     status: PropTypes.object,
@@ -1866,8 +1866,8 @@ const Probes = ({
                                     ? 'icon-container border-fix new_selected'
                                     : 'icon-container border-fix'
                                 : activeProbe === index
-                                ? 'icon-container selected'
-                                : 'icon-container'
+                                    ? 'icon-container selected'
+                                    : 'icon-container'
                         }
                     >
                         <span
@@ -1875,38 +1875,38 @@ const Probes = ({
                                 // If the page doesn't include any monitor or includes only manual monitors
                                 // The probe servers will be shown online
                                 monitorState.length === 0 ||
-                                monitorState.every(
-                                    (monitor: $TSFixMe) => monitor.type === 'manual'
-                                )
+                                    monitorState.every(
+                                        (monitor: $TSFixMe) => monitor.type === 'manual'
+                                    )
                                     ? {
-                                          ...greenBackground,
-                                          backgroundColor:
-                                              uptimeColor.backgroundColor,
-                                      }
+                                        ...greenBackground,
+                                        backgroundColor:
+                                            uptimeColor.backgroundColor,
+                                    }
                                     : probe.lastAlive &&
-                                      moment(now).diff(
-                                          moment(probe.lastAlive),
-                                          'seconds'
-                                      ) >= 300
-                                    ? greyBackground
-                                    : serviceStatus === 'none' ||
-                                      serviceStatus === 'some'
-                                    ? {
-                                          ...redBackground,
-                                          backgroundColor:
-                                              downtimeColor.backgroundColor,
-                                      }
-                                    : serviceStatus === 'some-degraded'
-                                    ? {
-                                          ...yellowBackground,
-                                          backgroundColor:
-                                              degradedColor.backgroundColor,
-                                      }
-                                    : {
-                                          ...greenBackground,
-                                          backgroundColor:
-                                              uptimeColor.backgroundColor,
-                                      }
+                                        moment(now).diff(
+                                            moment(probe.lastAlive),
+                                            'seconds'
+                                        ) >= 300
+                                        ? greyBackground
+                                        : serviceStatus === 'none' ||
+                                            serviceStatus === 'some'
+                                            ? {
+                                                ...redBackground,
+                                                backgroundColor:
+                                                    downtimeColor.backgroundColor,
+                                            }
+                                            : serviceStatus === 'some-degraded'
+                                                ? {
+                                                    ...yellowBackground,
+                                                    backgroundColor:
+                                                        degradedColor.backgroundColor,
+                                                }
+                                                : {
+                                                    ...greenBackground,
+                                                    backgroundColor:
+                                                        uptimeColor.backgroundColor,
+                                                }
                             }
                         ></span>
                         <span style={heading} className={theme && 'probe_bg'}>
@@ -1982,7 +1982,7 @@ const FooterCard = ({
                         statusData.links &&
                         statusData.links.map((link: $TSFixMe, i: $TSFixMe) => (
                             <Footer
-                                // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                                 link={link}
                                 key={i}
                                 textColor={secondaryText}

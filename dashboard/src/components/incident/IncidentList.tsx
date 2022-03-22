@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
@@ -28,102 +28,101 @@ export class IncidentList extends Component {
             return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
         }
 
-        return `${monitors[0].monitorId.name}, ${
-            monitors[1].monitorId.name
-        } and ${monitors.length - 2} others`;
+        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
+            } and ${monitors.length - 2} others`;
     };
 
     render() {
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents.skip &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             typeof this.props.incidents.skip === 'string'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents.skip = parseInt(this.props.incidents.skip, 10);
         }
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents.limit &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             typeof this.props.incidents.limit === 'string'
         ) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents.limit = parseInt(
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 this.props.incidents.limit,
                 10
             );
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
         if (this.props.incidents && !this.props.incidents.skip)
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents.skip = 0;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
         if (this.props.incidents && !this.props.incidents.limit)
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents.limit = 0;
 
         let canNext =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-            this.props.incidents.count &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-            this.props.incidents.count >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
+                this.props.incidents.count &&
+
+                this.props.incidents.count >
+
                 this.props.incidents.skip + this.props.incidents.limit
                 ? true
                 : false;
         let canPrev =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents && this.props.incidents.skip <= 0
                 ? false
                 : true;
 
         if (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             this.props.incidents &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             (this.props.incidents.requesting || !this.props.incidents.incidents)
         ) {
             canNext = false;
             canPrev = false;
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberOfPage' does not exist on type 'Re... Remove this comment to see the full error message
+
         const numberOfPages = this.props.numberOfPage
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'numberOfPage' does not exist on type 'Re... Remove this comment to see the full error message
+
             ? this.props.numberOfPage
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
             : Math.ceil(parseInt(this.props.incidents.count) / 10);
         let incidents =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
+
             this.props.filteredIncidents &&
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
-            this.props.filteredIncidents.length > 0
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
+
+                this.props.filteredIncidents.length > 0
+
                 ? this.props.filteredIncidents
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
+
                 : this.props.filteredIncidents &&
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'filteredIncidents' does not exist on typ... Remove this comment to see the full error message
-                  this.props.filteredIncidents.length === 0 &&
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'isFiltered' does not exist on type 'Read... Remove this comment to see the full error message
-                  this.props.isFiltered
-                ? []
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                : this.props.incidents &&
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                  this.props.incidents.incidents &&
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                  this.props.incidents.incidents.length > 0
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                ? this.props.incidents.incidents
-                : [];
+
+                    this.props.filteredIncidents.length === 0 &&
+
+                    this.props.isFiltered
+                    ? []
+
+                    : this.props.incidents &&
+
+                        this.props.incidents.incidents &&
+
+                        this.props.incidents.incidents.length > 0
+
+                        ? this.props.incidents.incidents
+                        : [];
 
         const updatedIncidents: $TSFixMe = [],
             incidentIds: $TSFixMe = [];
@@ -223,7 +222,7 @@ export class IncidentList extends Component {
                                 </td>
                                 <td
                                     id="overflow"
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -270,45 +269,45 @@ export class IncidentList extends Component {
                                             onClick={() => {
                                                 setTimeout(() => {
                                                     if (
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
+
                                                         this.props.componentSlug
                                                     ) {
                                                         history.push(
                                                             '/dashboard/project/' +
-                                                                this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
-                                                                    .currentProject
-                                                                    .slug +
-                                                                '/component/' +
-                                                                this.props
-                                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentSlug' does not exist on type 'R... Remove this comment to see the full error message
-                                                                    .componentSlug +
-                                                                '/incidents/' +
-                                                                incident.slug
+                                                            this.props
+
+                                                                .currentProject
+                                                                .slug +
+                                                            '/component/' +
+                                                            this.props
+
+                                                                .componentSlug +
+                                                            '/incidents/' +
+                                                            incident.slug
                                                         );
                                                     } else {
                                                         history.push(
                                                             '/dashboard/project/' +
-                                                                incident
-                                                                    .projectId
-                                                                    .slug +
-                                                                '/incidents/' +
-                                                                incident.slug
+                                                            incident
+                                                                .projectId
+                                                                .slug +
+                                                            '/incidents/' +
+                                                            incident.slug
                                                         );
                                                     }
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                                                     this.props.animateSidebar(
                                                         false
                                                     );
                                                 }, 200);
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'markAsRead' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.markAsRead(
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                                     this.props.currentProject
                                                         ._id,
                                                     incident.notifications
                                                 );
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                                                 this.props.animateSidebar(true);
                                             }}
                                         >
@@ -351,7 +350,7 @@ export class IncidentList extends Component {
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         {incident.createdById ===
                                                             null ||
-                                                        !incident.createdById ? (
+                                                            !incident.createdById ? (
                                                             incident.createdByZapier ? (
                                                                 <div className="Box-root Margin-right--16">
                                                                     <img
@@ -481,8 +480,8 @@ export class IncidentList extends Component {
                                                                         .createdById
                                                                         .name
                                                                         ? incident
-                                                                              .createdById
-                                                                              .name
+                                                                            .createdById
+                                                                            .name
                                                                         : 'Unknown User'}
                                                                 </span>
                                                             </div>
@@ -593,8 +592,8 @@ export class IncidentList extends Component {
                                                                 <div className="Box-root Flex-flex">
                                                                     <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                         {incident &&
-                                                                        incident.incidentType &&
-                                                                        incident.incidentType ===
+                                                                            incident.incidentType &&
+                                                                            incident.incidentType ===
                                                                             'offline' ? (
                                                                             <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
@@ -604,9 +603,9 @@ export class IncidentList extends Component {
                                                                                 </span>
                                                                             </div>
                                                                         ) : incident &&
-                                                                          incident.incidentType &&
-                                                                          incident.incidentType ===
-                                                                              'online' ? (
+                                                                            incident.incidentType &&
+                                                                            incident.incidentType ===
+                                                                            'online' ? (
                                                                             <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                     <span>
@@ -615,9 +614,9 @@ export class IncidentList extends Component {
                                                                                 </span>
                                                                             </div>
                                                                         ) : incident &&
-                                                                          incident.incidentType &&
-                                                                          incident.incidentType ===
-                                                                              'degraded' ? (
+                                                                            incident.incidentType &&
+                                                                            incident.incidentType ===
+                                                                            'degraded' ? (
                                                                             <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                     <span>
@@ -665,7 +664,7 @@ export class IncidentList extends Component {
                                                                             <div className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                 <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                     {incident.acknowledgedBy ===
-                                                                                    null ? (
+                                                                                        null ? (
                                                                                         incident.acknowledgedByZapier ? (
                                                                                             <span>
                                                                                                 <img
@@ -786,8 +785,8 @@ export class IncidentList extends Component {
                                                                                                     .acknowledgedBy
                                                                                                     .name
                                                                                                     ? incident
-                                                                                                          .acknowledgedBy
-                                                                                                          .name
+                                                                                                        .acknowledgedBy
+                                                                                                        .name
                                                                                                     : 'Unknown User'}
                                                                                             </span>
                                                                                         </span>
@@ -865,7 +864,7 @@ export class IncidentList extends Component {
                                                                 <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                     <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                         {incident.resolvedBy ===
-                                                                        null ? (
+                                                                            null ? (
                                                                             incident.resolvedByZapier ? (
                                                                                 <span>
                                                                                     <img
@@ -986,8 +985,8 @@ export class IncidentList extends Component {
                                                                                         .resolvedBy
                                                                                         .name
                                                                                         ? incident
-                                                                                              .resolvedBy
-                                                                                              .name
+                                                                                            .resolvedBy
+                                                                                            .name
                                                                                         : 'Unknown User'}
                                                                                 </span>
                                                                             </span>
@@ -1045,22 +1044,22 @@ export class IncidentList extends Component {
                                         </tr>
                                     );
                                 })
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                             ) : this.props.incidents &&
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                              (!this.props.incidents.incidents ||
-                                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                                  !this.props.incidents.incidents.length) &&
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                              !this.props.incidents.requesting &&
-                              // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                              !this.props.incidents.error ? (
+
+                                (!this.props.incidents.incidents ||
+
+                                    !this.props.incidents.incidents.length) &&
+
+                                !this.props.incidents.requesting &&
+
+                                !this.props.incidents.error ? (
                                 <tr></tr>
                             ) : (
                                 <tr>
                                     <td
                                         className="Padding-all--20 Text-align--center"
-                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                         colSpan="6"
                                     >
                                         <span id="noIncidentsInnerText">
@@ -1073,19 +1072,19 @@ export class IncidentList extends Component {
                     </table>
                 </div>
 
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                 {(this.props.incidents && this.props.requesting) ||
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
-                (this.props.monitorState &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
-                    this.props.monitorState.fetchMonitorsIncidentRequest &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                    this.props.incidents.incidents &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                    this.props.incidents.incidents[0] &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
-                    this.props.monitorState.fetchMonitorsIncidentRequest ===
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
+                    (this.props.monitorState &&
+
+                        this.props.monitorState.fetchMonitorsIncidentRequest &&
+
+                        this.props.incidents.incidents &&
+
+                        this.props.incidents.incidents[0] &&
+
+                        this.props.monitorState.fetchMonitorsIncidentRequest ===
+
                         this.props.incidents.incidents[0].monitorId) ? (
                     <ListLoader />
                 ) : null}
@@ -1097,21 +1096,21 @@ export class IncidentList extends Component {
                         padding: '0 10px',
                     }}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                     {this.props.incidents &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                    (!this.props.incidents.incidents ||
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                        !this.props.incidents.incidents.length) &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                    !this.props.incidents.requesting &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
-                    !this.props.incidents.error
+
+                        (!this.props.incidents.incidents ||
+
+                            !this.props.incidents.incidents.length) &&
+
+                        !this.props.incidents.requesting &&
+
+                        !this.props.incidents.error
                         ? "We don't have any incidents yet"
                         : null}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                     {this.props.incidents && this.props.incidents.error
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                         ? this.props.incidents.error
                         : null}
                 </div>
@@ -1124,15 +1123,15 @@ export class IncidentList extends Component {
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
                                     <ShouldRender if={numberOfPages > 0}>
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                         Page {this.props.page} of{' '}
                                         {numberOfPages} (
                                         <ShouldRender if={incidents}>
                                             <span id="numberOfIncidents">
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 {this.props.incidents.count}
                                             </span>{' '}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             {this.props.incidents.count > 1
                                                 ? 'total incidents'
                                                 : 'Incident'}{' '}
@@ -1141,9 +1140,9 @@ export class IncidentList extends Component {
                                     </ShouldRender>
                                     <ShouldRender if={!(numberOfPages > 0)}>
                                         <span id="numberOfIncidents">
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             {this.props.incidents.count}{' '}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             {this.props.incidents.count > 1
                                                 ? 'total incidents'
                                                 : 'Incident'}
@@ -1159,16 +1158,16 @@ export class IncidentList extends Component {
                                 <button
                                     id="btnPrev"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'prevClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.prevClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.incidents
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 ? this.props.incidents._id
                                                 : null,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.incidents.skip,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.incidents.limit
                                         );
                                     }}
@@ -1191,16 +1190,16 @@ export class IncidentList extends Component {
                                 <button
                                     id="btnNext"
                                     onClick={() => {
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'nextClicked' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                         this.props.nextClicked(
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.incidents
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 ? this.props.incidents._id
                                                 : null,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.incidents.skip,
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidents' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                             this.props.incidents.limit
                                         );
                                     }}
@@ -1241,10 +1240,10 @@ function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 IncidentList.displayName = 'IncidentList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 IncidentList.propTypes = {
     nextClicked: PropTypes.func.isRequired,
     prevClicked: PropTypes.func.isRequired,

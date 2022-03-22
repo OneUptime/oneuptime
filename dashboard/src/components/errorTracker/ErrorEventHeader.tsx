@@ -9,13 +9,13 @@ import TooltipMini from '../basic/TooltipMini';
 class ErrorEventHeader extends Component {
     navigate = (currentId: $TSFixMe) => {
         if (currentId) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'navigationLink' does not exist on type '... Remove this comment to see the full error message
+
             this.props.navigationLink(currentId);
         }
         return;
     };
     handleIgnoreButton = (errorTrackerIssue: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'ignoreErrorEvent' does not exist on type... Remove this comment to see the full error message
+
         const { ignoreErrorEvent } = this.props;
         if (!errorTrackerIssue.ignored) {
             ignoreErrorEvent(errorTrackerIssue._id);
@@ -24,7 +24,7 @@ class ErrorEventHeader extends Component {
         }
     };
     handleResolveButton = (errorTrackerIssue: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resolveErrorEvent' does not exist on typ... Remove this comment to see the full error message
+
         const { resolveErrorEvent, unresolveErrorEvent } = this.props;
         if (!errorTrackerIssue.resolved) {
             resolveErrorEvent(errorTrackerIssue._id);
@@ -34,15 +34,15 @@ class ErrorEventHeader extends Component {
     };
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorEvent' does not exist on type 'Read... Remove this comment to see the full error message
+
             errorEvent,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerIssue' does not exist on typ... Remove this comment to see the full error message
+
             errorTrackerIssue,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerStatus' does not exist on ty... Remove this comment to see the full error message
+
             errorTrackerStatus,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openDeleteModal' does not exist on type ... Remove this comment to see the full error message
+
             openDeleteModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'errorTrackerState' does not exist on typ... Remove this comment to see the full error message
+
             errorTrackerState,
         } = this.props;
         const errorEventDetails = errorEvent.errorEvent;
@@ -79,14 +79,14 @@ class ErrorEventHeader extends Component {
                                         >
                                             <span id={`error-event-title-`}>
                                                 {errorTrackerIssue &&
-                                                errorTrackerIssue.description
+                                                    errorTrackerIssue.description
                                                     ? errorTrackerIssue
-                                                          .description.length >
-                                                      100
+                                                        .description.length >
+                                                        100
                                                         ? `${errorTrackerIssue.description.substring(
-                                                              0,
-                                                              100
-                                                          )} ...`
+                                                            0,
+                                                            100
+                                                        )} ...`
                                                         : errorTrackerIssue.description
                                                     : ''}
                                             </span>
@@ -98,7 +98,7 @@ class ErrorEventHeader extends Component {
                                                     width: '12px',
                                                     backgroundColor: `${ErrorEventUtil.getExceptionColor(
                                                         errorTrackerIssue &&
-                                                            errorTrackerIssue.type
+                                                        errorTrackerIssue.type
                                                     )}`,
                                                     borderRadius: '50%',
                                                 }}
@@ -124,23 +124,22 @@ class ErrorEventHeader extends Component {
                                     <TooltipMini
                                         title={
                                             errorTrackerIssue &&
-                                            errorTrackerIssue.resolved
+                                                errorTrackerIssue.resolved
                                                 ? ''
                                                 : 'Unresolved'
                                         }
                                         content={
                                             <button
-                                                className={`bs-Button ${
-                                                    errorTrackerStatus &&
-                                                    errorTrackerStatus[
+                                                className={`bs-Button ${errorTrackerStatus &&
+                                                        errorTrackerStatus[
                                                         errorTrackerIssue._id
-                                                    ] &&
-                                                    errorTrackerStatus[
-                                                        errorTrackerIssue._id
-                                                    ].requestingResolve
+                                                        ] &&
+                                                        errorTrackerStatus[
+                                                            errorTrackerIssue._id
+                                                        ].requestingResolve
                                                         ? ''
                                                         : 'bs-Button--icon bs-Button--check'
-                                                }  `}
+                                                    }  `}
                                                 type="button"
                                                 onClick={() =>
                                                     this.handleResolveButton(
@@ -155,12 +154,12 @@ class ErrorEventHeader extends Component {
                                                     }
                                                 >
                                                     {errorTrackerStatus &&
-                                                    errorTrackerStatus[
+                                                        errorTrackerStatus[
                                                         errorTrackerIssue._id
-                                                    ] &&
-                                                    errorTrackerStatus[
-                                                        errorTrackerIssue._id
-                                                    ].requestingResolve ? (
+                                                        ] &&
+                                                        errorTrackerStatus[
+                                                            errorTrackerIssue._id
+                                                        ].requestingResolve ? (
                                                         <FormLoader2 />
                                                     ) : (
                                                         <span>Resolve</span>
@@ -173,12 +172,12 @@ class ErrorEventHeader extends Component {
                                                     }
                                                 >
                                                     {errorTrackerStatus &&
-                                                    errorTrackerStatus[
+                                                        errorTrackerStatus[
                                                         errorTrackerIssue._id
-                                                    ] &&
-                                                    errorTrackerStatus[
-                                                        errorTrackerIssue._id
-                                                    ].requestingResolve ? (
+                                                        ] &&
+                                                        errorTrackerStatus[
+                                                            errorTrackerIssue._id
+                                                        ].requestingResolve ? (
                                                         <FormLoader2 />
                                                     ) : (
                                                         <span>Unresolve</span>
@@ -190,23 +189,22 @@ class ErrorEventHeader extends Component {
                                     <TooltipMini
                                         title={
                                             errorTrackerIssue &&
-                                            errorTrackerIssue.ignored
+                                                errorTrackerIssue.ignored
                                                 ? 'Change Status to Unresolved'
                                                 : ''
                                         }
                                         content={
                                             <button
-                                                className={`bs-Button ${
-                                                    errorTrackerStatus &&
-                                                    errorTrackerStatus[
+                                                className={`bs-Button ${errorTrackerStatus &&
+                                                        errorTrackerStatus[
                                                         errorTrackerIssue._id
-                                                    ] &&
-                                                    errorTrackerStatus[
-                                                        errorTrackerIssue._id
-                                                    ].requestingIgnore
+                                                        ] &&
+                                                        errorTrackerStatus[
+                                                            errorTrackerIssue._id
+                                                        ].requestingIgnore
                                                         ? ''
                                                         : 'bs-Button--icon bs-Button--block'
-                                                }  `}
+                                                    }  `}
                                                 type="button"
                                                 onClick={() =>
                                                     this.handleIgnoreButton(
@@ -218,12 +216,12 @@ class ErrorEventHeader extends Component {
                                                     if={errorTrackerIssue}
                                                 >
                                                     {errorTrackerStatus &&
-                                                    errorTrackerStatus[
+                                                        errorTrackerStatus[
                                                         errorTrackerIssue._id
-                                                    ] &&
-                                                    errorTrackerStatus[
-                                                        errorTrackerIssue._id
-                                                    ].requestingIgnore ? (
+                                                        ] &&
+                                                        errorTrackerStatus[
+                                                            errorTrackerIssue._id
+                                                        ].requestingIgnore ? (
                                                         <FormLoader2 />
                                                     ) : (
                                                         <ShouldRender
@@ -240,17 +238,16 @@ class ErrorEventHeader extends Component {
                                         }
                                     />
                                     <button
-                                        className={`bs-Button ${
-                                            errorTrackerStatus &&
-                                            errorTrackerStatus[
+                                        className={`bs-Button ${errorTrackerStatus &&
+                                                errorTrackerStatus[
                                                 errorTrackerIssue._id
-                                            ] &&
-                                            errorTrackerStatus[
-                                                errorTrackerIssue._id
-                                            ].requestingResolve
+                                                ] &&
+                                                errorTrackerStatus[
+                                                    errorTrackerIssue._id
+                                                ].requestingResolve
                                                 ? ''
                                                 : 'bs-Button--icon bs-Button--delete'
-                                        }  `}
+                                            }  `}
                                         disabled={deleting}
                                         type="button"
                                         onClick={() =>
@@ -300,7 +297,7 @@ class ErrorEventHeader extends Component {
                                                 this.navigate(
                                                     errorEvent.previous
                                                         ? errorEvent.previous
-                                                              .oldest
+                                                            .oldest
                                                         : null
                                                 )
                                             }
@@ -310,11 +307,10 @@ class ErrorEventHeader extends Component {
                                             <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                 <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                     <img
-                                                        src={`/dashboard/assets/img/previous${
-                                                            errorEvent.previous
+                                                        src={`/dashboard/assets/img/previous${errorEvent.previous
                                                                 ? ''
                                                                 : '-disable'
-                                                        }.svg`}
+                                                            }.svg`}
                                                         alt=""
                                                         style={{
                                                             height: '12px',
@@ -336,7 +332,7 @@ class ErrorEventHeader extends Component {
                                                 this.navigate(
                                                     errorEvent.previous
                                                         ? errorEvent.previous
-                                                              ._id
+                                                            ._id
                                                         : null
                                                 )
                                             }
@@ -397,11 +393,10 @@ class ErrorEventHeader extends Component {
                                             <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
                                                 <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                     <img
-                                                        src={`/dashboard/assets/img/next${
-                                                            errorEvent.next
+                                                        src={`/dashboard/assets/img/next${errorEvent.next
                                                                 ? ''
                                                                 : '-disable'
-                                                        }.svg`}
+                                                            }.svg`}
                                                         alt=""
                                                         style={{
                                                             height: '12px',
@@ -421,7 +416,7 @@ class ErrorEventHeader extends Component {
         );
     }
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ErrorEventHeader.propTypes = {
     errorEvent: PropTypes.object,
     navigationLink: PropTypes.func,
@@ -433,6 +428,6 @@ ErrorEventHeader.propTypes = {
     openDeleteModal: PropTypes.func,
     errorTrackerState: PropTypes.object,
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ErrorEventHeader.displayName = 'ErrorEventHeader';
 export default ErrorEventHeader;

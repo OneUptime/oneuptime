@@ -3,12 +3,12 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { fetchStatusPageSubscribers } from '../../actions/statusPage';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'coun... Remove this comment to see the full error message
+
 import countryTelephoneCode from 'country-telephone-code';
 import { RenderIfSubProjectAdmin } from '../basic/RenderIfSubProjectAdmin';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader2, ListLoader } from '../basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DeleteSubscriber from '../../components/modals/DeleteSubscriber';
 import DataPathHoC from '../DataPathHoC';
@@ -28,16 +28,16 @@ class StatusPageSubscriber extends Component {
 
     deleteSubscriber = async (_projectId: $TSFixMe, _id: $TSFixMe, setLoading: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageSubscribers' does not exi... Remove this comment to see the full error message
+
             fetchStatusPageSubscribers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribers' does not exist on type 'Rea... Remove this comment to see the full error message
+
             subscribers,
         } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSubscriber' does not exist on type... Remove this comment to see the full error message
+
         const result = await this.props.deleteSubscriber(_projectId, _id);
         if (result.status === 200) {
             setLoading(false);
@@ -45,7 +45,7 @@ class StatusPageSubscriber extends Component {
                 projectId,
                 statusPage._id,
                 parseInt(subscribers.skip, 10),
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 this.state.limit
             );
         }
@@ -53,81 +53,81 @@ class StatusPageSubscriber extends Component {
 
     async componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageSubscribers' does not exi... Remove this comment to see the full error message
+
             fetchStatusPageSubscribers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
         } = this.props;
         await fetchStatusPageSubscribers(
             projectId,
             statusPage._id,
             0,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             this.state.limit
         );
     }
 
     nextClicked = async () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageSubscribers' does not exi... Remove this comment to see the full error message
+
             fetchStatusPageSubscribers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribers' does not exist on type 'Rea... Remove this comment to see the full error message
+
             subscribers,
         } = this.props;
         await fetchStatusPageSubscribers(
             projectId,
             statusPage._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             parseInt(subscribers.skip, 10) + this.state.limit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             this.state.limit
         );
     };
 
     prevClicked = async () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchStatusPageSubscribers' does not exi... Remove this comment to see the full error message
+
             fetchStatusPageSubscribers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribers' does not exist on type 'Rea... Remove this comment to see the full error message
+
             subscribers,
         } = this.props;
         await fetchStatusPageSubscribers(
             projectId,
             statusPage._id,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             parseInt(subscribers.skip, 10) - this.state.limit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             this.state.limit
         );
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subscribers' does not exist on type 'Rea... Remove this comment to see the full error message
+
             subscribers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjects' does not exist on type 'Rea... Remove this comment to see the full error message
+
             subProjects,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
             monitors,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
             statusPage,
         } = this.props;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createSubscriberModalId' does not exist ... Remove this comment to see the full error message
+
         const { createSubscriberModalId, limit } = this.state;
 
         if (
@@ -149,8 +149,8 @@ class StatusPageSubscriber extends Component {
 
         let canNext =
             subscribers &&
-            subscribers.count &&
-            subscribers.count > subscribers.skip + subscribers.limit
+                subscribers.count &&
+                subscribers.count > subscribers.skip + subscribers.limit
                 ? true
                 : false;
         let canPrev = subscribers && subscribers.skip <= 0 ? false : true;
@@ -187,11 +187,11 @@ class StatusPageSubscriber extends Component {
                                 type="button"
                                 id="addSubscriberButton"
                                 onClick={() =>
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                     this.props.openModal({
                                         id: createSubscriberModalId,
                                         onClose: () =>
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             this.props.closeModal({
                                                 id: createSubscriberModalId,
                                             }),
@@ -292,7 +292,7 @@ class StatusPageSubscriber extends Component {
                                 </td>
                                 <td
                                     id="overflow"
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -308,7 +308,7 @@ class StatusPageSubscriber extends Component {
                                 >
                                     <td
                                         id="overflow"
-                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                         type="action"
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{ height: '1px' }}
@@ -327,8 +327,8 @@ class StatusPageSubscriber extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {subscribers &&
-                            subscribers.subscribersList &&
-                            subscribers.subscribersList.length > 0 ? (
+                                subscribers.subscribersList &&
+                                subscribers.subscribersList.length > 0 ? (
                                 subscribers.subscribersList.map(
                                     (subscriber: $TSFixMe, index: $TSFixMe) => (
                                         <tr
@@ -349,9 +349,9 @@ class StatusPageSubscriber extends Component {
                                                                 {subscribers.name
                                                                     ? subscribers.name
                                                                     : subscriber.monitorId &&
-                                                                      subscriber.monitorName
-                                                                    ? subscriber.monitorName
-                                                                    : 'Unknown Monitor'}
+                                                                        subscriber.monitorName
+                                                                        ? subscriber.monitorName
+                                                                        : 'Unknown Monitor'}
                                                             </span>
                                                         </div>
                                                     </span>
@@ -369,7 +369,7 @@ class StatusPageSubscriber extends Component {
                                                                     {(subscriber.statusPageId !==
                                                                         undefined &&
                                                                         subscriber.statusPageId !==
-                                                                            null &&
+                                                                        null &&
                                                                         subscriber.statusPageName) ||
                                                                         'OneUptime Dashboard'}
                                                                 </span>
@@ -426,8 +426,7 @@ class StatusPageSubscriber extends Component {
                                                                             (subscriber.contactPhone &&
                                                                                 `+${countryTelephoneCode(
                                                                                     subscriber.countryCode.toUpperCase()
-                                                                                )}${
-                                                                                    subscriber.contactPhone
+                                                                                )}${subscriber.contactPhone
                                                                                 }`)}
                                                                     </div>
                                                                 </div>
@@ -508,13 +507,13 @@ class StatusPageSubscriber extends Component {
                                                                         openModal={
                                                                             this
                                                                                 .props
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                                                 .openModal
                                                                         }
                                                                         deleteSubscriberModalId={
                                                                             this
                                                                                 .state
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteSubscriberModalId' does not exist ... Remove this comment to see the full error message
+
                                                                                 .deleteSubscriberModalId
                                                                         }
                                                                         deleteSubscriber={
@@ -527,11 +526,11 @@ class StatusPageSubscriber extends Component {
                                                                         _id={
                                                                             subscriber._id
                                                                         }
-                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ openModal: any; deleteSubscriberModalId: a... Remove this comment to see the full error message
+
                                                                         loading={
                                                                             this
                                                                                 .state
-                                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'loading' does not exist on type 'Readonl... Remove this comment to see the full error message
+
                                                                                 .loading
                                                                         }
                                                                         index={
@@ -563,10 +562,10 @@ class StatusPageSubscriber extends Component {
                     }}
                 >
                     {subscribers &&
-                    (!subscribers.subscribersList ||
-                        !subscribers.subscribersList.length) &&
-                    !subscribers.requesting &&
-                    !subscribers.error
+                        (!subscribers.subscribersList ||
+                            !subscribers.subscribersList.length) &&
+                        !subscribers.requesting &&
+                        !subscribers.error
                         ? "We don't have any subscribers yet"
                         : null}
                     {subscribers && subscribers.error
@@ -588,7 +587,7 @@ class StatusPageSubscriber extends Component {
                                             {subscribers.count}
                                         </span>{' '}
                                         {subscribers &&
-                                        subscribers.count > 1
+                                            subscribers.count > 1
                                             ? 'Subscribers'
                                             : 'Subscriber'}
                                     </ShouldRender>
@@ -644,7 +643,7 @@ class StatusPageSubscriber extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 StatusPageSubscriber.displayName = 'StatusPageSubscriber';
 
 const mapStateToProps = (state: $TSFixMe) => ({
@@ -657,7 +656,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 StatusPageSubscriber.propTypes = {
     fetchStatusPageSubscribers: PropTypes.func,
     subscribers: PropTypes.object,

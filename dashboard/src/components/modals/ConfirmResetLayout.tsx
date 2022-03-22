@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from '../../actions/modal';
@@ -22,10 +22,10 @@ class ConfirmResetLayout extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                 return this.props.data.resetLayoutToDefault();
             default:
                 return false;
@@ -33,17 +33,17 @@ class ConfirmResetLayout extends Component {
     };
 
     resetBrandColors = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { projectId, statusPageId } = this.props.data;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetBrandingColors' does not exist on t... Remove this comment to see the full error message
+
         this.props.resetBrandingColors(projectId, statusPageId).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             this.props.closeThisDialog();
         });
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { closeModal, data, closeThisDialog } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -93,7 +93,7 @@ class ConfirmResetLayout extends Component {
                                                 this.setState({
                                                     requesting: true,
                                                 });
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                 this.props.data
                                                     .resetLayoutToDefault()
                                                     .then(() => {
@@ -107,7 +107,7 @@ class ConfirmResetLayout extends Component {
                                                     });
                                             }}
                                             disabled={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
                                                 this.props.statusPage
                                                     .resetBrandingColors
                                                     .requesting
@@ -137,7 +137,7 @@ class ConfirmResetLayout extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ConfirmResetLayout.displayName = 'ConfirmResetLayout';
 
 const mapStateToProps = (state: $TSFixMe) => {
@@ -155,7 +155,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ConfirmResetLayout.propTypes = {
     closeModal: PropTypes.func,
     closeThisDialog: PropTypes.func.isRequired,

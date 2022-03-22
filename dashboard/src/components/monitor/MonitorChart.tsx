@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import BlockChart from '../blockchart/BlockChart';
 import AreaChart from '../areachart';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'to-p... Remove this comment to see the full error message
+
 import toPascalCase from 'to-pascal-case';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
@@ -81,13 +81,13 @@ const calculateTime = (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) => 
             }
         });
         //Second step
-        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'a' implicitly has an 'any' type.
+
         incidentsHappenedDuringTheDay.sort((a, b) =>
             moment(a.start).isSame(b.start)
                 ? 0
                 : moment(a.start).isAfter(b.start)
-                ? 1
-                : -1
+                    ? 1
+                    : -1
         );
         //Third step
         for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
@@ -176,7 +176,7 @@ const calculateTime = (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) => 
         }
         //Remove events having start and end time equal.
         incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
-            // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'event' implicitly has an 'any' type.
+
             event => !moment(event.start).isSame(event.end)
         );
         //Last step
@@ -276,7 +276,7 @@ export function MonitorChart({
 
     const block = [];
     for (let i = 0; i < range; i++) {
-        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
         block.unshift(<BlockChart time={timeBlock[i]} key={i} id={i} />);
     }
 
@@ -479,12 +479,12 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].cpuLoad
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                                        data[0].cpuLoad
+
                                                         ? formatDecimal(
-                                                              data[0].cpuLoad,
-                                                              2
-                                                          )
+                                                            data[0].cpuLoad,
+                                                            2
+                                                        )
                                                         : 0}{' '}
                                                     %
                                                 </span>
@@ -509,13 +509,13 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].avgCpuLoad
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                                        data[0].avgCpuLoad
+
                                                         ? formatDecimal(
-                                                              data[0]
-                                                                  .avgCpuLoad,
-                                                              2
-                                                          )
+                                                            data[0]
+                                                                .avgCpuLoad,
+                                                            2
+                                                        )
                                                         : 0}{' '}
                                                     %
                                                 </span>
@@ -540,7 +540,7 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].cpuCores
+                                                        data[0].cpuCores
                                                         ? data[0].cpuCores
                                                         : 0}
                                                 </span>
@@ -551,7 +551,7 @@ export function MonitorChart({
                             </div>
                         </div>
                         <div className="block-chart-main line-chart">
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; }' is ... Remove this comment to see the full error message
+
                             <AreaChart type={type} data={data} name={'load'} />
                         </div>
                     </div>
@@ -575,11 +575,11 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].memoryUsed
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                                        data[0].memoryUsed
+
                                                         ? formatBytes(
-                                                              data[0].memoryUsed
-                                                          )
+                                                            data[0].memoryUsed
+                                                        )
                                                         : '0 Bytes'}
                                                 </span>
                                             </span>
@@ -603,15 +603,15 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].totalMemory
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                                        data[0].totalMemory
+
                                                         ? formatBytes({
-                                                              value:
-                                                                  data[0]
-                                                                      .totalMemory,
-                                                              decimalPlaces: 0,
-                                                              roundType: 'down',
-                                                          })
+                                                            value:
+                                                                data[0]
+                                                                    .totalMemory,
+                                                            decimalPlaces: 0,
+                                                            roundType: 'down',
+                                                        })
                                                         : '0 Bytes'}
                                                 </span>
                                             </span>
@@ -635,11 +635,11 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].swapUsed
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                                        data[0].swapUsed
+
                                                         ? formatBytes(
-                                                              data[0].swapUsed
-                                                          )
+                                                            data[0].swapUsed
+                                                        )
                                                         : '0 Bytes'}
                                                 </span>
                                             </span>
@@ -650,7 +650,7 @@ export function MonitorChart({
                         </div>
                         <div className="block-chart-main line-chart">
                             <AreaChart
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; }' is ... Remove this comment to see the full error message
+
                                 type={type}
                                 data={data}
                                 name={'memory'}
@@ -677,12 +677,12 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].storageUsed
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                                        data[0].storageUsed
+
                                                         ? formatBytes(
-                                                              data[0]
-                                                                  .storageUsed
-                                                          )
+                                                            data[0]
+                                                                .storageUsed
+                                                        )
                                                         : '0 Bytes'}
                                                 </span>
                                             </span>
@@ -706,12 +706,12 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].totalStorage
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+                                                        data[0].totalStorage
+
                                                         ? formatBytes(
-                                                              data[0]
-                                                                  .totalStorage
-                                                          )
+                                                            data[0]
+                                                                .totalStorage
+                                                        )
                                                         : '0 Bytes'}
                                                 </span>
                                             </span>
@@ -735,13 +735,13 @@ export function MonitorChart({
                                                 {' '}
                                                 <span className="chart-font">
                                                     {checkLogs &&
-                                                    data[0].storageUsage
-                                                        // @ts-expect-error ts-migrate(2554) FIXME: Expected 3 arguments, but got 2.
+                                                        data[0].storageUsage
+
                                                         ? formatDecimal(
-                                                              data[0]
-                                                                  .storageUsage,
-                                                              2
-                                                          )
+                                                            data[0]
+                                                                .storageUsage,
+                                                            2
+                                                        )
                                                         : 0}{' '}
                                                     %
                                                 </span>
@@ -752,7 +752,7 @@ export function MonitorChart({
                             </div>
                         </div>
                         <div className="block-chart-main line-chart">
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; }' is ... Remove this comment to see the full error message
+
                             <AreaChart type={type} data={data} name={'disk'} />
                         </div>
                     </div>
@@ -777,7 +777,7 @@ export function MonitorChart({
                                                     {' '}
                                                     <span className="chart-font">
                                                         {checkLogs &&
-                                                        data[0].mainTemp
+                                                            data[0].mainTemp
                                                             ? data[0].mainTemp
                                                             : 0}{' '}
                                                         &deg;C
@@ -803,7 +803,7 @@ export function MonitorChart({
                                                     {' '}
                                                     <span className="chart-font">
                                                         {checkLogs &&
-                                                        data[0].maxTemp
+                                                            data[0].maxTemp
                                                             ? data[0].maxTemp
                                                             : 0}{' '}
                                                         &deg;C
@@ -817,7 +817,7 @@ export function MonitorChart({
                             </div>
                             <div className="block-chart-main line-chart">
                                 <AreaChart
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; }' is ... Remove this comment to see the full error message
+
                                     type={type}
                                     data={data}
                                     name={'temperature'}
@@ -890,7 +890,7 @@ export function MonitorChart({
                         {checkLogs &&
                             data[0].kubernetesLog &&
                             data[0].kubernetesLog.podData.podStat.totalPods >
-                                0 && (
+                            0 && (
                                 <div className="db-Trend">
                                     <div className="block-chart-side line-chart">
                                         <div className="db-TrendRow">
@@ -926,13 +926,13 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .podData
-                                                                          .podStat
-                                                                          .totalPods
+                                                                        .kubernetesLog
+                                                                        .podData
+                                                                        .podStat
+                                                                        .totalPods
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -971,13 +971,13 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .podData
-                                                                          .podStat
-                                                                          .healthy
+                                                                        .kubernetesLog
+                                                                        .podData
+                                                                        .podStat
+                                                                        .healthy
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1016,13 +1016,13 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .podData
-                                                                          .podStat
-                                                                          .unhealthy
+                                                                        .kubernetesLog
+                                                                        .podData
+                                                                        .podStat
+                                                                        .unhealthy
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1033,7 +1033,7 @@ export function MonitorChart({
                                     </div>
                                     <div className="block-chart-main line-chart">
                                         <AreaChart
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
+
                                             type={type}
                                             data={data}
                                             name={'pod'}
@@ -1050,7 +1050,7 @@ export function MonitorChart({
                         {checkLogs &&
                             data[0].kubernetesLog &&
                             data[0].kubernetesLog.jobData.jobStat.totalJobs >
-                                0 && (
+                            0 && (
                                 <div className="db-Trend">
                                     <div className="block-chart-side line-chart">
                                         <div className="db-TrendRow">
@@ -1086,13 +1086,13 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .jobData
-                                                                          .jobStat
-                                                                          .totalJobs
+                                                                        .kubernetesLog
+                                                                        .jobData
+                                                                        .jobStat
+                                                                        .totalJobs
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1131,13 +1131,13 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .jobData
-                                                                          .jobStat
-                                                                          .healthy
+                                                                        .kubernetesLog
+                                                                        .jobData
+                                                                        .jobStat
+                                                                        .healthy
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1176,13 +1176,13 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .jobData
-                                                                          .jobStat
-                                                                          .unhealthy
+                                                                        .kubernetesLog
+                                                                        .jobData
+                                                                        .jobStat
+                                                                        .unhealthy
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1193,7 +1193,7 @@ export function MonitorChart({
                                     </div>
                                     <div className="block-chart-main line-chart">
                                         <AreaChart
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
+
                                             type={type}
                                             data={data}
                                             name={'job'}
@@ -1246,13 +1246,13 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .deploymentData
-                                                                          .allDeployments
-                                                                          .length
+                                                                        .kubernetesLog
+                                                                        .deploymentData
+                                                                        .allDeployments
+                                                                        .length
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1291,12 +1291,12 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .deploymentData
-                                                                          .healthy
+                                                                        .kubernetesLog
+                                                                        .deploymentData
+                                                                        .healthy
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1336,12 +1336,12 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .deploymentData
-                                                                          .unhealthy
+                                                                        .kubernetesLog
+                                                                        .deploymentData
+                                                                        .unhealthy
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1352,7 +1352,7 @@ export function MonitorChart({
                                     </div>
                                     <div className="block-chart-main line-chart">
                                         <AreaChart
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
+
                                             type={type}
                                             data={data}
                                             name={'deployment'}
@@ -1405,13 +1405,13 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .statefulsetData
-                                                                          .allStatefulset
-                                                                          .length
+                                                                        .kubernetesLog
+                                                                        .statefulsetData
+                                                                        .allStatefulset
+                                                                        .length
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1450,12 +1450,12 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .statefulsetData
-                                                                          .healthy
+                                                                        .kubernetesLog
+                                                                        .statefulsetData
+                                                                        .healthy
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1495,12 +1495,12 @@ export function MonitorChart({
                                                                 }
                                                             >
                                                                 {checkLogs &&
-                                                                data[0]
-                                                                    .kubernetesLog
+                                                                    data[0]
+                                                                        .kubernetesLog
                                                                     ? data[0]
-                                                                          .kubernetesLog
-                                                                          .statefulsetData
-                                                                          .unhealthy
+                                                                        .kubernetesLog
+                                                                        .statefulsetData
+                                                                        .unhealthy
                                                                     : 0}
                                                             </span>
                                                         </span>
@@ -1511,7 +1511,7 @@ export function MonitorChart({
                                     </div>
                                     <div className="block-chart-main line-chart">
                                         <AreaChart
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
+
                                             type={type}
                                             data={data}
                                             name={'statefulset'}
@@ -1647,7 +1647,7 @@ export function MonitorChart({
                     <ShouldRender if={!isCurrentlyNotMonitoring}>
                         <div className="block-chart-main line-chart">
                             <AreaChart
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: any; name: string; symbol... Remove this comment to see the full error message
+
                                 type={type}
                                 data={data}
                                 name={'response time'}
@@ -1695,19 +1695,18 @@ export function MonitorChart({
                                             <span>
                                                 {' '}
                                                 <span
-                                                    className={`chart-font Text-color--${
-                                                        sslCertificate
+                                                    className={`chart-font Text-color--${sslCertificate
                                                             ? sslCertificate.selfSigned
                                                                 ? 'yellow'
                                                                 : sslCertExpiringIn <
-                                                                  30
-                                                                ? sslCertExpiringIn <
-                                                                  10
-                                                                    ? 'red'
-                                                                    : 'yellow'
-                                                                : 'green'
+                                                                    30
+                                                                    ? sslCertExpiringIn <
+                                                                        10
+                                                                        ? 'red'
+                                                                        : 'yellow'
+                                                                    : 'green'
                                                             : 'red'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <small
                                                         id={`ssl-status-${monitor.name}`}
@@ -1716,9 +1715,9 @@ export function MonitorChart({
                                                             ? sslCertificate.selfSigned
                                                                 ? 'Self Signed'
                                                                 : sslCertExpiringIn <
-                                                                  30
-                                                                ? 'Expiring Soon'
-                                                                : 'Enabled'
+                                                                    30
+                                                                    ? 'Expiring Soon'
+                                                                    : 'Enabled'
                                                             : 'No SSL Found'}
                                                     </small>
                                                 </span>
@@ -1749,9 +1748,9 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     <small>
                                                         {sslCertificate &&
-                                                        sslCertificate.issuer
+                                                            sslCertificate.issuer
                                                             ? sslCertificate
-                                                                  .issuer.CN
+                                                                .issuer.CN
                                                             : '-'}
                                                     </small>
                                                 </span>
@@ -1782,7 +1781,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     <small>
                                                         {sslCertificate &&
-                                                        sslCertificate.expires
+                                                            sslCertificate.expires
                                                             ? sslCertificate.expires
                                                             : '-'}
                                                     </small>
@@ -1814,7 +1813,7 @@ export function MonitorChart({
                                                 <span className="chart-font">
                                                     <small>
                                                         {sslCertificate &&
-                                                        sslCertificate.fingerprint
+                                                            sslCertificate.fingerprint
                                                             ? sslCertificate.fingerprint
                                                             : '-'}
                                                     </small>
@@ -1875,7 +1874,7 @@ export function MonitorChart({
                                                         id={`lighthouse-performance-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.performance
+                                                            lighthouseLog.performance
                                                             ? `${lighthouseLog.performance}%`
                                                             : '-'}
                                                     </small>
@@ -1909,7 +1908,7 @@ export function MonitorChart({
                                                         id={`lighthouse-accessibility-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.accessibility
+                                                            lighthouseLog.accessibility
                                                             ? `${lighthouseLog.accessibility}%`
                                                             : '-'}
                                                     </small>
@@ -1943,7 +1942,7 @@ export function MonitorChart({
                                                         id={`lighthouse-bestPractices-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.bestPractices
+                                                            lighthouseLog.bestPractices
                                                             ? `${lighthouseLog.bestPractices}%`
                                                             : '-'}
                                                     </small>
@@ -1977,7 +1976,7 @@ export function MonitorChart({
                                                         id={`lighthouse-seo-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.seo
+                                                            lighthouseLog.seo
                                                             ? `${lighthouseLog.seo}%`
                                                             : '-'}
                                                     </small>
@@ -2011,7 +2010,7 @@ export function MonitorChart({
                                                         id={`lighthouse-pwa-${monitor.name}`}
                                                     >
                                                         {lighthouseLog &&
-                                                        lighthouseLog.pwa
+                                                            lighthouseLog.pwa
                                                             ? `${lighthouseLog.pwa}%`
                                                             : '-'}
                                                     </small>
@@ -2085,7 +2084,7 @@ export function MonitorChart({
                 </div>
                 <div className="block-chart-main line-chart">
                     <AreaChart
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ type: any; data: { date: string; downTime:... Remove this comment to see the full error message
+
                         type={type}
                         data={timeBlock}
                         name={'downtime'}
@@ -2173,13 +2172,13 @@ MonitorChart.propTypes = {
     start: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.object,
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'typeof import("/home/nawazdhanda... Remove this comment to see the full error message
+
         PropTypes.instanceOf(moment),
     ]),
     end: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.object,
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'typeof import("/home/nawazdhanda... Remove this comment to see the full error message
+
         PropTypes.instanceOf(moment),
     ]),
     monitor: PropTypes.object,

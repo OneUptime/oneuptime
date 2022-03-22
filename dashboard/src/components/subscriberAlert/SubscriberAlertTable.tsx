@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import { openModal } from '../../actions/modal';
-// @ts-expect-error ts-migrate(1192) FIXME: Module '"/home/nawazdhandala/Projects/OneUptime/ap... Remove this comment to see the full error message
+
 import AlertDetails from '../modals/AlertDetails';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'coun... Remove this comment to see the full error message
+
 import countryTelephoneCode from 'country-telephone-code';
 import DataPathHoC from '../DataPathHoC';
 
@@ -244,11 +244,11 @@ function TD5({
                     <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         {isIncidentStatus ? (
                             <div
-                                // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                 className={`Badge Badge--color--${incidentStatusColor[text]} Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                             >
                                 <span
-                                    // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+
                                     className={`Badge-text Text-color--${incidentStatusColor[text]} Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                 >
                                     {text}
@@ -363,68 +363,66 @@ class SubscriberAlertTableRowsClass extends React.Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alerts' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         const { alerts, monitors } = this.props;
         return alerts.length > 0
             ? alerts.map((alert: $TSFixMe, index: $TSFixMe) => (
-                  <tr
-                      key={`alert ${index}`}
-                      className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
-                      onClick={() =>
-                          // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
-                          this.props.openModal({
-                              id: uuidv4(),
-                              content: DataPathHoC(AlertDetails, {
-                                  subscriber: alert.subscriberId
-                                      ? alert.subscriberId.contactEmail ||
-                                        (alert.subscriberId.contactPhone &&
-                                            `+${countryTelephoneCode(
-                                                alert.subscriberId.countryCode.toUpperCase()
-                                            )}${
-                                                alert.subscriberId.contactPhone
-                                            }`) ||
-                                        alert.subscriberId.contactWebhook
-                                      : 'Unknown',
-                                  alertVia: alert.alertVia,
-                                  createdAt: alert.createdAt,
-                                  alertStatus: alert.alertStatus,
-                                  eventType: alert.eventType,
-                                  errorMessage: alert.errorMessage,
-                                  monitors,
-                              }),
-                          })
-                      }
-                  >
-                      <TD1 text={this.handleMonitorList(monitors)} />
+                <tr
+                    key={`alert ${index}`}
+                    className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
+                    onClick={() =>
 
-                      <TD2
-                          text={
-                              alert.subscriberId
-                                  ? alert.alertVia === 'webhook'
-                                      ? alert.subscriberId.contactWebhook
-                                      : alert.subscriberId.contactEmail ||
-                                        (alert.subscriberId.contactPhone &&
-                                            `+${countryTelephoneCode(
-                                                alert.subscriberId.countryCode.toUpperCase()
-                                            )}${
-                                                alert.subscriberId.contactPhone
-                                            }`) ||
-                                        alert.subscriberId.contactWebhook
-                                  : 'Unknown'
-                          }
-                      />
-                      <TD3 text={alert.alertVia} />
-                      <TD4 text={alert.createdAt} />
-                      <TD5 text={alert.eventType} />
-                      <TD6 text={alert.alertStatus || alert.errorMessage} />
-                  </tr>
-              ))
+                        this.props.openModal({
+                            id: uuidv4(),
+                            content: DataPathHoC(AlertDetails, {
+                                subscriber: alert.subscriberId
+                                    ? alert.subscriberId.contactEmail ||
+                                    (alert.subscriberId.contactPhone &&
+                                        `+${countryTelephoneCode(
+                                            alert.subscriberId.countryCode.toUpperCase()
+                                        )}${alert.subscriberId.contactPhone
+                                        }`) ||
+                                    alert.subscriberId.contactWebhook
+                                    : 'Unknown',
+                                alertVia: alert.alertVia,
+                                createdAt: alert.createdAt,
+                                alertStatus: alert.alertStatus,
+                                eventType: alert.eventType,
+                                errorMessage: alert.errorMessage,
+                                monitors,
+                            }),
+                        })
+                    }
+                >
+                    <TD1 text={this.handleMonitorList(monitors)} />
+
+                    <TD2
+                        text={
+                            alert.subscriberId
+                                ? alert.alertVia === 'webhook'
+                                    ? alert.subscriberId.contactWebhook
+                                    : alert.subscriberId.contactEmail ||
+                                    (alert.subscriberId.contactPhone &&
+                                        `+${countryTelephoneCode(
+                                            alert.subscriberId.countryCode.toUpperCase()
+                                        )}${alert.subscriberId.contactPhone
+                                        }`) ||
+                                    alert.subscriberId.contactWebhook
+                                : 'Unknown'
+                        }
+                    />
+                    <TD3 text={alert.alertVia} />
+                    <TD4 text={alert.createdAt} />
+                    <TD5 text={alert.eventType} />
+                    <TD6 text={alert.alertStatus || alert.errorMessage} />
+                </tr>
+            ))
             : null;
     }
 }
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SubscriberAlertTableRowsClass.displayName = 'SubscriberAlertTableRowsClass';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SubscriberAlertTableRowsClass.propTypes = {
     alerts: PropTypes.array.isRequired,
     openModal: PropTypes.func.isRequired,

@@ -15,15 +15,15 @@ import ShouldRender from '../basic/ShouldRender';
 
 export class RoutingNumberList extends Component {
     removeNumber = async (callRoutingId: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, removeNumbers } = this.props;
         removeNumbers(currentProject._id, callRoutingId);
     };
 
     nextClicked = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, callRoutingNumbers } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getCallRoutingNumbers' does not exist on... Remove this comment to see the full error message
+
         this.props.getCallRoutingNumbers(
             currentProject._id,
             parseInt(callRoutingNumbers.skip) + 10,
@@ -31,9 +31,9 @@ export class RoutingNumberList extends Component {
         );
     };
     prevClicked = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, callRoutingNumbers } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'getCallRoutingNumbers' does not exist on... Remove this comment to see the full error message
+
         this.props.getCallRoutingNumbers(
             currentProject._id,
             parseInt(callRoutingNumbers.skip) - 10,
@@ -42,20 +42,20 @@ export class RoutingNumberList extends Component {
     };
 
     getName = (number: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'teamMembers' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { teamMembers, schedules } = this.props;
         const type =
             number &&
-            number.routingSchema &&
-            number.routingSchema.type &&
-            number.routingSchema.type.length
+                number.routingSchema &&
+                number.routingSchema.type &&
+                number.routingSchema.type.length
                 ? number.routingSchema.type
                 : null;
         const id =
             number &&
-            number.routingSchema &&
-            number.routingSchema.id &&
-            number.routingSchema.id.length
+                number.routingSchema &&
+                number.routingSchema.id &&
+                number.routingSchema.id.length
                 ? number.routingSchema.id
                 : null;
         if (type && type === 'TeamMember' && id) {
@@ -76,13 +76,13 @@ export class RoutingNumberList extends Component {
     };
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'callRoutingNumbers' does not exist on ty... Remove this comment to see the full error message
+
             callRoutingNumbers,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'removeNumber' does not exist on type 'Re... Remove this comment to see the full error message
+
             removeNumber,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'openModal' does not exist on type 'Reado... Remove this comment to see the full error message
+
             openModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'allNumbers' does not exist on type 'Read... Remove this comment to see the full error message
+
             allNumbers,
         } = this.props;
         const _this = this;
@@ -91,7 +91,7 @@ export class RoutingNumberList extends Component {
 
         let canNext =
             callRoutingNumbers.count &&
-            callRoutingNumbers.count >
+                callRoutingNumbers.count >
                 callRoutingNumbers.skip + callRoutingNumbers.limit
                 ? true
                 : false;
@@ -137,7 +137,7 @@ export class RoutingNumberList extends Component {
                                 </td>
                                 <td
                                     id="overflow"
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -158,7 +158,7 @@ export class RoutingNumberList extends Component {
                                 </td>
                                 <td
                                     id="overflow"
-                                    // @ts-expect-error ts-migrate(2322) FIXME: Type '{ children: Element; id: string; type: strin... Remove this comment to see the full error message
+
                                     type="action"
                                     className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     style={{ height: '1px' }}
@@ -171,8 +171,8 @@ export class RoutingNumberList extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {!isRequesting &&
-                            callRoutingNumbers.numbers &&
-                            callRoutingNumbers.numbers.length > 0 ? (
+                                callRoutingNumbers.numbers &&
+                                callRoutingNumbers.numbers.length > 0 ? (
                                 callRoutingNumbers.numbers.map((number: $TSFixMe, i: $TSFixMe) => {
                                     const { result } = _this.getName(number);
                                     return (
@@ -244,7 +244,7 @@ export class RoutingNumberList extends Component {
                                                                                     removeNumber &&
                                                                                     removeNumber.requesting &&
                                                                                     removeNumber.requesting ===
-                                                                                        number._id
+                                                                                    number._id
                                                                                 }
                                                                                 onClick={() =>
                                                                                     openModal(
@@ -282,7 +282,7 @@ export class RoutingNumberList extends Component {
                                                                                     removeNumber &&
                                                                                     removeNumber.requesting &&
                                                                                     removeNumber.requesting ===
-                                                                                        number._id
+                                                                                    number._id
                                                                                 }
                                                                                 onClick={() =>
                                                                                     openModal(
@@ -300,8 +300,8 @@ export class RoutingNumberList extends Component {
                                                                                 }
                                                                                 className={
                                                                                     removeNumber &&
-                                                                                    removeNumber.requesting &&
-                                                                                    removeNumber.requesting ===
+                                                                                        removeNumber.requesting &&
+                                                                                        removeNumber.requesting ===
                                                                                         number._id
                                                                                         ? 'bs-Button bs-Button--blue'
                                                                                         : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete Margin-left--8'
@@ -313,7 +313,7 @@ export class RoutingNumberList extends Component {
                                                                                         removeNumber &&
                                                                                         removeNumber.requesting &&
                                                                                         removeNumber.requesting ===
-                                                                                            number._id
+                                                                                        number._id
                                                                                     }
                                                                                 >
                                                                                     <FormLoader />
@@ -324,7 +324,7 @@ export class RoutingNumberList extends Component {
                                                                                             removeNumber &&
                                                                                             removeNumber.requesting &&
                                                                                             removeNumber.requesting ===
-                                                                                                number._id
+                                                                                            number._id
                                                                                         )
                                                                                     }
                                                                                 >
@@ -349,7 +349,7 @@ export class RoutingNumberList extends Component {
                             ) : isRequesting ? (
                                 <tr>
                                     <td
-                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                                         colSpan="5"
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                     >
@@ -426,12 +426,10 @@ export class RoutingNumberList extends Component {
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     {numberOfPages > 0
                                         ? `Page ${callRoutingNumbers.skip / 10 +
-                                              1} of ${numberOfPages} (${count} Number${
-                                              count === 1 ? '' : 's'
-                                          })`
-                                        : `${count} Number${
-                                              count === 1 ? '' : 's'
-                                          }`}
+                                        1} of ${numberOfPages} (${count} Number${count === 1 ? '' : 's'
+                                        })`
+                                        : `${count} Number${count === 1 ? '' : 's'
+                                        }`}
                                 </span>
                             </span>
                         </span>
@@ -508,10 +506,10 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 RoutingNumberList.displayName = 'RoutingNumberList';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 RoutingNumberList.propTypes = {
     allNumbers: PropTypes.shape({
         requesting: PropTypes.any,

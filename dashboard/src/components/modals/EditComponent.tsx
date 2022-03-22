@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
@@ -10,14 +10,14 @@ import { bindActionCreators } from 'redux';
 import { closeModal } from '../../actions/modal';
 import { connect } from 'react-redux';
 import { editComponent } from '../../actions/component';
-// @ts-expect-error ts-migrate(2305) FIXME: Module '"prop-types"' has no exported member 'Prop... Remove this comment to see the full error message
+
 import { PropTypes } from 'prop-types';
 
 function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.name)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'name' does not exist on type '{}'.
+
         errors.name = 'Component name can not be empty!';
     }
     return errors;
@@ -42,7 +42,7 @@ class EditComponent extends Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                 return document.getElementById('editComponentButton').click();
             default:
                 return false;
@@ -50,27 +50,27 @@ class EditComponent extends Component {
     };
 
     handleCloseModal = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
         this.props.closeModal({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentModalId' does not exist on ... Remove this comment to see the full error message
+
             id: this.props.editComponentModalId,
         });
     };
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'initialValues' does not exist on type 'R... Remove this comment to see the full error message
+
         if (this.props.initialValues.name === values.name) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             return this.props.closeModal({
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentModalId' does not exist on ... Remove this comment to see the full error message
+
                 id: this.props.editComponentModalId,
             });
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponent' does not exist on type 'R... Remove this comment to see the full error message
+
         this.props.editComponent(this.props.projectId, values).then(() => {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             return this.props.closeModal({
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentModalId' does not exist on ... Remove this comment to see the full error message
+
                 id: this.props.editComponentModalId,
             });
         });
@@ -84,10 +84,10 @@ class EditComponent extends Component {
                 </span>
             </div>
             <div className="bs-Modal-messages">
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
+
                 <ShouldRender if={this.props.editingComponent.error}>
                     <p className="bs-Modal-message">
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
+
                         {this.props.editingComponent.error}
                     </p>
                 </ShouldRender>
@@ -108,7 +108,7 @@ class EditComponent extends Component {
                     width: '90%',
                     margin: '10px 0 10px 5%',
                 }}
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
+
                 disabled={this.props.editingComponent.requesting}
                 autoFocus={true}
             />
@@ -122,13 +122,13 @@ class EditComponent extends Component {
                     className={`bs-Button bs-DeprecatedButton btn__modal`}
                     type="button"
                     onClick={() => {
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
                         this.props.closeModal({
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'editComponentModalId' does not exist on ... Remove this comment to see the full error message
+
                             id: this.props.editComponentModalId,
                         });
                     }}
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
+
                     disabled={this.props.editingComponent.requesting}
                 >
                     <span>Cancel</span>
@@ -137,12 +137,12 @@ class EditComponent extends Component {
                 <button
                     id="editComponentButton"
                     className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal`}
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '"save"' is not assignable to type '"reset" |... Remove this comment to see the full error message
+
                     type="save"
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
+
                     disabled={this.props.editingComponent.requesting}
                 >
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'editingComponent' does not exist on type... Remove this comment to see the full error message
+
                     <ShouldRender if={this.props.editingComponent.requesting}>
                         <Spinner />
                     </ShouldRender>
@@ -156,7 +156,7 @@ class EditComponent extends Component {
     );
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit } = this.props;
 
         return (
@@ -185,7 +185,7 @@ class EditComponent extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 EditComponent.displayName = EditComponent;
 
 const UpdateComponentForm = reduxForm({
@@ -213,7 +213,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators({ closeModal, editComponent }, dispatch);
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 EditComponent.propTypes = {
     initialValues: PropTypes.shape({ name: PropTypes.string }),
     closeModal: PropTypes.func.isRequired,

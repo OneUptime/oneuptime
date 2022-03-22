@@ -17,7 +17,7 @@ class AlertDisabledWarning extends Component {
         };
     }
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'alertEnable' does not exist on type 'Rea... Remove this comment to see the full error message
+
         const { alertEnable, currentProject, page } = this.props;
         const slug = currentProject ? currentProject.slug : null;
         const redirectTo = `/dashboard/project/${slug}/settings/billing`;
@@ -27,7 +27,7 @@ class AlertDisabledWarning extends Component {
                 if={
                     !alertEnable &&
                     booleanParser(IS_SAAS_SERVICE) &&
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'showWarning' does not exist on type 'Rea... Remove this comment to see the full error message
+
                     this.state.showWarning
                 }
             >
@@ -37,7 +37,7 @@ class AlertDisabledWarning extends Component {
                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12 warning">
                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                     <FontAwesomeIcon
-                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'IconDefinition' is not assignable to type 'I... Remove this comment to see the full error message
+
                                         icon={faTimes}
                                         className="cancel"
                                         onClick={() =>
@@ -89,10 +89,10 @@ class AlertDisabledWarning extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AlertDisabledWarning.displayName = 'AlertDisabledWarning';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 AlertDisabledWarning.propTypes = {
     alertEnable: PropTypes.bool,
     currentProject: PropTypes.shape({ slug: PropTypes.string }),

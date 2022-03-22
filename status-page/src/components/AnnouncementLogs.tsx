@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 import { fetchAnnouncementLogs } from '../actions/status';
 import { connect } from 'react-redux';
@@ -17,13 +17,13 @@ class AnnouncementLogs extends Component {
 
     more = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
+
             fetchAnnouncementLogs,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageId' does not exist on type 'Re... Remove this comment to see the full error message
+
             statusPageId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             logs,
         } = this.props;
         let { limit } = this.state;
@@ -32,13 +32,13 @@ class AnnouncementLogs extends Component {
     };
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'theme' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             theme,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'logs' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             logs: { announcementLogs, limit, count },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'error' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             error,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitorState' does not exist on type 'Re... Remove this comment to see the full error message
+
             monitorState,
         } = this.props;
         return <>
@@ -225,7 +225,7 @@ class AnnouncementLogs extends Component {
                                     </span>
                                     <ul className="feed-contents plain">
                                         {announcementLogs &&
-                                        announcementLogs.length > 0 ? (
+                                            announcementLogs.length > 0 ? (
                                             announcementLogs.map(
                                                 (log: $TSFixMe, index: $TSFixMe) => {
                                                     return (
@@ -402,10 +402,10 @@ class AnnouncementLogs extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AnnouncementLogs.displayName = 'AnnouncementLogs';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 AnnouncementLogs.propTypes = {
     theme: PropTypes.oneOfType([
         PropTypes.string,

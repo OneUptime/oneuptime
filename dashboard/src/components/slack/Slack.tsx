@@ -1,5 +1,5 @@
 import React from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -9,7 +9,7 @@ import RenderIfAdmin from '../basic/RenderIfAdmin';
 
 class Slack extends React.Component {
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId } = this.props;
         const userToken = User.getAccessToken();
         return (
@@ -58,7 +58,7 @@ class Slack extends React.Component {
                                         </div>
                                     </div>
                                 </div>
-                                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ projectId: any; }' is not assignable to ty... Remove this comment to see the full error message
+
                                 <SlackTeamList projectId={projectId} />
                             </div>
                         </div>
@@ -69,10 +69,10 @@ class Slack extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Slack.displayName = 'Slack';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Slack.propTypes = {
     projectId: PropTypes.string.isRequired,
 };

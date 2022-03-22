@@ -5,7 +5,7 @@ import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import SubProjectTable from './SubProjectTable';
 import SubProjectForm from './SubProjectForm';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
@@ -30,9 +30,9 @@ export class SubProjects extends Component {
     }
 
     handleKeyboard = (e: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'modalId' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { modalId, modalList } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
+
         const { subProjectModalId } = this.state;
 
         if (e.target.localName === 'body' && e.key) {
@@ -54,49 +54,49 @@ export class SubProjects extends Component {
     };
 
     paginatePrev = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { skip, getSubProjects, currentProject } = this.props;
         getSubProjects(currentProject._id, skip ? skip - 10 : 10, 10);
         this.setState({
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             page: this.state.page === 1 ? 1 : this.state.page - 1,
         });
     };
 
     paginateNext = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'skip' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { skip, getSubProjects, currentProject } = this.props;
         getSubProjects(currentProject._id, skip ? skip + 10 : 10, 10);
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page + 1 });
     };
 
     handleAddSubProject = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, openModal } = this.props;
         const userId = User.getUserId();
         isOwnerOrAdmin(userId, currentProject)
             ? openModal({
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                  id: this.state.subProjectModalId,
-                  content: DataPathHoC(SubProjectForm, {
-                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                      subProjectModalId: this.state.subProjectModalId,
-                      editSubProject: false,
-                      subProjectId: null,
-                      subProjectTitle: null,
-                  }),
-              })
+
+                id: this.state.subProjectModalId,
+                content: DataPathHoC(SubProjectForm, {
+
+                    subProjectModalId: this.state.subProjectModalId,
+                    editSubProject: false,
+                    subProjectId: null,
+                    subProjectTitle: null,
+                }),
+            })
             : openModal({
-                  // @ts-expect-error ts-migrate(2339) FIXME: Property 'subProjectModalId' does not exist on typ... Remove this comment to see the full error message
-                  id: this.state.subProjectModalId,
-                  // @ts-expect-error ts-migrate(2554) FIXME: Expected 2 arguments, but got 1.
-                  content: DataPathHoC(Unauthorised),
-              });
+
+                id: this.state.subProjectModalId,
+
+                content: DataPathHoC(Unauthorised),
+            });
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'limit' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { limit, skip, count, subProjectState } = this.props;
         const { subProjects } = subProjectState;
         const canNext = count > skip + limit ? false : true;
@@ -190,23 +190,23 @@ export class SubProjects extends Component {
                                                 </div>
                                             </header>
                                             {subProjects &&
-                                            subProjects.length > 0
+                                                subProjects.length > 0
                                                 ? subProjects.map(
-                                                      (subProject: $TSFixMe, i: $TSFixMe) => {
-                                                          return (
-                                                              <SubProjectTable
-                                                                  // @ts-expect-error ts-migrate(2322) FIXME: Type '{ subProject: any; key: any; loop: any; }' i... Remove this comment to see the full error message
-                                                                  subProject={
-                                                                      subProject
-                                                                  }
-                                                                  key={
-                                                                      subProject._id
-                                                                  }
-                                                                  loop={i}
-                                                              />
-                                                          );
-                                                      }
-                                                  )
+                                                    (subProject: $TSFixMe, i: $TSFixMe) => {
+                                                        return (
+                                                            <SubProjectTable
+
+                                                                subProject={
+                                                                    subProject
+                                                                }
+                                                                key={
+                                                                    subProject._id
+                                                                }
+                                                                loop={i}
+                                                            />
+                                                        );
+                                                    }
+                                                )
                                                 : ''}
                                         </div>
                                     </div>
@@ -228,11 +228,10 @@ export class SubProjects extends Component {
                                 </div>
                             </ShouldRender>
                             <div
-                                className={`bs-Tail ${
-                                    subProjects && subProjects.length <= 0
+                                className={`bs-Tail ${subProjects && subProjects.length <= 0
                                         ? ''
                                         : 'bs-Tail--separated'
-                                } bs-Tail--short`}
+                                    } bs-Tail--short`}
                                 style={{
                                     marginTop: '0px',
                                     marginBottom: '0px',
@@ -259,15 +258,11 @@ export class SubProjects extends Component {
                                     <div className="bs-Tail-copy Text-fontWeight--medium">
                                         <span>
                                             {numbersOfPage > 0
-                                                ? `Page ${
-                                                      // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
-                                                      this.state.page
-                                                  } of ${numbersOfPage} (${count} Sub Project${
-                                                      count === 1 ? '' : 's'
-                                                  })`
-                                                : `${count} Sub Project${
-                                                      count === 1 ? '' : 's'
-                                                  }`}
+                                                ? `Page ${this.state.page
+                                                } of ${numbersOfPage} (${count} Sub Project${count === 1 ? '' : 's'
+                                                })`
+                                                : `${count} Sub Project${count === 1 ? '' : 's'
+                                                }`}
                                         </span>
                                     </div>
                                 </ShouldRender>
@@ -322,10 +317,10 @@ export class SubProjects extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SubProjects.displayName = 'SubProjects';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SubProjects.propTypes = {
     count: PropTypes.number,
     currentProject: PropTypes.object,

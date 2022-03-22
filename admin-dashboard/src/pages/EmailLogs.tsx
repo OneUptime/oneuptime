@@ -10,7 +10,7 @@ import {
     fetchEmailLogStatus,
 } from '../actions/emailLogs';
 
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -26,9 +26,9 @@ class EmailLogs extends React.Component {
     }
 
     prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchBox' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { searchBox } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEmailLogs' does not exist on type '... Remove this comment to see the full error message
+
         const { fetchEmailLogs, searchEmailLogs } = this.props;
 
         if (searchBox && searchBox !== '') {
@@ -40,14 +40,14 @@ class EmailLogs extends React.Component {
         } else {
             fetchEmailLogs((skip || 0) > (limit || 10) ? skip - limit : 0, 10);
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
     nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchBox' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { searchBox } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEmailLogs' does not exist on type '... Remove this comment to see the full error message
+
         const { fetchEmailLogs, searchEmailLogs } = this.props;
 
         if (searchBox && searchBox !== '') {
@@ -55,20 +55,20 @@ class EmailLogs extends React.Component {
         } else {
             fetchEmailLogs(skip + limit, 10);
         }
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         this.setState({ page: this.state.page + 1 });
     };
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEmailLogs' does not exist on type '... Remove this comment to see the full error message
+
         this.props.fetchEmailLogs();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchEmailLogStatus' does not exist on t... Remove this comment to see the full error message
+
         this.props.fetchEmailLogStatus();
     }
 
     onChange = (e: $TSFixMe) => {
         const value = e.target.value;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'searchEmailLogs' does not exist on type ... Remove this comment to see the full error message
+
         const { searchEmailLogs } = this.props;
 
         this.setState({ searchBox: value });
@@ -77,7 +77,7 @@ class EmailLogs extends React.Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogStatus' does not exist on type '... Remove this comment to see the full error message
+
         const { emailLogStatus } = this.props;
         return (
             <div
@@ -148,7 +148,7 @@ class EmailLogs extends React.Component {
                                                     }
                                                 >
                                                     <AlertPanel
-                                                        // @ts-expect-error ts-migrate(2769) FIXME: No overload matches this call.
+
                                                         className=""
                                                         message={
                                                             <span id="emailLogDisabled">
@@ -173,18 +173,18 @@ class EmailLogs extends React.Component {
                                             </div>
                                         </div>
                                         <EmailLogsList
-                                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ emailLogs: any; prevClicked: (skip: any, l... Remove this comment to see the full error message
+
                                             emailLogs={
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'emailLogs' does not exist on type 'Reado... Remove this comment to see the full error message
+
                                                 this.props.emailLogs || {}
                                             }
                                             prevClicked={this.prevClicked}
                                             nextClicked={this.nextClicked}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'userId' does not exist on type 'Readonly... Remove this comment to see the full error message
+
                                             userId={this.props.userId}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'requesting' does not exist on type 'Read... Remove this comment to see the full error message
+
                                             requesting={this.props.requesting}
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'page' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                             page={this.state.page}
                                         />
                                     </div>
@@ -198,7 +198,7 @@ class EmailLogs extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 EmailLogs.displayName = 'EmailLogs';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
@@ -230,7 +230,7 @@ const mapStateToProps = (state: $TSFixMe) => {
         changeEmailLogStatus,
     };
 };
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 EmailLogs.propTypes = {
     fetchEmailLogs: PropTypes.func.isRequired,
     searchEmailLogs: PropTypes.func.isRequired,

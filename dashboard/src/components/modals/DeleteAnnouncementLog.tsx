@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -14,7 +14,7 @@ import {
 
 class DeleteAnnouncementLog extends Component {
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetDeleteAnnouncement' does not exist ... Remove this comment to see the full error message
+
         this.props.resetDeleteAnnouncement();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -26,7 +26,7 @@ class DeleteAnnouncementLog extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
                 return this.handleDelete();
@@ -37,25 +37,25 @@ class DeleteAnnouncementLog extends Component {
 
     handleDelete = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'data' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
             data: { announcementLogId, projectId, statusPage },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteAnnouncementLog' does not exist on... Remove this comment to see the full error message
+
             deleteAnnouncementLog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchAnnouncementLogs' does not exist on... Remove this comment to see the full error message
+
             fetchAnnouncementLogs,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteError' does not exist on type 'Rea... Remove this comment to see the full error message
+
             deleteError,
         } = this.props;
         deleteAnnouncementLog(projectId, announcementLogId).then(() => {
             if (!deleteError) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 this.props.closeThisDialog();
                 fetchAnnouncementLogs(projectId, statusPage._id, 0, 10);
             }
         });
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
         const { closeThisDialog, isRequesting, deleteError } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -158,10 +158,10 @@ class DeleteAnnouncementLog extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DeleteAnnouncementLog.displayName = 'DeleteAnnouncementLog';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DeleteAnnouncementLog.propTypes = {
     closeThisDialog: PropTypes.func,
     deleteAnnouncementLog: PropTypes.func,

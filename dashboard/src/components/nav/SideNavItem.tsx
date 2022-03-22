@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Link, withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
@@ -19,7 +19,7 @@ export class SidebarNavItem extends Component {
     }
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { route } = this.props;
         const path = this.mainRoute();
 
@@ -34,7 +34,7 @@ export class SidebarNavItem extends Component {
     }
 
     componentWillUnmount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { route } = this.props;
         const path = this.mainRoute();
 
@@ -49,7 +49,7 @@ export class SidebarNavItem extends Component {
     }
 
     mainRoute = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { match, currentProject, route } = this.props;
         return route.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
@@ -64,11 +64,11 @@ export class SidebarNavItem extends Component {
             .replace(':automatedScriptslug', match.params.automatedScriptslug);
     };
     handleShowMore = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
+
         this.props.toggleProjectSettingsMore(!this.props.toggleMoreBtn);
     };
     subRoute = (subRoute: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { match, currentProject } = this.props;
         const subRoutePath = subRoute.path
             .replace(':slug', match.params.slug || (currentProject || {}).slug)
@@ -93,11 +93,11 @@ export class SidebarNavItem extends Component {
             subRoute.title === 'Team Groups';
         if (projectSettingsSubRoutes) {
             if (match.url === subRoutePath) {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
+
                 this.props.toggleProjectSettingsMore(true);
             }
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
+
             this.props.toggleProjectSettingsMore(false);
         }
         return subRoutePath;
@@ -112,19 +112,19 @@ export class SidebarNavItem extends Component {
     render() {
         const { RenderListItems } = this;
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             route,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
             location,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'schedule' does not exist on type 'Readon... Remove this comment to see the full error message
+
             schedule,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'match' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             match,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'loadPage' does not exist on type 'Readon... Remove this comment to see the full error message
+
             loadPage,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleMoreBtn' does not exist on type 'R... Remove this comment to see the full error message
+
             toggleMoreBtn,
         } = this.props;
         const path = route.path
@@ -234,53 +234,53 @@ export class SidebarNavItem extends Component {
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
-                      ) &&
-                          link.title === 'Incident') ||
-                      (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
-                      ) &&
-                          link.title === 'Incident detail') ||
-                      (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container/
-                      ) &&
-                          link.title === 'Container') ||
-                      (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application/
-                      ) &&
-                          link.title === 'Application') ||
-                      (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application\/([A-Za-z0-9-]+)/
-                      ) &&
-                          link.title === 'Application Detail') ||
-                      (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container\/([A-Za-z0-9-]+)/
-                      ) &&
-                          link.title === 'Container Detail') ||
-                      (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/advanced/
-                      ) &&
-                          link.title === 'Advanced') ||
-                      (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/basic/
-                      ) &&
-                          link.title === 'Basic')
-                    ? true
-                    : false;
+                        /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
+                    ) &&
+                        link.title === 'Incident') ||
+                        (location.pathname.match(
+                            /project\/([A-Za-z0-9-]+)\/incidents\/([A-Za-z0-9-]+)/
+                        ) &&
+                            link.title === 'Incident detail') ||
+                        (location.pathname.match(
+                            /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container/
+                        ) &&
+                            link.title === 'Container') ||
+                        (location.pathname.match(
+                            /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application/
+                        ) &&
+                            link.title === 'Application') ||
+                        (location.pathname.match(
+                            /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/application\/([A-Za-z0-9-]+)/
+                        ) &&
+                            link.title === 'Application Detail') ||
+                        (location.pathname.match(
+                            /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container\/([A-Za-z0-9-]+)/
+                        ) &&
+                            link.title === 'Container Detail') ||
+                        (location.pathname.match(
+                            /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/advanced/
+                        ) &&
+                            link.title === 'Advanced') ||
+                        (location.pathname.match(
+                            /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/settings\/basic/
+                        ) &&
+                            link.title === 'Basic')
+                        ? true
+                        : false;
             return response;
         });
 
         const isSubLinkActive = route.subRoutes.some((link: $TSFixMe) => link.title === 'Status Page' &&
-        location.pathname.match(
-            /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
-        )
+            location.pathname.match(
+                /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
+            )
             ? true
             : false
         );
         const isScheduleLinkActive = route.subRoutes.some((link: $TSFixMe) => link.title === 'Schedule' &&
-        location.pathname.match(
-            /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/schedule\/([0-9]|[a-z]+)/
-        )
+            location.pathname.match(
+                /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/schedule\/([0-9]|[a-z]+)/
+            )
             ? true
             : false
         );
@@ -292,19 +292,19 @@ export class SidebarNavItem extends Component {
                 route.title === 'Back to Dashboard'
                     ? '20px'
                     : route.title === 'Component Settings'
-                    ? '10px'
-                    : 0,
+                        ? '10px'
+                        : 0,
         };
 
         const routes = route.shortcut && route.shortcut.split('+');
 
         const hideProjectNav =
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             this.props.currentProject?._id !== this.props.activeSubProjectId &&
             (route.title === 'Reports' || route.title === 'Project Settings');
 
         return (
-            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ position: string; marginBottom: string; ma... Remove this comment to see the full error message
+
             <div style={routeStyle}>
                 <ShouldRender if={!hideProjectNav}>
                     <ShouldRender if={!route.invisible}>
@@ -312,14 +312,14 @@ export class SidebarNavItem extends Component {
                             id={this.camalize(route.title)}
                             style={{ cursor: 'pointer' }}
                             onClick={() => {
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
+
                                 this.props.toggleProjectSettingsMore(false);
                                 if (route.title === 'Back to Dashboard') {
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                                     this.props.animateSidebar(true);
                                     setTimeout(() => {
                                         loadPage(route.title);
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                                         this.props.animateSidebar(false);
                                         history.push(path);
                                     }, 200);
@@ -338,15 +338,13 @@ export class SidebarNavItem extends Component {
                                         {route.icon ? (
                                             <div className="Box-root Flex-flex Flex-alignItems--center Margin-right--12">
                                                 <span
-                                                    className={`db-SideNav-icon db-SideNav-icon--${
-                                                        route.icon
-                                                    } ${
-                                                        isLinkActive ||
-                                                        isSubLinkActive ||
-                                                        isScheduleLinkActive
+                                                    className={`db-SideNav-icon db-SideNav-icon--${route.icon
+                                                        } ${isLinkActive ||
+                                                            isSubLinkActive ||
+                                                            isScheduleLinkActive
                                                             ? 'db-SideNav-icon--selected'
                                                             : null
-                                                    }`}
+                                                        }`}
                                                 />
                                             </div>
                                         ) : null}
@@ -354,8 +352,8 @@ export class SidebarNavItem extends Component {
                                             className={
                                                 'Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap' +
                                                 (isLinkActive ||
-                                                isSubLinkActive ||
-                                                isScheduleLinkActive
+                                                    isSubLinkActive ||
+                                                    isScheduleLinkActive
                                                     ? ' Text-color--oneuptimeblue Text-fontWeight--bold'
                                                     : ' Text-color--dark')
                                             }
@@ -393,7 +391,7 @@ export class SidebarNavItem extends Component {
                                 }
                             >
                                 <RenderListItems
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                                     slug={this.props.currentProject?.slug}
                                     schedule={schedule}
                                     active={match.url}
@@ -401,7 +399,7 @@ export class SidebarNavItem extends Component {
                                     componentSlug={match.params.componentSlug}
                                     showMore={toggleMoreBtn}
                                     handleShowMore={
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'toggleProjectSettingsMore' does not exis... Remove this comment to see the full error message
+
                                         this.props.toggleProjectSettingsMore
                                     }
                                 />
@@ -422,14 +420,14 @@ export class SidebarNavItem extends Component {
         showMore,
         handleShowMore
     }: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2345) FIXME: Argument of type 'string | null' is not assignable... Remove this comment to see the full error message
+
         const currentProject = JSON.parse(User.getProject());
         const isScalePlan = currentProject?.stripePlanId
-            // @ts-expect-error ts-migrate(2532) FIXME: Object is possibly 'undefined'.
+
             ? PricingPlan.getPlanById(currentProject.stripePlanId).category ===
-              'Scale'
+            'Scale'
             : false;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'route' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         return this.props.route.subRoutes.map((child: $TSFixMe, index: $TSFixMe) => {
             if (child.title === 'Sso' && !isScalePlan) {
                 return null;
@@ -504,13 +502,13 @@ export class SidebarNavItem extends Component {
                             ? true
                             : false
                         : child.title === 'Container'
-                        ? containerDetailLink === active
-                            ? true
-                            : false
-                        : child.title === 'Scheduled Event Detail' &&
-                          scheduledEventDetailLink === active
-                        ? true
-                        : false;
+                            ? containerDetailLink === active
+                                ? true
+                                : false
+                            : child.title === 'Scheduled Event Detail' &&
+                                scheduledEventDetailLink === active
+                                ? true
+                                : false;
 
                 const routes = child.shortcut && child.shortcut.split('+');
                 if (child.title === 'More') {
@@ -579,15 +577,15 @@ export class SidebarNavItem extends Component {
                                                             className={
                                                                 link ===
                                                                     active ||
-                                                                incidentLogLink ===
+                                                                    incidentLogLink ===
                                                                     active ||
-                                                                isSubrouteActive
+                                                                    isSubrouteActive
                                                                     ? 'Text-color--oneuptimeblue Text-fontWeight--bold'
                                                                     : ''
                                                             }
                                                         >
                                                             {child.title ===
-                                                            'Incident Settings'
+                                                                'Incident Settings'
                                                                 ? 'Incidents'
                                                                 : child.title}
                                                         </span>
@@ -622,7 +620,7 @@ export class SidebarNavItem extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 SidebarNavItem.displayName = 'SidebarNavItem';
 
 const mapStateToProps = (state: $TSFixMe) => ({
@@ -644,7 +642,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 SidebarNavItem.propTypes = {
     match: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,

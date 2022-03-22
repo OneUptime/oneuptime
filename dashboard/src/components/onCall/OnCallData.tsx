@@ -12,9 +12,9 @@ function OnCallTableHeader({
             <div
                 className="db-ListViewItem-cellContent Box-root Padding-all--8"
                 style={{
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type '"right" | null' is not assignable to type 'F... Remove this comment to see the full error message
+
                     float: text === 'Actions' ? 'right' : null,
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | null' is not assignable to type 'Ma... Remove this comment to see the full error message
+
                     marginRight: text === 'Actions' ? '24px' : null,
                 }}
             >

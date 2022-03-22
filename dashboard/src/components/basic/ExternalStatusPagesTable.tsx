@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'uuid... Remove this comment to see the full error message
+
 import { v4 as uuidv4 } from 'uuid';
 import EditExternalStatusPageModal from '../modals/EditExternalStatusPageModal';
 import RemoveExternalStatusPage from '../modals/RemoveExternalStatusPage';
@@ -14,7 +14,7 @@ export class ExternalStatusPagesTable extends Component {
         deleteExternalStatusPageModalId: uuidv4(),
     };
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPage' does not exist on type 'Read... Remove this comment to see the full error message
+
         const { statusPage, openModal } = this.props;
         const { deleteExternalStatusPageModalId } = this.state;
 
@@ -124,7 +124,7 @@ export class ExternalStatusPagesTable extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ExternalStatusPagesTable.displayName = 'ExternalStatusPagesTable';
 
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
@@ -136,7 +136,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => {
     );
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ExternalStatusPagesTable.propTypes = {
     statusPage: PropTypes.object,
     openModal: PropTypes.func.isRequired,

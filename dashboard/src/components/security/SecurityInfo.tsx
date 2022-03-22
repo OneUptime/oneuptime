@@ -131,9 +131,9 @@ const SecurityInfo = ({
                 ? threatLevel(applicationSecurityLog.data.vulnerabilities)
                 : 'no data'
             : type === 'container' &&
-              (containerSecurityLog.data
-                  ? threatLevel(containerSecurityLog.data.vulnerabilityInfo)
-                  : 'no data');
+            (containerSecurityLog.data
+                ? threatLevel(containerSecurityLog.data.vulnerabilityInfo)
+                : 'no data');
 
     return (
         <Fragment>
@@ -152,7 +152,7 @@ const SecurityInfo = ({
                                         }
                                         className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"
                                     >
-                                        // @ts-expect-error ts-migrate(2322) FIXME: Type 'string | boolean' is not assignable to type ... Remove this comment to see the full error message
+
                                         <IssueIndicator status={status} />
                                         <span
                                             id={
@@ -173,18 +173,18 @@ const SecurityInfo = ({
                                     <ShouldRender
                                         if={
                                             security &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
+
                                             security.resourceCategory
                                         }
                                     >
                                         <div className="Box-root Padding-right--8">
                                             <Badge color={'slate5'}>
                                                 {security &&
-                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
-                                                security.resourceCategory
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'resourceCategory' does not exist on type... Remove this comment to see the full error message
+
+                                                    security.resourceCategory
+
                                                     ? security.resourceCategory
-                                                          .name
+                                                        .name
                                                     : ''}
                                             </Badge>
                                         </div>
@@ -204,17 +204,17 @@ const SecurityInfo = ({
                                 className="bs-Fieldset-row"
                                 style={{ padding: 0 }}
                             >
-                                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                                 <ShouldRender if={security.lastScan}>
                                     <label className="Text-fontWeight--medium">
                                         Last Scan:
                                     </label>
                                     <div className="Margin-left--2">
                                         <span className="value">{`${moment(
-                                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                                             security.lastScan
                                         ).fromNow()} (${moment(
-                                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                                             security.lastScan
                                         ).format(
                                             'MMMM Do YYYY, h:mm:ss a'
@@ -226,14 +226,14 @@ const SecurityInfo = ({
                                 className="bs-Fieldset-row"
                                 style={{ padding: 0 }}
                             >
-                                // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                                 <ShouldRender if={security.lastScan}>
                                     <label className="Text-fontWeight--medium">
                                         Next Scan:
                                     </label>
                                     <div className="Margin-left--2">
                                         <span className="value">{`${moment(
-                                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                                             security.lastScan
                                         )
                                             .add(24, 'hours')
@@ -248,19 +248,19 @@ const SecurityInfo = ({
                             {(applicationSecurityId &&
                                 scanningApplication &&
                                 String(applicationSecurityId) ===
-                                    String(activeApplicationSecurity)) ||
-                            (containerSecurityId &&
-                                scanningContainer &&
-                                String(containerSecurityId) ===
+                                String(activeApplicationSecurity)) ||
+                                (containerSecurityId &&
+                                    scanningContainer &&
+                                    String(containerSecurityId) ===
                                     String(activeContainerSecurity)) ||
-                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                            security.scanning ||
-                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
-                            !security.lastScan ||
-                            // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
-                            currentScannedStatus === false || 
-                            // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
-                            currentContainerScannedStatus === false ? (
+
+                                security.scanning ||
+
+                                !security.lastScan ||
+
+                                currentScannedStatus === false ||
+
+                                currentContainerScannedStatus === false ? (
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
                                     disabled={
@@ -268,13 +268,13 @@ const SecurityInfo = ({
                                             scanningApplication) ||
                                         (containerSecurityId &&
                                             scanningContainer) ||
-                                        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                                         security.scanning ||
-                                        // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                                         !security.lastScan ||
-                                        // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
-                                        currentScannedStatus === false || 
-                                        // @ts-expect-error ts-migrate(2367) FIXME: This condition will always return 'false' since th... Remove this comment to see the full error message
+
+                                        currentScannedStatus === false ||
+
                                         currentContainerScannedStatus === false
                                     }
                                     id={
@@ -342,7 +342,7 @@ const SecurityInfo = ({
                                     !scanningApplication &&
                                     scanApplicationError &&
                                     String(activeApplicationSecurity) ===
-                                        String(applicationSecurityId)
+                                    String(applicationSecurityId)
                                 }
                             >
                                 <div className="Box-root Margin-right--8">
@@ -360,7 +360,7 @@ const SecurityInfo = ({
                                     !scanningContainer &&
                                     scanContainerError &&
                                     String(activeContainerSecurity) ===
-                                        String(containerSecurityId)
+                                    String(containerSecurityId)
                                 }
                             >
                                 <div className="Box-root Margin-right--8">

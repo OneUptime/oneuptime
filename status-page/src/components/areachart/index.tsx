@@ -8,9 +8,9 @@ import {
     CartesianGrid,
     Tooltip,
     YAxis,
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'rech... Remove this comment to see the full error message
+
 } from 'recharts';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'loda... Remove this comment to see the full error message
+
 import * as _ from 'lodash';
 import { connect } from 'react-redux';
 import { formatDecimal, formatBytes } from '../../config';
@@ -49,35 +49,35 @@ class AreaChart extends Component {
             case 'load':
                 return display
                     ? `${formatDecimal(
-                          data.maxCpuLoad || data.cpuLoad || 0,
-                          2
-                      )} ${symbol || '%'}`
+                        data.maxCpuLoad || data.cpuLoad || 0,
+                        2
+                    )} ${symbol || '%'}`
                     : data.maxCpuLoad || data.cpuLoad || 0;
             case 'memory':
                 return display
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+
                     ? `${formatBytes(
-                          data.maxMemoryUsed || data.memoryUsed || 0
-                      )} ${symbol || ''}`
+                        data.maxMemoryUsed || data.memoryUsed || 0
+                    )} ${symbol || ''}`
                     : data.maxMemoryUsed || data.memoryUsed || 0;
             case 'disk':
                 return display
-                    // @ts-expect-error ts-migrate(2554) FIXME: Expected 5 arguments, but got 1.
+
                     ? `${formatBytes(
-                          data.maxStorageUsed || data.storageUsed || 0
-                      )} ${symbol || ''}`
+                        data.maxStorageUsed || data.storageUsed || 0
+                    )} ${symbol || ''}`
                     : data.maxStorageUsed || data.storageUsed || 0;
             case 'temperature':
                 return display
                     ? `${Math.round(
-                          data.maxMainTemp || data.mainTemp || 0
-                      )} ${symbol || '°C'}`
+                        data.maxMainTemp || data.mainTemp || 0
+                    )} ${symbol || '°C'}`
                     : data.maxMainTemp || data.mainTemp || 0;
             case 'response time':
                 return display
                     ? `${Math.round(
-                          data.maxResponseTime || data.responseTime || 0
-                      )} ${symbol || 'ms'}`
+                        data.maxResponseTime || data.responseTime || 0
+                    )} ${symbol || 'ms'}`
                     : data.maxResponseTime || data.responseTime || 0;
             default:
                 return display ? `${data || 0} ${symbol || ''}` : data || 0;
@@ -89,7 +89,7 @@ class AreaChart extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'type' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
         const { type, data, name, symbol, colors } = this.props;
         const { strokeChart, fillChart } = colors;
         const stroke = `rgb(
@@ -105,26 +105,26 @@ class AreaChart extends Component {
         if (data && data.length > 0) {
             const processedData = (type === 'manual'
                 ? data.map((a: $TSFixMe) => {
-                      return {
-                          name: this.parseDate(a.date),
-                          // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 1.
-                          v: this.parseValue(a.downTime),
-                          display: this.parseValue(
-                              a.downTime,
-                              null,
-                              true,
-                              symbol
-                          ),
-                      };
-                  })
+                    return {
+                        name: this.parseDate(a.date),
+
+                        v: this.parseValue(a.downTime),
+                        display: this.parseValue(
+                            a.downTime,
+                            null,
+                            true,
+                            symbol
+                        ),
+                    };
+                })
                 : data.map((a: $TSFixMe) => {
-                      return {
-                          name: a.intervalDate || this.parseDate(a.createdAt),
-                          // @ts-expect-error ts-migrate(2554) FIXME: Expected 4 arguments, but got 2.
-                          v: this.parseValue(a, name),
-                          display: this.parseValue(a, name, true, symbol),
-                      };
-                  })
+                    return {
+                        name: a.intervalDate || this.parseDate(a.createdAt),
+
+                        v: this.parseValue(a, name),
+                        display: this.parseValue(a, name, true, symbol),
+                    };
+                })
             ).reverse();
             return (
                 <ResponsiveContainer width="100%" height={50}>
@@ -140,8 +140,7 @@ class AreaChart extends Component {
                             isAnimationActive={false}
                             name={_.startCase(
                                 _.toLower(
-                                    `${
-                                        type === 'manual' ? 'average' : 'max'
+                                    `${type === 'manual' ? 'average' : 'max'
                                     } ${name}`
                                 )
                             )}
@@ -155,7 +154,7 @@ class AreaChart extends Component {
             );
         } else {
             return (
-                // @ts-expect-error ts-migrate(2322) FIXME: Type '{ textAlign: string; flexBasis: number; }' i... Remove this comment to see the full error message
+
                 <div style={noDataStyle}>
                     {
                         <h3>
@@ -170,10 +169,10 @@ class AreaChart extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 AreaChart.displayName = 'AreaChart';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 AreaChart.propTypes = {
     data: PropTypes.array,
     type: PropTypes.string.isRequired,
@@ -184,7 +183,7 @@ AreaChart.propTypes = {
 
 export default connect(state => {
     const {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'DefaultR... Remove this comment to see the full error message
+
         status: {
             statusPage: { colors },
         },

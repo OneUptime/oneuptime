@@ -1,10 +1,10 @@
 import React from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField, incidentNoteTemplateVariables } from '../../config';
@@ -38,7 +38,7 @@ class CreateIncidentNoteTemplate extends React.Component {
                 return this.closeAndClearError();
             case 'Enter':
                 if (event.target.localName === 'body') {
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                     return document
                         .getElementById('createIncidentNoteTemplate')
                         .click();
@@ -51,13 +51,13 @@ class CreateIncidentNoteTemplate extends React.Component {
 
     submit = (values: $TSFixMe) => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentNoteTemplate' does not exi... Remove this comment to see the full error message
+
             createIncidentNoteTemplate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
             currentProject,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeModal' does not exist on type 'Read... Remove this comment to see the full error message
+
             closeModal,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchIncidentNoteTemplates' does not exi... Remove this comment to see the full error message
+
             fetchIncidentNoteTemplates,
         } = this.props;
 
@@ -74,7 +74,7 @@ class CreateIncidentNoteTemplate extends React.Component {
             incidentState,
         };
         if (incidentNote) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentNote' does not exist on type '{ ... Remove this comment to see the full error message
+
             data.incidentNote = incidentNote.trim();
         }
         if (incidentState === 'Others') {
@@ -86,9 +86,9 @@ class CreateIncidentNoteTemplate extends React.Component {
             data,
         }).then(() => {
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'creatingNoteTemplate' does not exist on ... Remove this comment to see the full error message
+
                 !this.props.creatingNoteTemplate &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'creatingNoteTemplateError' does not exis... Remove this comment to see the full error message
+
                 !this.props.creatingNoteTemplateError
             ) {
                 fetchIncidentNoteTemplates({ projectId, skip: 0, limit: 10 });
@@ -98,7 +98,7 @@ class CreateIncidentNoteTemplate extends React.Component {
     };
 
     closeAndClearError = () => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'createIncidentNoteTemplateFailure' does ... Remove this comment to see the full error message
+
         const { createIncidentNoteTemplateFailure, closeModal } = this.props;
 
         // clear error
@@ -107,19 +107,19 @@ class CreateIncidentNoteTemplate extends React.Component {
     };
 
     onContentChange = (val: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'change' does not exist on type 'Readonly... Remove this comment to see the full error message
+
         this.props.change('incidentNote', val);
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'creatingNoteTemplate' does not exist on ... Remove this comment to see the full error message
+
             creatingNoteTemplate,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'creatingNoteTemplateError' does not exis... Remove this comment to see the full error message
+
             creatingNoteTemplateError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formValues' does not exist on type 'Read... Remove this comment to see the full error message
+
             formValues,
         } = this.props;
         const { showVariables } = this.state;
@@ -127,7 +127,7 @@ class CreateIncidentNoteTemplate extends React.Component {
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -235,7 +235,7 @@ class CreateIncidentNoteTemplate extends React.Component {
                                                         {formValues &&
                                                             formValues.incidentState &&
                                                             formValues.incidentState ===
-                                                                'Others' && (
+                                                            'Others' && (
                                                                 <div className="bs-Fieldset-row">
                                                                     <label className="bs-Fieldset-label">
                                                                         Custom
@@ -475,9 +475,9 @@ class CreateIncidentNoteTemplate extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 CreateIncidentNoteTemplate.displayName = 'CreateIncidentNoteTemplate';
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 CreateIncidentNoteTemplate.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,

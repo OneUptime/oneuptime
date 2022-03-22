@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { connect } from 'react-redux';
@@ -14,7 +14,7 @@ import {
 } from '../../actions/login';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'quer... Remove this comment to see the full error message
+
 import queryString from 'query-string';
 import { removeQuery } from '../../store';
 
@@ -27,7 +27,7 @@ export class LoginForm extends Component {
     };
 
     componentDidMount() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'location' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const query = queryString.parse(this.props.location.search).status;
         let serverResponse = '';
         if (query === 'already-verified') {
@@ -42,14 +42,14 @@ export class LoginForm extends Component {
         removeQuery('status');
     }
     handleClick(data: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'changeLogin' does not exist on type 'Rea... Remove this comment to see the full error message
+
         this.props.changeLogin(data);
     }
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit } = this.props;
         const { serverResponse } = this.state;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const loginError = this.props.login.error;
         let header;
         if (loginError) {
@@ -69,7 +69,7 @@ export class LoginForm extends Component {
                 <div className="inner login">
                     <div>
                         <form
-                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'onSubmit' does not exist on type 'Readon... Remove this comment to see the full error message
+
                             onSubmit={handleSubmit(this.props.onSubmit)}
                             id="login-form"
                         >
@@ -91,7 +91,7 @@ export class LoginForm extends Component {
                                         />
                                     </span>
                                 </p>
-                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'loginMethod' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                 {this.props.loginMethod === 'standard' ? (
                                     <p className="text">
                                         <span>
@@ -116,14 +116,14 @@ export class LoginForm extends Component {
                                         type="submit"
                                         className="button blue medium"
                                         id="login-button"
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                         disabled={this.props.login.requesting}
                                     >
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                         {!this.props.login.requesting && (
                                             <span>Sign in</span>
                                         )}
-                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'login' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                                         {this.props.login.requesting && (
                                             <ButtonSpinner />
                                         )}
@@ -131,7 +131,7 @@ export class LoginForm extends Component {
                                 </p>
 
                                 <p className="text">
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'loginMethod' does not exist on type 'Rea... Remove this comment to see the full error message
+
                                     {this.props.loginMethod === 'standard' ? (
                                         <span
                                             id="sso-login"
@@ -163,23 +163,23 @@ export class LoginForm extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 LoginForm.displayName = 'LoginForm';
 
-const validate = function(values: $TSFixMe, props: $TSFixMe) {
+const validate = function (values: $TSFixMe, props: $TSFixMe) {
     const errors = {};
     if (!Validate.text(values.email)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
+
         errors.email = 'Email is required.';
     } else {
         if (!Validate.email(values.email)) {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'email' does not exist on type '{}'.
+
             errors.email = 'Email is invalid.';
         }
     }
 
     if (!Validate.text(values.password) && props.loginMethod === 'standard') {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'password' does not exist on type '{}'.
+
         errors.password = 'Password is required.';
     }
 
@@ -212,7 +212,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 LoginForm.propTypes = {
     onSubmit: PropTypes.func.isRequired,
     handleSubmit: PropTypes.func.isRequired,

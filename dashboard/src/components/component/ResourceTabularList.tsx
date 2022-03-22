@@ -16,11 +16,11 @@ import { animateSidebar } from '../../actions/animateSidebar';
 class ResourceTabularList extends Component {
     constructor(props: $TSFixMe) {
         super(props);
-        // @ts-expect-error ts-migrate(2540) FIXME: Cannot assign to 'props' because it is a read-only... Remove this comment to see the full error message
+
         this.props = props;
     }
     generateUrlLink(componentResource: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
         const { currentProject, componentSlug } = this.props;
         const baseUrl = `/dashboard/project/${currentProject.slug}/component/${componentSlug}/`;
         let route = '';
@@ -62,7 +62,7 @@ class ResourceTabularList extends Component {
         let indicator, monitor, status;
         let appSecurityStatus = 'currently scanning',
             containerSecurityStatus = 'currently scanning';
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'monitors' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { monitors } = this.props;
 
         let data = null;
@@ -89,18 +89,18 @@ class ResourceTabularList extends Component {
                     status = monitor.monitorStatus
                         ? monitor.monitorStatus
                         : lastMatchedCriterion
-                        ? lastMatchedCriterion
-                        : incidents && incidents[0]
-                        ? incidents[0].incidentType === 'online' ||
-                          incidents[0].resolved
-                            ? 'online'
-                            : incidents[0].incidentType
-                        : 'online';
+                            ? lastMatchedCriterion
+                            : incidents && incidents[0]
+                                ? incidents[0].incidentType === 'online' ||
+                                    incidents[0].resolved
+                                    ? 'online'
+                                    : incidents[0].incidentType
+                                : 'online';
 
                     indicator = (
                         <StatusIndicator
                             status={status}
-                            // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: any; resourceName: any; monitorNam... Remove this comment to see the full error message
+
                             resourceName={componentResource.name}
                             monitorName={monitor && monitor.name}
                         />
@@ -114,7 +114,7 @@ class ResourceTabularList extends Component {
                 // get application security status
                 data =
                     componentResource.securityLog &&
-                    componentResource.securityLog.data
+                        componentResource.securityLog.data
                         ? componentResource.securityLog.data
                         : null;
                 if (data) {
@@ -126,7 +126,7 @@ class ResourceTabularList extends Component {
                 indicator = (
                     <IssueIndicator
                         status={appSecurityStatus}
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: string; resourceName: any; count: ... Remove this comment to see the full error message
+
                         resourceName={componentResource.name}
                         count={
                             data && data.vulnerabilities
@@ -140,8 +140,8 @@ class ResourceTabularList extends Component {
                 // get container security status
                 data =
                     componentResource.securityLog &&
-                    componentResource.securityLog.data &&
-                    componentResource.securityLog.data.vulnerabilityInfo
+                        componentResource.securityLog.data &&
+                        componentResource.securityLog.data.vulnerabilityInfo
                         ? componentResource.securityLog.data
                         : null;
                 if (data) {
@@ -155,13 +155,13 @@ class ResourceTabularList extends Component {
                 indicator = (
                     <IssueIndicator
                         status={containerSecurityStatus}
-                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ status: string; resourceName: any; count: ... Remove this comment to see the full error message
+
                         resourceName={componentResource.name}
                         count={
                             data && data.vulnerabilityInfo
                                 ? data.vulnerabilityInfo[
-                                      containerSecurityStatus
-                                  ]
+                                containerSecurityStatus
+                                ]
                                 : ''
                         }
                     />
@@ -237,7 +237,7 @@ class ResourceTabularList extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'componentResource' does not exist on typ... Remove this comment to see the full error message
+
         const { componentResource, componentName } = this.props;
         const componentResources =
             componentResource && componentResource.componentResources
@@ -294,7 +294,7 @@ class ResourceTabularList extends Component {
                         </thead>
                         <tbody className="Table-body">
                             {componentResources &&
-                            componentResources.length > 0 ? (
+                                componentResources.length > 0 ? (
                                 componentResources.map(
                                     (componentResource: $TSFixMe, i: $TSFixMe) => {
                                         return (
@@ -312,16 +312,16 @@ class ResourceTabularList extends Component {
                                                                 componentResource
                                                             )
                                                         );
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                                                         this.props.animateSidebar(
                                                             false
                                                         );
                                                     }, 500);
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'animateSidebar' does not exist on type '... Remove this comment to see the full error message
+
                                                     this.props.animateSidebar(
                                                         true
                                                     );
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'addCurrentComponent' does not exist on t... Remove this comment to see the full error message
+
                                                     this.props.addCurrentComponent(
                                                         componentResource.component
                                                     );
@@ -342,16 +342,15 @@ class ResourceTabularList extends Component {
                                                                     style={{
                                                                         backgroundRepeat:
                                                                             'no-repeat',
-                                                                        backgroundSize: `${
-                                                                            componentResource.icon ===
+                                                                        backgroundSize: `${componentResource.icon ===
                                                                                 'appLog' ||
-                                                                            componentResource.icon ===
+                                                                                componentResource.icon ===
                                                                                 'security' ||
-                                                                            componentResource.icon ===
+                                                                                componentResource.icon ===
                                                                                 'errorTracking'
                                                                                 ? '12px'
                                                                                 : '15px'
-                                                                        }`,
+                                                                            }`,
                                                                         backgroundPosition:
                                                                             'center',
                                                                         margin:
@@ -377,12 +376,11 @@ class ResourceTabularList extends Component {
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div
-                                                                className={`Box-root ${
-                                                                    componentResource.type ===
-                                                                    'error tracker'
+                                                                className={`Box-root ${componentResource.type ===
+                                                                        'error tracker'
                                                                         ? ''
                                                                         : 'Margin-right--16 '
-                                                                } Flex-flex Flex-direction--row`}
+                                                                    } Flex-flex Flex-direction--row`}
                                                             >
                                                                 <span
                                                                     className={`Badge-text Text-fontWeight--bold Text-lineHeight--16 Text-typeface--capitalize`}
@@ -412,15 +410,15 @@ class ResourceTabularList extends Component {
                                                                 className={`Badge-text Text-lineHeight--16 Text-typeface--capitalize`}
                                                             >
                                                                 {componentResource.type ===
-                                                                'api monitor'
+                                                                    'api monitor'
                                                                     ? 'API Monitor'
                                                                     : componentResource.type ===
-                                                                      'incomingHttpRequest monitor'
-                                                                    ? 'incoming Http Request Monitor'
-                                                                    : componentResource.type ===
-                                                                      'ip'
-                                                                    ? ' IP Monitor'
-                                                                    : componentResource.type}
+                                                                        'incomingHttpRequest monitor'
+                                                                        ? 'incoming Http Request Monitor'
+                                                                        : componentResource.type ===
+                                                                            'ip'
+                                                                            ? ' IP Monitor'
+                                                                            : componentResource.type}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -464,10 +462,10 @@ class ResourceTabularList extends Component {
                     }}
                 >
                     {componentResource &&
-                    (!componentResource.componentResources ||
-                        !componentResource.componentResources.length) &&
-                    !componentResource.requesting &&
-                    !componentResource.error
+                        (!componentResource.componentResources ||
+                            !componentResource.componentResources.length) &&
+                        !componentResource.requesting &&
+                        !componentResource.error
                         ? "We don't have any resources added yet"
                         : null}
                     {componentResource && componentResource.error
@@ -483,14 +481,14 @@ class ResourceTabularList extends Component {
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
                                     {componentResource &&
-                                    componentResource.componentResources
+                                        componentResource.componentResources
                                         ? componentResource.componentResources
-                                              .length +
-                                          (componentResource &&
-                                          componentResource.componentResources
-                                              .length > 1
-                                              ? ' Resources'
-                                              : ' Resource')
+                                            .length +
+                                        (componentResource &&
+                                            componentResource.componentResources
+                                                .length > 1
+                                            ? ' Resources'
+                                            : ' Resource')
                                         : null}
                                 </span>
                             </span>
@@ -502,7 +500,7 @@ class ResourceTabularList extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ResourceTabularList.displayName = 'ResourceTabularList';
 const mapDispatchToProps = (dispatch: $TSFixMe) => {
     return bindActionCreators(
@@ -536,7 +534,7 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ResourceTabularList.propTypes = {
     componentResource: PropTypes.object,
     currentProject: PropTypes.object,
@@ -547,7 +545,7 @@ ResourceTabularList.propTypes = {
     componentName: PropTypes.string,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultProps' does not exist on type 'ty... Remove this comment to see the full error message
+
 ResourceTabularList.defaultProps = {
     componentName: 'default',
 };

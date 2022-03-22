@@ -8,7 +8,7 @@ export default class NoItemsMessage extends Component {
     }
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'isLoading' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { isLoading, itemsCount, noItemsMessage } = this.props;
 
         return (
@@ -28,7 +28,7 @@ export default class NoItemsMessage extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 NoItemsMessage.propTypes = {
     isLoading: PropTypes.bool.isRequired,
     itemsCount: PropTypes.number,

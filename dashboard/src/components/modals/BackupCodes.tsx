@@ -2,11 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { ListLoader } from '../basic/Loader.js';
 import ShouldRender from '../basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { generateBackupCodes } from '../../actions/profile.js';
 
@@ -19,7 +19,7 @@ class BackupCodesModal extends React.Component {
 
     componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
             profileSettings: { data },
         } = this.props;
         if (data.backupCodes && data.backupCodes.length > 0) {
@@ -42,7 +42,7 @@ class BackupCodesModal extends React.Component {
 
     refineCodes = () => {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
             profileSettings: { data },
         } = this.props;
         const refinedCodes = [];
@@ -61,7 +61,7 @@ class BackupCodesModal extends React.Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -69,18 +69,18 @@ class BackupCodesModal extends React.Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'generateBackupCodes' does not exist on t... Remove this comment to see the full error message
+
         const { generateBackupCodes } = this.props;
         const backupCodes = this.refineCodes();
 
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 <ClickOutside onClickOutside={this.props.closeThisDialog}>
                     <div className="bs-BIM">
                         <div className="bs-Modal">
@@ -128,7 +128,7 @@ class BackupCodesModal extends React.Component {
                                                             <table className="Table">
                                                                 <tbody className="Table-body">
                                                                     {backupCodes &&
-                                                                    backupCodes.length >
+                                                                        backupCodes.length >
                                                                         0 ? (
                                                                         backupCodes.map(
                                                                             code => (
@@ -137,7 +137,7 @@ class BackupCodesModal extends React.Component {
                                                                                     key={
                                                                                         code[0]
                                                                                             ? code[0]
-                                                                                                  .code
+                                                                                                .code
                                                                                             : ''
                                                                                     }
                                                                                 >
@@ -154,15 +154,15 @@ class BackupCodesModal extends React.Component {
                                                                                                     <span
                                                                                                         className={
                                                                                                             code[0] &&
-                                                                                                            code[0]
-                                                                                                                .used
+                                                                                                                code[0]
+                                                                                                                    .used
                                                                                                                 ? 'cm-strikethrough'
                                                                                                                 : ''
                                                                                                         }
                                                                                                     >
                                                                                                         {code[0]
                                                                                                             ? code[0]
-                                                                                                                  .code
+                                                                                                                .code
                                                                                                             : ''}
                                                                                                     </span>
                                                                                                 </div>
@@ -182,15 +182,15 @@ class BackupCodesModal extends React.Component {
                                                                                                     <span
                                                                                                         className={
                                                                                                             code[1] &&
-                                                                                                            code[1]
-                                                                                                                .used
+                                                                                                                code[1]
+                                                                                                                    .used
                                                                                                                 ? 'cm-strikethrough'
                                                                                                                 : ''
                                                                                                         }
                                                                                                     >
                                                                                                         {code[1]
                                                                                                             ? code[1]
-                                                                                                                  .code
+                                                                                                                .code
                                                                                                             : ''}
                                                                                                     </span>
                                                                                                 </div>
@@ -222,9 +222,9 @@ class BackupCodesModal extends React.Component {
                                 <div className="bs-Modal-footer-actions">
                                     <ShouldRender
                                         if={
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'backupCodesState' does not exist on type... Remove this comment to see the full error message
+
                                             this.props.backupCodesState &&
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'backupCodesState' does not exist on type... Remove this comment to see the full error message
+
                                             this.props.backupCodesState.error
                                         }
                                     >
@@ -242,7 +242,7 @@ class BackupCodesModal extends React.Component {
                                                     >
                                                         {
                                                             this.props
-                                                                // @ts-expect-error ts-migrate(2339) FIXME: Property 'backupCodesState' does not exist on type... Remove this comment to see the full error message
+
                                                                 .backupCodesState
                                                                 .error
                                                         }
@@ -260,12 +260,12 @@ class BackupCodesModal extends React.Component {
                                     </button>
                                     <CopyToClipboard text={this.state.codes}>
                                         {this.state.copied &&
-                                        this.state.close ? (
+                                            this.state.close ? (
                                             <button
                                                 className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                                 type="button"
                                                 onClick={
-                                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                                                     this.props.closeThisDialog
                                                 }
                                             >
@@ -281,7 +281,7 @@ class BackupCodesModal extends React.Component {
                                                 onClick={this.copyCodesHandler}
                                             >
                                                 {this.state.copied &&
-                                                !this.state.close ? (
+                                                    !this.state.close ? (
                                                     <span>Copied</span>
                                                 ) : (
                                                     <span>
@@ -301,10 +301,10 @@ class BackupCodesModal extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 BackupCodesModal.displayName = 'BackupCodesModal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 BackupCodesModal.propTypes = {
     closeThisDialog: PropTypes.func,
     generateBackupCodes: PropTypes.func,

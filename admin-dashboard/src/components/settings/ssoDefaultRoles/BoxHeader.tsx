@@ -25,7 +25,7 @@ const BoxHeader = ({
             <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                 <div className="Box-root">
                     <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                        // @ts-expect-error ts-migrate(7006) FIXME: Parameter 'button' implicitly has an 'any' type.
+
                         <div>{buttons.map(button => button)}</div>
                     </div>
                 </div>

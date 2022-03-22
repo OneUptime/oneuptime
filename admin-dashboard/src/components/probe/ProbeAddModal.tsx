@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { Field, reduxForm } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -22,16 +22,16 @@ class ProbeAddModal extends Component {
     }
 
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'addProbe' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { addProbe, closeThisDialog, resetAddProbe } = this.props;
         addProbe(values.probe_key, values.probe_name).then(
-            function(val: $TSFixMe) {
+            function (val: $TSFixMe) {
                 if (val === 'ok') {
                     resetAddProbe();
                     closeThisDialog();
                 }
             },
-            function() {
+            function () {
                 //do nothing.
             }
         );
@@ -40,9 +40,9 @@ class ProbeAddModal extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetAddProbe' does not exist on type 'R... Remove this comment to see the full error message
+
                 this.props.resetAddProbe();
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -51,22 +51,22 @@ class ProbeAddModal extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             closeThisDialog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addProbeState' does not exist on type 'R... Remove this comment to see the full error message
+
             addProbeState,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'probes' does not exist on type 'Readonly... Remove this comment to see the full error message
+
             probes,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetAddProbe' does not exist on type 'R... Remove this comment to see the full error message
+
             resetAddProbe,
         } = this.props;
         const disabled = addProbeState.requesting || probes.requesting;
         return (
             <div
                 className="ModalLayer-contents"
-                // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                 tabIndex="-1"
                 style={{ marginTop: '40px' }}
             >
@@ -228,7 +228,7 @@ class ProbeAddModal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 ProbeAddModal.displayName = 'ProbeAddFormModal';
 
 const ProbeAddModalForm = reduxForm({
@@ -246,7 +246,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 ProbeAddModal.propTypes = {
     addProbe: PropTypes.func,
     addProbeState: PropTypes.object,

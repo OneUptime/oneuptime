@@ -3,7 +3,7 @@ import ShouldRender from '../basic/ShouldRender';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import DataPathHoC from '../DataPathHoC';
 import TeamMember from '../team/TeamMember';
-// @ts-expect-error ts-migrate(1192) FIXME: Module '"/home/nawazdhandala/Projects/OneUptime/ap... Remove this comment to see the full error message
+
 import InviteTeamMemberModal from '../modals/inviteTeamMember.js';
 import moment from 'moment';
 import PropTypes from 'prop-types';
@@ -19,7 +19,7 @@ const TeamMemberProjectBox = (props: $TSFixMe) => {
                     case 'n':
                         if (modalList.length === 0) {
                             event.preventDefault();
-                            // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                             return document
                                 .getElementById(`btn_${props.subProjectName}`)
                                 .click();
@@ -69,7 +69,7 @@ const TeamMemberProjectBox = (props: $TSFixMe) => {
                                 Here are all the members who belong to{' '}
                                 <span style={{ textTransform: 'lowercase' }}>
                                     {props.currentProjectId !==
-                                    props.teamMembers._id
+                                        props.teamMembers._id
                                         ? `${props.subProjectName} sub-project`
                                         : `${props.subProjectName} project`}
                                     .
@@ -149,14 +149,14 @@ const TeamMemberProjectBox = (props: $TSFixMe) => {
                             {props.teamMembers.teamMembers.map((i: $TSFixMe, o: $TSFixMe) => {
                                 if (
                                     o >=
-                                        (props.pages[props.teamMembers._id] ||
-                                            1) *
-                                            props.membersPerPage -
-                                            props.membersPerPage &&
+                                    (props.pages[props.teamMembers._id] ||
+                                        1) *
+                                    props.membersPerPage -
+                                    props.membersPerPage &&
                                     o <
-                                        (props.pages[props.teamMembers._id] ||
-                                            1) *
-                                            props.membersPerPage
+                                    (props.pages[props.teamMembers._id] ||
+                                        1) *
+                                    props.membersPerPage
                                 ) {
                                     return (
                                         <TeamMember
@@ -243,20 +243,16 @@ const TeamMemberProjectBox = (props: $TSFixMe) => {
                     <div className="bs-Tail-copy Text-fontWeight--medium">
                         <span id={`count_${props.subProjectName}`}>
                             {numberOfPages > 0
-                                ? `Page ${
-                                      !props.team.pages[props.teamMembers._id]
-                                          ? 1
-                                          : props.team.pages[
-                                                props.teamMembers._id
-                                            ]
-                                  } of ${numberOfPages} (${
-                                      props.teamMembers.count
-                                  } Team Member${
-                                      props.teamMembers.count === 1 ? '' : 's'
-                                  })`
-                                : `${props.teamMembers.count} Team Member${
-                                      props.teamMembers.count === 1 ? '' : 's'
-                                  }`}
+                                ? `Page ${!props.team.pages[props.teamMembers._id]
+                                    ? 1
+                                    : props.team.pages[
+                                    props.teamMembers._id
+                                    ]
+                                } of ${numberOfPages} (${props.teamMembers.count
+                                } Team Member${props.teamMembers.count === 1 ? '' : 's'
+                                })`
+                                : `${props.teamMembers.count} Team Member${props.teamMembers.count === 1 ? '' : 's'
+                                }`}
                         </span>
                     </div>
                 </ShouldRender>
@@ -265,11 +261,10 @@ const TeamMemberProjectBox = (props: $TSFixMe) => {
                         <div className="Box-root Margin-right--8">
                             <button
                                 data-test="TeamSettings-paginationButton"
-                                className={`Button bs-ButtonLegacy ${
-                                    !props.canPaginateBackward
+                                className={`Button bs-ButtonLegacy ${!props.canPaginateBackward
                                         ? 'Is--disabled'
                                         : ''
-                                }`}
+                                    }`}
                                 disabled={!props.canPaginateBackward}
                                 type="button"
                                 onClick={() =>
@@ -289,11 +284,10 @@ const TeamMemberProjectBox = (props: $TSFixMe) => {
                         <div className="Box-root">
                             <button
                                 data-test="TeamSettings-paginationButton"
-                                className={`Button bs-ButtonLegacy ${
-                                    !props.canPaginateForward
+                                className={`Button bs-ButtonLegacy ${!props.canPaginateForward
                                         ? 'Is--disabled'
                                         : ''
-                                }`}
+                                    }`}
                                 disabled={!props.canPaginateForward}
                                 type="button"
                                 onClick={() =>

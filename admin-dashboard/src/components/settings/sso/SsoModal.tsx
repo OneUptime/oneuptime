@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { RenderField } from '../../basic/RenderField';
 import { API_URL, Validate } from '../../../config';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { addSso, fetchSsos, updateSso } from '../../../actions/sso';
 import { fetchSsoDefaultRoles } from '../../../actions/ssoDefaultRoles';
@@ -15,22 +15,22 @@ function validate(values: $TSFixMe) {
     const errors = {};
 
     if (!Validate.text(values.domain)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'domain' does not exist on type '{}'.
+
         errors.domain = 'Domain is not valid.';
     }
 
     if (!Validate.text(values.entityId)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'entityId' does not exist on type '{}'.
+
         errors.entityId = 'Application ID is not valid.';
     }
 
     if (!Validate.text(values.remoteLoginUrl)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'remoteLoginUrl' does not exist on type '... Remove this comment to see the full error message
+
         errors.remoteLoginUrl = 'SSO URL is not valid.';
     }
 
     if (!Validate.text(values.remoteLogoutUrl)) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'remoteLogoutUrl' does not exist on type ... Remove this comment to see the full error message
+
         errors.remoteLogoutUrl = 'Remote logout URL is not valid.';
     }
 
@@ -150,7 +150,7 @@ class Component extends React.Component {
     handleKeyboard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             default:
                 return false;
@@ -158,38 +158,38 @@ class Component extends React.Component {
     };
 
     submitForm = async (data: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
         const { closeThisDialog } = this.props;
         const { _id: id } = data;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'onSubmit' does not exist on type 'Readon... Remove this comment to see the full error message
+
         await this.props.onSubmit({ id, data });
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsos' does not exist on type 'Reado... Remove this comment to see the full error message
+
         await this.props.fetchSsos();
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'fetchSsoDefaultRoles' does not exist on ... Remove this comment to see the full error message
+
         await this.props.fetchSsoDefaultRoles();
         closeThisDialog();
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
             handleSubmit,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             closeThisDialog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'Readonly<{}... Remove this comment to see the full error message
+
             sso,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'formTitle' does not exist on type 'Reado... Remove this comment to see the full error message
+
             formTitle,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'updatingSso' does not exist on type 'Rea... Remove this comment to see the full error message
+
             updatingSso,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'addingSso' does not exist on type 'Reado... Remove this comment to see the full error message
+
             addingSso,
         } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
                     className="ModalLayer-contents"
-                    // @ts-expect-error ts-migrate(2322) FIXME: Type 'string' is not assignable to type 'number | ... Remove this comment to see the full error message
+
                     tabIndex="-1"
                     style={{ marginTop: '40px' }}
                 >
@@ -267,7 +267,7 @@ class Component extends React.Component {
                                                                                 field.value
                                                                             )
                                                                         }
-                                                                        // @ts-expect-error ts-migrate(2322) FIXME: Type '{ id: string; title: string; style: { margin... Remove this comment to see the full error message
+
                                                                         disabled={
                                                                             this
                                                                                 .state
@@ -387,10 +387,10 @@ class Component extends React.Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Component.displayName = 'SsoModal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Component.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     // eslint-disable-next-line react/no-unused-prop-types
@@ -417,7 +417,7 @@ export const SsoAddModal = connect(
     state => {
         return {
             formTitle: 'Create SSO',
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'DefaultRoot... Remove this comment to see the full error message
+
             addingSso: state.sso.addSso.requesting,
         };
     },
@@ -437,11 +437,11 @@ export const SsoUpdateModal = connect(
     state => {
         return {
             formTitle: 'Update SSO',
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'DefaultRoot... Remove this comment to see the full error message
+
             sso: state.sso.sso,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'DefaultRoot... Remove this comment to see the full error message
+
             initialValues: state.sso.sso.sso,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'sso' does not exist on type 'DefaultRoot... Remove this comment to see the full error message
+
             updatingSso: state.sso.updateSso.requesting,
         };
     },

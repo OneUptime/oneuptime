@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import Fade from 'react-awesome-reveal/Fade';
 import PropTypes from 'prop-types';
 import ShouldRender from '../../components/basic/ShouldRender';
@@ -28,30 +28,30 @@ class Page extends Component {
     }
 
     goToPageInProject(pathName: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
         const { projectId } = this.props;
 
         this.goToPage(`/dashboard/${projectId}/${pathName}`);
     }
 
     goToPage(pathName: $TSFixMe) {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         this.props.history.push(pathName);
     }
 
     renderCommon(children: $TSFixMe) {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'projectId' does not exist on type 'Reado... Remove this comment to see the full error message
+
             projectId,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'project' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             project,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'friendlyPageName' does not exist on type... Remove this comment to see the full error message
+
             friendlyPageName,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pagePath' does not exist on type 'Readon... Remove this comment to see the full error message
+
             pagePath,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'showTutorial' does not exist on type 'Re... Remove this comment to see the full error message
+
             showTutorial,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'pageName' does not exist on type 'Readon... Remove this comment to see the full error message
+
             pageName,
         } = this.props;
 
@@ -102,7 +102,7 @@ export const defaultMapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultPropTypes' does not exist on type... Remove this comment to see the full error message
+
 Page.defaultPropTypes = {
     projectId: PropTypes.string,
     subProjectId: PropTypes.string,
@@ -127,13 +127,13 @@ Page.defaultPropTypes = {
     showTutorial: PropTypes.bool,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Page.propTypes = {
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'defaultPropTypes' does not exist on type... Remove this comment to see the full error message
+
     ...Page.defaultPropTypes,
 };
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Page.displayName = 'Page';
 
 export default Page;

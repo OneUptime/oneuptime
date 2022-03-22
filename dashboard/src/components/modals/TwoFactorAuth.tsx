@@ -2,13 +2,13 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
 import { Spinner } from '../basic/Loader';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'qrco... Remove this comment to see the full error message
+
 import QRCode from 'qrcode.react';
 import { RenderField } from '../basic/RenderField';
 import { ListLoader } from '../basic/Loader.js';
@@ -23,9 +23,9 @@ class TwoFactorAuthModal extends Component {
 
     async componentDidMount() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
             profileSettings: { data },
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'generateTwoFactorQRCode' does not exist ... Remove this comment to see the full error message
+
             generateTwoFactorQRCode,
         } = this.props;
         generateTwoFactorQRCode(data.id || data._id);
@@ -44,13 +44,13 @@ class TwoFactorAuthModal extends Component {
                 return this.handleCloseModal();
             case 'Enter':
                 if (next) {
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                     return document
                         .getElementById('enableTwoFactorAuthButton')
                         .click();
                 } else {
                     e.preventDefault(); // prevent default behaviour of trying to submit the form
-                    // @ts-expect-error ts-migrate(2531) FIXME: Object is possibly 'null'.
+
                     return document.getElementById('nextFormButton').click();
                 }
             default:
@@ -63,7 +63,7 @@ class TwoFactorAuthModal extends Component {
         if (next) {
             this.setState({ next: false });
         } else {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             this.props.closeThisDialog();
         }
     };
@@ -76,24 +76,24 @@ class TwoFactorAuthModal extends Component {
     submitForm = (values: $TSFixMe) => {
         if (values.token) {
             const {
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'setTwoFactorAuth' does not exist on type... Remove this comment to see the full error message
+
                 setTwoFactorAuth,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'verifyTwoFactorAuthToken' does not exist... Remove this comment to see the full error message
+
                 verifyTwoFactorAuthToken,
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'profileSettings' does not exist on type ... Remove this comment to see the full error message
+
                 profileSettings,
             } = this.props;
             values.userId = profileSettings.data.id || profileSettings.data._id;
             verifyTwoFactorAuthToken(values).then((response: $TSFixMe) => {
                 setTwoFactorAuth(response.data.twoFactorAuthEnabled);
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 this.props.closeThisDialog();
             });
         }
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit, qrCode, twoFactorAuthSetting } = this.props;
         const { next } = this.state;
 
@@ -388,14 +388,14 @@ class TwoFactorAuthModal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 TwoFactorAuthModal.displayName = 'TwoFactorAuthModal';
 
 const TwoFactorAuthForm = reduxForm({
     form: 'TwoFactorAuthForm',
 })(TwoFactorAuthModal);
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 TwoFactorAuthModal.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,

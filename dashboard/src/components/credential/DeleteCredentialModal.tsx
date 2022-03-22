@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader, LoadingState } from '../basic/Loader';
 import { connect } from 'react-redux';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 
@@ -18,10 +18,10 @@ class DeleteCredentialModal extends Component {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
                 return this.props.closeThisDialog();
             case 'Enter':
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
                 return this.props.confirmThisDialog();
             default:
                 return false;
@@ -30,21 +30,21 @@ class DeleteCredentialModal extends Component {
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'isRequesting' does not exist on type 'Re... Remove this comment to see the full error message
+
             isRequesting,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'confirmThisDialog' does not exist on typ... Remove this comment to see the full error message
+
             confirmThisDialog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeThisDialog' does not exist on type ... Remove this comment to see the full error message
+
             closeThisDialog,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'deleteCredentialError' does not exist on... Remove this comment to see the full error message
+
             deleteCredentialError,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'propArr' does not exist on type 'Readonl... Remove this comment to see the full error message
+
             propArr,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'securities' does not exist on type 'Read... Remove this comment to see the full error message
+
             securities,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSecurities' does not exist on type 'R... Remove this comment to see the full error message
+
             getSecurities,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'getSecuritiesError' does not exist on ty... Remove this comment to see the full error message
+
             getSecuritiesError,
         } = this.props;
         const { credentialType, ssh } = propArr[0];
@@ -105,7 +105,7 @@ class DeleteCredentialModal extends Component {
                                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                 >
                                                     <a
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'slug' does not exist on type 'Readonly<{... Remove this comment to see the full error message
+
                                                         href={`/dashboard/project/${this.props.slug}/component/${security.componentId.slug}/security/${securityType}/${security._id}`}
                                                     >
                                                         {security.name}
@@ -209,10 +209,10 @@ class DeleteCredentialModal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 DeleteCredentialModal.displayName = 'Delete Credential Modal';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 DeleteCredentialModal.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,

@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import { withRouter } from 'react-router-dom';
 import ShouldRender from './ShouldRender';
 import { capitalize } from '../config';
@@ -44,9 +44,9 @@ class Notes extends Component {
             }
 
             if (
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
+
                 !incidentTimeline.incident_state &&
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'status' does not exist on type 'never'.
+
                 incidentTimeline.status === 'investigation notes deleted'
             ) {
                 timelineStatus = (
@@ -55,11 +55,11 @@ class Notes extends Component {
                     </span>
                 );
             }
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
+
             if (incidentTimeline.incident_state) {
                 timelineStatus = (
                     <span className="note_status">
-                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'incident_state' does not exist on type '... Remove this comment to see the full error message
+
                         {capitalize(incidentTimeline.incident_state)}
                     </span>
                 );
@@ -69,7 +69,7 @@ class Notes extends Component {
         return timelineStatus;
     };
     handleNavigation = (statusPageSlug: $TSFixMe, noteSlug: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'history' does not exist on type 'Readonl... Remove this comment to see the full error message
+
         const { history } = this.props;
 
         history.push(`/status-page/${statusPageSlug}/incident/${noteSlug}`);
@@ -87,31 +87,30 @@ class Notes extends Component {
                 return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
             }
             if (monitors.length > 3) {
-                return `${monitors[0].monitorId.name}, ${
-                    monitors[1].monitorId.name
-                } and ${monitors.length - 2} others`;
+                return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name
+                    } and ${monitors.length - 2} others`;
             }
         }
     };
 
     render() {
         const {
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'statusPageSlug' does not exist on type '... Remove this comment to see the full error message
+
             statusPageSlug,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'uptimeColor' does not exist on type 'Rea... Remove this comment to see the full error message
+
             uptimeColor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'downtimeColor' does not exist on type 'R... Remove this comment to see the full error message
+
             downtimeColor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'degradedColor' does not exist on type 'R... Remove this comment to see the full error message
+
             degradedColor,
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'incidentTimelines' does not exist on typ... Remove this comment to see the full error message
+
             incidentTimelines,
         } = this.props;
 
         return (
-            // @ts-expect-error ts-migrate(2339) FIXME: Property 'notes' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
             <ShouldRender if={this.props.notes}>
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'notes' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
                 {this.props.notes.map((note: $TSFixMe, i: $TSFixMe) => {
                     if (!note)
                         return (
@@ -135,8 +134,8 @@ class Notes extends Component {
                                         note.incidentType === 'online'
                                             ? uptimeColor.backgroundColor
                                             : note.incidentType === 'offline'
-                                            ? downtimeColor.backgroundColor
-                                            : degradedColor.backgroundColor,
+                                                ? downtimeColor.backgroundColor
+                                                : degradedColor.backgroundColor,
                                 }}
                             ></div>
                             <div
@@ -144,7 +143,7 @@ class Notes extends Component {
                                 style={{
                                     width: '100%',
                                     marginLeft: 0,
-                                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'noteBackgroundColor' does not exist on t... Remove this comment to see the full error message
+
                                     ...this.props.noteBackgroundColor,
                                 }}
                             >
@@ -161,7 +160,7 @@ class Notes extends Component {
                                     <span
                                         style={{
                                             fontWeight: 'Bold',
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'primaryTextColor' does not exist on type... Remove this comment to see the full error message
+
                                             ...this.props.primaryTextColor,
                                             color: 'rgba(76, 76, 76, 0.8)',
                                             marginLeft: 25,
@@ -171,7 +170,7 @@ class Notes extends Component {
                                     </span>
                                     <span
                                         style={{
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'secondaryTextColor' does not exist on ty... Remove this comment to see the full error message
+
                                             ...this.props.secondaryTextColor,
                                             color: 'rgba(0, 0, 0, 0.5)',
                                             display: 'block',
@@ -221,7 +220,7 @@ class Notes extends Component {
                                     <span
                                         className="time"
                                         style={{
-                                            // @ts-expect-error ts-migrate(2339) FIXME: Property 'secondaryTextColor' does not exist on ty... Remove this comment to see the full error message
+
                                             ...this.props.secondaryTextColor,
                                             marginLeft: 0,
                                             display: 'inline-block',
@@ -260,10 +259,10 @@ class Notes extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 Notes.displayName = 'Notes';
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 Notes.propTypes = {
     notes: PropTypes.array,
     secondaryTextColor: PropTypes.object,

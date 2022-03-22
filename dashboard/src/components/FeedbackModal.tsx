@@ -7,32 +7,32 @@ import {
     closeFeedbackModal,
     resetCreateFeedback,
 } from '../actions/feedback';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reduxForm, Field } from 'redux-form';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'reac... Remove this comment to see the full error message
+
 import ClickOutside from 'react-click-outside';
 import { RenderTextArea } from './basic/RenderTextArea';
-// @ts-expect-error ts-migrate(7016) FIXME: Could not find a declaration file for module 'redu... Remove this comment to see the full error message
+
 import { reset } from 'redux-form';
 import PropTypes from 'prop-types';
 
 export class FeedbackModal extends Component {
     submitForm = (values: $TSFixMe) => {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'reset' does not exist on type 'Readonly<... Remove this comment to see the full error message
+
         const { reset, page } = this.props;
 
         if (values.feedback) {
             this.props
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'createFeedback' does not exist on type '... Remove this comment to see the full error message
+
                 .createFeedback(
-                    // @ts-expect-error ts-migrate(2339) FIXME: Property 'currentProject' does not exist on type '... Remove this comment to see the full error message
+
                     this.props.currentProject._id,
                     values.feedback,
                     page.title
                 )
                 .then(
-                    function() {},
-                    function() {}
+                    function () { },
+                    function () { }
                 );
 
             reset();
@@ -40,12 +40,12 @@ export class FeedbackModal extends Component {
     };
 
     render() {
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'handleSubmit' does not exist on type 'Re... Remove this comment to see the full error message
+
         const { handleSubmit } = this.props;
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'feedback' does not exist on type 'Readon... Remove this comment to see the full error message
+
         const { success, error } = this.props.feedback.feedback;
 
-        // @ts-expect-error ts-migrate(2339) FIXME: Property 'feedback' does not exist on type 'Readon... Remove this comment to see the full error message
+
         return this.props.feedback.feedbackModalVisble ? (
             <div
                 className="db-FeedbackModal"
@@ -58,7 +58,7 @@ export class FeedbackModal extends Component {
                     zIndex: '999',
                 }}
             >
-                // @ts-expect-error ts-migrate(2339) FIXME: Property 'hideFeedbackModal' does not exist on typ... Remove this comment to see the full error message
+
                 <ClickOutside onClickOutside={this.props.hideFeedbackModal}>
                     <div className="db-FeedbackModal-background" />
                     <div className="db-FeedbackModal-content">
@@ -113,9 +113,9 @@ export class FeedbackModal extends Component {
                                                     className="bs-Button bs-DeprecatedButton db-FeedbackForm-cancel"
                                                     type="button"
                                                     onClick={() => {
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'resetCreateFeedback' does not exist on t... Remove this comment to see the full error message
+
                                                         this.props.resetCreateFeedback();
-                                                        // @ts-expect-error ts-migrate(2339) FIXME: Property 'closeFeedbackModal' does not exist on ty... Remove this comment to see the full error message
+
                                                         this.props.closeFeedbackModal();
                                                     }}
                                                 >
@@ -149,7 +149,7 @@ export class FeedbackModal extends Component {
     }
 }
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'displayName' does not exist on type 'typ... Remove this comment to see the full error message
+
 FeedbackModal.displayName = 'FeedbackModal';
 
 const FeedbackModalForm = reduxForm({
@@ -167,7 +167,7 @@ const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
     dispatch
 );
 
-// @ts-expect-error ts-migrate(2339) FIXME: Property 'propTypes' does not exist on type 'typeo... Remove this comment to see the full error message
+
 FeedbackModal.propTypes = {
     page: PropTypes.object,
     createFeedback: PropTypes.func.isRequired,
