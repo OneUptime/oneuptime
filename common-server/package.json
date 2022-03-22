@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.ts",
     "scripts": {
-        "build": "tsc",
+        "compile": "tsc",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "",
