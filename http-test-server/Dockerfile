@@ -12,8 +12,16 @@ RUN apk update && apk add bash && apk add curl
 SHELL ["/bin/bash", "-c"]
 
 
-# Install common-server
 RUN mkdir /usr/src
+
+# Install common
+RUN mkdir /usr/src/common
+WORKDIR /usr/src/common
+COPY ./common/package*.json /usr/src/common/
+RUN npm install
+COPY ./common /usr/src/common
+
+# Install common-server
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/

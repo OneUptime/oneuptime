@@ -25,6 +25,14 @@ ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN mkdir /usr/src
 RUN mkdir /usr/src/app
 
+
+# Install common
+RUN mkdir /usr/src/common
+WORKDIR /usr/src/common
+COPY ./common/package*.json /usr/src/common/
+RUN npm install
+COPY ./common /usr/src/common
+
 # Install common-server
 RUN mkdir /usr/src/common-server
 WORKDIR /usr/src/common-server
