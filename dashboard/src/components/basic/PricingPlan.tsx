@@ -1,12 +1,12 @@
 import React, { Fragment, useState } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
 import { PricingPlan, IS_SAAS_SERVICE } from '../../config';
 import PricingPlanModal from './PricingPlanModal';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { User } from '../../config';
 import Unauthorised from '../modals/Unauthorised';
@@ -113,7 +113,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
 export default connect(
     mapStateToProps,

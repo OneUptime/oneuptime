@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 import { Translate } from 'react-auto-translate';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     userData,
@@ -463,7 +463,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     statuspage: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         userData,
         validationError,

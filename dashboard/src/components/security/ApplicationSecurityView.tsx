@@ -1,10 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import ConfirmScanModal from '../modals/ConfirmScanModal';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
 import IssueIndicator from './IssueIndicator';
@@ -108,10 +108,10 @@ const ApplicationSecurityView = ({
                                                     color={'slate5'}
                                                 >
                                                     {applicationSecurity &&
-                                                    applicationSecurity.resourceCategory
+                                                        applicationSecurity.resourceCategory
                                                         ? applicationSecurity
-                                                              .resourceCategory
-                                                              .name
+                                                            .resourceCategory
+                                                            .name
                                                         : ''}
                                                 </Badge>
                                             </div>
@@ -175,9 +175,9 @@ const ApplicationSecurityView = ({
                                     if={
                                         (scanning &&
                                             String(applicationSecurityId) ===
-                                                String(
-                                                    activeApplicationSecurity
-                                                )) ||
+                                            String(
+                                                activeApplicationSecurity
+                                            )) ||
                                         applicationSecurity.scanning ||
                                         !applicationSecurity.lastScan ||
                                         scannedStatus === false
@@ -203,9 +203,9 @@ const ApplicationSecurityView = ({
                                     if={
                                         (!scanning ||
                                             String(applicationSecurityId) !==
-                                                String(
-                                                    activeApplicationSecurity
-                                                )) &&
+                                            String(
+                                                activeApplicationSecurity
+                                            )) &&
                                         !applicationSecurity.scanning &&
                                         applicationSecurity.lastScan &&
                                         scannedStatus === true
@@ -223,9 +223,9 @@ const ApplicationSecurityView = ({
                                         disabled={
                                             scanning &&
                                             String(applicationSecurityId) ===
-                                                String(
-                                                    activeApplicationSecurity
-                                                )
+                                            String(
+                                                activeApplicationSecurity
+                                            )
                                         }
                                         id={`scan_${applicationSecurity.name}`}
                                     >
@@ -272,7 +272,7 @@ const ApplicationSecurityView = ({
                                         !isRequesting &&
                                         scanError &&
                                         String(applicationSecurityId) ===
-                                            String(activeApplicationSecurity)
+                                        String(activeApplicationSecurity)
                                     }
                                 >
                                     <div className="Box-root Margin-right--8">
@@ -311,7 +311,7 @@ ApplicationSecurityView.propTypes = {
     scannedStatus: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
     },

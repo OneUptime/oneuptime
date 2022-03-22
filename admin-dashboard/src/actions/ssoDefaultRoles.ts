@@ -1,6 +1,7 @@
 import * as types from '../constants/ssoDefaultRoles';
 import errors from '../errors';
 import { getApi, deleteApi, postApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 
 export const fetchSsoDefaultRolesRequest = () => {
     return {
@@ -23,7 +24,7 @@ export const fetchSsoDefaultRolesError = (payload: $TSFixMe) => {
 };
 
 export const fetchSsoDefaultRoles =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchSsoDefaultRolesRequest());
@@ -70,7 +71,7 @@ export const fetchSsoDefaultRoleError = (payload: $TSFixMe) => {
 };
 
 export const fetchSsoDefaultRole =
-    (ssoDefaultRoleId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (ssoDefaultRoleId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(fetchSsoDefaultRoleRequest());
         try {
             const response = await getApi(
@@ -115,7 +116,7 @@ export const deleteSsoDefaultRoleError = (payload: $TSFixMe) => {
 };
 
 export const deleteSsoDefaultRole =
-    (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteSsoDefaultRoleRequest());
         try {
             const response = await deleteApi(`ssoDefaultRoles/${ssoId}`);
@@ -160,7 +161,7 @@ export const addSsoDefaultRoleError = (payload: $TSFixMe) => {
 
 export const addSsoDefaultRole =
     ({ data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(addSsoDefaultRoleRequest());
         try {
             await postApi(`ssoDefaultRoles/`, data);
@@ -204,7 +205,7 @@ export const updateSsoDefaultRoleError = (payload: $TSFixMe) => {
 
 export const updateSsoDefaultRole =
     ({ id, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(updateSsoDefaultRoleRequest());
         try {
             await putApi(`ssoDefaultRoles/${id}`, data);

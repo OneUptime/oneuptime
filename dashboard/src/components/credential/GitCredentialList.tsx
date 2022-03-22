@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { deleteGitCredential } from '../../actions/credential';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { getGitSecurities } from '../../actions/credential';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
@@ -378,7 +378,7 @@ GitCredentialList.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { deleteGitCredential, openModal, getGitSecurities },
     dispatch
 );

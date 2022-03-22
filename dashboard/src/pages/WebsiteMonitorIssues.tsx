@@ -1,8 +1,8 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
 import { fetchComponent } from '../actions/component';
@@ -491,7 +491,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchMonitorIssue,

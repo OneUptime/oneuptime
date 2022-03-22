@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-import { bindActionCreators } from 'redux';
-import { closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
 import {
     scanContainerSecurity,
     scanApplicationSecurity,
@@ -132,7 +132,7 @@ ConfirmScanModal.propTypes = {
     propArr: PropTypes.array,
     containerSecurityId: PropTypes.func.isRequired,
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { closeModal, scanContainerSecurity, scanApplicationSecurity },
     dispatch
 );

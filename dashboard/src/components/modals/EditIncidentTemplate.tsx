@@ -3,7 +3,7 @@ import React from 'react';
 import { reduxForm, Field } from 'redux-form';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 import { RenderField } from '../basic/RenderField';
@@ -13,7 +13,7 @@ import {
     updateIncidentTemplate,
     updateIncidentTemplateFailure,
 } from '../../actions/incidentBasicsSettings';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -553,7 +553,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
         initialValues,
     };
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateIncidentTemplate,
         setRevealIncidentSettingsVariables,

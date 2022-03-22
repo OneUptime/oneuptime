@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { deleteSlackLink } from '../../actions/slack';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DeleteSlackTeam from '../modals/deleteSlackTeam';
 import DataPathHoC from '../DataPathHoC';
 
@@ -115,7 +115,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     deleteTeam: state.slack.deleteTeam
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

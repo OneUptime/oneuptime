@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import ContainerSecurityDetail from '../components/security/ContainerSecurityDetail';
 
 class ContainerDetail extends Component {

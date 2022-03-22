@@ -1,13 +1,13 @@
 import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 
 import { ListLoader } from '../basic/Loader';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import EmailLogsContentViewModal from './EmailLogsContentViewModal';
 import EmailLogsErrorViewModal from './EmailLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -221,16 +221,16 @@ export class EmailLogsList extends Component {
                                                         <div className="Box-root Margin-right--16">
                                                             <div
                                                                 className={`Badge Badge--color--${emailLog.status ===
-                                                                        'Success'
-                                                                        ? 'green'
-                                                                        : 'red'
+                                                                    'Success'
+                                                                    ? 'green'
+                                                                    : 'red'
                                                                     } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                             >
                                                                 <span
                                                                     className={`Badge-text Text-color--${emailLog.status ===
-                                                                            'Success'
-                                                                            ? 'green'
-                                                                            : 'red'
+                                                                        'Success'
+                                                                        ? 'green'
+                                                                        : 'red'
                                                                         } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                 >
                                                                     <span>
@@ -552,7 +552,7 @@ export class EmailLogsList extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 

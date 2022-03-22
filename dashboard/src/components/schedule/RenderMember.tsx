@@ -12,7 +12,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 
 import { change } from 'redux-form';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { formValueSelector } from 'redux-form';
 
@@ -95,13 +95,13 @@ let RenderMember = ({
                             <Field
                                 id={`${inputarray}.${type[
 
-                                        [
-                                            teamIndex.toString() +
-                                            nameIndex.toString(),
-                                        ]
-                                    ] === 'group'
-                                        ? 'groupId'
-                                        : 'userId'
+                                    [
+                                        teamIndex.toString() +
+                                        nameIndex.toString(),
+                                    ]
+                                ] === 'group'
+                                    ? 'groupId'
+                                    : 'userId'
                                     }`}
                                 className="db-select-nw"
                                 type="text"
@@ -325,7 +325,7 @@ let RenderMember = ({
 
 RenderMember.displayName = 'RenderMember';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ change }, dispatch);
 };
 

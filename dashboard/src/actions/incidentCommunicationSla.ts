@@ -1,5 +1,6 @@
 import * as types from '../constants/incidentCommunicationSla';
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 
 export const createCommunicationSlaRequest = () => ({
     type: types.CREATE_COMMUNICATION_SLA_REQUEST,
@@ -16,7 +17,7 @@ export const createCommunicationSlaFailure = (error: $TSFixMe) => ({
 });
 
 export const createCommunicationSla =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createCommunicationSlaRequest());
 
@@ -57,7 +58,7 @@ export const updateCommunicationSla =
         data: $TSFixMe,
         handleDefault = false
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(updateCommunicationSlaRequest());
 
@@ -97,7 +98,7 @@ export const fetchCommunicationSlasFailure = (error: $TSFixMe) => ({
 
 export const fetchCommunicationSlas =
     (projectId: $TSFixMe, skip = 0, limit = 0) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(fetchCommunicationSlasRequest());
 
@@ -140,7 +141,7 @@ export const deleteCommunicationSlaFailure = (error: $TSFixMe) => ({
 
 export const deleteCommunicationSla =
     (projectId: $TSFixMe, incidentSlaId: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCommunicationSlaRequest());
 
@@ -183,7 +184,7 @@ export const fetchDefaultCommunicationSlaFailure = (error: $TSFixMe) => ({
 });
 
 export const fetchDefaultCommunicationSla =
-    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultCommunicationSlaRequest());
 

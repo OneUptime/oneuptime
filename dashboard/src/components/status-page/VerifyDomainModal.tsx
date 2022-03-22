@@ -6,7 +6,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { resetDomain } from '../../actions/domain';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 class VerifyDomainModal extends Component {
     componentDidMount() {
@@ -315,6 +315,6 @@ VerifyDomainModal.propTypes = {
     resetDomain: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ resetDomain }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ resetDomain }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(VerifyDomainModal);

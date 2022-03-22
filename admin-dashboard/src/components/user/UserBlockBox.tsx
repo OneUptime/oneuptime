@@ -3,12 +3,12 @@ import React, { Component } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { blockUser } from '../../actions/user';
 import UserBlockModal from './UserBlockModal';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 export class UserBlockBox extends Component {
     constructor(props: $TSFixMe) {
@@ -93,7 +93,7 @@ export class UserBlockBox extends Component {
 
 UserBlockBox.displayName = 'UserBlockBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ blockUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ blockUser, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;

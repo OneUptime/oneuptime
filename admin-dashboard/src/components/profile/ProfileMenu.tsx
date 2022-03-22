@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { User } from '../../config';
 import { hideProfileMenu } from '../../actions/profile';
@@ -8,7 +8,7 @@ import { logoutUser } from '../../actions/logout';
 
 import { v4 as uuidv4 } from 'uuid';
 import About from '../modals/About';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 export class ProfileMenu extends Component {
     constructor(props: $TSFixMe) {
@@ -177,7 +177,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, hideProfileMenu, logoutUser },
         dispatch

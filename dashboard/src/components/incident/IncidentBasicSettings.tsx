@@ -3,7 +3,7 @@ import React from 'react';
 import { reduxForm, Field } from 'redux-form';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { ValidateField } from '../../config';
@@ -364,7 +364,7 @@ const mapStateToProps = (state: $TSFixMe) => {
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
     };
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateBasicIncidentSettings,
         setRevealIncidentSettingsVariables,

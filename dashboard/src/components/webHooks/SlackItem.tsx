@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { deleteSlack, updateSlack } from '../../actions/slackWebhook';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import EditSlack from '../modals/EditSlackWebhook';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import DataPathHoC from '../DataPathHoC';
@@ -202,7 +202,7 @@ class SlackItem extends React.Component {
 
 SlackItem.displayName = 'SlackItem';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteSlack,
         openModal,

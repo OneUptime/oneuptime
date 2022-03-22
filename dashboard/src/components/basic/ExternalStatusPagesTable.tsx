@@ -5,8 +5,8 @@ import DataPathHoC from '../DataPathHoC';
 import { v4 as uuidv4 } from 'uuid';
 import EditExternalStatusPageModal from '../modals/EditExternalStatusPageModal';
 import RemoveExternalStatusPage from '../modals/RemoveExternalStatusPage';
-import { openModal } from '../../actions/modal';
-import { bindActionCreators } from 'redux';
+import { openModal } from 'common-ui/actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 export class ExternalStatusPagesTable extends Component {
@@ -127,7 +127,7 @@ export class ExternalStatusPagesTable extends Component {
 
 ExternalStatusPagesTable.displayName = 'ExternalStatusPagesTable';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             openModal,

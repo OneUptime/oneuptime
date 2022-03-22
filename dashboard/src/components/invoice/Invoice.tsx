@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import InvoiceList from './InvoiceList';
 import {
     getInvoice,
@@ -120,7 +120,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     return { userId, invoices, isRequesting, isSuccessful };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             getInvoice,

@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import {
     createPerformanceTracker,
     updatePerformanceTracker,
@@ -348,7 +348,7 @@ const NewPerformanceTrackerForm = new reduxForm({
     enableReinitialize: true,
 })(NewPerformanceTracker);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { createPerformanceTracker, updatePerformanceTracker },
     dispatch
 );

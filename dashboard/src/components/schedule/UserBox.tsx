@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { withRouter } from 'react-router-dom';
 import UserInputs from './UserInputs';
@@ -14,7 +14,7 @@ import { reduxForm } from 'redux-form';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderIfMember from '../basic/RenderIfMember';
 
-function submitUserForm(values: $TSFixMe, dispatch: $TSFixMe, props: $TSFixMe) {
+function submitUserForm(values: $TSFixMe, dispatch: Dispatch, props: $TSFixMe) {
     const scheduleId = props && props.scheduleId;
     const users = [];
 
@@ -265,7 +265,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ addUsers, teamLoading }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ addUsers, teamLoading }, dispatch);
 
 export default withRouter(
     connect(mapStateToProps, mapDispatchToProps)(AddUsersForm)

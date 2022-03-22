@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/component';
 import errors from '../errors';
 
@@ -21,7 +22,7 @@ export const fetchComponents = ({
     skip = 0,
     limit = 3,
 }: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `component/${projectId}?skip=${skip}&limit=${limit}`
         );
@@ -83,7 +84,7 @@ export function fetchPaginatedComponents({
     skip = 0,
     limit = 3,
 }: $TSFixMe) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `component/${projectId}/paginated?skip=${skip}&limit=${limit}`
         );
@@ -140,7 +141,7 @@ export function fetchPaginatedComponentsFailure(
 
 export const createComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId;
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`component/${projectId}`, values);
         dispatch(createComponentRequest());
 
@@ -197,7 +198,7 @@ export const resetCreateComponent = () => {
 export const editComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId;
 
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`component/${projectId}/${values._id}`, values);
         dispatch(editComponentRequest());
 
@@ -261,7 +262,7 @@ export const resetEditComponent = () => {
 // Delete a component
 // props -> {name: '', type, data -> { data.url}}
 export const deleteComponent = (componentId: $TSFixMe, projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(`component/${projectId}/${componentId}`, {
             componentId,
         });
@@ -324,7 +325,7 @@ export const deleteProjectComponents = (projectId: $TSFixMe) => {
 };
 
 export const addSeat = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`component/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
 
@@ -388,7 +389,7 @@ export function fetchComponentResources(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `component/${projectId}/resources/${componentId}?skip=${skip}&limit=${limit}`
         );
@@ -451,7 +452,7 @@ export function fetchComponentSummary(
     startDate: $TSFixMe,
     endDate: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `component/${projectId}/summary/${componentId}`,
             { startDate, endDate }
@@ -536,7 +537,7 @@ export const fetchComponentFailure = (error: $TSFixMe) => {
 };
 
 export const fetchComponent = (projectId: $TSFixMe, slug: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`component/${projectId}/slug/${slug}`);
         dispatch(fetchComponentRequest());
 

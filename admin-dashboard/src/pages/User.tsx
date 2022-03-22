@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -185,7 +185,7 @@ class User extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchUserProjects, addUserNote, fetchUser, fetchUserloginHistory },
         dispatch

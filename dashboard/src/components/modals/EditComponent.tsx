@@ -6,8 +6,8 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 import { Validate } from '../../config';
-import { bindActionCreators } from 'redux';
-import { closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
 import { connect } from 'react-redux';
 import { editComponent } from '../../actions/component';
 
@@ -209,7 +209,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ closeModal, editComponent }, dispatch);
 };
 

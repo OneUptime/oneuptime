@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { Component } from 'react';
 
 import { Field, change, formValueSelector } from 'redux-form';
@@ -739,8 +739,8 @@ export class RenderOption extends Component {
                                         validate={ValidateField.select}
                                         style={{
                                             width: `${level > 1
-                                                    ? 180 - level * 10
-                                                    : 180
+                                                ? 180 - level * 10
+                                                : 180
                                                 }px`,
                                         }}
                                         options={[
@@ -1370,7 +1370,7 @@ RenderOption.propTypes = {
     formCriteria: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { addArrayField, removeArrayField, change, updateCriteriaField },
     dispatch
 );

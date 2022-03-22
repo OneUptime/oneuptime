@@ -1,4 +1,5 @@
 import * as types from '../constants/logout';
+import { Dispatch } from 'redux';
 import Cookies from 'universal-cookie';
 import { ACCOUNTS_URL } from '../config';
 // Three possible states for our logout process as well.
@@ -24,7 +25,7 @@ export const receiveLogout = () => {
 
 // Logs the user out
 export const logoutUser = () => {
-    return (dispatch: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(requestLogout());
         const cookies = new Cookies();
         cookies.remove('admin-data', { path: '/' });

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import { reduxForm, Field, reset } from 'redux-form';
@@ -11,7 +11,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addContainerSecurity } from '../../actions/security';
 import { getDockerCredentials } from '../../actions/credential';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DockerCredentialModal from '../credential/DockerCredentialModal';
 
 class ContainerSecurityForm extends Component {
@@ -33,7 +33,7 @@ class ContainerSecurityForm extends Component {
         }
     }
 
-    submitForm = (values: $TSFixMe, dispatch: $TSFixMe) => {
+    submitForm = (values: $TSFixMe, dispatch: Dispatch) => {
 
         const { componentId, projectId, addContainerSecurity } = this.props;
         if (!values) return;
@@ -372,7 +372,7 @@ ContainerSecurityForm.propTypes = {
     showCancelBtn: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         addContainerSecurity,
         getDockerCredentials,

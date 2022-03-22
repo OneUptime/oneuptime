@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { deleteProbe } from '../../actions/probe';
 
 class ProbeDeleteModal extends Component {
@@ -155,7 +155,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, deleteProbe }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteProbe }, dispatch);
 
 
 ProbeDeleteModal.propTypes = {

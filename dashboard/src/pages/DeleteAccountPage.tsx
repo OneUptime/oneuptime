@@ -2,7 +2,7 @@ import React from 'react';
 
 import { PropTypes } from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import DeleteAccountBox from '../components/profileSettings/DeleteAccountBox';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';

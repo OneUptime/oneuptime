@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 
 import { getGitCredentials } from '../actions/credential';
 import GitCredentialList from '../components/credential/GitCredentialList';
@@ -144,6 +144,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getGitCredentials }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getGitCredentials }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(GitCredential);

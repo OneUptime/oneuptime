@@ -7,7 +7,7 @@ function ApiDoc() {
                 <div className="Flex-flex Flex-alignItems--center">
                     <img
                         src={
-                            process.env.PUBLIC_URL + '/assets/icons/blocks.svg'
+                            process.env['PUBLIC_URL'] + '/assets/icons/blocks.svg'
                         }
                         alt=""
                         className="Margin-right--20"

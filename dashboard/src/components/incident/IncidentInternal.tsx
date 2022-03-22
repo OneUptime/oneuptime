@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     fetchIncidentMessages,
@@ -8,7 +8,7 @@ import {
 } from '../../actions/incident';
 
 import IncidentMessageThread from './IncidentMessageThread';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import { fetchIncidentNoteTemplates } from '../../actions/incidentNoteTemplate';
@@ -179,7 +179,7 @@ export class IncidentInternal extends Component {
 
 IncidentInternal.displayName = 'IncidentInternal';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchIncidentMessages,
         openModal,

@@ -1,4 +1,5 @@
 import { postApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/license';
 import errors from '../errors';
 
@@ -32,7 +33,7 @@ export const resetFetchLicense = () => {
 };
 
 // Calls the API to fetch license
-export const fetchLicense = () => async (dispatch: $TSFixMe) => {
+export const fetchLicense = () => async (dispatch: Dispatch) => {
     dispatch(fetchLicenseRequest());
     dispatch(resetConfirmLicense());
 
@@ -94,7 +95,7 @@ export const resetConfirmLicense = () => {
 
 // Calls the API to confirm license
 export const confirmLicense =
-    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(confirmLicenseRequest());
 
         try {

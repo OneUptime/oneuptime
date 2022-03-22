@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
@@ -8,7 +8,7 @@ import { editMonitor, fetchLighthouseLogs } from '../../actions/monitor';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader, Spinner } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import AddSiteUrl from '../modals/AddSiteUrl';
 import MonitorLighthouseLogsList from './MonitorLighthouseLogsList';
 import Select from '../../components/basic/Select';
@@ -329,7 +329,7 @@ MonitorViewLighthouseLogsBox.propTypes = {
     closeModal: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         editMonitor,
         fetchLighthouseLogs,

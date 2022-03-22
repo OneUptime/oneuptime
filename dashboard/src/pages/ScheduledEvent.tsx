@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import ScheduledEventBox from '../components/scheduledEvent/ScheduledEvent';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';

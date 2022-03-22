@@ -1,6 +1,7 @@
 import * as types from '../constants/sso';
 import errors from '../errors';
 import { getApi, deleteApi, postApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 
 export const fetchSsosRequest = () => {
     return {
@@ -23,7 +24,7 @@ export const fetchSsosError = (payload: $TSFixMe) => {
 };
 
 export const fetchSsos =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchSsosRequest());
@@ -67,7 +68,7 @@ export const fetchSsoError = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchSso = (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchSso = (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(fetchSsoRequest());
     try {
         const response = await getApi(`sso/${ssoId}`);
@@ -108,7 +109,7 @@ export const deleteSsoError = (payload: $TSFixMe) => {
     };
 };
 
-export const deleteSso = (ssoId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const deleteSso = (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(deleteSsoRequest());
     try {
         await deleteApi(`sso/${ssoId}`);
@@ -150,7 +151,7 @@ export const addSsoError = (payload: $TSFixMe) => {
 
 export const addSso =
     ({ data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(addSsoRequest());
         try {
             await postApi(`sso/`, data);
@@ -192,7 +193,7 @@ export const updateSsoError = (payload: $TSFixMe) => {
 
 export const updateSso =
     ({ id, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(updateSsoRequest());
         try {
             await putApi(`sso/${id}`, data);

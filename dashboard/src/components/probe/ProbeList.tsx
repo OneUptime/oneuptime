@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 
 import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import ProbeDetail from '../modals/ProbeDetail';
 import DataPathHoC from '../DataPathHoC';
 import { API_URL } from '../../config';
@@ -372,9 +372,9 @@ export class ProbeList extends Component {
                                         this.props.probesList
                                             .count} Probe${this.props.probesList &&
 
-                                            this.props.probesList.count === 1
-                                            ? ''
-                                            : 's'
+                                                this.props.probesList.count === 1
+                                                ? ''
+                                                : 's'
                                         })`
                                         : null}
                                 </span>
@@ -429,7 +429,7 @@ export class ProbeList extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 

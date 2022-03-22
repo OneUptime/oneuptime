@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import { Link, withRouter } from 'react-router-dom';
@@ -637,7 +637,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     activeSubProjectId: state.subProject.activeSubProject
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { loadPage, animateSidebar, toggleProjectSettingsMore },
     dispatch
 );

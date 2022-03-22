@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import moment from 'moment';
 
 class KubePodData extends React.Component {
@@ -704,7 +704,7 @@ KubePodData.propTypes = {
     data: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
     },

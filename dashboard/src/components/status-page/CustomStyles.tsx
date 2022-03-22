@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     updateStatusPageCustomHTML,
@@ -320,7 +320,7 @@ const CustomStylesForm = reduxForm({
     enableReinitialize: true,
 })(CustomStyles);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageCustomHTML,
         fetchProjectStatusPage,

@@ -3,10 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DeleteMonitor from '../modals/DeleteMonitor';
 import { deleteMonitor } from '../../actions/monitor';
 import { history } from '../../store';
@@ -126,7 +126,7 @@ export class MonitorViewDeleteBox extends Component {
 
 MonitorViewDeleteBox.displayName = 'MonitorViewDeleteBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal, deleteMonitor }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteMonitor }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

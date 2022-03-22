@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/subscriber';
 import errors from '../errors';
 import { saveFile } from '../config';
@@ -38,7 +39,7 @@ export function createSubscriber(
     monitorId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `subscriber/${projectId}/subscribe/${monitorId}`,
             data
@@ -106,7 +107,7 @@ export function exportCSV(
     limit: $TSFixMe,
     csv: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`
         );
@@ -172,7 +173,7 @@ export const deleteSubscriber = (
     projectId: $TSFixMe,
     subscriberId: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `subscriber/${projectId}/${subscriberId}`,
             {}
@@ -234,7 +235,7 @@ export const downloadCsvTemplateSuccess = () => {
 export const downloadCsvTemplate = () => {
     const fields =
         'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,585-364-1200,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,https://sample.com/webhook';
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(downloadCsvTemplateRequest());
         try {
             saveFile(fields, 'subscribers.csv');
@@ -256,7 +257,7 @@ export function importSubscribersFromCsvFile(
     projectId: $TSFixMe,
     monitorId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `subscriber/${projectId}/${monitorId}/csv`,
             data

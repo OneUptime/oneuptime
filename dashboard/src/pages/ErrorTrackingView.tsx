@@ -2,13 +2,13 @@ import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import PropsType from 'prop-types';
 
 import { fetchErrorTrackers, editErrorTracker } from '../actions/errorTracker';
 import { fetchComponent } from '../actions/component';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import ErrorTrackerDetail from '../components/errorTracker/ErrorTrackerDetail';
@@ -188,7 +188,7 @@ class ErrorTrackingView extends Component {
 
 
 ErrorTrackingView.displayName = 'ErrorTrackingView';
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchErrorTrackers,

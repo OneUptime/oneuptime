@@ -1,4 +1,5 @@
 import { postApi } from '../api';
+import { Dispatch } from 'redux';
 import errors from '../errors';
 
 export const OPEN_SUBSCRIBE_MENU = 'OPEN_SUBSCRIBE_MENU';
@@ -76,7 +77,7 @@ export const subscribeUser = (
     statusPageId: $TSFixMe,
     notificationType: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`subscriber/${projectId}/${statusPageId}`, {
             userDetails,
             monitors,

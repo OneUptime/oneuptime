@@ -1,12 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { reduxForm, Field } from 'redux-form';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal, openModal } from '../../actions/modal';
+import { closeModal, openModal } from 'common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { changeMonitorComponent } from '../../actions/monitor';
@@ -349,7 +349,7 @@ const ChangeMonitorComponentForm = reduxForm({
     destroyOnUnmount: true,
 })(ChangeMonitorComponent);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         changeMonitorComponent,
         closeModal,

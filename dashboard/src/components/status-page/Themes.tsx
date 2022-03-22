@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { reduxForm, Field } from 'redux-form';
 import { ValidateField } from '../../config';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { updateTheme } from '../../actions/statusPage';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -89,12 +89,12 @@ export class Themes extends Component {
                                                                 className={`radio-field monitor-type-item Box-background--white bs-theme-block`}
                                                                 style={{
                                                                     border: `1px solid ${this
-                                                                            .state
+                                                                        .state
 
-                                                                            .type ===
-                                                                            theme.value
-                                                                            ? 'black'
-                                                                            : 'rgba(0,0,0,0.2)'
+                                                                        .type ===
+                                                                        theme.value
+                                                                        ? 'black'
+                                                                        : 'rgba(0,0,0,0.2)'
                                                                         }`,
                                                                 }}
                                                             >
@@ -216,7 +216,7 @@ const ThemesForm = new reduxForm({
     enableReinitialize: true,
 })(Themes);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateTheme,
     },

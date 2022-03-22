@@ -1,5 +1,6 @@
 import * as types from '../constants/group';
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import { User } from '../config.js';
 
 // Add Group
@@ -18,7 +19,7 @@ export const addGroupFailure = (error: $TSFixMe) => ({
 });
 
 export const createGroup =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addGroupRequest());
 
         try {
@@ -59,7 +60,7 @@ export const updateGroupFailure = (error: $TSFixMe) => ({
 
 export const updateGroup =
     (projectId: $TSFixMe, groupId: $TSFixMe, data: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(updateGroupRequest(groupId));
 
         try {
@@ -99,7 +100,7 @@ export const getGroupsFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const getGroups = () => async (dispatch: $TSFixMe) => {
+export const getGroups = () => async (dispatch: Dispatch) => {
     dispatch(getGroupsRequest());
     const projectId = User.getCurrentProjectId();
     try {
@@ -136,7 +137,7 @@ export const getProjectGroupsFailure = (error: $TSFixMe) => ({
 
 export const getProjectGroups =
     (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getProjectGroupsRequest());
         try {
             const response = await getApi(
@@ -173,7 +174,7 @@ export const deleteGroupFailure = (error: $TSFixMe) => ({
 });
 
 export const deleteGroup =
-    (projectId: $TSFixMe, groupId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe, groupId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteGroupRequest());
 
         try {

@@ -9,7 +9,7 @@ import { history } from '../../store';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import {
     createErrorTracker,
     editErrorTrackerSwitch,
@@ -366,7 +366,7 @@ const NewErrorTrackerForm = new reduxForm({
     enableReinitialize: true,
 })(NewErrorTracker);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createErrorTracker,
         editErrorTrackerSwitch,

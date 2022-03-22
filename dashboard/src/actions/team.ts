@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/team';
 import errors from '../errors';
 
@@ -24,7 +25,7 @@ export const teamLoadingError = (error: $TSFixMe) => {
 
 // Calls the API to load team.
 export const teamLoading = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`team/${projectId}`);
         dispatch(teamLoadingRequest());
         promise.then(
@@ -72,7 +73,7 @@ export const subProjectTeamLoadingError = (error: $TSFixMe) => {
 };
 // Calls the API to load team.
 export const subProjectTeamLoading = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
         promise.then(
@@ -122,7 +123,7 @@ export const teamCreateError = (error: $TSFixMe) => {
 
 // Calls the API to create team members.
 export const teamCreate = (projectId: $TSFixMe, values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`team/${projectId}`, values);
         dispatch(teamCreateRequest());
 
@@ -178,14 +179,14 @@ export const teamDeleteReset = () => {
 };
 
 export const resetTeamDelete = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(teamDeleteReset());
     };
 };
 
 // Calls the API to delete team meber.
 export const teamDelete = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
 
@@ -238,7 +239,7 @@ export const teamMemberError = (error: $TSFixMe) => {
 
 // Calls the API to get team member.
 export const getTeamMember = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`team/${projectId}/${teamMemberId}`);
         dispatch(teamMemberRequest(teamMemberId));
 
@@ -288,7 +289,7 @@ export const teamUpdateRoleError = (error: $TSFixMe) => {
 
 // Calls the API to update team member role.
 export const teamUpdateRole = (projectId: $TSFixMe, values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `team/${projectId}/${values.teamMemberId}/changerole`,
             values
@@ -341,7 +342,7 @@ export const paginateReset = () => {
 };
 
 export const paginate = (type: $TSFixMe, Id: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         type === 'next' && dispatch(paginateNext(Id));
         type === 'prev' && dispatch(paginatePrev(Id));
         type === 'reset' && dispatch(paginateReset());

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import LanguageBox from './LanguageBox';
@@ -59,5 +59,5 @@ SelectLanguage.propTypes = {
     theme: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openLanguageMenu }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openLanguageMenu }, dispatch);
 export default connect(null, mapDispatchToProps)(SelectLanguage);

@@ -11,7 +11,7 @@ import {
     changePassword,
     resetChangePassword,
 } from '../../actions/changePassword';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { RenderField } from '../basic/RenderField';
 
 import { Link } from 'react-router-dom';
@@ -163,7 +163,7 @@ const changePasswordForm = reduxForm({
     validate,
 })(ChangePasswordForm);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             changePasswordError,

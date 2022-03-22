@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { Field, reduxForm } from 'redux-form';
 
@@ -235,7 +235,7 @@ const ProbeAddModalForm = reduxForm({
     form: 'AddProbe', // a unique identifier for this form
 })(ProbeAddModal);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ addProbe, resetAddProbe }, dispatch);
 };
 

@@ -1,4 +1,5 @@
 import { getApi, postApi } from '../api';
+import { Dispatch } from 'redux';
 import { masterAdminExistsSuccess, loginSuccess } from './login';
 import * as types from '../constants/register';
 import errors from '../errors';
@@ -78,7 +79,7 @@ export const signupUser = (values: $TSFixMe) => {
     if (redirectSource) {
         values.source = redirectSource;
     }
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`user/signup?token=${values.token}`, values);
         dispatch(signUpRequest(promise));
         promise.then(
@@ -173,7 +174,7 @@ export const resetIsUserInvited = () => {
 
 // Calls the API to register a user.
 export const isUserInvited = (values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi('user/isInvited', values);
         dispatch(isUserInvitedRequest(promise));
         promise.then(
@@ -221,7 +222,7 @@ export const addCardSuccess = (card: $TSFixMe) => {
 };
 
 export const addCard = (data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi('stripe/checkCard', data);
 
         dispatch(addCardRequest(promise));
@@ -256,7 +257,7 @@ export const getEmailSuccess = (email: $TSFixMe) => {
 };
 
 export const getEmailFromToken = (token: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`user/${token}/email`);
         promise.then(
             function (response) {

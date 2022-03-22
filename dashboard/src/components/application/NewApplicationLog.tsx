@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import {
     createApplicationLog,
     createApplicationLogSuccess,
@@ -375,7 +375,7 @@ const NewApplicationLogForm = new reduxForm({
     enableReinitialize: true,
 })(NewApplicationLog);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createApplicationLog,
         createApplicationLogSuccess,

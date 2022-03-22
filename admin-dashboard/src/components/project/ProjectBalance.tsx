@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, Field, reset } from 'redux-form';
@@ -9,7 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { updateBalance } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import MessageBox from '../modals/MessageBox';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -288,7 +288,7 @@ ProjectBalance.propTypes = {
 
 const formName = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess = (result: $TSFixMe, dispatch: $TSFixMe) => dispatch(reset(formName));
+const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
 const ProjectBalanceForm = new reduxForm({
     form: formName,
@@ -297,6 +297,6 @@ const ProjectBalanceForm = new reduxForm({
     onSubmitSuccess,
 })(ProjectBalance);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, updateBalance }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, updateBalance }, dispatch);
 
 export default connect(null, mapDispatchToProps)(ProjectBalanceForm);

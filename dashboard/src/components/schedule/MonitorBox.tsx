@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { withRouter, Link } from 'react-router-dom';
 import MonitorInputs from './MonitorInputs';
@@ -16,7 +16,7 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 
 import Tooltip from '../basic/Tooltip';
 
-function submitMonitorForm(values: $TSFixMe, dispatch: $TSFixMe, props: $TSFixMe) {
+function submitMonitorForm(values: $TSFixMe, dispatch: Dispatch, props: $TSFixMe) {
     const subProjectId = props && props.subProjectId;
     const scheduleId = props && props.scheduleId;
     const monitors = [];
@@ -382,7 +382,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ addMonitors }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ addMonitors }, dispatch);
 
 MonitorBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,

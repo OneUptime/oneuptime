@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import ProfileSetting from '../components/profileSettings/Profile';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';

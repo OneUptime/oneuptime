@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import GroupList from '../components/settings/GroupList';
 import PropTypes from 'prop-types';
 
@@ -145,5 +145,5 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getGroups, subProjectTeamLoading }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getGroups, subProjectTeamLoading }, dispatch);
 export default connect(mapStateToProps, mapDispatchToProps)(Groups);

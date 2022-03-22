@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     markAsRead,
@@ -11,7 +11,7 @@ import { User, IS_SAAS_SERVICE } from '../../config';
 import moment from 'moment';
 
 import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import MessageBox from '../modals/MessageBox';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -353,7 +353,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { markAsRead, markAllAsRead, billingActionTaken, openModal },
         dispatch

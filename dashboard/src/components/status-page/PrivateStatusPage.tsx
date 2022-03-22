@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { Field, FieldArray, reduxForm } from 'redux-form';
@@ -15,7 +15,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 
@@ -1503,7 +1503,7 @@ PrivateStatusPage.propTypes = {
     formValues: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updatePrivateStatusPage,
         updatePrivateStatusPageRequest,

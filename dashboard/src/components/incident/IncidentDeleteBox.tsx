@@ -3,10 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DeleteIncident from '../modals/DeleteIncident';
 import { deleteIncident } from '../../actions/incident';
 import DataPathHoC from '../DataPathHoC';
@@ -120,7 +120,7 @@ IncidentDeleteBox.displayName = 'IncidentDeleteBox';
 
 const mapStateToProps = () => ({});
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal, deleteIncident }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteIncident }, dispatch);
 
 
 IncidentDeleteBox.propTypes = {

@@ -5,7 +5,7 @@ import { Translate } from 'react-auto-translate';
 import BlockChart from './BlockChart';
 import moment from 'moment';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { fetchMonitorStatuses, calculateTime } from '../actions/status';
 import { filterProbeData, getMonitorStatus } from '../config';
 import ShouldRender from './ShouldRender';
@@ -722,7 +722,7 @@ function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
     };
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchMonitorStatuses,
         calculateTime,

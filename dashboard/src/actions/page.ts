@@ -1,4 +1,5 @@
 import * as types from '../constants/page';
+import { Dispatch } from 'redux';
 
 export const pageLoadRequest = function (title: $TSFixMe) {
     return {
@@ -19,7 +20,7 @@ export const resetPageLoad = function () {
 };
 
 export const loadPage = function (title: $TSFixMe) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(pageLoadRequest(title));
         dispatch(pageLoadSuccess(title));
         dispatch(closeSideNav());

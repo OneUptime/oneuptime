@@ -1,5 +1,6 @@
 import * as types from '../constants/incidentNoteTemplate';
 import { getApi, putApi, postApi, deleteApi } from '../api';
+import { Dispatch } from 'redux';
 
 // CREATE INCIDENT NOTE TEMPLATE
 export const createIncidentNoteTemplateRequest = () => ({
@@ -18,7 +19,7 @@ export const createIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
 
 export const createIncidentNoteTemplate =
     ({ projectId, data }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(createIncidentNoteTemplateRequest());
         const promise = postApi(`incidentNoteTemplate/${projectId}`, data);
 
@@ -59,7 +60,7 @@ export const fetchIncidentNoteTemplatesFailure = (error: $TSFixMe) => ({
 
 export const fetchIncidentNoteTemplates =
     ({ projectId, skip = 0, limit = 0 }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchIncidentNoteTemplatesRequest());
         const promise = getApi(
             `incidentNoteTemplate/${projectId}?skip=${skip}&limit=${limit}`
@@ -102,7 +103,7 @@ export const updateIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
 
 export const updateIncidentNoteTemplate =
     ({ projectId, templateId, data }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(updateIncidentNoteTemplateRequest());
         const promise = putApi(
             `incidentNoteTemplate/${projectId}/${templateId}`,
@@ -146,7 +147,7 @@ export const deleteIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
 
 export const deleteIncidentNoteTemplate =
     ({ projectId, templateId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(deleteIncidentNoteTemplateRequest());
 
         const promise = deleteApi(

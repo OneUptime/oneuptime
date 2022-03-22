@@ -1,4 +1,5 @@
 import { getApi, postApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/settings';
 import errors from '../errors';
 
@@ -54,7 +55,7 @@ export const testTwilioFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const testSmtp = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const testSmtp = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(testSmtpRequest());
 
     try {
@@ -76,7 +77,7 @@ export const testSmtp = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
     }
 };
 
-export const testTwilio = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const testTwilio = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(testTwilioRequest());
 
     try {
@@ -98,7 +99,7 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: $TSFixMe) => {
     }
 };
 
-export const fetchSettings = (type: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const fetchSettings = (type: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(requestingSettings());
     try {
         const response = await getApi(`globalConfig/${type}`);
@@ -134,7 +135,7 @@ export const fetchSettings = (type: $TSFixMe) => async (dispatch: $TSFixMe) => {
 };
 
 export const saveSettings =
-    (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(requestingSettings());
         try {
             const response = await postApi(`globalConfig`, {

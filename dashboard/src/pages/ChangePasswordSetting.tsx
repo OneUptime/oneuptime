@@ -2,7 +2,7 @@ import React from 'react';
 
 import { PropTypes } from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import ChangePassword from '../components/profileSettings/ChangePassword';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';

@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { Translate } from 'react-auto-translate';
 import { fetchAnnouncementLogs } from '../actions/status';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
 import { handleResources } from '../config';
@@ -428,6 +428,6 @@ const mapStateToProps = (state: $TSFixMe) => ({
     error: state.status.announcementLogs.error
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchAnnouncementLogs }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchAnnouncementLogs }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AnnouncementLogs);

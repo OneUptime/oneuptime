@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';
 import { history } from '../store';
@@ -124,7 +125,7 @@ export const resetProjects = () => {
 };
 
 export const getProjects = (switchToProjectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `project/projects?skip=${0}&limit=${9999}`,
 
@@ -212,7 +213,7 @@ export const getProjectBalanceSuccess = (project: $TSFixMe) => {
 };
 
 export const getProjectBalance = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`project/${projectId}/balance`, null);
 
         dispatch(getProjectBalanceRequest(promise));
@@ -264,7 +265,7 @@ export const resetCreateProject = () => {
 };
 
 export const createProject = (values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi('project/create', values);
 
         dispatch(createProjectRequest());
@@ -301,7 +302,7 @@ export function switchToProjectViewerNav(
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch({
             type: types.SHOW_VIEWER_MENU,
             payload: isMainProjectViewer(userId, subProjects, currentProject),
@@ -310,7 +311,7 @@ export function switchToProjectViewerNav(
 }
 
 export function switchProject(
-    dispatch: $TSFixMe,
+    dispatch: Dispatch,
     project: $TSFixMe,
     subProjects = []
 ) {
@@ -473,7 +474,7 @@ export const resetProjectTokenError = (error: $TSFixMe) => {
 };
 
 export const resetProjectToken = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`project/${projectId}/resetToken`);
 
         dispatch(resetProjectTokenRequest());
@@ -532,7 +533,7 @@ export const renameProjectError = (error: $TSFixMe) => {
 };
 
 export const renameProject = (projectId: $TSFixMe, projectName: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`project/${projectId}/renameProject`, {
             projectName,
         });
@@ -588,7 +589,7 @@ export const deleteProjectError = (error: $TSFixMe) => {
 };
 
 export const deleteProject = (projectId: $TSFixMe, feedback: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(`project/${projectId}/deleteProject`, {
             projectId,
             feedback,
@@ -656,7 +657,7 @@ export function changePlan(
     oldPlan: $TSFixMe,
     newPlan: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`project/${projectId}/changePlan`, {
             projectName,
             planId,
@@ -698,7 +699,7 @@ export function upgradeToEnterpriseMail(
     projectName: $TSFixMe,
     oldPlan: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`project/${projectId}/upgradeToEnterprise`, {
             projectName,
             oldPlan,
@@ -756,7 +757,7 @@ export const exitProjectError = (error: $TSFixMe) => {
 };
 
 export const exitProject = (projectId: $TSFixMe, userId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `project/${projectId}/user/${userId}/exitProject`,
             null
@@ -818,7 +819,7 @@ export const markProjectForDelete = (
     projectId: $TSFixMe,
     feedback: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(`project/${projectId}/deleteProject`, {
             projectId,
             feedback,
@@ -873,7 +874,7 @@ export const alertOptionsUpdate = (
     projectId: $TSFixMe,
     alertData: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`project/${projectId}/alertOptions`, alertData);
 
         dispatch(alertOptionsUpdateRequest());
@@ -921,7 +922,7 @@ export const addBalanceError = (error: $TSFixMe) => {
 };
 
 export const addBalance = (projectId: $TSFixMe, data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`stripe/${projectId}/addBalance`, data);
 
         dispatch(addBalanceRequest());
@@ -970,7 +971,7 @@ export const updateProjectBalanceFailure = (error: $TSFixMe) => {
 
 export const updateProjectBalance =
     ({ projectId, intentId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(updateProjectBalanceRequest());
 
         try {
@@ -1014,7 +1015,7 @@ export const checkCardSuccess = (card: $TSFixMe) => {
 };
 
 export const checkCard = (data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi('stripe/checkCard', data);
 
         dispatch(checkCardRequest(promise));
@@ -1062,7 +1063,7 @@ export const setEmailNotificationFailure = (error: $TSFixMe) => {
 };
 
 export const setEmailNotification = ({ projectId, data }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(setEmailNotificationRequest());
 
         try {
@@ -1107,7 +1108,7 @@ export const setSmsNotificationFailure = (error: $TSFixMe) => {
 };
 
 export const setSmsNotification = ({ projectId, data }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(setSmsNotificationRequest());
 
         try {
@@ -1156,7 +1157,7 @@ export const setWebhookNotificationSettings = ({
     projectId,
     data,
 }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(setWebhookNotificationSettingsRequest());
 
         try {
@@ -1208,7 +1209,7 @@ export const resetCreateProjectDomain = () => {
 };
 
 export const createProjectDomain = ({ projectId, data }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(createProjectDomainRequest());
 
         try {
@@ -1259,7 +1260,7 @@ export const fetchProjectDomains = (
     skip = 0,
     limit = 10
 ) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(fetchProjectDomainsRequest());
 
         try {
@@ -1315,7 +1316,7 @@ export const updateProjectDomain = ({
     domainId,
     data,
 }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(updateProjectDomainRequest());
 
         try {
@@ -1372,7 +1373,7 @@ export const verifyProjectDomain = ({
     domainId,
     data,
 }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(verifyProjectDomainRequest());
 
         try {
@@ -1425,7 +1426,7 @@ export const resetDeleteProjectDomain = () => {
 };
 
 export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(deleteProjectDomainRequest());
 
         try {
@@ -1477,7 +1478,7 @@ export const fetchTrialError = (error: $TSFixMe) => {
 };
 
 export const fetchTrial = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`stripe/${projectId}/getTrial`);
 
         dispatch(fetchTrialRequest());
@@ -1526,7 +1527,7 @@ export const fetchProjectSlugFailure = (error: $TSFixMe) => {
 };
 
 export const fetchProjectSlug = (slug: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`project/project-slug/${slug}`);
 
         dispatch(fetchProjectSlugRequest());

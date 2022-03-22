@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import AlertCharges from '../components/alert/AlertCharges';
 import ChangePlan from '../components/settings/ChangePlan';
@@ -14,7 +14,7 @@ import { PropTypes } from 'prop-types';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import ShouldRender from '../components/basic/ShouldRender';
 import { getSmtpConfig } from '../actions/smsTemplates';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import DeleteProject from '../components/settings/DeleteProject';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 
@@ -97,7 +97,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             getSmtpConfig,

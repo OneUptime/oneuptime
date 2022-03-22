@@ -5,12 +5,12 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import { withRouter } from 'react-router-dom';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteStatusPage } from '../../actions/statusPage';
 import DeleteStatusPageModal from './DeleteStatusPageModal';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 export class DeleteStatusPageBox extends Component {
     constructor(props: $TSFixMe) {
@@ -110,7 +110,7 @@ export class DeleteStatusPageBox extends Component {
 
 DeleteStatusPageBox.displayName = 'DeleteStatusPageBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const { statusPageSlug } = props.match.params;

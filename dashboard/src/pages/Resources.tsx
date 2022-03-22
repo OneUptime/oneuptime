@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 
 import { PropTypes } from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 
 import ResourceCategories from '../components/settings/ResourceCategories';
 

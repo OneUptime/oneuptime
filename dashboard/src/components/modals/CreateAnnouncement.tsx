@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 
 import ClickOutside from 'react-click-outside';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import { closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
 import PropTypes from 'prop-types';
 
 import { Field, FieldArray, reduxForm } from 'redux-form';
@@ -615,7 +615,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { closeModal, createAnnouncement, fetchAnnouncements },
     dispatch
 );

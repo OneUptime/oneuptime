@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import Members from '../components/reports/Members';
 import Monitors from '../components/reports/Monitors';
 import Incidents from '../components/reports/Incidents';

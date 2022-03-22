@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 
 import { getDockerCredentials } from '../actions/credential';
 import DockerCredentialList from '../components/credential/DockerCredentialList';
@@ -126,6 +126,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getDockerCredentials }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getDockerCredentials }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(DockerCredential);

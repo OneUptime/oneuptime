@@ -1,12 +1,12 @@
 import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader, FormLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { updateProbe } from '../../actions/probe';
 import ProbeDeleteModal from './ProbeDeleteModal';
 
@@ -479,7 +479,7 @@ export class ProbeList extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal, updateProbe }, dispatch);
 };
 

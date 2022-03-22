@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import Call from './Call';
 import Message from './Message';
@@ -298,7 +298,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     statusPage: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch);
 
 
 SubscribeBox.propTypes = {

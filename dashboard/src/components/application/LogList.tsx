@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import moment from 'moment';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import DataPathHoC from '../DataPathHoC';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { ListLoader } from '../basic/Loader';
 import { getLogSuccess } from '../../actions/applicationLog';
 import PropTypes from 'prop-types';
@@ -55,8 +55,8 @@ class LogList extends Component {
                 jsonLog: content,
                 title: `Logs for ${this.props.applicationLog
 
-                        ? this.props.applicationLog.name
-                        : 'Unknown'
+                    ? this.props.applicationLog.name
+                    : 'Unknown'
                     }`,
                 rootName: 'content',
             }),
@@ -182,15 +182,15 @@ class LogList extends Component {
                                     return (
                                         <tr
                                             id={`applicationLog_${log.applicationLogId &&
-                                                    log.applicationLogId.name
-                                                    ? log.applicationLogId.name
+                                                log.applicationLogId.name
+                                                ? log.applicationLogId.name
 
-                                                    : this.props.applicationLog
+                                                : this.props.applicationLog
+                                                    .name
+
+                                                    ? this.props.applicationLog
                                                         .name
-
-                                                        ? this.props.applicationLog
-                                                            .name
-                                                        : 'Unknown Log Container'
+                                                    : 'Unknown Log Container'
                                                 }_${i}`}
                                             key={log._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
@@ -530,7 +530,7 @@ class LogList extends Component {
 
 LogList.displayName = 'LogList';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, getLogSuccess },
         dispatch

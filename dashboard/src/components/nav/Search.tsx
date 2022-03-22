@@ -1,5 +1,5 @@
 import React, { Component, createRef } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { reduxForm, Field } from 'redux-form';
 import { RenderSearchField } from '../basic/RenderSearchField';
@@ -673,7 +673,7 @@ Search.propTypes = {
     closeSearchBar: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             addCurrentComponent,

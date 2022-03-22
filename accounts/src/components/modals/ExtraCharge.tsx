@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import { closeModal } from '../../actions/modal';
-import { bindActionCreators } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
 
 class ExtraCharge extends React.Component {
     componentDidMount() {
@@ -109,7 +109,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { fetchProjectDomains } from '../../actions/project';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import { openModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { openModal } from 'common-ui/actions/modal';
 import DeleteDomain from './DeleteDomain';
 import DataPathHoC from '../DataPathHoC';
 
@@ -455,6 +455,6 @@ ProjectDomain.propTypes = {
     requesting: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchProjectDomains, openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchProjectDomains, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectDomain);

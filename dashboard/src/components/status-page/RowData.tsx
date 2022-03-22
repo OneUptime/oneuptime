@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { IS_LOCALHOST, User } from '../../config';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
@@ -137,6 +137,6 @@ RowData.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 export default connect(null, mapDispatchToProps)(RowData);

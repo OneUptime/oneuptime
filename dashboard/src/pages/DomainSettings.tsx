@@ -1,8 +1,8 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -100,7 +100,7 @@ const mapStateToProps = (state: $TSFixMe) => {
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

@@ -1,13 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 
 import { reduxForm, Field } from 'redux-form';
 import { updateMonitorSla } from '../../actions/monitorSla';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
@@ -781,7 +781,7 @@ const EditMonitorSlaForm = reduxForm({
     destroyOnUnmount: true,
 })(EditMonitorSlaModal);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         updateMonitorSla,

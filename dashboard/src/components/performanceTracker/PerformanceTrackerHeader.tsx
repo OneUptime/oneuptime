@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { Field, reduxForm } from 'redux-form';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import DeletePerformanceTracker from './DeletePerformanceTracker';
@@ -350,7 +350,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, updatePerformanceTracker }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, updatePerformanceTracker }, dispatch);
 
 const PerformanceTrackerHeaderForm = new reduxForm({
     form: 'PerformanceTrackerHeaderForm',

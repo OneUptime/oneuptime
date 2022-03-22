@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { Component } from 'react';
 import { API_URL } from '../../config';
@@ -31,7 +31,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
 import ConfirmResetBrandColors from '../modals/ConfirmResetBrandColors';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
 //Client side validation
@@ -911,7 +911,7 @@ const BrandingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(Branding);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             createLogoCache,

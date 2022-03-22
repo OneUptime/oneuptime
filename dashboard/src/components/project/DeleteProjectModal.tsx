@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
@@ -104,7 +104,7 @@ export class DeleteProjectModal extends Component {
 
 DeleteProjectModal.displayName = 'DeleteProjectModal';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteProject,
         hideDeleteModal,

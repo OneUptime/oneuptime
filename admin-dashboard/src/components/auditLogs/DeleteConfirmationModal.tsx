@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { deleteAuditLogs } from '../../actions/auditLogs';
 import { FormLoader } from '../basic/Loader';
 
@@ -146,7 +146,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     modalId: state.modal.modals[0].id
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, deleteAuditLogs }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteAuditLogs }, dispatch);
 
 
 DeleteConfirmationModal.displayName = 'Delete Confirmation Modal';

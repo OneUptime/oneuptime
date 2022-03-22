@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     reduxForm,
@@ -405,7 +405,7 @@ const MonitorsForm = reduxForm({
     validate,
 })(Monitors);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageMonitors,
         updateStatusPageMonitorsRequest,

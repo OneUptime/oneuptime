@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { Field, reduxForm, change, formValueSelector } from 'redux-form';
 
@@ -19,7 +19,7 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { fetchCustomFields } from '../../actions/customField';
 import { getIncidents, getComponentIncidents } from '../../actions/incident';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 class CreateIncident extends Component {
@@ -1115,7 +1115,7 @@ function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     };
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             createNewIncident,

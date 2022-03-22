@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import HistoryList from './HistroyList';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { fetchUserloginHistory } from '../../actions/user';
 
@@ -70,7 +70,7 @@ class UserHistory extends React.Component {
 
 UserHistory.displayName = 'UserHistory';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ fetchUserloginHistory }, dispatch);
 };
 

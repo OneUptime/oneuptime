@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { Validate } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
 import {
@@ -13,7 +13,7 @@ import {
     resetPassword,
     resetResetPassword,
 } from '../../actions/resetPassword';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { RenderField } from '../basic/RenderField';
 
 const errorStyle = {
@@ -148,7 +148,7 @@ const resetPasswordForm = reduxForm({
     validate,
 })(ResetPasswordForm);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             resetPasswordError,

@@ -5,12 +5,12 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import { withRouter } from 'react-router-dom';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import DataPathHoC from '../DataPathHoC';
 import DuplicateStatusPageForm from './DuplicateStatusPageForm';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 export class DuplicateStatusPageBox extends Component {
     constructor(props: $TSFixMe) {
@@ -105,7 +105,7 @@ export class DuplicateStatusPageBox extends Component {
 
 DuplicateStatusPageBox.displayName = 'DuplicateStatusPageBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

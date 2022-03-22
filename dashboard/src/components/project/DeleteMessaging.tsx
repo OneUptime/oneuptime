@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { changeDeleteModal } from '../../actions/project';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 class DeleteMessaging extends Component {
     componentDidMount() {
@@ -132,7 +132,7 @@ DeleteMessaging.propTypes = {
     requesting: PropTypes.bool.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         changeDeleteModal,
     },

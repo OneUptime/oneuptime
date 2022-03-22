@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import {
     fetchApplicationLogs,
     editApplicationLog,
@@ -351,7 +351,7 @@ class ApplicationLogView extends Component {
 
 ApplicationLogView.displayName = 'ApplicationLogView';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchApplicationLogs, editApplicationLog, fetchComponent },
         dispatch

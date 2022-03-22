@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { fetchExternalStatusPages } from '../../actions/statusPage';
 import ExternalStatusPagesTable from '../basic/ExternalStatusPagesTable';
@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import AddExternalStatusPagesModal from '../modals/AddExternalStatusPagesModal';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 export class ExternalStatusPages extends Component {
     handleKeyBoard: $TSFixMe;
@@ -167,7 +167,7 @@ ExternalStatusPages.propTypes = {
     statusPageId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchExternalStatusPages,
         openModal,

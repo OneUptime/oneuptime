@@ -8,9 +8,9 @@ import { RenderIfAdmin } from '../basic/RenderIfAdmin';
 import ShouldRender from '../basic/ShouldRender';
 import TooltipMini from '../basic/TooltipMini';
 import { API_URL } from '../../config';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { resetPerformanceTrackerKey } from '../../actions/performanceTracker';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 class TrackerInfo extends Component {
     state = {
@@ -384,6 +384,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ resetPerformanceTrackerKey, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ resetPerformanceTrackerKey, closeModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(TrackerInfo);

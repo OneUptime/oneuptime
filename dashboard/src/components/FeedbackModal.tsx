@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { Component } from 'react';
 import {
@@ -162,7 +162,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { createFeedback, closeFeedbackModal, reset, resetCreateFeedback },
     dispatch
 );

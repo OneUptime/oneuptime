@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/subProject';
 import errors from '../errors';
 import { User } from '../config';
@@ -31,7 +32,7 @@ export const resetSubProjects = () => {
 };
 
 export const getSubProjects = (projectId: $TSFixMe, skip = 0, limit = 10) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `project/${projectId}/subProjects?skip=${skip}&limit=${limit}`
         );
@@ -100,7 +101,7 @@ export const resetCreateNewSubProject = () => {
 };
 
 export const createNewSubProjectReset = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(resetCreateNewSubProject());
     };
 };
@@ -109,7 +110,7 @@ export function createSubProject(
     projectId: $TSFixMe,
     subProjectName: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`project/${projectId}/subProject`, {
             subProjectName,
         });
@@ -167,13 +168,13 @@ export const resetSubProjectTokenError = (error: $TSFixMe) => {
 };
 
 export const resetSubProjectKeyReset = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(resetSubProjectTokenReset());
     };
 };
 
 export const resetSubProjectToken = (subProjectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`project/${subProjectId}/resetToken`);
 
         dispatch(resetSubProjectTokenRequest());
@@ -228,7 +229,7 @@ export const renameSubProjectError = (error: $TSFixMe) => {
 };
 
 export const resetRenameSubProject = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(renameSubProjectReset());
     };
 };
@@ -238,7 +239,7 @@ export function renameSubProject(
     subProjectId: $TSFixMe,
     subProjectName: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`project/${projectId}/${subProjectId}`, {
             subProjectName,
         });
@@ -296,7 +297,7 @@ export const deleteSubProjectReset = () => {
 };
 
 export const resetDeleteSubProject = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(deleteSubProjectReset());
     };
 };
@@ -305,7 +306,7 @@ export const deleteSubProject = (
     projectId: $TSFixMe,
     subProjectId: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(`project/${projectId}/${subProjectId}`, {
             subProjectId,
         });
@@ -365,7 +366,7 @@ export function exitSubProject(
     subProjectId: $TSFixMe,
     userId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`,
             null
@@ -428,7 +429,7 @@ export function markSubProjectForDelete(
     subProjectId: $TSFixMe,
     feedback: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `subProject/${projectId}/${subProjectId}/deleteProject`,
             { subProjectId, feedback }

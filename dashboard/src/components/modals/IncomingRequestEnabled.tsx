@@ -4,8 +4,8 @@ import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-import { bindActionCreators } from 'redux';
-import { closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
 import { incomingRequestToggle } from '../../actions/incomingRequest';
 
 class IncomingRequestEnabledToggle extends Component {
@@ -159,7 +159,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, incomingRequestToggle }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, incomingRequestToggle }, dispatch);
 
 export default connect(
     mapStateToProps,

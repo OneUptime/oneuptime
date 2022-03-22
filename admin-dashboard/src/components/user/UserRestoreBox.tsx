@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { restoreUser } from '../../actions/user';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 export class UserRestoreBox extends Component {
     constructor(props: $TSFixMe) {
@@ -68,7 +68,7 @@ export class UserRestoreBox extends Component {
 
 UserRestoreBox.displayName = 'UserRestoreBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     const user = state.user.user.user || {};

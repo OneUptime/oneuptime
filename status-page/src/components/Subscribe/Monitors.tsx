@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 import { Translate } from 'react-auto-translate';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     subscribeUser,
@@ -323,7 +323,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     monitors: state.status.statusPage && state.status.statusPage.monitorsData
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { subscribeUser, validationError, openSubscribeMenu, userDataReset },
     dispatch
 );

@@ -4,9 +4,9 @@ import moment from 'moment';
 
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import Markdown from 'markdown-to-jsx';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { capitalize } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import EditSchedule from '../modals/EditSchedule';
@@ -407,7 +407,7 @@ ScheduledEventDescription.defaultProps = {
     isOngoing: false,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, resolveScheduledEvent }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, resolveScheduledEvent }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

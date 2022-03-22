@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
@@ -8,7 +8,7 @@ import moment from 'moment';
 import { history } from '../../store';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import {
     teamDelete,
     resetTeamDelete,
@@ -485,8 +485,8 @@ class ProjectUser extends Component {
                                     <button
                                         data-test="TeamSettings-paginationButton"
                                         className={`Button bs-ButtonLegacy ${!canPaginateBackward
-                                                ? 'Is--disabled'
-                                                : ''
+                                            ? 'Is--disabled'
+                                            : ''
                                             }`}
                                         disabled={!canPaginateBackward}
                                         type="button"
@@ -503,8 +503,8 @@ class ProjectUser extends Component {
                                     <button
                                         data-test="TeamSettings-paginationButton"
                                         className={`Button bs-ButtonLegacy ${!canPaginateForward
-                                                ? 'Is--disabled'
-                                                : ''
+                                            ? 'Is--disabled'
+                                            : ''
                                             }`}
                                         disabled={!canPaginateForward}
                                         type="button"
@@ -529,7 +529,7 @@ class ProjectUser extends Component {
 
 ProjectUser.displayName = 'ProjectUser';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             openModal,

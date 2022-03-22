@@ -1,4 +1,5 @@
 import { getApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
 import errors from '../errors';
 
@@ -11,7 +12,7 @@ export function getProbes(
     skip = parseInt(skip);
     limit = parseInt(limit);
 
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(

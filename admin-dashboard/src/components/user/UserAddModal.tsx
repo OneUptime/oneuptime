@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { Field, reduxForm } from 'redux-form';
 
@@ -401,7 +401,7 @@ const UserAddModalForm = reduxForm({
     validate,
 })(UserAddModal);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ addUser, resetAddUser }, dispatch);
 };
 

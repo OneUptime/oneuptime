@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { Field, reduxForm, FieldArray } from 'redux-form';
@@ -11,7 +11,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 export const StatusPageLanguage = (props: $TSFixMe) => {
     const [error, setError] = useState('');
@@ -360,7 +360,7 @@ StatusPageLanguage.propTypes = {
     formValues: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageLanguage,
         fetchProjectStatusPage,

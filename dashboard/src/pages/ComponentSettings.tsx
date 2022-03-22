@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { connect } from 'react-redux';
@@ -12,7 +12,7 @@ import { ValidateField } from '../config';
 import { RenderField } from '../components/basic/RenderField';
 import PropTypes from 'prop-types';
 import { editComponent, fetchComponent } from '../actions/component';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { history } from '../store';
 
 class ComponentSettings extends Component {
@@ -251,7 +251,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ editComponent, fetchComponent }, dispatch);
 };
 

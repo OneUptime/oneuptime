@@ -1,4 +1,5 @@
 import { getApi, deleteApi, postApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
 import errors from '../errors';
 
@@ -37,7 +38,7 @@ export const getProbes = (skip = 0, limit = 10) => {
 
     limit = parseInt(limit);
 
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
 
         promise = getApi(`probe/?skip=${skip}&limit=${limit}`);
@@ -97,7 +98,7 @@ export const deleteProbeError = (error: $TSFixMe) => {
 
 // Calls the API to delete a probe
 export const deleteProbe =
-    (probeId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (probeId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteProbeRequest());
 
         try {
@@ -148,14 +149,14 @@ export const addProbeError = (error: $TSFixMe) => {
 };
 
 export const resetAddProbe = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(addProbeReset());
     };
 };
 
 // Calls the API to add a probe
 export const addProbe =
-    (probeKey: $TSFixMe, probeName: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (probeKey: $TSFixMe, probeName: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addProbeRequest());
 
         try {
@@ -209,7 +210,7 @@ export const updateProbeError = (error: $TSFixMe) => {
 };
 
 // Calls the API to update a probe
-export const updateProbe = (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+export const updateProbe = (values: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(updateProbeRequest());
 
     try {

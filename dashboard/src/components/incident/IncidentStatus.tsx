@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { withRouter } from 'react-router-dom';
@@ -23,7 +23,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 //import EditIncident from '../modals/EditIncident';
 import { history } from '../../store';
 import MessageBox from '../modals/MessageBox';
@@ -2202,46 +2202,10 @@ export class IncidentStatus extends Component {
                                                             >
                                                                 <ReactMarkdown>
                                                                     {`${incidentReason &&
-                                                                            incidentReason.length >
-                                                                            1
-                                                                            ? incidentReason
-                                                                                .map(
-                                                                                    (a: $TSFixMe) => {
-                                                                                        if (
-                                                                                            a.includes(
-                                                                                                'Response Time'
-                                                                                            )
-                                                                                        ) {
-                                                                                            const milliSeconds = a.match(
-                                                                                                /\d+/
-                                                                                            )[0];
-                                                                                            const time = formatMonitorResponseTime(
-                                                                                                Number(
-                                                                                                    milliSeconds
-                                                                                                )
-                                                                                            );
-                                                                                            return (
-                                                                                                '- **&middot; ' +
-                                                                                                a.replace(
-                                                                                                    milliSeconds +
-                                                                                                    ' ms',
-                                                                                                    time
-                                                                                                ) +
-                                                                                                '**.'
-                                                                                            );
-                                                                                        } else {
-                                                                                            return (
-                                                                                                '- **&middot; ' +
-                                                                                                a +
-                                                                                                '**.'
-                                                                                            );
-                                                                                        }
-                                                                                    }
-                                                                                )
-                                                                                .join(
-                                                                                    '\n'
-                                                                                )
-                                                                            : incidentReason.map(
+                                                                        incidentReason.length >
+                                                                        1
+                                                                        ? incidentReason
+                                                                            .map(
                                                                                 (a: $TSFixMe) => {
                                                                                     if (
                                                                                         a.includes(
@@ -2257,7 +2221,7 @@ export class IncidentStatus extends Component {
                                                                                             )
                                                                                         );
                                                                                         return (
-                                                                                            ' **' +
+                                                                                            '- **&middot; ' +
                                                                                             a.replace(
                                                                                                 milliSeconds +
                                                                                                 ' ms',
@@ -2267,13 +2231,49 @@ export class IncidentStatus extends Component {
                                                                                         );
                                                                                     } else {
                                                                                         return (
-                                                                                            ' **' +
+                                                                                            '- **&middot; ' +
                                                                                             a +
                                                                                             '**.'
                                                                                         );
                                                                                     }
                                                                                 }
                                                                             )
+                                                                            .join(
+                                                                                '\n'
+                                                                            )
+                                                                        : incidentReason.map(
+                                                                            (a: $TSFixMe) => {
+                                                                                if (
+                                                                                    a.includes(
+                                                                                        'Response Time'
+                                                                                    )
+                                                                                ) {
+                                                                                    const milliSeconds = a.match(
+                                                                                        /\d+/
+                                                                                    )[0];
+                                                                                    const time = formatMonitorResponseTime(
+                                                                                        Number(
+                                                                                            milliSeconds
+                                                                                        )
+                                                                                    );
+                                                                                    return (
+                                                                                        ' **' +
+                                                                                        a.replace(
+                                                                                            milliSeconds +
+                                                                                            ' ms',
+                                                                                            time
+                                                                                        ) +
+                                                                                        '**.'
+                                                                                    );
+                                                                                } else {
+                                                                                    return (
+                                                                                        ' **' +
+                                                                                        a +
+                                                                                        '**.'
+                                                                                    );
+                                                                                }
+                                                                            }
+                                                                        )
                                                                         }`}
                                                                 </ReactMarkdown>
                                                             </div>
@@ -2838,7 +2838,7 @@ const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             resolveIncident,

@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 
 import { Field, reduxForm } from 'redux-form';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { Component } from 'react';
 import { RenderField } from '../basic/RenderField';
 import {
@@ -361,7 +361,7 @@ const TemplatesFormBoxForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(TemplatesFormBox);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             setRevealVariable,

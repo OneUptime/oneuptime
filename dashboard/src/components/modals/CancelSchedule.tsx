@@ -2,11 +2,11 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { cancelScheduledEvent } from '../../actions/scheduledEvent';
 import { history } from '../../store';
 
@@ -170,6 +170,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, cancelScheduledEvent }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, cancelScheduledEvent }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(CancelSchedule);

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import PropsType from 'prop-types';
 
@@ -12,7 +12,7 @@ import {
     setCurrentErrorEvent,
 } from '../actions/errorTracker';
 import { fetchComponent } from '../actions/component';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import ErrorEventDetail from '../components/errorTracker/ErrorEventDetail';
@@ -242,7 +242,7 @@ class ErrorEventView extends Component {
 
 
 ErrorEventView.displayName = 'ErrorEventView';
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchErrorEvent,

@@ -2,10 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import { Link } from 'react-router-dom';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import LoginForm from '../components/auth/LoginForm';
 import { loginUser, loginUserSso, loginError } from '../actions/login';
 import MessageBox from '../components/MessageBox';
@@ -75,8 +75,8 @@ class LoginPage extends React.Component {
                             <MessageBox
                                 title="Your email is not verified."
                                 message={`${this.props.resendTokenRequest.requesting
-                                        ? 'Resending verification link...'
-                                        : "An email is on its way to you with new verification link. Please don't forget to check spam."
+                                    ? 'Resending verification link...'
+                                    : "An email is on its way to you with new verification link. Please don't forget to check spam."
                                     }`}
                             >
                                 <div className="below-box">
@@ -183,7 +183,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         loginUser,
         loginUserSso,

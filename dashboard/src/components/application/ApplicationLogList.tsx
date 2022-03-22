@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ApplicationLogDetail from './ApplicationLogDetail';
@@ -164,7 +164,7 @@ ApplicationLogList.propTypes = {
     fetchingPage: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => ({
     currentProject: state.project.currentProject

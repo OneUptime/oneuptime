@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import ProjectSettings from '../components/settings/ProjectSettings';
 import SubProjects from '../components/settings/SubProjects';
 import RenderIfMember from '../components/basic/RenderIfMember';

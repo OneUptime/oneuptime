@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import { reduxForm } from 'redux-form';
@@ -8,7 +8,7 @@ import { PricingPlan, Validate } from '../../config';
 import { FormLoader } from './Loader';
 import ShouldRender from './ShouldRender';
 import { changePlan } from '../../actions/project';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 
 import RadioInput from '../project/RadioInput';
 
@@ -173,9 +173,9 @@ class PricingPlanModal extends Component {
                                                         >
                                                             <div
                                                                 className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${activePlan ===
-                                                                        plan.planId
-                                                                        ? 'price-list-item--active'
-                                                                        : ''
+                                                                    plan.planId
+                                                                    ? 'price-list-item--active'
+                                                                    : ''
                                                                     }`}
                                                                 style={{
                                                                     flex: 1,
@@ -335,7 +335,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, changePlan }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, changePlan }, dispatch);
 
 const PricingForm = new reduxForm({
     form: 'PricingForm',

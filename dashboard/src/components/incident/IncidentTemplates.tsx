@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import { ListLoader } from '../basic/Loader';
 import CreateIncidentTemplate from '../modals/CreateIncidentTemplate';
@@ -541,7 +541,7 @@ IncidentTemplates.propTypes = {
     setDefaultTemplateError: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         fetchIncidentTemplates,

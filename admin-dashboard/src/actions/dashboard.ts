@@ -1,4 +1,5 @@
 import { getApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/dashboard';
 import errors from '../errors';
 
@@ -25,7 +26,7 @@ export const dashboardLoadFailed = function (payload: $TSFixMe) {
     };
 };
 
-export const loadDashboard = () => async (dispatch: $TSFixMe) => {
+export const loadDashboard = () => async (dispatch: Dispatch) => {
     const skip = 0;
     const limit = 10;
     dispatch(dashboardLoadRequest());

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { fetchExternalStatusPages } from '../actions/status';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from './ShouldRender';
 class ExternalStatusPages extends Component {
     async componentDidMount() {
@@ -245,7 +245,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     error: state.status.announcementLogs.error
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchExternalStatusPages }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchExternalStatusPages }, dispatch);
 
 
 ExternalStatusPages.propTypes = {

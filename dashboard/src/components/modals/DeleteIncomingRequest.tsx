@@ -4,9 +4,9 @@ import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { deleteIncomingRequest } from '../../actions/incomingRequest';
 
 class DeleteIncomingRequest extends Component {
@@ -184,7 +184,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, deleteIncomingRequest }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteIncomingRequest }, dispatch);
 
 export default connect(
     mapStateToProps,

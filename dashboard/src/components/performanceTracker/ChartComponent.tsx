@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PerformanceChart from '../basic/performanceChart';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
@@ -445,7 +445,7 @@ ChartComponent.propTypes = {
     errorEndDate: PropTypes.any,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchTimeMetrics,
         fetchThroughputMetrics,

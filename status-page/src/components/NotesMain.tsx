@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { Translate } from 'react-auto-translate';
 
 import { withRouter } from 'react-router-dom';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import Markdown from 'markdown-to-jsx';
@@ -898,7 +898,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         getStatusPageNote,
         getStatusPageIndividualNote,

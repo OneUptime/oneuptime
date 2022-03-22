@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -68,7 +68,7 @@ function mapValueToProps(value: $TSFixMe) {
     };
 }
 
-function mapDispatchToProps(dispatch: $TSFixMe) {
+function mapDispatchToProps(dispatch: Dispatch) {
     return bindActionCreators({}, dispatch);
 }
 

@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { formatDecimal, formatBytes } from '../../config';
@@ -308,13 +308,13 @@ export class MonitorLogsList extends Component {
                                     return (
                                         <tr
                                             id={`monitor_log_${log.monitorId &&
-                                                    log.monitorId.name
-                                                    ? log.monitorId.name
+                                                log.monitorId.name
+                                                ? log.monitorId.name
 
-                                                    : this.props.monitorName
+                                                : this.props.monitorName
 
-                                                        ? this.props.monitorName
-                                                        : 'Unknown Monitor'
+                                                    ? this.props.monitorName
+                                                    : 'Unknown Monitor'
                                                 }_${i}`}
                                             key={log._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
@@ -621,21 +621,21 @@ export class MonitorLogsList extends Component {
                                                                                                                 .viewJsonModalId,
                                                                                                             jsonLog: log,
                                                                                                             title: `Monitor Log for ${this
+                                                                                                                .props
+
+                                                                                                                .monitorName
+                                                                                                                ? this
                                                                                                                     .props
 
                                                                                                                     .monitorName
-                                                                                                                    ? this
-                                                                                                                        .props
-
-                                                                                                                        .monitorName
-                                                                                                                    : log.monitorId &&
-                                                                                                                        log
-                                                                                                                            .monitorId
-                                                                                                                            .name
-                                                                                                                        ? log
-                                                                                                                            .monitorId
-                                                                                                                            .name
-                                                                                                                        : 'Unknown'
+                                                                                                                : log.monitorId &&
+                                                                                                                    log
+                                                                                                                        .monitorId
+                                                                                                                        .name
+                                                                                                                    ? log
+                                                                                                                        .monitorId
+                                                                                                                        .name
+                                                                                                                    : 'Unknown'
                                                                                                                 } monitor`,
                                                                                                             rootName:
                                                                                                                 'monitorLog',
@@ -1066,21 +1066,21 @@ export class MonitorLogsList extends Component {
                                                                                                                         .scriptMetadata
                                                                                                                         .consoleLogs,
                                                                                                                 title: `Console logs for "${this
+                                                                                                                    .props
+
+                                                                                                                    .monitorName
+                                                                                                                    ? this
                                                                                                                         .props
 
                                                                                                                         .monitorName
-                                                                                                                        ? this
-                                                                                                                            .props
-
-                                                                                                                            .monitorName
-                                                                                                                        : log.monitorId &&
-                                                                                                                            log
-                                                                                                                                .monitorId
-                                                                                                                                .name
-                                                                                                                            ? log
-                                                                                                                                .monitorId
-                                                                                                                                .name
-                                                                                                                            : 'Unknown'
+                                                                                                                    : log.monitorId &&
+                                                                                                                        log
+                                                                                                                            .monitorId
+                                                                                                                            .name
+                                                                                                                        ? log
+                                                                                                                            .monitorId
+                                                                                                                            .name
+                                                                                                                        : 'Unknown'
                                                                                                                     }" monitor`,
                                                                                                                 rootName:
                                                                                                                     'monitorLog',
@@ -1133,21 +1133,21 @@ export class MonitorLogsList extends Component {
                                                                                                                     .viewJsonModalId,
                                                                                                                 jsonLog: log,
                                                                                                                 title: `Monitor Log for ${this
+                                                                                                                    .props
+
+                                                                                                                    .monitorName
+                                                                                                                    ? this
                                                                                                                         .props
 
                                                                                                                         .monitorName
-                                                                                                                        ? this
-                                                                                                                            .props
-
-                                                                                                                            .monitorName
-                                                                                                                        : log.monitorId &&
-                                                                                                                            log
-                                                                                                                                .monitorId
-                                                                                                                                .name
-                                                                                                                            ? log
-                                                                                                                                .monitorId
-                                                                                                                                .name
-                                                                                                                            : 'Unknown'
+                                                                                                                    : log.monitorId &&
+                                                                                                                        log
+                                                                                                                            .monitorId
+                                                                                                                            .name
+                                                                                                                        ? log
+                                                                                                                            .monitorId
+                                                                                                                            .name
+                                                                                                                        : 'Unknown'
                                                                                                                     } monitor`,
                                                                                                                 rootName:
                                                                                                                     'monitorLog',
@@ -1294,7 +1294,7 @@ export class MonitorLogsList extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, updatemonitorlogbysocket },
         dispatch

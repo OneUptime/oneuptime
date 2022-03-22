@@ -1,6 +1,6 @@
 import React, { Component, useState } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { fetchStatusPageSubscribers } from '../../actions/statusPage';
 import PropTypes from 'prop-types';
 
@@ -12,7 +12,7 @@ import { FormLoader2, ListLoader } from '../basic/Loader';
 import { v4 as uuidv4 } from 'uuid';
 import DeleteSubscriber from '../../components/modals/DeleteSubscriber';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { deleteSubscriber } from '../../actions/subscriber';
 import CreateSubscriber from '../modals/CreateSubscriber';
 import NoMonitorSubscriber from '../modals/NoMonitorSubscriber';
@@ -651,7 +651,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     monitors: state.statusPage.status.monitors
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { fetchStatusPageSubscribers, openModal, closeModal, deleteSubscriber },
     dispatch
 );

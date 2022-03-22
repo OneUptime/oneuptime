@@ -1,4 +1,5 @@
 import { postApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/validateToken';
 import errors from '../errors';
 
@@ -36,7 +37,7 @@ export const resetvalidateToken = () => ({
 
 // Calls the API to register a user.
 export const validateToken = (token: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `user/isAuthenticated?accessToken=${token}`,
             {}

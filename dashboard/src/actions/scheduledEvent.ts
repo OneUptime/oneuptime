@@ -1,9 +1,10 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/scheduledEvent';
 
 export const fetchscheduledEvent =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(fetchscheduledEventRequest());
 
@@ -53,7 +54,7 @@ export const fetchscheduledEventFailure = (error: $TSFixMe) => {
 
 export const fetchscheduledEvents =
     (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         skip = Number(skip);
         limit = Number(limit);
         dispatch(fetchscheduledEventsRequest());
@@ -126,7 +127,7 @@ export const fetchSubProjectScheduledEventsFailure = (error: $TSFixMe) => {
 };
 
 export const fetchSubProjectScheduledEvents =
-    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchSubProjectScheduledEventsRequest());
             const response = await getApi(
@@ -162,7 +163,7 @@ export const fetchOngoingScheduledEventsFailure = (error: $TSFixMe) => ({
 });
 
 export const fetchOngoingScheduledEvents =
-    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchOngoingScheduledEventsRequest());
 
@@ -203,7 +204,7 @@ export const fetchSubProjectOngoingScheduledEventsFailure = (
 });
 
 export const fetchSubProjectOngoingScheduledEvents =
-    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchSubProjectOngoingScheduledEventsRequest());
             const response = await getApi(
@@ -227,7 +228,7 @@ export const fetchSubProjectOngoingScheduledEvents =
     };
 
 export const createScheduledEvent =
-    (projectId: $TSFixMe, values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe, values: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createScheduledEventRequest());
 
@@ -272,7 +273,7 @@ export const createScheduledEventFailure = (error: $TSFixMe) => {
 
 export const deleteScheduledEvent =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(deleteScheduledEventRequest());
 
@@ -323,7 +324,7 @@ export const cancelScheduledEvent =
         closeModal: $TSFixMe,
         modalId: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(cancelScheduledEventRequest());
 
@@ -372,7 +373,7 @@ export function updateScheduledEvent(
     scheduledEventId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `scheduledEvent/${projectId}/${scheduledEventId}`,
             values
@@ -445,7 +446,7 @@ export const fetchScheduledEventNotesInternal =
         skip: $TSFixMe,
         type: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(fetchScheduledEventNotesInternalRequest());
             skip = Number(skip);
@@ -500,7 +501,7 @@ export const createScheduledEventNoteFailure = (error: $TSFixMe) => ({
 
 export const createScheduledEventNote =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe, data: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(createScheduledEventNoteRequest());
 
@@ -544,7 +545,7 @@ export const updateScheduledEventNoteInternal =
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(updateScheduledEventNoteInternalRequest());
             const response = await putApi(
@@ -591,7 +592,7 @@ export const updateScheduledEventNoteInvestigation =
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(updateScheduledEventNoteInvestigationRequest());
 
@@ -636,7 +637,7 @@ export const deleteScheduledEventNote =
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(deleteScheduledEventNoteRequest());
 
@@ -674,7 +675,7 @@ export const resolveScheduledEventFailure = (error: $TSFixMe) => ({
 
 export const resolveScheduledEvent =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(resolveScheduledEventRequest());
 
@@ -729,7 +730,7 @@ export const fetchScheduledEventFailure = (error: $TSFixMe) => {
 };
 
 export const fetchScheduledEvent = (projectId: $TSFixMe, slug: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`scheduledEvent/${projectId}/slug/${slug}`);
         dispatch(fetchScheduledEventRequest());
 

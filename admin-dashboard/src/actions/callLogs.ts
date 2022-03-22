@@ -1,4 +1,5 @@
 import { getApi, postApi, deleteApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/callLogs';
 import errors from '../errors';
 
@@ -24,7 +25,7 @@ export const fetchCallLogsError = (error: $TSFixMe) => {
 };
 
 export const fetchCallLogs =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -79,7 +80,7 @@ export const searchCallLogsError = (error: $TSFixMe) => {
 
 export const searchCallLogs =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         const values = {
             filter,
         };
@@ -133,7 +134,7 @@ export const deleteCallLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const deleteCallLogs = () => async (dispatch: $TSFixMe) => {
+export const deleteCallLogs = () => async (dispatch: Dispatch) => {
     dispatch(deleteCallLogsRequest());
 
     try {
@@ -188,7 +189,7 @@ export const resetFetchCallLogStatus = () => {
 };
 
 // Calls the API to fetch callLogStatus
-export const fetchCallLogStatus = () => async (dispatch: $TSFixMe) => {
+export const fetchCallLogStatus = () => async (dispatch: Dispatch) => {
     dispatch(fetchCallLogStatusRequest());
 
     try {
@@ -244,7 +245,7 @@ export const resetConfirmCallLogStatus = () => {
 
 // Calls the API to change callLogStatus
 export const callLogStatusChange =
-    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(changeCallLogStatusRequest());
 
         try {

@@ -12,7 +12,7 @@ import {
     resetLogin,
     changeLogin,
 } from '../../actions/login';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import queryString from 'query-string';
@@ -192,7 +192,7 @@ const loginForm = reduxForm({
     destroyOnUnmount: true,
 })(LoginForm);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             loginError,

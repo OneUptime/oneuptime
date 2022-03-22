@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import SubProjectTable from './SubProjectTable';
 import SubProjectForm from './SubProjectForm';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { getSubProjects } from '../../actions/subProject';
 import PricingPlan from '../basic/PricingPlan';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
@@ -229,8 +229,8 @@ export class SubProjects extends Component {
                             </ShouldRender>
                             <div
                                 className={`bs-Tail ${subProjects && subProjects.length <= 0
-                                        ? ''
-                                        : 'bs-Tail--separated'
+                                    ? ''
+                                    : 'bs-Tail--separated'
                                     } bs-Tail--short`}
                                 style={{
                                     marginTop: '0px',
@@ -333,7 +333,7 @@ SubProjects.propTypes = {
     modalList: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, getSubProjects },
         dispatch

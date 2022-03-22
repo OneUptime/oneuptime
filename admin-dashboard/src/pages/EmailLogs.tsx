@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import EmailLogsList from '../components/emailLogs/EmailLogsList';
@@ -201,7 +201,7 @@ class EmailLogs extends React.Component {
 
 EmailLogs.displayName = 'EmailLogs';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchEmailLogs,

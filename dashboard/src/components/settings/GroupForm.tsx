@@ -3,12 +3,12 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
 import { reduxForm, Field } from 'redux-form';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { RenderSelect } from '../basic/RenderSelect';
 import {
     createGroup,
@@ -421,9 +421,9 @@ export class GroupForm extends React.Component {
                                         <div className="bs-Modal-footer-actions">
                                             <button
                                                 className={`bs-Button bs-DeprecatedButton btn__modal ${editGroup
-                                                        ? requesting[groupId]
-                                                        : requesting &&
-                                                        'bs-is-disabled'
+                                                    ? requesting[groupId]
+                                                    : requesting &&
+                                                    'bs-is-disabled'
                                                     }`}
                                                 type="button"
                                                 onClick={() => {
@@ -447,9 +447,9 @@ export class GroupForm extends React.Component {
                                             <button
                                                 id="btnAddGroup"
                                                 className={`bs-Button bs-DeprecatedButton bs-Button--blue btn__modal ${editGroup
-                                                        ? requesting[groupId]
-                                                        : requesting &&
-                                                        'bs-is-disabled'
+                                                    ? requesting[groupId]
+                                                    : requesting &&
+                                                    'bs-is-disabled'
                                                     }`}
 
                                                 type="save"
@@ -532,7 +532,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

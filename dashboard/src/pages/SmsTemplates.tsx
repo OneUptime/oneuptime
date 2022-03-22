@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
-import Fade from 'react-awesome-reveal/Fade';
-import { bindActionCreators } from 'redux';
+import { Fade } from 'react-awesome-reveal';
+import { bindActionCreators, Dispatch } from 'redux';
 import SmsTemplatesBox from '../components/smsTemplates/SmsTemplatesBox';
 import SmsSmtpBox from '../components/smsTemplates/SmsSmtpBox';
 import { getSmsTemplates, getSmtpConfig } from '../actions/smsTemplates';
@@ -85,7 +85,7 @@ SmsTemplates.propTypes = {
     }),
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getSmsTemplates, getSmtpConfig }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getSmsTemplates, getSmtpConfig }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

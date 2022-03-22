@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import LicenseSetting from '../components/license/LicenseSetting';
@@ -42,7 +42,7 @@ class License extends Component {
 
 License.displayName = 'License';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchLicense }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchLicense }, dispatch);
 
 
 License.contextTypes = {};

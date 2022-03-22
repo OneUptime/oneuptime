@@ -944,7 +944,7 @@ const NewEditWebHook = compose(
     })
 )(EditWebHook);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateWebHook,
     },

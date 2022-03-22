@@ -1,4 +1,5 @@
 import { getApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/version';
 
 export const getVersionRequest = (promise: $TSFixMe) => {
@@ -29,7 +30,7 @@ export const resetGetVersion = () => {
 };
 
 export const getVersion = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         promise = getApi('version');
 

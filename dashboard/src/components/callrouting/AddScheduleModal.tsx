@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { Field, reduxForm } from 'redux-form';
 
@@ -15,7 +15,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import ScheduleComponent from './ScheduleComponent';
 import PropTypes from 'prop-types';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 export class AddScheduleModal extends Component {
     constructor(props: $TSFixMe) {
@@ -535,7 +535,7 @@ const AddScheduleModalForm = reduxForm({
     enableReinitialize: true,
 })(AddScheduleModal);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             addCallRoutingSchedule,

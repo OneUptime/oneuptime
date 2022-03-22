@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import TableComponent from './TableComponent';
 
@@ -40,7 +40,7 @@ TransactionMetricsTable.propTypes = {
     type: PropTypes.any,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 function mapStateToProps(state: $TSFixMe) {
     return {

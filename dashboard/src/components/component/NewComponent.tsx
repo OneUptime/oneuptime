@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
@@ -19,7 +19,7 @@ import { RenderField } from '../basic/RenderField';
 // import { makeCriteria } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import AddSeats from '../modals/AddSeats';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
@@ -375,7 +375,7 @@ const NewComponentForm = new reduxForm({
     enableReinitialize: true,
 })(NewComponent);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createComponent,
         createComponentSuccess,

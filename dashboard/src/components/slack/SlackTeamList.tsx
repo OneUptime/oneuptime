@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import SlackTeamItem from './SlackTeamItem';
 import { getSlackTeams, paginate } from '../../actions/slack';
@@ -227,7 +227,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     projectId: state.project.currentProject && state.project.currentProject._id
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         getSlackTeams,
         paginate,

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { DASHBOARD_URL } from '../../config';
 
@@ -196,6 +196,22 @@ export class ProjectDetails extends Component {
                                                             <div
                                                                 className={`Badge Badge--color--${this.props
 
+                                                                    .project
+                                                                    .deleted
+                                                                    ? 'red'
+                                                                    : this
+                                                                        .props
+
+                                                                        .project
+                                                                        .isBlocked
+                                                                        ? 'yellow'
+                                                                        : 'green'
+                                                                    } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                            >
+                                                                <span
+                                                                    className={`Badge-text Text-color--${this
+                                                                        .props
+
                                                                         .project
                                                                         .deleted
                                                                         ? 'red'
@@ -206,22 +222,6 @@ export class ProjectDetails extends Component {
                                                                             .isBlocked
                                                                             ? 'yellow'
                                                                             : 'green'
-                                                                    } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
-                                                            >
-                                                                <span
-                                                                    className={`Badge-text Text-color--${this
-                                                                            .props
-
-                                                                            .project
-                                                                            .deleted
-                                                                            ? 'red'
-                                                                            : this
-                                                                                .props
-
-                                                                                .project
-                                                                                .isBlocked
-                                                                                ? 'yellow'
-                                                                                : 'green'
                                                                         } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                 >
                                                                     <span>
@@ -279,7 +279,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 
 ProjectDetails.propTypes = {

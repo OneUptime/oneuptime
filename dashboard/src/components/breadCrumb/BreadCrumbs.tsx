@@ -6,7 +6,7 @@ import { CrumbItem, Breadcrumbs } from 'react-breadcrumbs-dynamic';
 import { PropTypes } from 'prop-types';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { closeIncident } from '../../actions/incident';
 
 function BreadCrumbs({
@@ -117,7 +117,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeIncident,

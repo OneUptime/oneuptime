@@ -39,7 +39,7 @@ const enhancers = [];
 const logger = createLogger();
 const middleware = [thunk, routerMiddleware(history)];
 
-if (process.env.NODE_ENV === 'development') {
+if (process.env['NODE_ENV'] === 'development') {
     let devToolsExtension;
     if (!isServer) {
         devToolsExtension = window.devToolsExtension;

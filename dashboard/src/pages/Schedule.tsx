@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import DeleteBox from '../components/schedule/DeleteBox';
 import MonitorBox from '../components/schedule/MonitorBox';
 import RenameScheduleBox from '../components/schedule/RenameScheduleBox';
@@ -9,7 +9,7 @@ import OnCallAlertBox from '../components/schedule/OnCallAlertBox';
 import PropTypes from 'prop-types';
 import EscalationSummary from '../components/schedule/EscalationSummary';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { subProjectTeamLoading } from '../actions/team';
 import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
@@ -213,7 +213,7 @@ class Schedule extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { getEscalation, subProjectTeamLoading, teamLoading },
     dispatch
 );

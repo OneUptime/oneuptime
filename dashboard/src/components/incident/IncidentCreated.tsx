@@ -3,12 +3,12 @@ import moment from 'moment';
 
 import { PropTypes } from 'prop-types';
 
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 
 class IncidentCreated extends Component {
     markAsRead = (notification: $TSFixMe) => {
@@ -191,7 +191,7 @@ const mapStateToProps = () => {
     return {};
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ markAsRead, closeNotification }, dispatch);
 };
 

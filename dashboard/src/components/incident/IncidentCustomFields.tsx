@@ -2,11 +2,11 @@ import React, { Component } from 'react';
 
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { fetchCustomFields, paginate } from '../../actions/customField';
 import DeleteCustomField from '../modals/DeleteCustomField';
 import CreateCustomField from '../modals/CreateCustomField';
@@ -397,7 +397,7 @@ IncidentCustomFields.propTypes = {
     page: PropTypes.number,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         fetchCustomFields,

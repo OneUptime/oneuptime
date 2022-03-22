@@ -3,12 +3,12 @@ import React, { Component } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteProject } from '../../actions/project';
 import ProjectDeleteModal from './ProjectDeleteModal';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 export class ProjectDeleteBox extends Component {
     constructor(props: $TSFixMe) {
@@ -95,7 +95,7 @@ export class ProjectDeleteBox extends Component {
 
 ProjectDeleteBox.displayName = 'ProjectDeleteBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     const project = state.project.project.project;

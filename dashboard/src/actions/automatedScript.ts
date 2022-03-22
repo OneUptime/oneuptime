@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/automatedScript';
 
 export const resetScripts = (data: $TSFixMe) => {
@@ -30,7 +31,7 @@ export const createAutomatedScriptFailure = (error: $TSFixMe) => {
 };
 
 export const createAutomatedScript = (projectId: $TSFixMe, data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`automated-scripts/${projectId}`, data);
 
         dispatch(createAutomatedScriptRequest());
@@ -88,7 +89,7 @@ export function updateAutomatedScript(
     automatedScriptId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `automated-scripts/${projectId}/${automatedScriptId}`,
             data
@@ -150,7 +151,7 @@ export function fetchSingleAutomatedScript(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `automated-scripts/${projectId}/${automatedSlug}?skip=${skip}&limit=${limit}`
         );
@@ -200,7 +201,7 @@ export function fetchAutomatedScript(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `automated-scripts/${projectId}?skip=${skip}&limit=${limit}`
         );
@@ -247,7 +248,7 @@ export const runAutomatedScriptSuccess = (data: $TSFixMe) => {
 };
 
 export const runScript = (projectId: $TSFixMe, automatedScriptId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `automated-scripts/${projectId}/${automatedScriptId}/run`
         );
@@ -302,7 +303,7 @@ export function deleteAutomatedScript(
     projectId: $TSFixMe,
     automatedSlug: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `automated-scripts/${projectId}/${automatedSlug}`
         );

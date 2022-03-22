@@ -5,7 +5,7 @@ import ClickOutside from 'react-click-outside';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import {
     runScript,
     fetchAutomatedScript,
@@ -187,7 +187,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { runScript, fetchAutomatedScript, fetchSingleAutomatedScript },
     dispatch
 );

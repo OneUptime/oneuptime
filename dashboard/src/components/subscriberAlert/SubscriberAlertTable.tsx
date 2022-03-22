@@ -2,10 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 import AlertDetails from '../modals/AlertDetails';
 

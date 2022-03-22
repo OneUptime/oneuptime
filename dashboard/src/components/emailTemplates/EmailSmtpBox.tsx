@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { Component } from 'react';
 
@@ -686,7 +686,7 @@ const EmailSmtpBoxForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(EmailSmtpBox);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             setSmtpConfig,

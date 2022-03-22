@@ -1,4 +1,5 @@
 import { getApi, postApi, deleteApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/auditLogs';
 import errors from '../errors';
 
@@ -24,7 +25,7 @@ export const fetchAuditLogsError = (error: $TSFixMe) => {
 };
 
 export const fetchAuditLogs =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -79,7 +80,7 @@ export const searchAuditLogsError = (error: $TSFixMe) => {
 
 export const searchAuditLogs =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         const values = {
             filter,
         };
@@ -133,7 +134,7 @@ export const deleteAuditLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const deleteAuditLogs = () => async (dispatch: $TSFixMe) => {
+export const deleteAuditLogs = () => async (dispatch: Dispatch) => {
     dispatch(deleteAuditLogsRequest());
 
     try {
@@ -188,7 +189,7 @@ export const resetFetchAuditLogStatus = () => {
 };
 
 // Calls the API to fetch auditLogStatus
-export const fetchAuditLogStatus = () => async (dispatch: $TSFixMe) => {
+export const fetchAuditLogStatus = () => async (dispatch: Dispatch) => {
     dispatch(fetchAuditLogStatusRequest());
 
     try {
@@ -244,7 +245,7 @@ export const resetConfirmAuditLogStatus = () => {
 
 // Calls the API to change auditLogStatus
 export const auditLogStatusChange =
-    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(changeAuditLogStatusRequest());
 
         try {

@@ -7,6 +7,7 @@ import {
     CLOSE_SEARCH_BAR,
 } from '../constants/search';
 import { postApi } from '../api';
+import { Dispatch } from 'redux';
 import errors from '../errors';
 
 export const showSearchBar = function () {
@@ -19,7 +20,7 @@ export const closeSearchBar = function () {
         type: CLOSE_SEARCH_BAR,
     };
 };
-export const resetSearch = () => async (dispatch: $TSFixMe) =>
+export const resetSearch = () => async (dispatch: Dispatch) =>
     dispatch({
         type: RESET_SEARCH_FIELDS,
     });
@@ -41,7 +42,7 @@ export const searchFailure = (payload: $TSFixMe) => {
     };
 };
 export const search = (projectId: $TSFixMe, values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch(searchRequest());
         const promise = postApi(`search/${projectId}`, values);
         promise.then(

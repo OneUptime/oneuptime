@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { deleteWebHook, updateWebHook } from '../../actions/webHook';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DeleteWebhook from '../modals/DeleteWebhook';
 import EditWebhook from '../modals/EditWebhook';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
@@ -174,7 +174,7 @@ class WebHookInput extends React.Component {
 
 WebHookInput.displayName = 'WebHookInput';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteWebHook,
         updateWebHook,

@@ -1,6 +1,6 @@
 import { getApi, getApiDocs, getApiHelm, getApiDashboard } from '../api';
 import * as types from '../constants/version';
-
+import { Dispatch } from 'redux';
 export const getVersionRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_VERSION_REQUEST,
@@ -29,7 +29,7 @@ export const resetGetVersion = () => {
 };
 
 export const getVersion = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         let backendPromise = null;
         let helmChartPromise = null;

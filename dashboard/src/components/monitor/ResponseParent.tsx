@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 
@@ -35,8 +35,8 @@ export class ResponseParent extends Component {
                                                 padding: '10px 4px 5px 4px',
                                                 display: 'inline-block',
                                                 marginLeft: `${level > 1
-                                                        ? level * 10
-                                                        : 10
+                                                    ? level * 10
+                                                    : 10
                                                     }px`,
                                             }}
                                         >
@@ -359,7 +359,7 @@ ResponseParent.propTypes = {
     criterionType: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 
 export default connect({}, mapDispatchToProps)(ResponseParent);

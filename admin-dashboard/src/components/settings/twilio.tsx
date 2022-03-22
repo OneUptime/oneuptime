@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, Field } from 'redux-form';
@@ -244,7 +244,7 @@ Component.propTypes = {
     fetchSettings: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             saveSettings,

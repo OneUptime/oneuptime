@@ -3,10 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DisableMonitor from '../modals/DisableMonitor';
 import { disableMonitor } from '../../actions/monitor';
 import DataPathHoC from '../DataPathHoC';
@@ -134,7 +134,7 @@ export class MonitorViewDisableBox extends Component {
 
 MonitorViewDisableBox.displayName = 'MonitorViewDisableBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal, disableMonitor }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, disableMonitor }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

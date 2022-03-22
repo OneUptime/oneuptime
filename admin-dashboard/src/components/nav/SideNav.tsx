@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
 import { allRoutes, groups } from '../../routes';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { closeSideNav } from '../../actions/page';
 
 import ClickOutside from 'react-click-outside';
@@ -120,7 +120,7 @@ const mapStateToProps = function (state: $TSFixMe) {
     };
 };
 
-const mapDispatchToProps = function (dispatch: $TSFixMe) {
+const mapDispatchToProps = function (dispatch: Dispatch) {
     return bindActionCreators(
         {
             openModal,

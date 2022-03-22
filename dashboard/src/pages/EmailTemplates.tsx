@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import EmailTemplatesBox from '../components/emailTemplates/EmailTemplatesBox';
 import EmailSmtpBox from '../components/emailTemplates/EmailSmtpBox';
 import { getEmailTemplates, getSmtpConfig } from '../actions/emailTemplates';
@@ -85,7 +85,7 @@ EmailTemplates.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getEmailTemplates, getSmtpConfig }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getEmailTemplates, getSmtpConfig }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

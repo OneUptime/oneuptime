@@ -1,9 +1,10 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTracker';
 import { encode } from 'js-base64';
 
 export const setStartDate = (date: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch({
             type: 'SET_START_DATE',
             payload: date,
@@ -12,7 +13,7 @@ export const setStartDate = (date: $TSFixMe) => {
 };
 
 export const setEndDate = (date: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch({
             type: 'SET_END_DATE',
             payload: date,
@@ -41,7 +42,7 @@ export const createPerformanceTrackerReset = () => ({
 
 export const createPerformanceTracker =
     ({ projectId, componentId, values }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(createPerformanceTrackerRequest());
         const promise = postApi(
             `performanceTracker/${projectId}/${componentId}/create`,
@@ -89,7 +90,7 @@ export const fetchPerformanceTrackerReset = () => ({
 
 export const fetchPerformanceTracker =
     ({ projectId, performanceTrackerId, slug }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchPerformanceTrackerRequest());
         const promise = getApi(
             `performanceTracker/${projectId}/tracker/${performanceTrackerId}?slug=${slug}`
@@ -143,7 +144,7 @@ export const fetchPerformanceTrackers =
         limit = 0,
         fetchingPage = false,
     }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchPerformanceTrackersRequest(fetchingPage));
         const promise = getApi(
             `performanceTracker/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
@@ -190,7 +191,7 @@ export const updatePerformanceTrackerReset = () => ({
 
 export const updatePerformanceTracker =
     ({ projectId, componentId, performanceTrackerId, values }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(updatePerformanceTrackerRequest());
         const promise = putApi(
             `performanceTracker/${projectId}/${componentId}/update-tracker/${performanceTrackerId}`,
@@ -238,7 +239,7 @@ export const deletePerformanceTrackerReset = () => ({
 
 export const deletePerformanceTracker =
     ({ projectId, performanceTrackerId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(deletePerformanceTrackerRequest());
 
         const promise = deleteApi(
@@ -286,7 +287,7 @@ export const resetPerformanceTrackerKeyReset = () => ({
 
 export const resetPerformanceTrackerKey =
     ({ projectId, performanceTrackerId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(resetPerformanceTrackerKeyRequest());
         const promise = putApi(
             `performanceTracker/${projectId}/reset-key/${performanceTrackerId}`,
@@ -330,7 +331,7 @@ export const removeQuickStartFailure = (error: $TSFixMe) => ({
 
 export const removeQuickStart =
     ({ projectId, performanceTrackerId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(removeQuickStartRequest());
         const promise = putApi(
             `performanceTracker/${projectId}/remove-quickstart/${performanceTrackerId}`,
@@ -374,7 +375,7 @@ export const fetchLastMetricsFailure = (error: $TSFixMe) => ({
 
 export const fetchLastMetrics =
     ({ projectId, performanceTrackerId, startDate, endDate }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchLastMetricsRequest());
 
         startDate = encode(startDate);
@@ -405,7 +406,7 @@ export const fetchLastMetrics =
     };
 
 export const addPerformanceTracker =
-    (payload: $TSFixMe) => (dispatch: $TSFixMe) => {
+    (payload: $TSFixMe) => (dispatch: Dispatch) => {
         return dispatch({
             type: types.ADD_PERFORMANCE_TRACKER,
             payload,

@@ -3,7 +3,7 @@ import { FormLoader } from '../basic/Loader';
 
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { fetchSmsLogStatus, smsLogStatusChange } from '../../actions/smsLogs';
 
@@ -152,7 +152,7 @@ class SmsLog extends Component {
 
 SmsLog.displayName = 'SmsLog';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchSmsLogStatus, smsLogStatusChange },
         dispatch

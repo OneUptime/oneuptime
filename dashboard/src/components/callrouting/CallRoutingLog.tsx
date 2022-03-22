@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -372,7 +372,7 @@ CallRoutingLog.propTypes = {
     skip: PropTypes.number,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getCallRoutingLogs }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getCallRoutingLogs }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

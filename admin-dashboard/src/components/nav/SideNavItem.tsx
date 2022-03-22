@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import { Link, withRouter } from 'react-router-dom';
@@ -202,7 +202,7 @@ SidebarNavItem.displayName = 'SidebarNavItem';
 
 const mapStateToProps = () => ({});
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ loadPage }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ loadPage }, dispatch);
 
 
 SidebarNavItem.propTypes = {

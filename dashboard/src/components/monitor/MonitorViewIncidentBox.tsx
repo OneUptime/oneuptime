@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import IncidentList from '../incident/IncidentList';
@@ -9,7 +9,7 @@ import { FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
 
@@ -266,7 +266,7 @@ MonitorViewIncidentBox.propTypes = {
     closeModal: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { fetchMonitorsIncidents, openModal, closeModal, createNewIncident },
     dispatch
 );

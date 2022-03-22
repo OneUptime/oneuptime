@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { sendEmailVerificationLink } from '../../actions/profile';
 import { ListLoader } from '../basic/Loader';
@@ -106,7 +106,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ sendEmailVerificationLink }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ sendEmailVerificationLink }, dispatch);
 
 
 UnVerifiedEmailBox.displayName = 'UnVerifiedEmailBox';

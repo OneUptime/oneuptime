@@ -1,4 +1,5 @@
 import { getApi, putApi, postApi, deleteApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/incidentBasicSettings';
 import errors from '../errors';
 
@@ -17,7 +18,7 @@ const fetchBasicIncidentSettingsVariablesFailure = (payload: $TSFixMe) => ({
 });
 
 export const fetchBasicIncidentSettingsVariables = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());
         promise.then(
@@ -48,7 +49,7 @@ export const fetchBasicIncidentSettingsVariables = () => {
 };
 
 export const setRevealIncidentSettingsVariables =
-    (payload: $TSFixMe) => (dispatch: $TSFixMe) => {
+    (payload: $TSFixMe) => (dispatch: Dispatch) => {
         dispatch({
             type: types.SET_REVEAL_VARIABLES_INCIDENT_BASIC_SETTINGS,
             payload,
@@ -72,7 +73,7 @@ export const fetchIncidentTemplatesFailure = (error: $TSFixMe) => ({
 
 export const fetchIncidentTemplates =
     ({ projectId, skip, limit }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}?skip=${skip}&limit=${limit}`;
 
         const promise = getApi(url);
@@ -118,7 +119,7 @@ export const createIncidentTemplateFailure = (error: $TSFixMe) => ({
 
 export const createIncidentTemplate =
     ({ projectId, data }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}`;
 
         const promise = postApi(url, data);
@@ -164,7 +165,7 @@ export const updateIncidentTemplateFailure = (error: $TSFixMe) => ({
 
 export const updateIncidentTemplate =
     ({ projectId, templateId, data }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}/${templateId}`;
 
         const promise = putApi(url, data);
@@ -210,7 +211,7 @@ export const deleteIncidentTemplateFailure = (error: $TSFixMe) => ({
 
 export const deleteIncidentTemplate =
     ({ projectId, templateId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}/${templateId}`;
 
         const promise = deleteApi(url);
@@ -256,7 +257,7 @@ export const setDefaultTemplateFailure = (error: $TSFixMe) => ({
 
 export const setDefaultTemplate =
     ({ projectId, templateId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}/${templateId}/setDefault`;
 
         const promise = putApi(url, {});
@@ -306,7 +307,7 @@ export const fetchDefaultTemplateFailure = (error: $TSFixMe) => ({
 
 export const fetchDefaultTemplate =
     ({ projectId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}/default`;
 
         const promise = getApi(url);

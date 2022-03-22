@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
@@ -8,7 +8,7 @@ import { fetchResourceCategories } from '../../actions/resourceCategories';
 import AddResourceCategoryForm from '../modals/AddResourceCategory';
 import RemoveResourceCategory from '../modals/RemoveResourceCategory';
 import EditResourceCategory from '../modals/EditResourceCategory';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -451,7 +451,7 @@ ResourceCategories.propTypes = {
     modalList: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchResourceCategories,
         openModal,

@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import { Validate } from '../config';
 import { ButtonSpinner } from '../components/basic/Loader';
 import { resendToken } from '../actions/resendToken';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { RenderField } from '../components/basic/RenderField';
 
 import { Link } from 'react-router-dom';
@@ -207,7 +207,7 @@ const resendTokenForm = reduxForm({
     validate,
 })(ResendTokenForm);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             resendToken,

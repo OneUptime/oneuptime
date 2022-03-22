@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { IS_LOCALHOST } from '../../config';
 import { fetchIncidentStatusPages } from '../../actions/statusPage';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 
@@ -84,7 +84,7 @@ const IncidentStatusPages = ({
                                         const statusPageLink = IS_LOCALHOST
                                             ? `http://${statusPage.slug}.localhost:3006`
                                             : window.location.origin +
-                                              `/status-page/${statusPage.slug}`;
+                                            `/status-page/${statusPage.slug}`;
                                         return (
                                             <tr
                                                 key={statusPage._id}
@@ -185,12 +185,10 @@ const IncidentStatusPages = ({
                         <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                             <span>
                                 {numberOfPages > 0
-                                    ? `Page ${page} of ${numberOfPages} (${count} Status Page${
-                                          count === 1 ? '' : 's'
-                                      })`
-                                    : `${count} Status Page${
-                                          count === 1 ? '' : 's'
-                                      }`}
+                                    ? `Page ${page} of ${numberOfPages} (${count} Status Page${count === 1 ? '' : 's'
+                                    })`
+                                    : `${count} Status Page${count === 1 ? '' : 's'
+                                    }`}
                             </span>
                         </span>
                     </div>
@@ -199,9 +197,8 @@ const IncidentStatusPages = ({
                             <div className="Box-root Margin-right--8">
                                 <button
                                     id="btnPrev"
-                                    className={`Button bs-ButtonLegacy ${
-                                        !(skip > 0) ? 'Is--disabled' : ''
-                                    }`}
+                                    className={`Button bs-ButtonLegacy ${!(skip > 0) ? 'Is--disabled' : ''
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!(skip > 0)}
                                     type="button"
@@ -217,11 +214,10 @@ const IncidentStatusPages = ({
                             <div className="Box-root">
                                 <button
                                     id="btnNext"
-                                    className={`Button bs-ButtonLegacy ${
-                                        !(skip + limit < count)
-                                            ? 'Is--disabled'
-                                            : ''
-                                    }`}
+                                    className={`Button bs-ButtonLegacy ${!(skip + limit < count)
+                                        ? 'Is--disabled'
+                                        : ''
+                                        }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!(skip + limit < count)}
                                     type="button"
@@ -244,7 +240,7 @@ const IncidentStatusPages = ({
 
 IncidentStatusPages.displayName = 'IncidentStatusPage';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchIncidentStatusPages,

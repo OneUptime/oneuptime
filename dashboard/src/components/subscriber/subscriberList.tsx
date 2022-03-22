@@ -1,6 +1,6 @@
 import React, { Component, useState } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import countryTelephoneCode from 'country-telephone-code';
@@ -12,7 +12,7 @@ import { FormLoader2 } from '../basic/Loader';
 import { deleteSubscriber } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSubscriber from '../modals/DeleteSubscriber';
 
@@ -520,7 +520,7 @@ export class SubscriberList extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { deleteSubscriber, fetchMonitorsSubscribers, openModal },
         dispatch

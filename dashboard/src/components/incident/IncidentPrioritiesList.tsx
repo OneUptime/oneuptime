@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 class IncidentPrioritiesListClass extends React.Component {
     render() {
@@ -139,7 +139,7 @@ IncidentPrioritiesListClass.propTypes = {
     handleDeleteIncidentPriority: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
     },

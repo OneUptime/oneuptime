@@ -20,7 +20,7 @@ import {
 import moment from 'moment';
 
 import { Helmet } from 'react-helmet';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     getStatusPage,
@@ -1775,7 +1775,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         getStatusPage,
         selectedProbe,

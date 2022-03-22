@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
@@ -55,7 +55,7 @@ class NewScript extends Component {
         this.setState({ ...this.state, script: value });
     };
 
-    submit = (values: $TSFixMe, dispatch: $TSFixMe) => {
+    submit = (values: $TSFixMe, dispatch: Dispatch) => {
         this.setState({
             successEventError: null,
             failureEventError: null,
@@ -804,7 +804,7 @@ const NewScriptForm = new reduxForm({
     enableReinitialize: true,
 })(NewScript);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createAutomatedScript,
         resetScripts,

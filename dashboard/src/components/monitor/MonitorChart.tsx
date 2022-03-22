@@ -10,8 +10,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { Spinner } from '../basic/Loader';
-import { openModal } from '../../actions/modal';
-import { bindActionCreators } from 'redux';
+import { openModal } from 'common-ui/actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
 import KubePods from '../modals/KubePods';
 import KubeJobs from '../modals/KubeJobs';
 import KubeStatefulset from '../modals/KubeStatefulset';
@@ -1696,16 +1696,16 @@ export function MonitorChart({
                                                 {' '}
                                                 <span
                                                     className={`chart-font Text-color--${sslCertificate
-                                                            ? sslCertificate.selfSigned
-                                                                ? 'yellow'
-                                                                : sslCertExpiringIn <
-                                                                    30
-                                                                    ? sslCertExpiringIn <
-                                                                        10
-                                                                        ? 'red'
-                                                                        : 'yellow'
-                                                                    : 'green'
-                                                            : 'red'
+                                                        ? sslCertificate.selfSigned
+                                                            ? 'yellow'
+                                                            : sslCertExpiringIn <
+                                                                30
+                                                                ? sslCertExpiringIn <
+                                                                    10
+                                                                    ? 'red'
+                                                                    : 'yellow'
+                                                                : 'green'
+                                                        : 'red'
                                                         }`}
                                                 >
                                                     <small
@@ -2200,6 +2200,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorChart);

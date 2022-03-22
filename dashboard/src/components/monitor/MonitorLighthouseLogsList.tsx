@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
@@ -10,7 +10,7 @@ import DeleteSiteUrl from '../modals/DeleteSiteUrl';
 import moment from 'moment';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 export class MonitorLighthouseLogsList extends Component {
     constructor(props: $TSFixMe) {
@@ -165,8 +165,8 @@ export class MonitorLighthouseLogsList extends Component {
                                     return (
                                         <tr
                                             id={`lighthouseLogs_${monitor.name
-                                                    ? monitor.name
-                                                    : 'Unknown Monitor'
+                                                ? monitor.name
+                                                : 'Unknown Monitor'
                                                 }_${i}`}
                                             key={i}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink lighthouseLogsListItem"
@@ -202,8 +202,8 @@ export class MonitorLighthouseLogsList extends Component {
                                                         <div
                                                             className="Box-root Margin-right--16"
                                                             id={`lighthouseUrl_${monitor.name
-                                                                    ? monitor.name
-                                                                    : 'Unknown Monitor'
+                                                                ? monitor.name
+                                                                : 'Unknown Monitor'
                                                                 }_${i}`}
                                                         >
                                                             <span>
@@ -724,7 +724,7 @@ function mapStateToProps(state: $TSFixMe) {
     };
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, deleteSiteUrl },
         dispatch

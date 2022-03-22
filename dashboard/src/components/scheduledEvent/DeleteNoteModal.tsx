@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { deleteScheduledEventNote } from '../../actions/scheduledEvent';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 
 class DeleteNoteModal extends Component {
     componentDidMount() {
@@ -147,6 +147,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ deleteScheduledEventNote, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteScheduledEventNote, closeModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteNoteModal);

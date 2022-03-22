@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import IncidentTimelineList from './IncidentTimelineList';
@@ -73,7 +73,7 @@ IncidentTimelineBox.propTypes = {
     previous: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getIncidentTimeline }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getIncidentTimeline }, dispatch);
 
 function mapStateToProps(state: $TSFixMe) {
     return {

@@ -1,5 +1,6 @@
 import * as types from '../constants/customField';
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 
 export const createCustomFieldRequest = () => ({
     type: types.CREATE_CUSTOM_FIELD_REQUEST,
@@ -16,7 +17,7 @@ export const createCustomFieldFailure = (error: $TSFixMe) => ({
 });
 
 export const createCustomField =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createCustomFieldRequest());
 
@@ -52,7 +53,7 @@ export const updateCustomFieldFailure = (error: $TSFixMe) => ({
 
 export const updateCustomField =
     ({ projectId, customFieldId, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(updateCustomFieldRequest());
 
@@ -91,7 +92,7 @@ export const fetchCustomFieldsFailure = (error: $TSFixMe) => ({
 
 export const fetchCustomFields =
     (projectId: $TSFixMe, skip = 0, limit = 0) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(fetchCustomFieldsRequest());
 
@@ -134,7 +135,7 @@ export const deleteCustomFieldFailure = (error: $TSFixMe) => ({
 
 export const deleteCustomField =
     (projectId: $TSFixMe, customFieldId: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCustomFieldRequest());
 

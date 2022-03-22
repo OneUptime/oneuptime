@@ -1,5 +1,6 @@
 import * as types from '../constants/monitorSla';
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 
 export const createMonitorSlaRequest = () => ({
     type: types.CREATE_MONITOR_SLA_REQUEST,
@@ -16,7 +17,7 @@ export const createMonitorSlaFailure = (error: $TSFixMe) => ({
 });
 
 export const createMonitorSla =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createMonitorSlaRequest());
 
@@ -57,7 +58,7 @@ export const updateMonitorSla =
         data: $TSFixMe,
         handleDefault = false
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(updateMonitorSlaRequest());
 
@@ -97,7 +98,7 @@ export const fetchMonitorSlasFailure = (error: $TSFixMe) => ({
 
 export const fetchMonitorSlas =
     (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(fetchMonitorSlasRequest());
 
@@ -135,7 +136,7 @@ export const deleteMonitorSlaFailure = (error: $TSFixMe) => ({
 
 export const deleteMonitorSla =
     (projectId: $TSFixMe, monitorSlaId: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(deleteMonitorSlaRequest());
 
@@ -178,7 +179,7 @@ export const fetchDefaultMonitorSlaFailure = (error: $TSFixMe) => ({
 });
 
 export const fetchDefaultMonitorSla =
-    (projectId: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultMonitorSlaRequest());
 

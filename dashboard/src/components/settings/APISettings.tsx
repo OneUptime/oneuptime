@@ -2,14 +2,14 @@
 import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { resetProjectToken } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
 import ResetAPIKey from '../modals/ResetAPIKey';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 import { API_URL } from '../../config';
 import TooltipMini from '../basic/TooltipMini';
@@ -234,7 +234,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     isRequesting: state.project.resetToken.requesting
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ resetProjectToken, openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ resetProjectToken, openModal }, dispatch);
 
 
 APISettings.propTypes = {

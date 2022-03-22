@@ -4,7 +4,7 @@ import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { getAnnouncements } from '../actions/status';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { handleResources } from '../config';
 import ShouldRender from './ShouldRender';
 import Markdown from 'markdown-to-jsx';
@@ -113,7 +113,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getAnnouncements }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getAnnouncements }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Announcement);
 

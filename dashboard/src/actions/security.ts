@@ -1,5 +1,6 @@
 import * as types from '../constants/security';
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 
 // Add Container Security
 export const addContainerSecurityRequest = () => ({
@@ -18,7 +19,7 @@ export const addContainerSecurityFailure = (error: $TSFixMe) => ({
 
 export const addContainerSecurity =
     ({ projectId, componentId, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(addContainerSecurityRequest());
 
         try {
@@ -58,7 +59,7 @@ export const getContainerSecurityFailure = (error: $TSFixMe) => ({
 
 export const getContainerSecurity =
     ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityRequest());
 
         try {
@@ -82,7 +83,7 @@ export const getContainerSecurity =
 
 export const getContainerSecurityBySlug =
     ({ projectId, componentId, containerSecuritySlug }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityRequest());
 
         try {
@@ -128,7 +129,7 @@ export const getContainerSecurities =
         limit = 0,
         fetchingPage = false,
     }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getContainerSecuritiesRequest(fetchingPage));
 
         try {
@@ -167,7 +168,7 @@ export const deleteContainerSecurityFailure = (error: $TSFixMe) => ({
 
 export const deleteContainerSecurity =
     ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(deleteContainerSecurityRequest());
 
         try {
@@ -209,7 +210,7 @@ export const scanContainerSecurityFailure = (error: $TSFixMe) => ({
 
 export const scanContainerSecurity =
     ({ projectId, containerSecurityId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(scanContainerSecurityRequest());
         dispatch(setActiveContainerSecurity(containerSecurityId));
 
@@ -247,7 +248,7 @@ export const getContainerSecurityLogFailure = (error: $TSFixMe) => ({
 
 export const getContainerSecurityLog =
     ({ projectId, componentId, containerSecurityId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityLogRequest());
 
         try {
@@ -271,7 +272,7 @@ export const getContainerSecurityLog =
 
 export const getContainerSecurityLogBySlug =
     ({ projectId, componentId, containerSecuritySlug }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityLogRequest());
 
         try {
@@ -310,7 +311,7 @@ export const getContainerSecurityLogsFailure = (error: $TSFixMe) => ({
 
 export const getContainerSecurityLogs =
     ({ projectId, componentId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getContainerSecurityLogsRequest());
 
         try {
@@ -353,7 +354,7 @@ export function editContainerSecurity({
     containerSecurityId,
     data,
 }: $TSFixMe) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`,
             data
@@ -398,7 +399,7 @@ export const addApplicationSecurityFailure = (error: $TSFixMe) => ({
 
 export const addApplicationSecurity =
     ({ projectId, componentId, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(addApplicationSecurityRequest());
 
         try {
@@ -438,7 +439,7 @@ export const getApplicationSecurityFailure = (error: $TSFixMe) => ({
 
 export const getApplicationSecurity =
     ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityRequest());
 
         try {
@@ -462,7 +463,7 @@ export const getApplicationSecurity =
 
 export const getApplicationSecurityBySlug =
     ({ projectId, componentId, applicationSecuritySlug }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityRequest());
 
         try {
@@ -508,7 +509,7 @@ export const getApplicationSecurities =
         limit = 0,
         fetchingPage = false,
     }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getApplicationSecuritiesRequest(fetchingPage));
 
         try {
@@ -547,7 +548,7 @@ export const deleteApplicationSecurityFailure = (error: $TSFixMe) => ({
 
 export const deleteApplicationSecurity =
     ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(deleteApplicationSecurityRequest());
 
         try {
@@ -589,7 +590,7 @@ export const scanApplicationSecurityFailure = (error: $TSFixMe) => ({
 
 export const scanApplicationSecurity =
     ({ projectId, applicationSecurityId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(scanApplicationSecurityRequest());
         dispatch(setActiveApplicationSecurity(applicationSecurityId));
         try {
@@ -626,7 +627,7 @@ export const getApplicationSecurityLogFailure = (error: $TSFixMe) => ({
 
 export const getApplicationSecurityLog =
     ({ projectId, componentId, applicationSecurityId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityLogRequest());
 
         try {
@@ -650,7 +651,7 @@ export const getApplicationSecurityLog =
 
 export const getApplicationSecurityLogBySlug =
     ({ projectId, componentId, applicationSecuritySlug }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityLogRequest());
 
         try {
@@ -689,7 +690,7 @@ export const getApplicationSecurityLogsFailure = (error: $TSFixMe) => ({
 
 export const getApplicationSecurityLogs =
     ({ projectId, componentId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getApplicationSecurityLogsRequest());
 
         try {
@@ -732,7 +733,7 @@ export function editApplicationSecurity({
     applicationSecurityId,
     data,
 }: $TSFixMe) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`,
             data

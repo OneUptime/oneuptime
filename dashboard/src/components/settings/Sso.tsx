@@ -1,12 +1,12 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
 import { fetchSsos, deleteSso, fetchSso } from '../../actions/sso';
 import moment from 'moment';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import SsoDeleteModal from './SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './SsoModal';
 import ShouldRender from '../basic/ShouldRender';
@@ -469,7 +469,7 @@ Sso.propTypes = {
     projectId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchSsos,

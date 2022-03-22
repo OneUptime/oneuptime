@@ -5,7 +5,7 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { deleteExternalStatusPage } from '../../actions/statusPage';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 class RemoveExternalStatusPage extends Component {
     componentDidMount() {
@@ -131,7 +131,7 @@ const mapStateToProps = (state: $TSFixMe) => {
         requesting: state.statusPage.externalStatusPages.requesting,
     };
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             deleteExternalStatusPage,

@@ -1,7 +1,7 @@
 /*eslint-disable*/
 import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { history } from '../../store';
@@ -9,7 +9,7 @@ import ConfirmScanModal from '../modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import IssueIndicator from './IssueIndicator';
 import Badge from '../common/Badge';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import threatLevel from '../../utils/threatLevel';
@@ -405,7 +405,7 @@ SecurityInfo.propTypes = {
     scannedStatus: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

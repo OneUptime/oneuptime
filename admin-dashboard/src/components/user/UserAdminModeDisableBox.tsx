@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { disableAdminMode } from '../../actions/user';
@@ -66,7 +66,7 @@ export class UserAdminModeDisableBox extends Component {
 
 UserAdminModeDisableBox.displayName = 'UserAdminModeDisableBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ disableAdminMode }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ disableAdminMode }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;

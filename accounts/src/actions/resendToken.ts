@@ -1,4 +1,5 @@
 import { postApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/resendToken';
 import errors from '../errors';
 
@@ -24,7 +25,7 @@ export const resendTokenSuccess = (data: $TSFixMe) => {
 };
 
 export const resendTokenReset = () => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch({
             type: types.RESENDTOKEN_RESET,
         });
@@ -32,7 +33,7 @@ export const resendTokenReset = () => {
 };
 
 export const resendToken = (values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi('user/resend', values);
         dispatch(resendTokenRequest(promise));
 

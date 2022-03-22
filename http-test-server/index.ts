@@ -18,7 +18,7 @@ import http from 'http';
 const { NODE_ENV } = process.env;
 
 if (NODE_ENV === 'local' || NODE_ENV === 'development')
-    require('custom-env').env(process.env.NODE_ENV);
+    require('custom-env').env(process.env['NODE_ENV']);
 
 global.httpServerResponse = {
     statusCode: 200,

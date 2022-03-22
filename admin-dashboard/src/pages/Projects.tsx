@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import ProjectList from '../components/project/ProjectList';
 import { fetchProjects, searchProjects } from '../actions/project';
@@ -159,7 +159,7 @@ class Projects extends React.Component {
 
 Projects.displayName = 'Projects';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ fetchProjects, searchProjects }, dispatch);
 };
 

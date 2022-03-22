@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { deleteErrorTracker } from '../../actions/errorTracker';
 
@@ -92,7 +92,7 @@ class ErrorTrackerViewDeleteBox extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const componentId = props.errorTracker.componentId._id;

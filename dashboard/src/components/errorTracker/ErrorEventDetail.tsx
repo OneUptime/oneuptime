@@ -11,7 +11,7 @@ import {
     resolveErrorEvent,
     deleteErrorTrackerIssue,
 } from '../../actions/errorTracker';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import Notification from '../basic/Notification';
 import ShouldRender from '../basic/ShouldRender';
@@ -19,7 +19,7 @@ import ErrorTrackerIssueTimeline from './ErrorTrackerIssueTimeline';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DeleteErrorTrackerIssue from '../modals/DeleteErrorTrackerIssue';
 import { history } from '../../store';
 
@@ -199,7 +199,7 @@ class ErrorEventDetail extends Component {
         );
     }
 }
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             ignoreErrorEvent,

@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { deleteMsTeams, updateMsTeams } from '../../actions/msteamsWebhook';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DeleteMsTeams from '../modals/DeleteMsTeamsWebhook';
 import EditMsTeams from '../modals/EditMsTeamsWebhook';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
@@ -204,7 +204,7 @@ class MSTeamsItem extends React.Component {
 
 MSTeamsItem.displayName = 'WebHookInput';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteMsTeams,
         updateMsTeams,

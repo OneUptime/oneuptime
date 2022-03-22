@@ -5,12 +5,12 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import { withRouter } from 'react-router-dom';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteSchedule, fetchUserSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 export class DeleteScheduleBox extends Component {
     constructor(props: $TSFixMe) {
@@ -101,7 +101,7 @@ export class DeleteScheduleBox extends Component {
 
 DeleteScheduleBox.displayName = 'DeleteScheduleBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteSchedule,
         openModal,

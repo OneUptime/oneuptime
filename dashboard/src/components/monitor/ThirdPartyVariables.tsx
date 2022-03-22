@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import { Field, reduxForm } from 'redux-form';
@@ -288,7 +288,7 @@ const ThirdPartyVariableForm = reduxForm({
     destroyOnUnmount: true,
 })(ThirdPartyVariables);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         editMonitor,
         fetchCustomFields,

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
@@ -8,7 +8,7 @@ import { fetchStatusPageCategories } from '../../actions/statusPageCategory';
 import CreateStatusPageCategory from '../modals/CreateStatusPageCategory';
 import RemoveStatusPageCategory from '../modals/RemoveStatusPageCategory';
 import EditStatusPageCategory from '../modals/EditStatusPageCategory';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
 export class StatusPageCategory extends Component {
@@ -453,7 +453,7 @@ StatusPageCategory.propTypes = {
     statusPageCategories: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchStatusPageCategories,
         openModal,

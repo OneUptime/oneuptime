@@ -1,5 +1,6 @@
 import * as types from '../constants/credential';
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 
 // Add Git Credential
 export const addGitCredentialRequest = () => ({
@@ -18,7 +19,7 @@ export const addGitCredentialFailure = (error: $TSFixMe) => ({
 
 export const addGitCredential =
     ({ projectId, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(addGitCredentialRequest());
 
         try {
@@ -58,7 +59,7 @@ export const updateGitCredentialFailure = (error: $TSFixMe) => ({
 
 export const updateGitCredential =
     ({ projectId, credentialId, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(updateGitCredentialRequest());
 
         try {
@@ -98,7 +99,7 @@ export const getGitCredentialsFailure = (error: $TSFixMe) => ({
 
 export const getGitCredentials =
     ({ projectId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getGitCredentialsRequest());
 
         try {
@@ -137,7 +138,7 @@ export const deleteGitCredentialFailure = (error: $TSFixMe) => ({
 
 export const deleteGitCredential =
     ({ projectId, credentialId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(deleteGitCredentialRequest());
 
         try {
@@ -177,7 +178,7 @@ export const getGitSecuritiesFailure = (error: $TSFixMe) => ({
 
 export const getGitSecurities =
     ({ projectId, credentialId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getGitSecuritiesRequest());
 
         try {
@@ -217,7 +218,7 @@ export const addDockerCredentialFailure = (error: $TSFixMe) => ({
 
 export const addDockerCredential =
     ({ projectId, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(addDockerCredentialRequest());
 
         try {
@@ -257,7 +258,7 @@ export const updateDockerCredentialFailure = (error: $TSFixMe) => ({
 
 export const updateDockerCredential =
     ({ projectId, credentialId, data }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(updateDockerCredentialRequest());
 
         try {
@@ -297,7 +298,7 @@ export const getDockerCredentialsFailure = (error: $TSFixMe) => ({
 
 export const getDockerCredentials =
     ({ projectId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getDockerCredentialsRequest());
 
         try {
@@ -336,7 +337,7 @@ export const deleteDockerCredentialFailure = (error: $TSFixMe) => ({
 
 export const deleteDockerCredential =
     ({ projectId, credentialId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(deleteDockerCredentialRequest());
 
         try {
@@ -376,7 +377,7 @@ export const getDockerSecuritiesFailure = (error: $TSFixMe) => ({
 
 export const getDockerSecurities =
     ({ projectId, credentialId }: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         dispatch(getDockerSecuritiesRequest());
 
         try {

@@ -3,7 +3,7 @@ import Page, {
     defaultMapDispatchToProps,
     defaultMapStateToProps,
 } from '../base/index';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import Table from '../../components/table/Table';
 import StatusPageActions from '../../actions/status-page';
@@ -90,7 +90,7 @@ class StatusPages extends Page {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             ...defaultMapDispatchToProps(),

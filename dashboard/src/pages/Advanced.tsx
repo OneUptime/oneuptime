@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import DeleteProject from '../components/settings/DeleteProject';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import { hideDeleteModal } from '../actions/project';
@@ -69,7 +69,7 @@ class Advanced extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ hideDeleteModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ hideDeleteModal }, dispatch);
 
 
 Advanced.propTypes = {

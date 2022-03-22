@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { CopyToClipboard } from 'react-copy-to-clipboard';
@@ -19,7 +19,7 @@ import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { API_URL } from '../../config';
 import ResetStatusBubbleIdModal from '../modals/ResetStatusBubbleIdModal';
 import ResetCssModal from '../modals/ResetCssModal';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 const selector = formValueSelector('EmbeddedBubble');
 
@@ -584,7 +584,7 @@ const EmbeddedBubbleForm = reduxForm({
     enableReinitialize: true,
 })(EmbeddedBubble);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         resetStatusBubbleId,
         change,

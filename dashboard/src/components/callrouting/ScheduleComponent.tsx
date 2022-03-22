@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { Field } from 'redux-form';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -183,12 +183,12 @@ export class ScheduleComponent extends Component {
                                                         className="bs-FileUploadButton-input"
                                                         component={UploadFile}
                                                         name={`${backup
-                                                                ? 'backup_'
-                                                                : ''
+                                                            ? 'backup_'
+                                                            : ''
                                                             }introAudio`}
                                                         id={`${backup
-                                                                ? 'backup_'
-                                                                : ''
+                                                            ? 'backup_'
+                                                            : ''
                                                             }introAudio`}
                                                         accept="audio/mp3"
                                                         disabled={disabled}
@@ -694,7 +694,7 @@ export class ScheduleComponent extends Component {
 
 
 ScheduleComponent.displayName = 'ScheduleComponent';
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 

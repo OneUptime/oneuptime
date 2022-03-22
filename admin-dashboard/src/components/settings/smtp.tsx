@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, Field } from 'redux-form';
@@ -10,7 +10,7 @@ import { Validate, IS_INTERNAL_SMTP_DEPLOYED } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import { fetchSettings, saveSettings, testSmtp } from '../../actions/settings';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import SmtpTestModal from './smtpTestModal';
 import MessageModal from './MessageModal';
 
@@ -534,7 +534,7 @@ Component.propTypes = {
     testSmtp: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             saveSettings,

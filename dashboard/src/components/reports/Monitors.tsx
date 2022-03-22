@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import humanize from 'humanize-duration';
@@ -400,10 +400,10 @@ class Monitors extends Component {
                                         this.props.activeMonitors
                                             .count} Monitor${this.props.activeMonitors &&
 
-                                            this.props.activeMonitors
-                                                .count === 1
-                                            ? ''
-                                            : 's'
+                                                this.props.activeMonitors
+                                                    .count === 1
+                                                ? ''
+                                                : 's'
                                         })`
                                         : null}
                                 </span>
@@ -467,7 +467,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     activeMonitors: state.report.activeMonitors
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => ({
+const mapDispatchToProps = (dispatch: Dispatch) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
 

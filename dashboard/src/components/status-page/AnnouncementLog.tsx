@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { fetchAnnouncementLogs } from '../../actions/statusPage';
 
 import { PropTypes } from 'prop-types';
@@ -8,7 +8,7 @@ import moment from 'moment';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
@@ -412,6 +412,6 @@ const mapStateToProps = (state: $TSFixMe) => ({
     error: state.statusPage.announcementLogs.error
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchAnnouncementLogs, openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchAnnouncementLogs, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AnnouncementLog);

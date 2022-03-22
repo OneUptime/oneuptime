@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { reduxForm } from 'redux-form';
 import {
@@ -17,7 +17,7 @@ import { User } from '../../config';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { history } from '../../store';
 
 import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
@@ -426,7 +426,7 @@ const TeamMemberForm = reduxForm({
     form: 'TeamMember',
 })(TeamMember);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             teamDelete,

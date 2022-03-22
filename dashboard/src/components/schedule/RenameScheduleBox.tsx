@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import { Validate } from '../../config';
 
 import { withRouter } from 'react-router-dom';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
@@ -162,7 +162,7 @@ RenameScheduleBox.displayName = 'RenameScheduleBox';
 
 const formName = 'RenameSchedule' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess = (result: $TSFixMe, dispatch: $TSFixMe) => dispatch(reset(formName));
+const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
 const RenameScheduleForm = new reduxForm({
     form: formName,
@@ -171,7 +171,7 @@ const RenameScheduleForm = new reduxForm({
     enableReinitialize: true,
 })(RenameScheduleBox);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ renameSchedule }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renameSchedule }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;

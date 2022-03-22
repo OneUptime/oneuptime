@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import { openModal, closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import CreateIncomingRequest from '../modals/CreateIncomingRequest';
 
@@ -43,7 +43,7 @@ class IncomingRequestButton extends React.Component {
 
 IncomingRequestButton.displayName = 'IncomingRequestButton';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

@@ -2,11 +2,11 @@ import React, { Component } from 'react';
 
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { fetchCustomFields } from '../../actions/monitorCustomField';
 import DeleteMonitorCustomField from '../modals/DeleteMonitorCustomField';
 import CreateMonitorCustomField from '../modals/CreateMonitorCustomField';
@@ -405,7 +405,7 @@ MonitorCustomFields.propTypes = {
     fetchCustomFields: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         fetchCustomFields,

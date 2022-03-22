@@ -8,8 +8,8 @@ import { ValidateField } from '../../config';
 
 import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
-import { closeModal } from '../../actions/modal';
-import { bindActionCreators } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -372,7 +372,7 @@ class AddNoteModal extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createScheduledEventNote,
         closeModal,

@@ -3,8 +3,8 @@ import React, { Component } from 'react';
 import ClickOutside from 'react-click-outside';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import { closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 import {
     deleteProjectDomain,
@@ -192,7 +192,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         deleteProjectDomain,

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, Field, reset } from 'redux-form';
@@ -15,7 +15,7 @@ import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
 
 import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import MessageBox from '../modals/MessageBox';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -393,7 +393,7 @@ CustomerBalance.propTypes = {
 
 const formName = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess = (result: $TSFixMe, dispatch: $TSFixMe) => dispatch(reset(formName));
+const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
 const CustomerBalanceForm = new reduxForm({
     form: formName,
@@ -402,7 +402,7 @@ const CustomerBalanceForm = new reduxForm({
     onSubmitSuccess,
 })(CustomerBalance);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { addBalance, getProjects, openModal, updateProjectBalance },
     dispatch
 );

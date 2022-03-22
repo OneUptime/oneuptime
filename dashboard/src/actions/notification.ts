@@ -1,4 +1,5 @@
 import { getApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/notification';
 import errors from '../errors';
 
@@ -67,7 +68,7 @@ export const allNotificationReadSuccess = (userId: $TSFixMe) => {
 
 // Calls the API to get all notifications.
 export const fetchNotifications = (projectId: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         try {
             const notifications = await getApi(`notification/${projectId}`);
 
@@ -93,7 +94,7 @@ export const fetchNotifications = (projectId: $TSFixMe) => {
 };
 
 export const markAsRead = (projectId: $TSFixMe, notificationIds: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         try {
             const userId = User.getUserId();
             notificationIds = notificationIds.map(
@@ -137,7 +138,7 @@ export function closeNotification(
     projectId: $TSFixMe,
     notificationId: $TSFixMe
 ) {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         try {
             const userId = User.getUserId();
 
@@ -168,7 +169,7 @@ export function closeNotification(
 }
 
 export const markAllAsRead = (projectId: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         try {
             const userId = User.getUserId();
 
@@ -198,7 +199,7 @@ export function billingActionTaken(
     notificationId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         try {
             const notification = putApi(
                 `notification/${projectId}/${notificationId}`,

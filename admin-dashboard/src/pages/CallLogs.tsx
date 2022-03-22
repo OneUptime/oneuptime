@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import CallLogsList from '../components/callLogs/CallLogsList';
@@ -197,7 +197,7 @@ class CallLogs extends React.Component {
 
 CallLogs.displayName = 'CallLogs';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchCallLogs,

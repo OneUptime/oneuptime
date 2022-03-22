@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { deleteApplicationLog } from '../../actions/applicationLog';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
@@ -108,7 +108,7 @@ class ApplicationLogViewDeleteBox extends Component {
 
 ApplicationLogViewDeleteBox.displayName = 'ApplicationLogViewDeleteBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { openModal, closeModal, deleteApplicationLog },
     dispatch
 );

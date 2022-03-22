@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import { reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { PropTypes } from 'prop-types';
 import Dropzone from 'react-dropzone';
@@ -11,7 +11,7 @@ import PapaParse from 'papaparse';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import {
     downloadCsvTemplate,
     importSubscribersFromCsvFile,
@@ -294,7 +294,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

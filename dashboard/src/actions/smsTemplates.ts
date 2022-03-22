@@ -1,4 +1,5 @@
 import { getApi, putApi, postApi, deleteApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/smstemplates';
 import errors from '../errors';
 
@@ -33,7 +34,7 @@ export const smsTemplatesReset = () => {
 
 // Calls the API to get sms templates
 export const getSmsTemplates = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`smsTemplate/${projectId}`);
         dispatch(smsTemplatesRequest(promise));
 
@@ -87,7 +88,7 @@ export const editSmsTemplateError = (error: $TSFixMe) => {
 };
 
 export const editSmsTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`smsTemplate/${projectId}`, data);
         dispatch(editSmsTemplateRequest());
 
@@ -140,7 +141,7 @@ export const resetSmsTemplates = (
     projectId: $TSFixMe,
     templateId: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`smsTemplate/${projectId}/${templateId}/reset`);
         dispatch(resetSmsTemplatesRequest(promise));
 
@@ -189,7 +190,7 @@ export const smtpConfigSuccess = (config: $TSFixMe) => {
 
 // Calls the API to reset email templates
 export const getSmtpConfig = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`smsSmtp/${projectId}`);
         dispatch(smtpConfigRequest(promise));
 
@@ -227,7 +228,7 @@ export const getSmtpConfig = (projectId: $TSFixMe) => {
 };
 
 export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`smsSmtp/${projectId}`, data);
         dispatch(smtpConfigRequest(promise));
 
@@ -286,7 +287,7 @@ export const deleteSmtpConfigSuccess = (config: $TSFixMe) => {
 };
 
 export const deleteSmtpConfig = (projectId: $TSFixMe, smtpId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(`smsSmtp/${projectId}/${smtpId}`);
         dispatch(deleteSmtpConfigRequest(promise));
 
@@ -328,7 +329,7 @@ export function updateSmtpConfig(
     smtpId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`smsSmtp/${projectId}/${smtpId}`, data);
         dispatch(smtpConfigRequest(promise));
 
@@ -366,7 +367,7 @@ export function updateSmtpConfig(
 }
 
 export const changeShowingTemplate = (smsTemplate: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch({
             type: types.CHANGE_SHOWING_TEMPLATE,
             payload: smsTemplate,
@@ -375,7 +376,7 @@ export const changeShowingTemplate = (smsTemplate: $TSFixMe) => {
 };
 
 export const setRevealVariable = (smstype: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch({
             type: types.SET_REVEAL_VARIABLE,
             payload: smstype,
@@ -384,7 +385,7 @@ export const setRevealVariable = (smstype: $TSFixMe) => {
 };
 
 export const setSmtpConfig = (val: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch({
             type: types.SET_SMTP_CONFIG,
             payload: val,

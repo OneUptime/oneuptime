@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { destroy } from 'redux-form';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import NewComponent from '../components/component/NewComponent';
 import ComponentList from '../components/component/ComponentList';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -470,7 +470,7 @@ class ComponentDashboardView extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             destroy,

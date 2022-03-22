@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import {
     SubscriberAlertTableRows,
@@ -273,7 +273,7 @@ export class SubscriberAlert extends Component {
 
 SubscriberAlert.displayName = 'SubscriberAlert';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

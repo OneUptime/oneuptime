@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
@@ -10,7 +10,7 @@ import NewApplicationLog from '../components/application/NewApplicationLog';
 import getParentRoute from '../utils/getParentRoute';
 import { fetchApplicationLogs } from '../actions/applicationLog';
 import { fetchComponent } from '../actions/component';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { loadPage } from '../actions/page';
 import { ApplicationLogList } from '../components/application/ApplicationLogList';
 import { LoadingState } from '../components/basic/Loader';
@@ -303,7 +303,7 @@ class ApplicationLog extends Component {
 
 ApplicationLog.displayName = 'ApplicationLog';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchApplicationLogs,

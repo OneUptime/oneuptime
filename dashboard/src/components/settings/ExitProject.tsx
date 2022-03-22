@@ -4,12 +4,12 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../config';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import { switchProject, getProjects, exitProject } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import ExitProjectModal from './ExitProjectModal';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 import { history } from '../../store';
 
@@ -94,7 +94,7 @@ export class ExitProjectBox extends Component {
 
 ExitProjectBox.displayName = 'ExitProjectBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         getProjects,
         openModal,

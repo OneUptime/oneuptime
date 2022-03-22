@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import moment from 'moment';
 import { fetchMonitorLogs } from '../actions/status';
 import AreaChart from './areachart';
@@ -122,7 +122,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     } = state;
     return { logs };
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchMonitorLogs,
     },

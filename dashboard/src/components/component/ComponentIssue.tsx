@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { fetchComponentIssues } from '../../actions/component';
@@ -60,7 +60,7 @@ class ComponentIssue extends Component {
         return <div>{errorTrackersList}</div>;
     }
 }
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchComponentIssues,

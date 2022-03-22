@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import copyToClipboard from '../../utils/copyToClipboard';
 
 export class IncomingRequestUrl extends React.Component {
@@ -157,6 +157,6 @@ const mapStateToProps = (state: $TSFixMe) => ({
         state.incomingRequest.createIncomingRequest.incomingRequest
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncomingRequestUrl);

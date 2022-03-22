@@ -11,8 +11,8 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
-import { bindActionCreators } from 'redux';
-import { closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
 import {
     addCardFailed,
     addCardSuccess,
@@ -306,7 +306,7 @@ const mapStateToProps = (state: $TSFixMe) => {
         userId: User.getUserId(),
     };
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { closeModal, addCardSuccess, addCardFailed, addCardRequest },
         dispatch

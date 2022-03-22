@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import IncidentList from '../incident/IncidentList';
 
@@ -12,7 +12,7 @@ import {
     fetchMonitorStatuses,
     fetchMonitorsIncidents,
 } from '../../actions/monitor';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import moment from 'moment';
 import { FormLoader } from '../basic/Loader';
@@ -350,8 +350,8 @@ export class MonitorDetail extends Component {
                     <ShouldRender if={monitor && monitor.resourceCategory}>
                         <div
                             className={`Box-root Padding-top--20 ${this.props.shouldRenderProjectType
-                                    ? 'Padding-left--4'
-                                    : 'Padding-left--20'
+                                ? 'Padding-left--4'
+                                : 'Padding-left--20'
                                 }`}
                         >
                             <Badge
@@ -830,7 +830,7 @@ export class MonitorDetail extends Component {
 
 MonitorDetail.displayName = 'MonitorDetail';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             editMonitorSwitch,

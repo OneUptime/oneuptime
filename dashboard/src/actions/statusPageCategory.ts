@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/statusPageCategory';
 import errors from '../errors';
 
@@ -19,7 +20,7 @@ export const createStatusPageCategoryFailure = (error: $TSFixMe) => ({
 
 export const createStatusPageCategory =
     ({ projectId, statusPageId, statusPageCategoryName }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const promise = postApi(
             `statusPageCategory/${projectId}/${statusPageId}`,
             {
@@ -66,7 +67,7 @@ export const updateStatusPageCategoryFailure = (error: $TSFixMe) => ({
 
 export const updateStatusPageCategory =
     ({ projectId, statusPageCategoryId, statusPageCategoryName }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const promise = putApi(
             `statusPageCategory/${projectId}/${statusPageCategoryId}`,
             {
@@ -113,7 +114,7 @@ export const fetchStatusPageCategoriesFailure = (error: $TSFixMe) => ({
 
 export const fetchStatusPageCategories =
     ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         if (!skip) {
             skip = 0;
         }
@@ -163,7 +164,7 @@ export const fetchAllStatusPageCategoriesFailure = (error: $TSFixMe) => ({
 
 export const fetchAllStatusPageCategories =
     ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         if (!skip) {
             skip = 0;
         }
@@ -213,7 +214,7 @@ export const deleteStatusPageCategoryFailure = (error: $TSFixMe) => ({
 
 export const deleteStatusPageCategory =
     ({ projectId, statusPageCategoryId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         const promise = deleteApi(
             `statusPageCategory/${projectId}/${statusPageCategoryId}`
         );

@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import SideNav from './nav/SideNav';
 import TopNav from './nav/TopNav';
@@ -304,7 +304,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     dashboardLoadState: state.dashboard
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         hideProfileMenu,
         closeNotificationMenu,

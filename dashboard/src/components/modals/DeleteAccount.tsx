@@ -9,7 +9,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { deleteAccount } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
 import { teamLoading, subProjectTeamLoading } from '../../actions/team';
@@ -441,7 +441,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { deleteAccount, logoutUser, teamLoading, subProjectTeamLoading },
     dispatch
 );

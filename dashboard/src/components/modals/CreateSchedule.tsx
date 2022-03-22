@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { change } from 'redux-form';
 import moment from 'moment';
@@ -13,7 +13,7 @@ import {
     createScheduledEvent,
     fetchscheduledEvents,
 } from '../../actions/scheduledEvent';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
@@ -1294,7 +1294,7 @@ const NewCreateSchedule = reduxForm({
     destroyOnUnmount: true,
 })(CreateSchedule);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createScheduledEvent,
         fetchscheduledEvents,

@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/sso';
 import errors from '../errors';
 
@@ -14,7 +15,7 @@ export const createSsoFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 export const createSso = ({ data }: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`sso`, data);
         dispatch(createSsoRequest());
 
@@ -52,7 +53,7 @@ export const fetchSsosFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -95,7 +96,7 @@ export const fetchSsoFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 export const fetchSso = (ssoId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`sso/${ssoId}`);
         dispatch(fetchSsoRequest());
 
@@ -133,7 +134,7 @@ export const updateSsoFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 export const updateSso = ({ id, data }: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`sso/${id}`, data);
         dispatch(updateSsoRequest());
 
@@ -171,7 +172,7 @@ export const deleteSsoFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 export const deleteSso = (ssoId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(`sso/${ssoId}`);
         dispatch(deleteSsoRequest());
 

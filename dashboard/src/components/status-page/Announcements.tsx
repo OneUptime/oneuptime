@@ -5,8 +5,8 @@ import DataPathHoC from '../DataPathHoC';
 import CreateAnnouncement from '../modals/CreateAnnouncement';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { openModal } from '../../actions/modal';
-import { bindActionCreators } from 'redux';
+import { openModal } from 'common-ui/actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
 import { fetchAnnouncements } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
@@ -544,7 +544,7 @@ Announcements.propTypes = {
     announceError: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, fetchAnnouncements }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchAnnouncements }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

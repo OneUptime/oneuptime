@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from '../../actions/modal';
-import { bindActionCreators } from 'redux';
+import { openModal } from 'common-ui/actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -176,7 +176,7 @@ class ScheduleEventDeleteBox extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 const mapStateToProps = (state: $TSFixMe) => {
     return {
         deleting: state.scheduledEvent.deletedScheduledEvent.requesting,

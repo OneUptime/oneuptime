@@ -3,10 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import DeleteAccount from '../modals/DeleteAccount';
 
@@ -90,7 +90,7 @@ export class DeleteAccountBox extends Component {
 
 DeleteAccountBox.displayName = 'DeleteAccountBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

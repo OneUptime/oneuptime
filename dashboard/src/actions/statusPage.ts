@@ -1,4 +1,5 @@
 import { getApi, putApi, deleteApi, postApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/statusPage';
 import FormData from 'form-data';
 import errors from '../errors';
@@ -44,7 +45,7 @@ export const removeCertFile = () => {
 };
 
 export const uploadCertFile = (projectId: $TSFixMe, file: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const data = new FormData();
         if (file) {
             data.append('cert', file);
@@ -105,7 +106,7 @@ export const removePrivateKeyFile = () => {
 };
 
 export const uploadPrivateKey = (projectId: $TSFixMe, file: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const data = new FormData();
         if (file) {
             data.append('privateKey', file);
@@ -168,7 +169,7 @@ export const updateStatusPageSetting = (
     projectId: $TSFixMe,
     data: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(updateStatusPageSettingRequest());
         promise.then(
@@ -224,7 +225,7 @@ export function updateStatusPageMonitors(
     projectId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageMonitorsRequest());
 
@@ -278,7 +279,7 @@ export const updatePrivateStatusPage = (
     projectId: $TSFixMe,
     values: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updatePrivateStatusPageRequest());
 
@@ -331,7 +332,7 @@ export function updateStatusPageLanguage(
     projectId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLanguageRequest());
 
@@ -384,7 +385,7 @@ export const updateSubscriberOption = (
     projectId: $TSFixMe,
     values: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateSubscriberOptionRequest());
 
@@ -485,7 +486,7 @@ export function updateStatusPageBranding(
     projectId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const data = new FormData();
         if (values.favicon && values.favicon[0]) {
             data.append('favicon', values.favicon[0], values.favicon[0].name);
@@ -537,7 +538,7 @@ export function updateStatusPageBranding(
 
 // Calls the API to update the theme
 export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}/theme`, data);
         dispatch(updateStatusPageThemeRequest());
 
@@ -567,7 +568,7 @@ export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
 
 // Calls the API to update status page name.
 export const updateStatusPageName = (projectId: $TSFixMe, values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageNameRequest());
 
@@ -621,7 +622,7 @@ export const updateStatusPageLinks = (
     projectId: $TSFixMe,
     values: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLinksRequest());
 
@@ -675,7 +676,7 @@ export function updateStatusPageCustomHTML(
     projectId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, values);
         dispatch(updateStatusPageCustomHTMLRequest());
 
@@ -737,7 +738,7 @@ export function fetchProjectStatusPage(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `status-page/${projectId}/statuspage?skip=${skip}&limit=${limit}`
         );
@@ -800,7 +801,7 @@ export function fetchSubProjectStatusPages(
     projectId: $TSFixMe,
     refresh: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`status-page/${projectId}/status-pages`);
         if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
 
@@ -863,7 +864,7 @@ export function fetchIncidentStatusPages(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `incident/${projectId}/${incidentSlug}/statuspages?skip=${skip}&limit=${limit}`
         );
@@ -916,7 +917,7 @@ export function resetStatusBubbleId(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `status-page/${projectId}/${statusPageId}/resetBubbleId`,
             {}
@@ -977,7 +978,7 @@ export function deleteStatusPage(
     projectId: $TSFixMe,
     statusPageSlug: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `status-page/${projectId}/${statusPageSlug}`,
             null
@@ -1028,7 +1029,7 @@ export const duplicateStatusPageError = (error: $TSFixMe) => {
 };
 
 export const readStatusPage = (statusPageSlug: $TSFixMe, data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`status-page/${statusPageSlug}`, data);
         dispatch(duplicateStatusPageRequest());
         promise.then(
@@ -1063,7 +1064,7 @@ export function createDuplicateStatusPage(
     statusPageSlug: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const url = subProjectId
             ? `status-page/${projectId}/${statusPageSlug}/duplicateStatusPage?subProjectId=${subProjectId}`
             : `status-page/${projectId}/${statusPageSlug}/duplicateStatusPage`;
@@ -1091,7 +1092,7 @@ export function createDuplicateStatusPage(
 }
 
 export const fetchStatusPage = (statusPageSlug: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`status-page/${statusPageSlug}`);
         promise.then(
             function (response) {
@@ -1152,7 +1153,7 @@ export function updateStatusPageEmbeddedCss(
     projectId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(updateStatusPageEmbeddedCssRequest());
         promise.then(
@@ -1208,7 +1209,7 @@ export function resetBrandingColors(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `status-page/${projectId}/${statusPageId}/resetColors`
         );
@@ -1264,7 +1265,7 @@ export function resetStatusPageEmbeddedCss(
     projectId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(resetStatusPageEmbeddedCssRequest());
         promise.then(
@@ -1314,7 +1315,7 @@ export const updateStatusPageLayoutError = (error: $TSFixMe) => {
 };
 
 export const updateStatusPageLayout = (projectId: $TSFixMe, data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`status-page/${projectId}`, data);
         dispatch(updateStatusPageLayoutRequest());
         promise.then(
@@ -1370,7 +1371,7 @@ export function fetchStatusPageSubscribers(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `status-page/${projectId}/monitor/${statusPageId}?skip=${skip}&limit=${limit}`
         );
@@ -1422,7 +1423,7 @@ export function createExternalStatusPage(
     statusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `status-page/${projectId}/createExternalstatus-page/${statusPageId}`,
             data
@@ -1479,7 +1480,7 @@ export function updateExternalStatusPage(
     externalStatusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `status-page/${projectId}/updateExternalstatus-page/${externalStatusPageId}`,
             data
@@ -1535,7 +1536,7 @@ export function fetchExternalStatusPages(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
@@ -1590,7 +1591,7 @@ export function deleteExternalStatusPage(
     projectId: $TSFixMe,
     externalStatusPageId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `status-page/${projectId}/deleteExternalstatus-page/${externalStatusPageId}`
         );
@@ -1646,7 +1647,7 @@ export function createAnnouncement(
     statusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `status-page/${projectId}/announcement/${statusPageId}`,
             data
@@ -1684,7 +1685,7 @@ export function updateAnnouncement(
     announcementId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `status-page/${projectId}/announcement/${statusPageId}/${announcementId}`,
             data
@@ -1742,7 +1743,7 @@ export function fetchAnnouncements(
     skip = 0,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}`
         );
@@ -1795,7 +1796,7 @@ export function fetchAnnouncementLogs(
     skip = 0,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `status-page/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}`
         );
@@ -1841,7 +1842,7 @@ export function fetchSingleAnnouncement(
     statusPageSlug: $TSFixMe,
     announcementSlug: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `status-page/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
@@ -1917,7 +1918,7 @@ export function deleteAnnouncement(
     projectId: $TSFixMe,
     announcementId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `status-page/${projectId}/announcement/${announcementId}/delete`
         );
@@ -1948,7 +1949,7 @@ export function deleteAnnouncementLog(
     projectId: $TSFixMe,
     announcementLogId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `status-page/${projectId}/announcementLog/${announcementLogId}/delete`
         );

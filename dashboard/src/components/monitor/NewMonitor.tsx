@@ -1,5 +1,5 @@
 import React, { Component, createRef } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
@@ -36,7 +36,7 @@ import {
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria, API_URL } from '../../config';
 import { FormLoader } from '../basic/Loader';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import {
     fetchMonitorCriteria,
     fetchMonitorsIncidents,
@@ -3200,7 +3200,7 @@ const NewMonitorForm = new reduxForm({
     enableReinitialize: true,
 })(NewMonitor);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createMonitor,
         createMonitorSuccess,

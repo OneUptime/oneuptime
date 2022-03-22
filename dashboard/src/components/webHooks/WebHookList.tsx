@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import WebHookItem from './WebHookItem';
 import { User } from '../../config';
@@ -219,8 +219,8 @@ class WebHookList extends React.Component {
                             <div className="Box-root Margin-right--8">
                                 <button
                                     className={`Button bs-ButtonLegacy ${!canPaginateBackward
-                                            ? 'Is--disabled'
-                                            : ''
+                                        ? 'Is--disabled'
+                                        : ''
                                         }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!canPaginateBackward}
@@ -238,8 +238,8 @@ class WebHookList extends React.Component {
                             <div className="Box-root">
                                 <button
                                     className={`Button bs-ButtonLegacy ${!canPaginateForward
-                                            ? 'Is--disabled'
-                                            : ''
+                                        ? 'Is--disabled'
+                                        : ''
                                         }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!canPaginateForward}
@@ -278,7 +278,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     monitor: state.monitor
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         getWebHookMonitor,
         getWebHook,

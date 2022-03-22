@@ -2,7 +2,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { reduxForm, Field } from 'redux-form';
 
@@ -13,7 +13,7 @@ import { history } from '../../store';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { editApplicationSecurity } from '../../actions/security';
 
 class EditApplicationSecurity extends Component {
@@ -551,7 +551,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal, editApplicationSecurity }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, editApplicationSecurity }, dispatch);
 
 const EditApplicationSecurityForm = reduxForm({
     form: 'EditApplicationSecurityForm',

@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import MessageModal from './MessageModal';
 
 export class UserSetting extends Component {
@@ -367,7 +367,7 @@ export class UserSetting extends Component {
 
 UserSetting.displayName = 'UserSetting';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { updateTwoFactorAuthToken, openModal, setTwoFactorAuth },
         dispatch

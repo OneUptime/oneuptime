@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import PropTypes from 'prop-types';
 import getParentRoute from '../utils/getParentRoute';
@@ -11,7 +11,7 @@ import { LoadingState } from '../components/basic/Loader';
 import DeleteScriptBox from '../components/automationScript/DeleteScriptBox';
 import DataPathHoC from '../components/DataPathHoC';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { openModal } from '../actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -708,6 +708,6 @@ const mapStateToProps = (state: $TSFixMe) => ({
     subProjects: state.subProject.subProjects.subProjects
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, fetchSingleAutomatedScript }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchSingleAutomatedScript }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AutomatedScripView);

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { translateLanguage } from '../actions/status';
 
@@ -158,7 +158,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     statusPage: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openLanguageMenu, translateLanguage }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openLanguageMenu, translateLanguage }, dispatch);
 
 
 LanguageBox.propTypes = {

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { IS_LOCALHOST } from '../../config';
@@ -70,7 +70,7 @@ StatusHeader.propTypes = {
     statusPage: PropTypes.object.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     const { statusPage } = state;

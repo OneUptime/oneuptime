@@ -1,4 +1,5 @@
 import { getApi, deleteApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
 import { encode } from 'js-base64';
@@ -20,7 +21,7 @@ export const fetchTimeMetricsFailure = (error: $TSFixMe) => ({
 
 export const fetchTimeMetrics =
     ({ appId, key, startDate, endDate }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchTimeMetricsRequest());
 
         startDate = encode(moment(startDate).format());
@@ -67,7 +68,7 @@ export const fetchThroughputMetricsFailure = (error: $TSFixMe) => ({
 
 export const fetchThroughputMetrics =
     ({ appId, key, startDate, endDate }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchThroughputMetricsRequest());
 
         startDate = encode(moment(startDate).format());
@@ -114,7 +115,7 @@ export const fetchErrorMetricsFailure = (error: $TSFixMe) => ({
 
 export const fetchErrorMetrics =
     ({ appId, key, startDate, endDate }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchErrorMetricsRequest());
 
         startDate = encode(moment(startDate).format());
@@ -233,7 +234,7 @@ export const fetchIncomingMetricsFailure = (error: $TSFixMe) => ({
 
 export const fetchIncomingMetrics =
     ({ appId, key, skip, limit, startDate, endDate }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchIncomingMetricsRequest());
 
         startDate = encode(moment(startDate).format());
@@ -279,7 +280,7 @@ export const fetchOutgoingMetricsFailing = (error: $TSFixMe) => ({
 
 export const fetchOutgoingMetrics =
     ({ appId, key, skip, limit, startDate, endDate }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(fetchOutgoingMetricsRequest());
 
         startDate = encode(moment(startDate).format());
@@ -350,7 +351,7 @@ export const resetIncomingDelete = () => ({
 
 export const deleteIncomingMetrics =
     ({ appId, key, metricId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(deleteIncomingMetricsRequest());
 
         const promise = deleteApi(
@@ -397,7 +398,7 @@ export const resetOutgoingDelete = () => ({
 
 export const deleteOutgoingMetrics =
     ({ appId, key, metricId }: $TSFixMe) =>
-    (dispatch: $TSFixMe) => {
+    (dispatch: Dispatch) => {
         dispatch(deleteOutgoingMetricsRequest());
 
         const promise = deleteApi(

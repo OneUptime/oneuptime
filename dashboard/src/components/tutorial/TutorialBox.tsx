@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import Tutorial from './Tutorial';
 import PropTypes from 'prop-types';
 import { closeTutorial } from '../../actions/tutorial';
@@ -64,7 +64,7 @@ const Tutorials = ({
     </div>
 );
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeTutorial }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeTutorial }, dispatch);
 
 Tutorials.displayName = 'TutorialBox';
 

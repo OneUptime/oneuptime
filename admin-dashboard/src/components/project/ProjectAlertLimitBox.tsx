@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -106,7 +106,7 @@ export class ProjectAlertLimitBox extends Component {
 
 ProjectAlertLimitBox.displayName = 'ProjectAlertLimitBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ renewAlertLimit }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renewAlertLimit }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     const project = state.project.project.project;

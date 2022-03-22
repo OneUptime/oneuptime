@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { fetchCards, setDefaultCard } from '../../actions/card';
 import DataPathHoC from '../DataPathHoC';
 import AddCard from '../modals/AddCard';
@@ -584,6 +584,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, fetchCards, setDefaultCard }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchCards, setDefaultCard }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(PaymentCard);

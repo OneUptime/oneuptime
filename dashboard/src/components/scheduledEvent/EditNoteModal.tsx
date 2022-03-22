@@ -8,8 +8,8 @@ import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from '../../actions/modal';
-import { bindActionCreators } from 'redux';
+import { closeModal } from 'common-ui/actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -406,7 +406,7 @@ class EditNoteModal extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         change,

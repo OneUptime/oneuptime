@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { reduxForm, Field, FieldArray } from 'redux-form';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal, openModal } from '../../actions/modal';
+import { closeModal, openModal } from 'common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
@@ -3162,7 +3162,7 @@ const CreateIncomingRequestForm = reduxForm({
     destroyOnUnmount: false,
 })(CreateIncomingRequest);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createIncomingRequest,
         closeModal,

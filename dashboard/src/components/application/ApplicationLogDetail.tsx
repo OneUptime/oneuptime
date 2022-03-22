@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { deleteApplicationLog } from '../../actions/applicationLog';
 import {
     fetchLogs,
@@ -358,7 +358,7 @@ class ApplicationLogDetail extends Component {
 
 ApplicationLogDetail.displayName = 'ApplicationLogDetail';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             openModal,

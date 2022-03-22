@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/applicationLog';
 import errors from '../errors';
 
@@ -9,7 +10,7 @@ export function createApplicationLog(
     componentId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/create`,
             values
@@ -73,7 +74,7 @@ export function fetchApplicationLogs(
     limit = 0,
     paginated = false
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `application-log/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
         );
@@ -136,7 +137,7 @@ export function deleteApplicationLog(
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             {
@@ -214,7 +215,7 @@ export function fetchLogs(
     type: $TSFixMe,
     filter: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/logs`,
             {
@@ -296,7 +297,7 @@ export function resetApplicationLogKey(
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
         );
@@ -363,7 +364,7 @@ export function editApplicationLog(
     applicationLogId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             values
@@ -419,7 +420,7 @@ export function fetchStats(
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,
             {}
@@ -498,7 +499,7 @@ export function searchLog(
     applicationLogId: $TSFixMe,
     payload: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `application-log/${projectId}/${componentId}/${applicationLogId}/search`,
             payload

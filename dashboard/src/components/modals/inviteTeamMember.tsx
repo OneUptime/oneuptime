@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { Field, reduxForm } from 'redux-form';
 
@@ -18,7 +18,7 @@ import PropTypes from 'prop-types';
 import projectTeamMemberNotification from './projectTeamMemberNotification.js';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 import { Validate } from '../../config';
 import DataPathHoC from '../DataPathHoC';
@@ -601,7 +601,7 @@ const InviteTeamMemberForm = reduxForm({
     validate,
 })(FormModal);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             teamCreate,

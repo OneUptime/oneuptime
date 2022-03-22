@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     fetchComponentResources,
     addCurrentComponent,
 } from '../../actions/component';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { deleteComponent } from '../../actions/component';
 import ShouldRender from '../basic/ShouldRender';
 import Badge from '../common/Badge';
@@ -248,7 +248,7 @@ export class ComponentDetail extends Component {
 
 ComponentDetail.displayName = 'ComponentDetail';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

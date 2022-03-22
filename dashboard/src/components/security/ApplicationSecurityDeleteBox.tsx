@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 
 export class ApplicationSecurityDeleteBox extends Component {
@@ -102,7 +102,7 @@ export class ApplicationSecurityDeleteBox extends Component {
 
 ApplicationSecurityDeleteBox.displayName = 'ApplicationSecurityDeleteBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

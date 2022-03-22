@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, Field } from 'redux-form';
@@ -198,7 +198,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ confirmLicense }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ confirmLicense }, dispatch);
 
 
 LicenseSetting.propTypes = {

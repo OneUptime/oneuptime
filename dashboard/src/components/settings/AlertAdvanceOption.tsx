@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, Field, change } from 'redux-form';
@@ -10,7 +10,7 @@ import PropTypes from 'prop-types';
 import { RenderSelect } from '../basic/RenderSelect';
 
 import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import MessageBox from '../modals/MessageBox';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -960,7 +960,7 @@ const AlertAdvanceOptionForm = new reduxForm({
     form: formName,
 })(AlertAdvanceOption);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => ({
     projectId: state.project.currentProject && state.project.currentProject._id,

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 
 import { SubmissionError } from 'redux-form';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import ProjectForm from './ProjectForm';
 import { hideForm, createProject, switchProject } from '../../actions/project';
@@ -66,7 +66,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     projects: state.project
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         createProject,
         switchProject,

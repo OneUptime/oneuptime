@@ -7,7 +7,7 @@ import {
     fetchComponentResources,
     addCurrentComponent,
 } from '../../actions/component';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import threatLevel from '../../utils/threatLevel';
 import StatusIndicator from '../monitor/StatusIndicator';
 import IssueIndicator from '../security/IssueIndicator';
@@ -343,13 +343,13 @@ class ResourceTabularList extends Component {
                                                                         backgroundRepeat:
                                                                             'no-repeat',
                                                                         backgroundSize: `${componentResource.icon ===
-                                                                                'appLog' ||
-                                                                                componentResource.icon ===
-                                                                                'security' ||
-                                                                                componentResource.icon ===
-                                                                                'errorTracking'
-                                                                                ? '12px'
-                                                                                : '15px'
+                                                                            'appLog' ||
+                                                                            componentResource.icon ===
+                                                                            'security' ||
+                                                                            componentResource.icon ===
+                                                                            'errorTracking'
+                                                                            ? '12px'
+                                                                            : '15px'
                                                                             }`,
                                                                         backgroundPosition:
                                                                             'center',
@@ -377,9 +377,9 @@ class ResourceTabularList extends Component {
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div
                                                                 className={`Box-root ${componentResource.type ===
-                                                                        'error tracker'
-                                                                        ? ''
-                                                                        : 'Margin-right--16 '
+                                                                    'error tracker'
+                                                                    ? ''
+                                                                    : 'Margin-right--16 '
                                                                     } Flex-flex Flex-direction--row`}
                                                             >
                                                                 <span
@@ -502,7 +502,7 @@ class ResourceTabularList extends Component {
 
 
 ResourceTabularList.displayName = 'ResourceTabularList';
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchComponentResources,

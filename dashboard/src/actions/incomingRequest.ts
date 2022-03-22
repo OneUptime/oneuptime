@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/incomingRequest';
 
 export const createIncomingRequestRequest = () => ({
@@ -16,7 +17,7 @@ export const createIncomingRequestFailure = (error: $TSFixMe) => ({
 });
 
 export const createIncomingRequest =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createIncomingRequestRequest());
 
@@ -55,7 +56,7 @@ export const editIncomingRequestFailure = (error: $TSFixMe) => ({
 
 export const editIncomingRequest =
     (projectId: $TSFixMe, requestId: $TSFixMe, data: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
 
@@ -94,7 +95,7 @@ export const deleteIncomingRequestFailure = (error: $TSFixMe) => ({
 
 export const deleteIncomingRequest =
     (projectId: $TSFixMe, requestId: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(deleteIncomingRequestRequest());
 
@@ -132,7 +133,7 @@ export const fetchAllIncomingRequestFailure = (error: $TSFixMe) => ({
 
 export const fetchAllIncomingRequest =
     (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(fetchAllIncomingRequestRequest());
 
@@ -161,7 +162,7 @@ export const setActiveIncomingRequest = (requestId: $TSFixMe) => ({
 
 export const incomingRequestToggle =
     (projectId: $TSFixMe, requestId: $TSFixMe, enabled: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
             const response = await postApi(

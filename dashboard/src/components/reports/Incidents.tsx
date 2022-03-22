@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { ResponsiveBar } from '@nivo/bar';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { LargeSpinner as Loader } from '../basic/Loader';
 import {
@@ -242,7 +242,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     incidentReports: state.report.incidents
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => ({
+const mapDispatchToProps = (dispatch: Dispatch) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
 

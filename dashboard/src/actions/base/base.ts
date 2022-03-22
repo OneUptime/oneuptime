@@ -1,6 +1,6 @@
 import { postApi, getApi, putApi, deleteApi } from '../../api';
 import { getErrorMessageFromResponse } from '../../utils/error';
-
+import { Dispatch } from 'redux';
 class BaseAction {
     actionKeys: $TSFixMe;
     actionType: $TSFixMe;
@@ -115,7 +115,7 @@ class BaseAction {
                 throw 'This request is not allowed';
             }
 
-            return async function (this: $TSFixMe, dispatch: $TSFixMe) {
+            return async function (this: $TSFixMe, dispatch: Dispatch) {
                 let path = `${this.apiName}`;
 
                 if (this.isResourceInProject) {

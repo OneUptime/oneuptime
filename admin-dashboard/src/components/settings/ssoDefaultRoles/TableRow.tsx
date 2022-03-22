@@ -5,7 +5,7 @@ import {
     deleteSsoDefaultRole,
 } from '../../../actions/ssoDefaultRoles';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { openModal } from '../../../actions/modal';
 import RoleDeleteModal from './RoleDeleteModal';
 import { UpdateDefaultRoleModal } from './DefaultRoleModal';

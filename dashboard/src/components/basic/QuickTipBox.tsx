@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import { Link } from 'react-router-dom';
 import { closeTutorial } from '../../actions/tutorial';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import ShouldRender from './ShouldRender';
 
@@ -104,6 +104,6 @@ QuickTipBox.propTypes = {
     hideActionButton: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeTutorial }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeTutorial }, dispatch);
 
 export default connect(null, mapDispatchToProps)(QuickTipBox);

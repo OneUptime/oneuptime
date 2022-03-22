@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import PropTypes from 'prop-types';
 import ShouldRender from '../../components/basic/ShouldRender';
 import TutorialBox from '../../components/tutorial/TutorialBox';

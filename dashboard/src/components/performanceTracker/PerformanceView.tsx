@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { getMonitorLogs } from '../../actions/monitor';
 //import MonitorLogsList from '../monitor/MonitorLogsList';
@@ -239,7 +239,7 @@ PerformanceView.displayName = 'PerformanceView';
 
 PerformanceView.propTypes = {};
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getMonitorLogs }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getMonitorLogs }, dispatch);
 
 function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
     const monitorId = props.monitorId ? props.monitorId : null;

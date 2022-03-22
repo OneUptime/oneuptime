@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
 import DataPathHoC from '../DataPathHoC';
 import { history } from '../../store';
@@ -694,7 +694,7 @@ EventBox.propTypes = {
     currentSubProject: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
     },

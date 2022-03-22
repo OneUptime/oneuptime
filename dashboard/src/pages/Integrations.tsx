@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 
 import { PropTypes } from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
 

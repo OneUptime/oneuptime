@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import ApplicationSecurityDetail from '../components/security/ApplicationSecurityDetail';
 
 class ApplicationDetail extends Component {

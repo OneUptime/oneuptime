@@ -1,9 +1,9 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import ProbeList from '../components/probe/ProbeList';
 import { getProbes } from '../actions/probe';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -171,7 +171,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ getProbes }, dispatch);
 };
 

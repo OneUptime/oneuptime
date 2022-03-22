@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import TooltipModal from './TooltipModal';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 class Tooltip extends Component {
     handleClick = () => {
@@ -61,7 +61,7 @@ const mapStateToProps = () => {
     return {};
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 export default connect(mapStateToProps, mapDispatchToProps)(Tooltip);

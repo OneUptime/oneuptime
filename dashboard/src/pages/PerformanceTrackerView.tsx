@@ -2,10 +2,10 @@ import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 // import PerformanceView from '../components/performanceTracker/PerformanceView';
 import WebTransactionsChart from '../components/performanceTracker/WebTransactionsChart';
 
@@ -363,7 +363,7 @@ class PerformanceTrackerView extends Component {
 
 
 PerformanceTrackerView.displayName = 'PerformanceTrackerView';
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchComponent,

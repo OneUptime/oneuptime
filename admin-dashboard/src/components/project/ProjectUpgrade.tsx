@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { reduxForm, Field } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
@@ -185,9 +185,9 @@ class ProjectUpgrade extends Component {
                                                     >
                                                         <div
                                                             className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${activeForm ===
-                                                                    plan.planId
-                                                                    ? 'price-list-item--active'
-                                                                    : ''
+                                                                plan.planId
+                                                                ? 'price-list-item--active'
+                                                                : ''
                                                                 }`}
                                                             style={{
                                                                 flex: 1,
@@ -243,9 +243,9 @@ class ProjectUpgrade extends Component {
                                                     >
                                                         <div
                                                             className={`bs-Fieldset-fields Flex-justifyContent--center price-list-item Box-background--white ${activeForm ===
-                                                                    'enterprise'
-                                                                    ? 'price-list-item--active'
-                                                                    : ''
+                                                                'enterprise'
+                                                                ? 'price-list-item--active'
+                                                                : ''
                                                                 }`}
                                                             style={{
                                                                 flex: 1,
@@ -376,7 +376,7 @@ ProjectUpgrade.propTypes = {
     activeForm: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ changePlan }, dispatch);
 };
 

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { updateStatusPageLayout } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
@@ -8,7 +8,7 @@ import { FormLoader } from '../basic/Loader';
 
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import ConfirmResetLayout from '../modals/ConfirmResetLayout';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -603,7 +603,7 @@ StatusPageLayout.propTypes = {
     openModal: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageLayout,
         openModal,

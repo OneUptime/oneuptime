@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import { openModal, closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import CreateMsTeams from '../modals/CreateMsTeamsWebhook';
 import DataPathHoC from '../DataPathHoC';
 
@@ -43,7 +43,7 @@ class MSTeamsButton extends React.Component {
 
 MSTeamsButton.displayName = 'WebHookButton';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

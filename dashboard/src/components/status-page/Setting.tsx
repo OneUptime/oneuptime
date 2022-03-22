@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm } from 'redux-form';
@@ -12,7 +12,7 @@ import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { IS_LOCALHOST, IS_SAAS_SERVICE, STATUSPAGE_DOMAIN } from '../../config';
 import { verifyDomain, deleteDomain } from '../../actions/domain';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import VerifyDomainModal from './VerifyDomainModal';
 import DeleteDomainModal from './DeleteDomainModal';
 import AddMoreDomainModal from './AddMoreDomainModal';
@@ -697,7 +697,7 @@ const SettingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(Setting);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             verifyDomain,

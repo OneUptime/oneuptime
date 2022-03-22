@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { LargeSpinner } from '../basic/Loader';
@@ -22,7 +22,7 @@ import getParentRoute from '../../utils/getParentRoute';
 
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { socket } from '../basic/Socket';
 
 class ApplicationSecurityDetail extends Component {
@@ -411,7 +411,7 @@ ApplicationSecurityDetail.propTypes = {
     fetchCredentialError: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         getGitCredentials,
         scanApplicationSecuritySuccess,

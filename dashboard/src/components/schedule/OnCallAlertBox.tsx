@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, FieldArray, arrayPush } from 'redux-form';
@@ -343,7 +343,7 @@ OnCallAlertBox.propTypes = {
     getProjectGroups: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     // NOTE: pushArray / arrayPush MUST be aliased or it will not work. https://justinnoel.dev/2018/09/22/adding-to-redux-form-fieldarray/
     {
         getEscalation,

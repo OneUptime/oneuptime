@@ -1,6 +1,7 @@
 import * as types from '../constants/logout';
 import Cookies from 'universal-cookie';
 import { ACCOUNTS_URL } from '../config';
+import { Dispatch } from 'redux';
 // Three possible states for our logout process as well.
 // Since we are using JWTs, we just need to remove the token
 // from localStorage. These actions are more useful if we
@@ -24,7 +25,7 @@ export const receiveLogout = () => {
 
 // Logs the user out
 export const logoutUser = () => {
-    return (dispatch: $TSFixMe) => {
+    return (dispatch: Dispatch) => {
         dispatch(requestLogout());
         const cookies = new Cookies();
         cookies.remove('admin-data', { path: '/' });

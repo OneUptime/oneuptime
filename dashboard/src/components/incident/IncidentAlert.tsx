@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import { AlertTableRows, AlertTableHeader } from '../alert/AlertTable';
 import { ListLoader } from '../basic/Loader';
@@ -256,7 +256,7 @@ export class IncidentAlert extends Component {
 
 IncidentAlert.displayName = 'IncidentAlert';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

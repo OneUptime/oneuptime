@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import {
     getStatusPageIndividualNote,
@@ -270,7 +270,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     statusData: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         getStatusPageIndividualNote,
         getIndividualEvent,

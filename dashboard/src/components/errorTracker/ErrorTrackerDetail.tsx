@@ -12,11 +12,11 @@ import {
     getErrorEventSuccess,
 } from '../../actions/errorTracker';
 import { subProjectTeamLoading } from '../../actions/team';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
 import ErrorTrackerDetailView from './ErrorTrackerDetailView';
 import { history } from '../../store';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
@@ -453,7 +453,7 @@ ErrorTrackerDetail.propTypes = {
     showComponentWithIssue: PropTypes.bool,
     getErrorEventSuccess: PropTypes.func,
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchErrorTrackerIssues,

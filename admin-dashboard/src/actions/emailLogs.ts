@@ -1,4 +1,5 @@
 import { getApi, postApi, deleteApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/emailLogs';
 import errors from '../errors';
 
@@ -24,7 +25,7 @@ export const fetchEmailLogsError = (error: $TSFixMe) => {
 };
 
 export const fetchEmailLogs =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -79,7 +80,7 @@ export const searchEmailLogsError = (error: $TSFixMe) => {
 
 export const searchEmailLogs =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         const values = {
             filter,
         };
@@ -133,7 +134,7 @@ export const deleteEmailLogsError = (error: $TSFixMe) => {
     };
 };
 
-export const deleteEmailLogs = () => async (dispatch: $TSFixMe) => {
+export const deleteEmailLogs = () => async (dispatch: Dispatch) => {
     dispatch(deleteEmailLogsRequest());
 
     try {
@@ -188,7 +189,7 @@ export const resetFetchEmailLogStatus = () => {
 };
 
 // Calls the API to fetch emailLogStatus
-export const fetchEmailLogStatus = () => async (dispatch: $TSFixMe) => {
+export const fetchEmailLogStatus = () => async (dispatch: Dispatch) => {
     dispatch(fetchEmailLogStatusRequest());
 
     try {
@@ -244,7 +245,7 @@ export const resetConfirmEmailLogStatus = () => {
 
 // Calls the API to change emailLogStatus
 export const emailLogStatusChange =
-    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(changeEmailLogStatusRequest());
 
         try {

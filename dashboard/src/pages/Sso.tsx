@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 
 import { PropTypes } from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 
 import { User, PricingPlan } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';

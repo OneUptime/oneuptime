@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/resourceCategories';
 import errors from '../errors';
 
@@ -9,7 +10,7 @@ export function fetchResourceCategories(
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = getApi(
@@ -72,7 +73,7 @@ export const createResourceCategory = (
     projectId: $TSFixMe,
     values: $TSFixMe
 ) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`resourceCategory/${projectId}`, values);
         dispatch(createResourceCategoryRequest());
 
@@ -104,7 +105,7 @@ export function updateResourceCategory(
     resourceCategoryId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`,
             values
@@ -184,7 +185,7 @@ export function deleteResourceCategory(
     resourceCategoryId: $TSFixMe,
     projectId: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `resourceCategory/${projectId}/${resourceCategoryId}`
         );
@@ -240,7 +241,7 @@ export const deleteResourceCategoryFailure = (error: $TSFixMe) => {
 };
 
 export const fetchResourceCategoriesForNewResource = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import { Field, reduxForm } from 'redux-form';
 import { RenderSearchField } from '../basic/RenderSearchField';
@@ -330,6 +330,6 @@ SearchInput.propTypes = {
     handleSubmit: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ searchLog, fetchLogs }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ searchLog, fetchLogs }, dispatch);
 
 export default connect(null, mapDispatchToProps)(SearchInputForm);

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { Validate } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import { ButtonSpinner } from '../basic/Loader.js';
@@ -351,7 +351,7 @@ const userForm = reduxForm({
     validate,
 })(UserForm);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ getEmailFromToken }, dispatch);
 };
 

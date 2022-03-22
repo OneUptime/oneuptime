@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes, { string } from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 
 class AlertBilling extends Component {
@@ -144,5 +144,5 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
 export default connect(mapStateToProps, mapDispatchToProps)(AlertBilling);

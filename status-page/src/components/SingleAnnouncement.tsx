@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { getSingleAnnouncement, getStatusPage } from '../actions/status';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { handleResources } from '../config';
 import ShouldRender from './ShouldRender';
 import Markdown from 'markdown-to-jsx';
@@ -175,6 +175,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getSingleAnnouncement, getStatusPage }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getSingleAnnouncement, getStatusPage }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(SingleAnnouncement);

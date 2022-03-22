@@ -1,4 +1,5 @@
 import { postApi, getApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/login';
 import { User, DASHBOARD_URL, ADMIN_DASHBOARD_URL } from '../config.js';
 import errors from '../errors';
@@ -102,7 +103,7 @@ export const loginUser = (values: $TSFixMe) => {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi('user/login', values);
         dispatch(loginRequest(promise));
 
@@ -136,7 +137,7 @@ export const loginUser = (values: $TSFixMe) => {
 };
 
 export const loginUserSso =
-    (values: $TSFixMe) => async (dispatch: $TSFixMe) => {
+    (values: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             const response = await getApi(
                 `user/sso/login?email=${values.email}`
@@ -167,7 +168,7 @@ export const verifyAuthToken = (values: $TSFixMe) => {
     if (redirect) values.redirect = redirect;
     const email = User.getEmail();
     values.email = values.email || email;
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi('user/totp/verifyToken', values);
         dispatch(verifyTokenRequest(promise));
 
@@ -221,7 +222,7 @@ export const verifyBackupCode = (values: $TSFixMe) => {
     if (redirect) values.redirect = redirect;
     const email = User.getEmail();
     values.email = values.email || email;
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi('user/verify/backupCode', values);
         dispatch(useBackupCodeRequest(promise));
 
@@ -283,7 +284,7 @@ export const resetMasterAdminExists = () => {
 
 // Calls the API to register a user.
 export const checkIfMasterAdminExists = (values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
@@ -310,7 +311,7 @@ export const checkIfMasterAdminExists = (values: $TSFixMe) => {
 };
 
 export const changeLogin = (data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         dispatch({
             type: types.CHANGE_LOGIN,
             payload: data,

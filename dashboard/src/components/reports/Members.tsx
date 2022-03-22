@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import humanize from 'humanize-duration';
@@ -465,7 +465,7 @@ const actionCreators = {
     getActiveMembersSuccess,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => ({
+const mapDispatchToProps = (dispatch: Dispatch) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
 

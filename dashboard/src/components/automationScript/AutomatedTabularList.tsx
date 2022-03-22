@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import moment from 'moment';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import RunAutomationScript from '../modals/RunAutomationScript';
 import { fetchAutomatedScript } from '../../actions/automatedScript';
 
@@ -379,7 +379,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ openModal, fetchAutomatedScript }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchAutomatedScript }, dispatch);
 
 export default connect(
     mapStateToProps,

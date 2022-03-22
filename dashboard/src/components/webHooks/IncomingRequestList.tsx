@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
@@ -9,7 +9,7 @@ import {
     fetchAllIncomingRequest,
     setActiveIncomingRequest,
 } from '../../actions/incomingRequest';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import EditIncomingRequest from '../modals/EditIncomingRequest';
 import DeleteIncomingRequest from '../modals/DeleteIncomingRequest';
 import copyToClipboard from '../../utils/copyToClipboard';
@@ -468,7 +468,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchAllIncomingRequest,
         openModal,

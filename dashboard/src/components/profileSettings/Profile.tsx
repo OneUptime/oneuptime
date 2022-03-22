@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, Field, formValueSelector } from 'redux-form';
@@ -39,7 +39,7 @@ import ReactPhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { User } from '../../config';
 
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import TwoFactorAuthModal from '../modals/TwoFactorAuth';
 import BackupCodesModal from '../modals/BackupCodes';
@@ -1623,7 +1623,7 @@ const ProfileSettingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(ProfileSetting);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             updateProfileSetting,

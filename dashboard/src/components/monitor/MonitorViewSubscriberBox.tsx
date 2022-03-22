@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import SubscriberList from '../subscriber/subscriberList';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import CreateSubscriber from '../../components/modals/CreateSubscriber';
 import DataPathHoC from '../DataPathHoC';
 import ShouldRender from '../basic/ShouldRender';
@@ -243,7 +243,7 @@ MonitorViewSubscriberBox.propTypes = {
     exportCSV: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchMonitorsSubscribers,
         closeModal,

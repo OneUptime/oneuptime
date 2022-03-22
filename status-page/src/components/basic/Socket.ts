@@ -1,6 +1,6 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
 import { REALTIME_URL } from '../../config';
@@ -270,7 +270,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     statusPage: state.status.statusPage,
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) =>
+const mapDispatchToProps = (dispatch: Dispatch) =>
     bindActionCreators(
         {
             updatestatuspagebysocket,

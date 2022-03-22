@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import moment from 'moment';
 import { history } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
@@ -230,7 +230,7 @@ PerformanceTrackerList.propTypes = {
     projectId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchLastMetrics }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchLastMetrics }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     return {

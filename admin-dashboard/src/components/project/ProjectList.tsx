@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
@@ -420,9 +420,9 @@ export class ProjectList extends Component {
                                         this.props.projects
                                             .count} Project${this.props.projects &&
 
-                                            this.props.projects.count === 1
-                                            ? ''
-                                            : 's'
+                                                this.props.projects.count === 1
+                                                ? ''
+                                                : 's'
                                         })`
 
                                         : this.props.projects &&
@@ -434,9 +434,9 @@ export class ProjectList extends Component {
                                             this.props.projects
                                                 .count} Project${this.props.projects &&
 
-                                                this.props.projects.count === 1
-                                                ? ''
-                                                : 's'
+                                                    this.props.projects.count === 1
+                                                    ? ''
+                                                    : 's'
                                             }`
                                             : null}
                                 </span>
@@ -507,7 +507,7 @@ export class ProjectList extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 

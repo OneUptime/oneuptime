@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { history } from '../../store';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import {
     fetchStatusPage,
     duplicateStatusPageReset,
@@ -128,7 +128,7 @@ const mapStateToProps = (state: $TSFixMe) => {
         slug: state.modal.modals[0].slug,
     };
 };
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         { closeModal, fetchStatusPage, duplicateStatusPageReset },
         dispatch

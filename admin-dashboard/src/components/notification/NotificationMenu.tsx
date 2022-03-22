@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { User } from '../../config';
 import moment from 'moment';
@@ -98,8 +98,8 @@ class NotificationMenu extends Component {
                                                         <div className="Notify-oneuptime">
                                                             <img
                                                                 src={`/dashboard/assets/img/${notification.icon
-                                                                        ? notification.icon
-                                                                        : 'information'
+                                                                    ? notification.icon
+                                                                    : 'information'
                                                                     }.svg`}
                                                                 className="Notify-oneuptime-row-primary"
                                                                 style={{
@@ -166,7 +166,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 

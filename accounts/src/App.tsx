@@ -18,7 +18,7 @@ import queryString from 'query-string';
 import ReactGA from 'react-ga';
 import Cookies from 'universal-cookie';
 import { saveStatusPage, checkIfMasterAdminExists } from './actions/login';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { LoadingState } from './components/basic/Loader';
 
@@ -115,7 +115,7 @@ App.propTypes = {
 function mapStateToProps(state: $TSFixMe) {
     return state.login;
 }
-function mapDispatchToProps(dispatch: $TSFixMe) {
+function mapDispatchToProps(dispatch: Dispatch) {
     return bindActionCreators(
         { saveStatusPage, checkIfMasterAdminExists },
         dispatch

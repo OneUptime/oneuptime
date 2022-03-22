@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import ReactJson from 'react-json-view';
 import copyToClipboard from '../../utils/copyToClipboard';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { getLogSuccess } from '../../actions/applicationLog';
 import { socket } from '../basic/Socket';
 
@@ -124,7 +124,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ getLogSuccess }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getLogSuccess }, dispatch);
 
 
 LogTail.propTypes = {

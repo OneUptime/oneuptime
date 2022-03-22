@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { fetchSsoDefaultRoles, paginate } from '../../actions/ssoDefaultRoles';
 import { fetchProjects } from '../../actions/project';
@@ -8,7 +8,7 @@ import Button from './ssoDefaultRoles/Button';
 import BoxHeader from './ssoDefaultRoles/BoxHeader';
 import BoxFooter from './ssoDefaultRoles/BoxFooter';
 import Table from './ssoDefaultRoles/Table';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import { CreateDefaultRoleModal } from './ssoDefaultRoles/DefaultRoleModal';
 
 class Box extends React.Component {
@@ -111,7 +111,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     ssoPaginate: state.ssoDefaultRoles.ssoDefaultRoles,
     page: state.ssoDefaultRoles.page
 });
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchSsoDefaultRoles,
         fetchProjects,

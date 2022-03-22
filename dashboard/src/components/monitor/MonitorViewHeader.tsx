@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import MonitorChart from './MonitorChart';
@@ -21,7 +21,7 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { selectedProbe } from '../../actions/monitor';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { history } from '../../store';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';
@@ -240,9 +240,9 @@ export class MonitorViewHeader extends Component {
                     <ShouldRender if={monitor && monitor.resourceCategory}>
                         <div
                             className={`Box-root Padding-top--20 ${(subProjects && subProjects.length > 0) ||
-                                    (subProject && subProject.name)
-                                    ? 'Padding-left--4'
-                                    : 'Padding-left--20'
+                                (subProject && subProject.name)
+                                ? 'Padding-left--4'
+                                : 'Padding-left--20'
                                 }`}
                         >
                             <Badge
@@ -474,7 +474,7 @@ MonitorViewHeader.propTypes = {
     // updateprobebysocket: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         editMonitorSwitch,
         fetchMonitorLogs,

@@ -5,7 +5,7 @@ import { Field, reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import { ButtonSpinner } from '../components/basic/Loader';
 import { verifyAuthToken } from '../actions/login';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { RenderField } from '../components/basic/RenderField';
 
 import { Link } from 'react-router-dom';
@@ -167,7 +167,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     return { login: state.login };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ verifyAuthToken }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ verifyAuthToken }, dispatch);
 
 
 VerifyAuthToken.propTypes = {

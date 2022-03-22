@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import ProbeList from '../components/probe/ProbeList';
 import { getProbes } from '../actions/probe';
@@ -194,7 +194,7 @@ class Probes extends React.Component {
 
 Probes.displayName = 'Probes';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ getProbes, openModal, closeModal }, dispatch);
 };
 

@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import { openModal, closeModal } from '../../actions/modal';
+import { bindActionCreators, Dispatch } from 'redux';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import CreateSlackWebhook from '../modals/CreateSlackWebhook';
 
@@ -43,7 +43,7 @@ class SlackButton extends React.Component {
 
 SlackButton.displayName = 'SlackButton';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

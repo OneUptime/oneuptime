@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { fetchAlert, fetchProjectAlert } from '../actions/alert';
 import PropTypes from 'prop-types';
 import AlertProjectBox from '../components/alert/AlertProjectBox';
@@ -207,7 +207,7 @@ class AlertLog extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ fetchAlert, fetchProjectAlert }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchAlert, fetchProjectAlert }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => {
     let subProjects = state.subProject.subProjects.subProjects;

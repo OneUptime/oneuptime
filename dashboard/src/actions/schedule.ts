@@ -1,4 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/schedule';
 import errors from '../errors';
 
@@ -37,7 +38,7 @@ export function fetchSchedules(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         promise = getApi(
             `schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`
@@ -97,7 +98,7 @@ export const subProjectScheduleSuccess = (schedule: $TSFixMe) => {
 // Calls the API to fetch Schedules.
 
 export const fetchSubProjectSchedules = (projectId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         promise = getApi(`schedule/${projectId}/schedules`);
 
@@ -159,7 +160,7 @@ export function fetchProjectSchedule(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         promise = getApi(
             `schedule/${projectId}/schedule?skip=${skip}&limit=${limit}`
@@ -214,7 +215,7 @@ export const createScheduleSuccess = (schedule: $TSFixMe) => {
 // Calls the API to create the schedule.
 
 export const createSchedule = (projectId: $TSFixMe, values: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`schedule/${projectId}`, values);
 
         dispatch(createScheduleRequest());
@@ -275,7 +276,7 @@ export function renameSchedule(
     scheduleId: $TSFixMe,
     scheduleName: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`schedule/${projectId}/${scheduleId}`, {
             name: scheduleName,
         });
@@ -346,7 +347,7 @@ export const deleteScheduleError = (error: $TSFixMe) => {
 };
 
 export const deleteSchedule = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(`schedule/${projectId}/${scheduleId}`);
 
         dispatch(deleteScheduleRequest());
@@ -420,7 +421,7 @@ export function addMonitors(
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`schedule/${projectId}/${scheduleId}`, data);
 
         dispatch(addMonitorRequest());
@@ -486,7 +487,7 @@ export function addUsers(
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `schedule/${projectId}/${scheduleId}/addUsers`,
             data
@@ -557,7 +558,7 @@ export function addEscalation(
 ) {
     data = data.OnCallAlertBox;
 
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(
             `schedule/${projectId}/${scheduleId}/addescalation`,
             data
@@ -589,7 +590,7 @@ export function addEscalation(
 }
 
 export const getEscalation = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `schedule/${projectId}/${scheduleId}/getescalation`
         );
@@ -640,7 +641,7 @@ export const paginateReset = () => {
 };
 
 export const paginate = (type: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());
@@ -674,7 +675,7 @@ export const userScheduleError = (error: $TSFixMe) => {
 };
 
 export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = getApi(
             `schedule/${projectId}/${userId}/getescalations`
         );

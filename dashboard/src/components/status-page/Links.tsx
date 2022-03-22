@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, FieldArray } from 'redux-form';
@@ -18,7 +18,7 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import CreateFooterLink from '../modals/FooterLink';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import MessageBox from '../modals/MessageBox';
 
 //Client side validation
@@ -268,7 +268,7 @@ Links.propTypes = {
     initialValues: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageLinks,
         updateStatusPageLinksRequest,

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import { withRouter } from 'react-router-dom';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
@@ -185,7 +185,7 @@ MonitorList.propTypes = {
     // updateprobebysocket: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ updateprobebysocket }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ updateprobebysocket }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
     const { componentSlug } = ownProps.match.params;

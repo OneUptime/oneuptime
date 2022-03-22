@@ -1,4 +1,5 @@
 import { getApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/report';
 
 // Incident Reports Section
@@ -32,7 +33,7 @@ export const getActiveMembers =
         skip: $TSFixMe,
         limit: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             const promise = getApi(
                 `reports/${projectId}/active-members?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`
@@ -86,7 +87,7 @@ export const getActiveMonitors =
         skip: $TSFixMe,
         limit: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             const promise = getApi(
                 `reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${
@@ -141,7 +142,7 @@ export const getIncidents =
         startDate: $TSFixMe,
         endDate: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             const promise = getApi(
                 `reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
@@ -194,7 +195,7 @@ export const getResolveTime =
         startDate: $TSFixMe,
         endDate: $TSFixMe
     ) =>
-    async (dispatch: $TSFixMe) => {
+    async (dispatch: Dispatch) => {
         try {
             const promise = getApi(
                 `reports/${projectId}/average-resolved?startDate=${startDate}&endDate=${endDate}&filter=${filter}`

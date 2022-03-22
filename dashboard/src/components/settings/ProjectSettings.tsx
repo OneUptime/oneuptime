@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import { reduxForm, Field, reset } from 'redux-form';
@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
 import { history } from '../../store';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import Unauthorised from '../modals/Unauthorised';
 
 function validate(value: $TSFixMe) {
@@ -180,7 +180,7 @@ ProjectSettings.propTypes = {
 
 const formName = 'ProjectSettings' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess = (result: $TSFixMe, dispatch: $TSFixMe) => dispatch(reset(formName));
+const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
 const ProjectSettingsForm = new reduxForm({
     form: formName,
@@ -189,7 +189,7 @@ const ProjectSettingsForm = new reduxForm({
     onSubmitSuccess,
 })(ProjectSettings);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ renameProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renameProject, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state: $TSFixMe) => ({
     isRequesting: state.project.renameProject.isRequesting,

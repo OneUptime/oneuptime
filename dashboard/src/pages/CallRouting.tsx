@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 
 import { PropTypes } from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import RoutingNumberBox from '../components/callrouting/RoutingNumberBox';
 import CallRoutingLog from '../components/callrouting/CallRoutingLog';
 
@@ -165,7 +165,7 @@ CallRouting.propTypes = {
 
 CallRouting.displayName = 'CallRouting';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { getCallRoutingNumbers, getTeamAndSchedules, getCallRoutingLogs },
     dispatch
 );

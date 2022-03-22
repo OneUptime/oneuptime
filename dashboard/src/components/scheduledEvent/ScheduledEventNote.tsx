@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
@@ -8,7 +8,7 @@ import Markdown from 'markdown-to-jsx';
 import ShouldRender from '../basic/ShouldRender';
 import { currentTimeZone } from '../basic/TimezoneArray';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import DeleteNoteModal from './DeleteNoteModal';
 import AddNoteModal from './AddNoteModal';
 import EditNoteModal from './EditNoteModal';
@@ -760,7 +760,7 @@ ScheduledEventNote.propTypes = {
     pages: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         fetchScheduledEventNotesInternal,

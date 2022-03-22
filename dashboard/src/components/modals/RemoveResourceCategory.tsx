@@ -4,9 +4,9 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { deleteResourceCategory } from '../../actions/resourceCategories';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 class RemoveResourceCategory extends Component {
     componentDidMount() {
@@ -141,7 +141,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ deleteResourceCategory, closeModal }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteResourceCategory, closeModal }, dispatch);
 
 export default connect(
     mapStateToProps,

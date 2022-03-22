@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { hideIncident } from '../../actions/incident';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 class HideIncidentBox extends Component {
     constructor(props: $TSFixMe) {
         super(props);
@@ -101,7 +101,7 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ hideIncident }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ hideIncident }, dispatch);
 
 
 HideIncidentBox.propTypes = {

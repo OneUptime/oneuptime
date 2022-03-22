@@ -8,7 +8,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, compose } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import { changeMonitorComponent } from '../../actions/monitor';
 import { addCurrentComponent } from '../../actions/component';
 import DataPathHoC from '../DataPathHoC';
@@ -125,7 +125,7 @@ class MonitorViewChangeComponentBox extends Component {
 
 MonitorViewChangeComponentBox.displayName = 'MonitorViewChangeComponentBox';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { openModal, closeModal, changeMonitorComponent, addCurrentComponent },
     dispatch
 );

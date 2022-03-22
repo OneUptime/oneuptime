@@ -1,6 +1,6 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
 import RemovedFromSubProjectModal from '../modals/RemovedFromSubProject';
@@ -8,7 +8,7 @@ import RemovedFromProjectModal from '../modals/RemovedFromProject';
 import { User, REALTIME_URL } from '../../config';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import {
     incidentresolvedbysocket,
     incidentacknowledgedbysocket,
@@ -611,7 +611,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     activeProjectId: state.subProject.activeSubProject,
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) =>
+const mapDispatchToProps = (dispatch: Dispatch) =>
     bindActionCreators(
         {
             incidentresolvedbysocket,

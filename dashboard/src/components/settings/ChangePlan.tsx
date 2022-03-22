@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 import { reduxForm } from 'redux-form';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { changePlan, fetchTrial } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
@@ -13,7 +13,7 @@ import { User } from '../../config';
 import ChangePlanField from './ChangePlanField';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import moment from 'moment';
 
 function Validate(values: $TSFixMe) {
@@ -328,6 +328,6 @@ const mapStateToProps = (state: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators({ changePlan, openModal, fetchTrial }, dispatch);
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ changePlan, openModal, fetchTrial }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePlan);

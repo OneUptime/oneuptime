@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import moment from 'moment';
 import SubProjectForm from './SubProjectForm';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import RemoveSubProject from '../modals/RemoveSubProject';
 import SubProjectApiKey from '../modals/SubProjectApiKey';
 import { User } from '../../config';
@@ -191,7 +191,7 @@ SubProjectTable.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import moment from 'moment';
@@ -18,7 +18,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { numDecimal } from '../../utils/formatNumber';
 import DeletePerformanceMetric from './DeletePerformanceMetric';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import paginate from '../../utils/paginate';
 
 class TableComponent extends Component {
@@ -1048,7 +1048,7 @@ TableComponent.propTypes = {
     resetIncomingDate: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchIncomingMetrics,
         fetchOutgoingMetrics,

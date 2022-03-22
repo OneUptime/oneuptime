@@ -1,4 +1,5 @@
 import { deleteApi, getApi, postApi, putApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/webHook';
 
 export const deleteWebHookRequest = () => {
@@ -29,7 +30,7 @@ export const resetDeleteWebHook = () => {
 
 // Calls the API to link webhook team to project
 export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = deleteApi(
             `webhook/${projectId}/delete/${webhookId}`,
             null
@@ -92,7 +93,7 @@ export function getWebHook(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         promise = getApi(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10}`
@@ -128,7 +129,7 @@ export function getWebHookMonitor(
     skip: $TSFixMe,
     limit: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         promise = getApi(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
@@ -188,7 +189,7 @@ export const resetCreateWebHook = () => {
 
 // Calls the API to add webhook to project
 export const createWebHook = (projectId: $TSFixMe, data: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
         dispatch(createWebHookRequest());
@@ -248,7 +249,7 @@ export function updateWebHook(
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
 
         dispatch(updateWebHookRequest());
@@ -297,7 +298,7 @@ export const paginateReset = () => {
 };
 
 export const paginate = (type: $TSFixMe) => {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

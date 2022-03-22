@@ -1,5 +1,5 @@
 import React from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { fetchSsos, deleteSso, fetchSso } from '../../actions/sso';
 import { fetchSsoDefaultRoles } from '../../actions/ssoDefaultRoles';
 import moment from 'moment';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
 import ShouldRender from '../basic/ShouldRender';
@@ -452,7 +452,7 @@ Component.propTypes = {
     fetchSsoDefaultRoles: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchSsos,

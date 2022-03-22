@@ -1,6 +1,6 @@
 import { putApi, deleteApi } from '../api';
 import * as types from '../constants/domain';
-
+import { Dispatch } from 'redux';
 export const resetDomain = () => {
     return {
         type: types.RESET_VERIFY_DOMAIN,
@@ -28,7 +28,7 @@ export const verifyDomainFailure = (error: $TSFixMe) => {
 };
 
 export const verifyDomain = ({ projectId, domainId, payload }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(verifyDomainRequest());
 
         try {
@@ -81,7 +81,7 @@ export function createDomain({
     autoProvisioning,
     enableHttps,
 }: $TSFixMe) {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(createDomainRequest());
 
         try {
@@ -130,7 +130,7 @@ export const deleteDomain = ({
     statusPageId,
     domainId,
 }: $TSFixMe) => {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(deleteDomainRequest());
         try {
             const response = await deleteApi(
@@ -182,7 +182,7 @@ export function updateDomain({
     enableHttps,
     autoProvisioning,
 }: $TSFixMe) {
-    return async function (dispatch: $TSFixMe) {
+    return async function (dispatch: Dispatch) {
         dispatch(updateDomainRequest());
         try {
             const response = await putApi(

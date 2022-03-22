@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import {
@@ -200,7 +200,7 @@ const mapStateToProps = (state: $TSFixMe) => ({
     projectId: state.modal.modals[0].projectId
 });
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         unVerifyProjectDomain,

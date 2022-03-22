@@ -1,4 +1,5 @@
 import { postApi } from '../api';
+import { Dispatch } from 'redux';
 import * as types from '../constants/invoice';
 
 // Array of invoices
@@ -48,7 +49,7 @@ export function getInvoice(
     startingAfter: $TSFixMe,
     endingBefore: $TSFixMe
 ) {
-    return function (dispatch: $TSFixMe) {
+    return function (dispatch: Dispatch) {
         let promise = null;
         const reqFornext = Boolean(startingAfter) && !endingBefore;
         const reqForPrev = Boolean(endingBefore) && Boolean(startingAfter);

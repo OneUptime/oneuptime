@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import ShouldRender from '../basic/ShouldRender';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from '../../actions/modal';
+import { closeModal } from 'common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import {
@@ -287,7 +287,7 @@ class DeletePerformanceMetric extends Component {
     }
 }
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         deleteIncomingMetrics,

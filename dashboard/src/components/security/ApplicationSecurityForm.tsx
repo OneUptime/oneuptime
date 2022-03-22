@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import { reduxForm, Field, reset } from 'redux-form';
@@ -11,7 +11,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addApplicationSecurity } from '../../actions/security';
 import { getGitCredentials } from '../../actions/credential';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import GitCredentialModal from '../credential/GitCredentialModal';
 import GitSshModal from '../credential/GitSshModal';
 
@@ -34,7 +34,7 @@ class ApplicationSecurityForm extends Component {
         }
     }
 
-    submitForm = (values: $TSFixMe, dispatch: $TSFixMe) => {
+    submitForm = (values: $TSFixMe, dispatch: Dispatch) => {
 
         const { projectId, componentId, addApplicationSecurity } = this.props;
         if (!values) return;
@@ -512,7 +512,7 @@ ApplicationSecurityForm.propTypes = {
     formValues: PropTypes.obj,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     { addApplicationSecurity, getGitCredentials, openModal },
     dispatch
 );

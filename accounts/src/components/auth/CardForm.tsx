@@ -4,13 +4,12 @@ import PropTypes from 'prop-types';
 import { Field, reduxForm } from 'redux-form';
 import RenderCountrySelector from '../basic/CountrySelector';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-
-import Fade from 'react-awesome-reveal/Fade';
+import { bindActionCreators, Dispatch } from 'redux';
+import { Fade } from 'react-awesome-reveal';
 import { RenderField } from '../basic/RenderField';
 import { PricingPlan, Validate, env } from '../../config';
 import { ButtonSpinner } from '../basic/Loader.js';
-import { openModal, closeModal } from '../../actions/modal';
+import { openModal, closeModal } from 'common-ui/actions/modal';
 import ExtraCharge from '../modals/ExtraCharge';
 
 
@@ -586,7 +585,7 @@ const cardForm = reduxForm({
     validate,
 })(CardForm);
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             addCard,

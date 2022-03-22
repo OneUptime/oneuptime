@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
-import Fade from 'react-awesome-reveal/Fade';
+import { Fade } from 'react-awesome-reveal';
 import { API_URL } from '../config';
 import { LargeSpinner as Loader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -299,7 +299,7 @@ function TeamMemberProfile({
 
 TeamMemberProfile.displayName = 'TeamMemberProfile';
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => {
+const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ getTeamMember }, dispatch);
 };
 

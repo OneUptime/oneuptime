@@ -1,10 +1,10 @@
 /*eslint-disable*/
 import React from 'react';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 import ConfirmScanModal from '../modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
@@ -44,7 +44,7 @@ const ContainerSecurityView = ({
             ],
         });
     };
-       
+
     const handleEdit = ({
         projectId,
         componentId,
@@ -108,10 +108,10 @@ const ContainerSecurityView = ({
                                                     color={'slate5'}
                                                 >
                                                     {containerSecurity &&
-                                                    containerSecurity.resourceCategory
+                                                        containerSecurity.resourceCategory
                                                         ? containerSecurity
-                                                              .resourceCategory
-                                                              .name
+                                                            .resourceCategory
+                                                            .name
                                                         : ''}
                                                 </Badge>
                                             </div>
@@ -175,9 +175,9 @@ const ContainerSecurityView = ({
                                     if={
                                         (scanning &&
                                             String(containerSecurityId) ===
-                                                String(
-                                                    activeContainerSecurity
-                                                )) ||
+                                            String(
+                                                activeContainerSecurity
+                                            )) ||
                                         containerSecurity.scanning ||
                                         !containerSecurity.lastScan ||
                                         scannedStatus === false
@@ -188,7 +188,7 @@ const ContainerSecurityView = ({
                                         disabled={
                                             scanning ||
                                             containerSecurity.scanning ||
-                                            !containerSecurity.lastScan || 
+                                            !containerSecurity.lastScan ||
                                             scannedStatus === false
                                         }
                                         id={`scanning_${containerSecurity.name}`}
@@ -203,11 +203,11 @@ const ContainerSecurityView = ({
                                     if={
                                         (!scanning ||
                                             String(containerSecurityId) !==
-                                                String(
-                                                    activeContainerSecurity
-                                                )) &&
+                                            String(
+                                                activeContainerSecurity
+                                            )) &&
                                         !containerSecurity.scanning &&
-                                        containerSecurity.lastScan && 
+                                        containerSecurity.lastScan &&
                                         scannedStatus === true
                                     }
                                 >
@@ -223,7 +223,7 @@ const ContainerSecurityView = ({
                                         disabled={
                                             scanning &&
                                             String(containerSecurityId) ===
-                                                String(activeContainerSecurity)
+                                            String(activeContainerSecurity)
                                         }
                                         id={`scan_${containerSecurity.name}`}
                                     >
@@ -270,7 +270,7 @@ const ContainerSecurityView = ({
                                         !scanning &&
                                         scanError &&
                                         String(containerSecurityId) ===
-                                            String(activeContainerSecurity)
+                                        String(activeContainerSecurity)
                                     }
                                 >
                                     <div className="Box-root Margin-right--8">
@@ -308,7 +308,7 @@ ContainerSecurityView.propTypes = {
     scannedStatus: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
     },

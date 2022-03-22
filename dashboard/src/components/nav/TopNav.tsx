@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import FeedBackModal from '../FeedbackModal';
 import { showProfileMenu, updateProfileSetting } from '../../actions/profile';
@@ -23,7 +23,7 @@ import OnCallScheduleModal from '../OnCallScheduleModal';
 import IncidentHeaderModal from '../modals/IncidentHeaderModal';
 import ScheduleHeaderModal from '../modals/ScheduleHeaderModal';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from '../../actions/modal';
+import { openModal } from 'common-ui/actions/modal';
 
 import _ from 'lodash';
 import moment from 'moment-timezone';
@@ -222,10 +222,10 @@ class TopContent extends Component {
         {typeof incidentCounter === 'number' && (
             <div
                 className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center Box-background--${incidentCounter && incidentCounter > 0
-                        ? 'red'
-                        : incidentCounter === 0
-                            ? 'green'
-                            : null
+                    ? 'red'
+                    : incidentCounter === 0
+                        ? 'green'
+                        : null
                     } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer`}
                 style={{ paddingBottom: '6px', paddingTop: '6px' }}
                 onClick={this.handleActiveIncidentClick}
@@ -233,10 +233,10 @@ class TopContent extends Component {
             >
                 <span
                     className={`db-SideNav-icon db-SideNav-icon--${incidentCounter && incidentCounter > 0
-                            ? 'info'
-                            : incidentCounter === 0
-                                ? 'tick'
-                                : null
+                        ? 'info'
+                        : incidentCounter === 0
+                            ? 'tick'
+                            : null
                         } db-SideNav-icon--selected`}
                     style={{
                         filter: 'brightness(0) invert(1)',
@@ -780,7 +780,7 @@ const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         showProfileMenu,
         openFeedbackModal,

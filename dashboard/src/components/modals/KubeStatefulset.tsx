@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal, openModal } from '../../actions/modal';
+import { closeModal, openModal } from 'common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import KubeIndicator from '../monitor/KubeIndicator';
 import DataPathHoC from '../DataPathHoC';
@@ -256,7 +256,7 @@ KubeStatefulset.propTypes = {
     modals: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: $TSFixMe) => bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         openModal,
