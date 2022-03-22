@@ -100,7 +100,7 @@ export const User = {
         return sessionStorage.getItem('initialUrl');
     },
 
-    setInitialUrl(url: $TSFixMe) {
+    setInitialUrl(url: string) {
         sessionStorage.setItem('initialUrl', url);
     },
 
@@ -139,7 +139,7 @@ export const Validate = {
         return domain.search(/\./) >= 0;
     },
 
-    url(url: $TSFixMe) {
+    url(url: string) {
         return validUrl.isUri(url);
     },
 
@@ -412,7 +412,7 @@ export const tutorials = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: $TSFixMe) => {
+export const getQueryVar = (variable: $TSFixMe, url: string) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),

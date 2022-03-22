@@ -399,7 +399,7 @@ export const resetEditMonitor = () => {
 export function addSiteUrl(
     monitorId: $TSFixMe,
     projectId: $TSFixMe,
-    siteUrl: $TSFixMe
+    siteUrl: string
 ) {
     return function (dispatch: $TSFixMe) {
         const promise = postApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
@@ -434,7 +434,7 @@ export function addSiteUrl(
 export function deleteSiteUrl(
     monitorId: $TSFixMe,
     projectId: $TSFixMe,
-    siteUrl: $TSFixMe
+    siteUrl: string
 ) {
     return function (dispatch: $TSFixMe) {
         const promise = deleteApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
@@ -1100,7 +1100,7 @@ export function fetchLighthouseLogs(
     monitorId: $TSFixMe,
     skip: $TSFixMe,
     limit: $TSFixMe,
-    url: $TSFixMe
+    url: string
 ) {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(

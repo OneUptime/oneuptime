@@ -25,7 +25,7 @@ export const statusPageFailure = (error: $TSFixMe) => {
 };
 
 // Calls the API to get status
-export const getStatusPage = (statusPageSlug: $TSFixMe, url: $TSFixMe) => {
+export const getStatusPage = (statusPageSlug: $TSFixMe, url: string) => {
     return function (dispatch: $TSFixMe) {
         const promise = getApi(`status-page/${statusPageSlug}?url=${url}`);
 
@@ -66,7 +66,7 @@ export const getStatusPage = (statusPageSlug: $TSFixMe, url: $TSFixMe) => {
 // Calls the API to get all status page resources
 export const getAllStatusPageResource = (
     statusPageSlug: $TSFixMe,
-    url: $TSFixMe,
+    url: string,
     range: $TSFixMe
 ) => {
     return function (dispatch: $TSFixMe) {

@@ -5,6 +5,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
+    ExpressStatic,
 } from 'common-server/utils/express';
 const app = express.getExpressApp();
 import path from 'path';
@@ -58,11 +59,11 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 // public static files
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: 2592000 }));
+app.use(ExpressStatic(path.join(__dirname, 'public'), { maxAge: 2592000 }));
 
 app.use(
     '/docs',
-    express.static(path.join(__dirname, 'public'), { maxAge: 2592000 })
+    ExpressStatic(path.join(__dirname, 'public'), { maxAge: 2592000 })
 );
 
 // index page

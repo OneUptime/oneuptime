@@ -12,7 +12,7 @@ const headers = {
     'Content-Type': 'application/json;charset=UTF-8',
 };
 
-export const postApi = (url: $TSFixMe, data: $TSFixMe) => {
+export const postApi = (url: string, data: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -49,7 +49,7 @@ export const postApi = (url: $TSFixMe, data: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const getApi = (url: $TSFixMe) => {
+export const getApi = (url: string) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -85,7 +85,7 @@ export const getApi = (url: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
+export const putApi = (url: string, data: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -122,7 +122,7 @@ export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const deleteApi = (url: $TSFixMe, data: $TSFixMe) => {
+export const deleteApi = (url: string, data: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();

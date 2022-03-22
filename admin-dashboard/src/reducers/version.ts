@@ -40,7 +40,7 @@ export default (state = initialState, action: $TSFixMe) => {
                     helm: action.payload.helmChartVersion,
                     dashboard: action.payload.dashboardVersion,
                     docs: action.payload.docsVersion,
-                    adminDashboard: process.env.REACT_APP_VERSION,
+                    adminDashboard: process.env['REACT_APP_VERSION'],
                 },
             });
 

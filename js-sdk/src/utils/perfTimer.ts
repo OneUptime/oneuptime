@@ -6,7 +6,7 @@ class PerfTimer {
     private apiUrl;
     private appId;
     private appKey;
-    constructor(apiUrl: $TSFixMe, appId: $TSFixMe, appKey: $TSFixMe) {
+    constructor(apiUrl: string, appId: $TSFixMe, appKey: $TSFixMe) {
         this.apiUrl = apiUrl;
         this.appId = appId;
         this.appKey = appKey;

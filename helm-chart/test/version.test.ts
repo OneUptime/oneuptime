@@ -16,7 +16,7 @@ describe('Version API', function () {
             .end(function (err: $TSFixMe, res: Response) {
                 expect(res).to.have.status(200);
                 expect(res.body.helmChartVersion).to.be.equal(
-                    process.env.npm_package_version
+                    process.env['npm_package_version']
                 );
                 done();
             });

@@ -6,6 +6,7 @@ import 'common-server/utils/process';
 import express, {
     ExpressRequest,
     ExpressResponse,
+    ExpressStatic,
     NextFunction,
 } from 'common-server/utils/express';
 const app = express.getExpressApp();
@@ -36,7 +37,7 @@ app.use('*', function (req: Request, res: Response, next: NextFunction) {
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
-app.use(express.static('public'));
+app.use(ExpressStatic('public'));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());

@@ -20,7 +20,7 @@ const headers = {
     'Content-Type': 'application/json;charset=UTF-8',
 };
 
-export const postApi = (url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) => {
+export const postApi = (url: string, data: $TSFixMe, licensing: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -53,7 +53,7 @@ export const postApi = (url: $TSFixMe, data: $TSFixMe, licensing: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const getApi = (url: $TSFixMe, licensing: $TSFixMe) => {
+export const getApi = (url: string, licensing: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -85,7 +85,7 @@ export const getApi = (url: $TSFixMe, licensing: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
+export const putApi = (url: string, data: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -118,7 +118,7 @@ export const putApi = (url: $TSFixMe, data: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const deleteApi = (url: $TSFixMe, data: $TSFixMe) => {
+export const deleteApi = (url: string, data: $TSFixMe) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -151,7 +151,7 @@ export const deleteApi = (url: $TSFixMe, data: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const getApiDocs = (url: $TSFixMe) => {
+export const getApiDocs = (url: string) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -183,7 +183,7 @@ export const getApiDocs = (url: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const getApiHelm = (url: $TSFixMe) => {
+export const getApiHelm = (url: string) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();
@@ -215,7 +215,7 @@ export const getApiHelm = (url: $TSFixMe) => {
     return deffered.promise;
 };
 
-export const getApiDashboard = (url: $TSFixMe) => {
+export const getApiDashboard = (url: string) => {
     if (User.isLoggedIn())
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     const deffered = Q.defer();

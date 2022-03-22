@@ -94,7 +94,7 @@ export const Validate = {
         return domain.search(/\./) >= 0;
     },
 
-    url(url: $TSFixMe) {
+    url(url: string) {
         return validUrl.isUri(url);
     },
 
@@ -117,7 +117,7 @@ export const Validate = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: $TSFixMe) => {
+export const getQueryVar = (variable: $TSFixMe, url: string) => {
     if (!url) url = window.location.href;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),

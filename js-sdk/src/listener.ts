@@ -3,7 +3,7 @@ import Util from './util';
 import Http from 'http';
 import Https from 'https';
 class OneUptimeListener {
-    BASE_URL: $TSFixMe;
+    BASE_url: string;
     currentEventId: $TSFixMe;
     debounceDuration: $TSFixMe;
     isWindow: $TSFixMe;
@@ -119,7 +119,7 @@ class OneUptimeListener {
         function openReplacement(
             this: $TSFixMe,
             method: $TSFixMe,
-            url: $TSFixMe
+            url: string
         ) {
             const obj = {
                 method,

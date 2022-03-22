@@ -798,7 +798,7 @@ const _this = {
         }
     },
     sendVerifyEmail: async function (
-        tokenVerifyURL: $TSFixMe,
+        tokenVerifyURL: string,
         name: $TSFixMe,
         email: $TSFixMe
     ) {
@@ -1640,7 +1640,7 @@ const _this = {
     // Param 3: token: Password reset token
     // Returns: promise
     sendForgotPasswordMail: async function (
-        forgotPasswordURL: $TSFixMe,
+        forgotPasswordURL: string,
         email: $TSFixMe
     ) {
         let mailOptions = {};
@@ -1944,7 +1944,7 @@ const _this = {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe,
-        registerUrl: $TSFixMe
+        registerUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -3901,12 +3901,12 @@ const _this = {
         incident: $TSFixMe,
         projectName: $TSFixMe,
         emailTemplate: $TSFixMe,
-        trackEmailAsViewedUrl: $TSFixMe,
+        trackEmailAsViewedUrl: string,
         componentName: $TSFixMe,
-        statusPageUrl: $TSFixMe,
+        statusPageUrl: string,
         replyAddress: $TSFixMe,
         customFields: $TSFixMe,
-        unsubscribeUrl: $TSFixMe
+        unsubscribeUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4534,13 +4534,13 @@ const _this = {
         incident: $TSFixMe,
         projectName: $TSFixMe,
         emailTemplate: $TSFixMe,
-        trackEmailAsViewedUrl: $TSFixMe,
+        trackEmailAsViewedUrl: string,
         componentName: $TSFixMe,
-        statusPageUrl: $TSFixMe,
+        statusPageUrl: string,
         replyAddress: $TSFixMe,
         customFields: $TSFixMe,
         length: $TSFixMe,
-        unsubscribeUrl: $TSFixMe
+        unsubscribeUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4772,10 +4772,10 @@ const _this = {
         componentName: $TSFixMe,
         incidentNote: $TSFixMe,
         noteType: $TSFixMe,
-        statusPageUrl: $TSFixMe,
+        statusPageUrl: string,
         statusNoteStatus: $TSFixMe,
         customFields: $TSFixMe,
-        unsubscribeUrl: $TSFixMe
+        unsubscribeUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -4983,7 +4983,7 @@ const _this = {
         emailTemplate: $TSFixMe,
         componentName: $TSFixMe,
         replyAddress: $TSFixMe,
-        unsubscribeUrl: $TSFixMe
+        unsubscribeUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -5223,7 +5223,7 @@ const _this = {
         emailTemplate: $TSFixMe,
         componentName: $TSFixMe,
         replyAddress: $TSFixMe,
-        unsubscribeUrl: $TSFixMe
+        unsubscribeUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -5461,7 +5461,7 @@ const _this = {
         emailTemplate: $TSFixMe,
         componentName: $TSFixMe,
         replyAddress: $TSFixMe,
-        unsubscribeUrl: $TSFixMe
+        unsubscribeUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -5699,7 +5699,7 @@ const _this = {
         projectName: $TSFixMe,
         monitorName: $TSFixMe,
         projectId: $TSFixMe,
-        unsubscribeUrl: $TSFixMe,
+        unsubscribeUrl: string,
         monitorsAffected: $TSFixMe
     ) {
         let mailOptions = {};
@@ -5928,7 +5928,7 @@ const _this = {
         replyAddress: $TSFixMe,
         projectName: $TSFixMe,
         projectId: $TSFixMe,
-        unsubscribeUrl: $TSFixMe,
+        unsubscribeUrl: string,
         monitorName: $TSFixMe
     ) {
         let mailOptions = {};
@@ -6148,13 +6148,13 @@ const _this = {
         incident: $TSFixMe,
         projectName: $TSFixMe,
         emailTemplate: $TSFixMe,
-        trackEmailAsViewedUrl: $TSFixMe,
+        trackEmailAsViewedUrl: string,
         componentName: $TSFixMe,
-        statusPageUrl: $TSFixMe,
+        statusPageUrl: string,
         replyAddress: $TSFixMe,
         customFields: $TSFixMe,
         length: $TSFixMe,
-        unsubscribeUrl: $TSFixMe
+        unsubscribeUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;
@@ -7121,7 +7121,7 @@ const _this = {
         email: $TSFixMe,
         name: $TSFixMe,
         chargeAttemptStage: $TSFixMe,
-        invoiceUrl: $TSFixMe
+        invoiceUrl: string
     ) {
         let mailOptions = {};
         let EmailBody;

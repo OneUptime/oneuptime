@@ -158,8 +158,8 @@ Main API to authenticate user, start and stop server monitoring.
     -   [CLI Usage](#cli-usage)
     -   [Basic Usage](#basic-usage)
     -   [API Documentation](#api-documentation)
-        -   [module.exports(config, apiUrl, apiKey, monitorId) ⇒ <code>Object</code> ⏏](#moduleexportsconfig-apiurl-apikey-monitorid--object-)
-            -   [module.exports~ping(projectId, monitorId, apiUrl, apiKey, interval) ⇒ <code>Object</code>](#moduleexportspingprojectid-monitorid-apiurl-apikey-interval--object)
+        -   [module.exports(config, apiUrl, apiKey, monitorId) ⇒ <code>Object</code> ⏏](#moduleexportsconfig-apiUrl-apikey-monitorid--object-)
+            -   [module.exports~ping(projectId, monitorId, apiUrl, apiKey, interval) ⇒ <code>Object</code>](#moduleexportspingprojectid-monitorid-apiUrl-apikey-interval--object)
             -   [module.exports~start(id) ⇒ <code>Object</code> \| <code>number</code>](#moduleexportsstartid--object--number)
             -   [module.exports~stop() ⇒ <code>Object</code>](#moduleexportsstop--object)
 

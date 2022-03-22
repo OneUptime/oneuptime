@@ -23,7 +23,7 @@ export const history = isServer
     ? createMemoryHistory({ initialEntries: [url] })
     : createBrowserHistory();
 
-export const removeQuery = (removeField: $TSFixMe) => {
+export const removeQuery = (removeField: string) => {
     const location = Object.assign({}, history.location);
     const query = queryString.parse(location.search);
     if (query[removeField]) delete query[removeField];

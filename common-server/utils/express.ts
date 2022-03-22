@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import logger from './logger';
-import { JSONValue } from '../types/json';
+import { JSONValue } from 'common/types/json';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;

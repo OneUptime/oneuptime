@@ -64,7 +64,7 @@ const css = (colors: $TSFixMe) => `<style>
       }
     </style>`;
 
-const createScript = (url: $TSFixMe, css: $TSFixMe) => {
+const createScript = (url: string, css: $TSFixMe) => {
     return `<div class='bubble-box'>
     <div id="oneuptime-status-bubble"></div>
     <div id='oneuptime-bubble-text'></div>

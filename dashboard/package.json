@@ -5,6 +5,7 @@
     "type": "module",
     "dependencies": {
         "common-server": "file:../common-server",
+"common": "file:../common",
         "@date-io/date-fns": "^2.13.1",
         "@date-io/moment": "^2.13.1",
         "@fortawesome/fontawesome-svg-core": "^6.1.0",

@@ -39,14 +39,14 @@ describe('Disable Sign up test', function () {
             password: data.adminUser.password,
         });
         token = res.body.tokens.jwtAccessToken;
-        process.env.DISABLE_SIGNUP = 'true'; // this is in quotes because of helm chart and kubernetes.
+        process.env['DISABLE_SIGNUP'] = 'true'; // this is in quotes because of helm chart and kubernetes.
     });
 
     this.afterAll(async () => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
-        process.env.DISABLE_SIGNUP = undefined;
+        process.env['DISABLE_SIGNUP'] = undefined;
     });
 
     it('should not sign up the user when sign up is disabled', async () => {

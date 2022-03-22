@@ -3,7 +3,7 @@ import chromeLauncher from 'chrome-launcher';
 import ErrorService from './errorService';
 
 function launchChromeAndRunLighthouse(
-    url: $TSFixMe,
+    url: string,
     options = { chromeFlags: ['--headless', '--disable-gpu', '--no-sandbox'] },
     config = null
 ) {

@@ -61,7 +61,7 @@ export const register = (config: $TSFixMe) => {
     }
 };
 
-function registerValidSW(swUrl: $TSFixMe, config: $TSFixMe) {
+function registerValidSW(swUrl: string, config: $TSFixMe) {
     navigator.serviceWorker
         .register(swUrl, { scope: `${process.env.PUBLIC_URL}/` })
         .then(registration => {
@@ -101,7 +101,7 @@ function registerValidSW(swUrl: $TSFixMe, config: $TSFixMe) {
         });
 }
 
-function checkValidServiceWorker(swUrl: $TSFixMe, config: $TSFixMe) {
+function checkValidServiceWorker(swUrl: string, config: $TSFixMe) {
     // Check if the service worker can be found. If it can't reload the page.
     fetch(swUrl)
         .then(response => {

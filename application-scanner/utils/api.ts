@@ -13,7 +13,7 @@ const _this = {
             applicationScannerVersion: config.applicationScannerVersion,
         };
     },
-    postApi: (url: $TSFixMe, data: $TSFixMe) => {
+    postApi: (url: string, data: $TSFixMe) => {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
@@ -37,7 +37,7 @@ const _this = {
         });
     },
 
-    getApi: (url: $TSFixMe) => {
+    getApi: (url: string) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
@@ -59,7 +59,7 @@ const _this = {
         });
     },
 
-    putApi: (url: $TSFixMe, data: $TSFixMe) => {
+    putApi: (url: string, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
@@ -82,7 +82,7 @@ const _this = {
         });
     },
 
-    deleteApi: (url: $TSFixMe, data: $TSFixMe) => {
+    deleteApi: (url: string, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({

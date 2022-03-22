@@ -8,7 +8,7 @@ export default {
         identifier: $TSFixMe,
         reason: $TSFixMe,
         code: $TSFixMe,
-        invoiceUrl: $TSFixMe
+        invoiceUrl: string
     ) => {
         let data = {
             blocks: [

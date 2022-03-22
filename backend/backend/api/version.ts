@@ -12,7 +12,7 @@ import {
 router.get('/', (req: ExpressRequest, res: ExpressResponse) => {
     try {
         return sendItemResponse(req, res, {
-            server: process.env.npm_package_version,
+            server: process.env['npm_package_version'],
             client: '',
         });
     } catch (error) {

@@ -112,7 +112,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
 
                 this.props.monitor.siteUrls.length > 0
 
-                ? this.props.monitor.siteUrls.map((url: $TSFixMe) => {
+                ? this.props.monitor.siteUrls.map((url: string) => {
                     return { value: url, label: url };
                 })
                 : [];

@@ -18,7 +18,7 @@ export class RowData extends Component {
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
         const path = `/dashboard/project/${project.slug}/status-page/${statusPage.slug}`;
-        let publicStatusPageUrl: $TSFixMe, statusPageSlug;
+        let publicStatusPageurl: string, statusPageSlug;
         if (statusPage) {
             statusPageSlug = statusPage.slug;
         }

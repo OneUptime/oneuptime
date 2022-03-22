@@ -10,7 +10,7 @@ class DataStore {
     private appId;
     private appKey;
     private sendingData;
-    constructor(url: $TSFixMe, appId: $TSFixMe, appKey: $TSFixMe) {
+    constructor(url: string, appId: $TSFixMe, appKey: $TSFixMe) {
         this.apiUrl = url;
         this.appId = appId;
         this.appKey = appKey;

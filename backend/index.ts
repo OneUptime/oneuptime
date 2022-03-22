@@ -5,6 +5,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
+    ExpressStatic,
 } from 'common-server/utils/express';
 import logger from 'common-server/utils/logger';
 
@@ -190,9 +191,9 @@ app.set('view engine', 'ejs');
 
 app.set('trust proxy', true);
 
-app.use(express.static(path.join(__dirname, 'views')));
+app.use(ExpressStatic(path.join(__dirname, 'views')));
 
-app.use('/api', express.static(path.join(__dirname, 'views')));
+app.use('/api', ExpressStatic(path.join(__dirname, 'views')));
 
 app.use(require('./backend/middlewares/auditLogs').log);
 

@@ -4,6 +4,7 @@ import 'common-server/utils/process';
 import express, {
     ExpressRequest,
     ExpressResponse,
+    ExpressStatic,
 } from 'common-server/utils/express';
 
 import path from 'path';
@@ -51,7 +52,7 @@ app.get(
         }
 
         const env = {
-            REACT_APP_IS_SAAS_SERVICE: process.env.IS_SAAS_SERVICE,
+            REACT_APP_IS_SAAS_SERVICE: process.env['IS_SAAS_SERVICE'],
             ...(!isClustLocal && {
                 REACT_APP_HOST: global.dashboardHost,
 
@@ -60,11 +61,11 @@ app.get(
                 REACT_APP_BACKEND_HOST: global.backendHost,
             }),
             REACT_APP_DOMAIN: req.host,
-            REACT_APP_STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,
+            REACT_APP_STRIPE_PUBLIC_KEY: process.env['STRIPE_PUBLIC_KEY'],
             REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY:
                 process.env.PUSHNOTIFICATION_PUBLIC_KEY,
-            REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env.AMPLITUDE_PUBLIC_KEY,
-            REACT_APP_VERSION: process.env.REACT_APP_VERSION,
+            REACT_APP_AMPLITUDE_PUBLIC_KEY: process.env['AMPLITUDE_PUBLIC_KEY'],
+            REACT_APP_VERSION: process.env['REACT_APP_VERSION'],
             REACT_APP_STATUSPAGE_DOMAIN: process.env.STATUSPAGE_DOMAIN,
         };
 
@@ -78,7 +79,7 @@ app.use(
     ['/dashboard/api/version', '/dashboard/version'],
     (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
-        res.json({ dashboardVersion: process.env.npm_package_version });
+        res.json({ dashboardVersion: process.env['npm_package_version'] });
     }
 );
 
@@ -96,14 +97,14 @@ app.get(
     }
 );
 
-app.use(express.static(path.join(__dirname, 'build')));
+app.use(ExpressStatic(path.join(__dirname, 'build')));
 
 app.use(
     '/dashboard/static/js',
-    express.static(path.join(__dirname, 'build', 'static', 'js'))
+    ExpressStatic(path.join(__dirname, 'build', 'static', 'js'))
 );
 
-app.use('/dashboard', express.static(path.join(__dirname, 'build')));
+app.use('/dashboard', ExpressStatic(path.join(__dirname, 'build')));
 // app.use(
 //     /^\/dashboard\/static\/js\/([0-9]|[1-9][0-9]|[1-9][0-9][0-9])\.(.+)\.chunk\.js$/,
 //     function(req:Request, res: Response, next: NextFunction) {

@@ -1986,7 +1986,7 @@ export const deleteProjectStatusPages = (projectId: $TSFixMe) => {
 
 // Logo
 
-export const createLogoCache = (imageUrl: $TSFixMe) => {
+export const createLogoCache = (imageUrl: string) => {
     return {
         type: types.LOGO_CACHE_INSERT,
         payload: imageUrl,
@@ -1994,7 +1994,7 @@ export const createLogoCache = (imageUrl: $TSFixMe) => {
 };
 
 // Banner
-export const createBannerCache = (imageUrl: $TSFixMe) => {
+export const createBannerCache = (imageUrl: string) => {
     return {
         type: types.BANNER_CACHE_INSERT,
         payload: imageUrl,
@@ -2014,7 +2014,7 @@ export const setStatusPageColors = (color: $TSFixMe) => {
     };
 };
 
-export const createFaviconCache = (imageUrl: $TSFixMe) => {
+export const createFaviconCache = (imageUrl: string) => {
     return {
         type: types.FAVICON_CACHE_INSERT,
         payload: imageUrl,

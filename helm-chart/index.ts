@@ -1,7 +1,10 @@
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 import logger from 'common-server/utils/logger';
-import express, { NextFunction } from 'common-server/utils/express';
+import express, {
+    NextFunction,
+    ExpressStatic,
+} from 'common-server/utils/express';
 const app = express.getExpressApp();
 import path from 'path';
 import version from './api/version';
@@ -38,7 +41,7 @@ app.set('view engine', 'ejs');
 //serve files in public directory
 app.use(
     ['/chart', '/'],
-    express.static(path.join(__dirname, 'public'), { maxAge: 2592000 })
+    ExpressStatic(path.join(__dirname, 'public'), { maxAge: 2592000 })
 );
 
 //Application version

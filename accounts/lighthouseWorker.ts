@@ -35,11 +35,7 @@ const config = {
     },
 };
 
-function launchChromeAndRunLighthouse(
-    url: $TSFixMe,
-    flags = {},
-    config = null
-) {
+function launchChromeAndRunLighthouse(url: string, flags = {}, config = null) {
     return chromeLauncher.launch(flags).then(chrome => {
         flags.port = chrome.port;
         return lighthouse(url, flags, config).then((results: $TSFixMe) => {

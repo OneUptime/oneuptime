@@ -40,7 +40,7 @@ app.get(
     ['/lighthouse/version', '/version'],
     (req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
-        res.send({ lighthouseVersion: process.env.npm_package_version });
+        res.send({ lighthouseVersion: process.env['npm_package_version'] });
     }
 );
 

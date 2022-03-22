@@ -11,6 +11,7 @@
         "body-parser": "^1.19.2",
         "cheerio": "^1.0.0-rc.10",
         "common-server": "file:../common-server",
+"common": "file:../common",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
         "crypto-js": "^4.1.1",

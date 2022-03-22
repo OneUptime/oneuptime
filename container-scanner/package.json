@@ -15,6 +15,7 @@
     "type": "module",
     "dependencies": {
         "common-server": "file:../common-server",
+"common": "file:../common",
         "axios": "^0.26.1",
         "cors": "^2.8.5",
         "dotenv": "^16.0.0",

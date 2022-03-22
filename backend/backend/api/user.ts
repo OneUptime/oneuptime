@@ -42,8 +42,8 @@ import Ip from '../middlewares/ipHandler';
 router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         if (
-            typeof process.env.DISABLE_SIGNUP === 'string' &&
-            process.env.DISABLE_SIGNUP === 'true'
+            typeof process.env['DISABLE_SIGNUP'] === 'string' &&
+            process.env['DISABLE_SIGNUP'] === 'true'
         ) {
             // res,and next is skipped in isUserMasterAdmin because we don't want to reject the request.
             if (!(await isUserMasterAdmin(req))) {
@@ -378,7 +378,7 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
         sp.create_login_request_url(
             idp,
             {},
-            function (error: $TSFixMe, login_url: $TSFixMe) {
+            function (error: $TSFixMe, login_url: string) {
                 if (error != null) return sendErrorResponse(req, res, error);
                 return sendItemResponse(req, res, { url: login_url });
             }

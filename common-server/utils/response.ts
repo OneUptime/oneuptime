@@ -2,10 +2,10 @@ import JsonToCsv from './jsonToCsv';
 import logger from './logger';
 import { GridFSBucket } from 'mongodb';
 import { OneUptimeRequest, OneUptimeResponse } from './express';
-import { JSONObject, JSONArray, JSONValue } from '../types/json';
-import { File } from '../types/file';
-import { Exception } from '../types/error';
-import { ListData } from '../types/list';
+import { JSONObject, JSONArray, JSONValue } from 'common/types/json';
+import { File } from 'common/types/file';
+import { Exception } from 'common/types/error';
+import { ListData } from 'common/types/list';
 import Database from './database';
 
 function logResponse(

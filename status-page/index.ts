@@ -1,6 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
+    ExpressStatic,
     NextFunction,
 } from 'common-server/utils/express';
 import logger from 'common-server/utils/logger';
@@ -107,8 +108,8 @@ app.get(
             REACT_APP_BACKEND_PROTOCOL,
             REACT_APP_BACKEND_URL: process.env.BACKEND_URL,
             REACT_APP_VERSION:
-                process.env.REACT_APP_VERSION ||
-                process.env.npm_package_version,
+                process.env['REACT_APP_VERSION'] ||
+                process.env['npm_package_version'],
         };
 
         res.contentType('application/javascript');
@@ -231,11 +232,11 @@ app.get(
     }
 );
 
-app.use(express.static(path.join(__dirname, 'build')));
-app.use('/status-page', express.static(path.join(__dirname, 'build')));
+app.use(ExpressStatic(path.join(__dirname, 'build')));
+app.use('/status-page', ExpressStatic(path.join(__dirname, 'build')));
 app.use(
     '/status-page/static/js',
-    express.static(path.join(__dirname, 'build/static/js'))
+    ExpressStatic(path.join(__dirname, 'build/static/js'))
 );
 
 app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
