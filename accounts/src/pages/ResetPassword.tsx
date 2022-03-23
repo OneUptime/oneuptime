@@ -5,7 +5,12 @@ import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
 import ResetPasswordForm from '../components/auth/ResetPasswordForm';
 
-class ResetPasswordPage extends React.Component {
+interface ResetPasswordPageProps {
+    masterAdminExists?: boolean;
+    requestingMasterAdmin?: boolean;
+}
+
+class ResetPasswordPage extends React.Component<ResetPasswordPageProps> {
     componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';

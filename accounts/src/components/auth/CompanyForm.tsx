@@ -13,7 +13,13 @@ const errorStyle = {
     color: 'red',
 };
 
-class CompanyForm extends Component {
+interface CompanyFormProps {
+    handleSubmit: Function;
+    register: object;
+    submitForm: Function;
+}
+
+class CompanyForm extends Component<CompanyFormProps> {
     render() {
         return (
             <div id="main-body" className="box css">

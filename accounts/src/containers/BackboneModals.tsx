@@ -5,7 +5,12 @@ import { connect } from 'react-redux';
 import Modal from '../components/Modal';
 import { closeModal } from '../actions/modal';
 
-export class Modals extends Component {
+interface ModalsProps {
+    modals: unknown[];
+    closeModal: Function;
+}
+
+export class Modals extends Component<ModalsProps> {
     render() {
 
         const modals = this.props.modals.map((item: $TSFixMe, i: $TSFixMe) => {

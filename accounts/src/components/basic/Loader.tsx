@@ -81,7 +81,11 @@ export const Spinner = () => (
 
 Spinner.displayName = 'Spinner';
 
-export const ButtonSpinner = (props: $TSFixMe) => <div
+interface ButtonSpinnerProps {
+    color?: string;
+}
+
+export const ButtonSpinner = (props: ButtonSpinnerProps) => <div
     className={`Spinner bs-SpinnerLegacy Spinner--color--${props && props.color ? props.color : 'white'
         } Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center`}
     style={{ marginTop: 4 }}

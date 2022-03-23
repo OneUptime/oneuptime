@@ -20,7 +20,15 @@ import PropTypes from 'prop-types';
 
 import { IS_SAAS_SERVICE } from '../../config';
 
-export class RegisterForm extends Component {
+interface RegisterFormProps {
+    saveUserState: Function;
+    isUserInvited: Function;
+    register: object;
+    planId?: string;
+    location: object;
+}
+
+export class RegisterForm extends Component<RegisterFormProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

@@ -13,7 +13,16 @@ import queryString from 'query-string';
 
 import { getEmailFromToken } from '../../actions/register';
 
-class UserForm extends Component {
+interface UserFormProps {
+    submitForm: Function;
+    handleSubmit: Function;
+    register: object;
+    location: object;
+    getEmailFromToken?: Function;
+    initialValues?: object;
+}
+
+class UserForm extends Component<UserFormProps> {
     state = {
         serverResponse: '',
     };

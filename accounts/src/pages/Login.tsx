@@ -16,10 +16,25 @@ import { resendTokenReset, resendToken } from '../actions/resendToken';
 import { ButtonSpinner } from '../components/basic/Loader';
 import { changeLogin } from '../actions/login';
 
-class LoginPage extends React.Component {
-    constructor(props: $TSFixMe) {
-        super(props);
+interface LoginPageProps {
+    loginUser: Function;
+    loginUserSso: Function;
+    loginMethod: string;
+    login?: object;
+    success?: boolean;
+    error?: object;
+    location?: object;
+    masterAdminExists?: boolean;
+    requestingMasterAdmin?: boolean;
+    resendToken?: Function;
+    resendTokenRequest?: object;
+    resendTokenReset?: Function;
+    changeLogin?: Function;
+}
 
+class LoginPage extends React.Component<LoginPageProps> {
+    constructor(props: LoginPageProps) {
+        super(props);
         this.props = props;
     }
 
@@ -202,7 +217,7 @@ LoginPage.propTypes = {
     loginMethod: PropTypes.string.isRequired,
     login: PropTypes.object,
     success: PropTypes.bool,
-    error: PropTypes.oneOfType([PropTypes.object, PropTypes.bool]),
+    error: PropTypes.object,
     location: PropTypes.object,
     masterAdminExists: PropTypes.bool,
     requestingMasterAdmin: PropTypes.bool,

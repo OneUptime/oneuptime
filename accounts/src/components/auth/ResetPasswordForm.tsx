@@ -20,7 +20,13 @@ const errorStyle = {
     color: '#c23d4b',
 };
 
-export class ResetPasswordForm extends Component {
+interface ResetPasswordFormProps {
+    handleSubmit: Function;
+    resetPasswordState: object;
+    resetPassword: Function;
+}
+
+export class ResetPasswordForm extends Component<ResetPasswordFormProps> {
     submitForm = (values: $TSFixMe) => {
 
         this.props.resetPassword(values);

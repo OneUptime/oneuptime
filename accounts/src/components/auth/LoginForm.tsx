@@ -21,7 +21,17 @@ import { removeQuery } from '../../store';
 const errorStyle = {
     color: '#c23d4b',
 };
-export class LoginForm extends Component {
+
+interface LoginFormProps {
+    onSubmit: Function;
+    handleSubmit: Function;
+    login: object;
+    location: object;
+    loginMethod?: string;
+    changeLogin: Function;
+}
+
+export class LoginForm extends Component<LoginFormProps> {
     state = {
         serverResponse: '',
     };

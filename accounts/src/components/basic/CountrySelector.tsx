@@ -11,10 +11,15 @@ const selectorStyle = {
     color: '#000000',
 };
 
+interface CountrySelectorProps {
+    meta: object;
+    input: object;
+}
+
 const CountrySelector = ({
     input,
     meta: { touched, error }
-}: $TSFixMe) => (
+}: CountrySelectorProps) => (
     <span>
         <select
             {...input}

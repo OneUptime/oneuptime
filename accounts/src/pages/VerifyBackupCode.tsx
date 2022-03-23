@@ -13,7 +13,13 @@ import { ACCOUNTS_URL } from '../config';
 
 const errorStyle = { color: '#c23d4b' };
 
-export class VerifyBackupCode extends Component {
+interface VerifyBackupCodeProps {
+    handleSubmit: Function;
+    verifyBackupCode?: Function;
+    login?: object;
+}
+
+export class VerifyBackupCode extends Component<VerifyBackupCodeProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

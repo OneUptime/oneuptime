@@ -6,6 +6,19 @@ const errorStyle = {
     width: '222px',
 };
 
+interface RenderFieldProps {
+    initialValue?: string;
+    input: object;
+    placeholder?: string;
+    type: string;
+    className?: string;
+    id?: string;
+    meta: object;
+    rows?: string;
+    disabled?: boolean;
+    style?: object;
+}
+
 const RenderField = ({
     input,
     placeholder,
@@ -16,7 +29,7 @@ const RenderField = ({
     disabled,
     initialValue,
     style
-}: $TSFixMe) => (
+}: RenderFieldProps) => (
     <span>
         <span>
             <input
@@ -41,7 +54,7 @@ const RenderField = ({
 RenderField.displayName = 'RenderField';
 
 RenderField.propTypes = {
-    initialValue: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
+    initialValue: PropTypes.string,
     input: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     type: PropTypes.string.isRequired,

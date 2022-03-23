@@ -6,7 +6,11 @@ import store from '../store';
 import Cookies from 'universal-cookie';
 import { DASHBOARD_URL, ADMIN_DASHBOARD_URL } from '../config';
 
-class SsoLoginPage extends React.Component {
+interface SsoLoginPageProps {
+    location: object;
+}
+
+class SsoLoginPage extends React.Component<SsoLoginPageProps> {
     componentDidMount() {
 
         const query = qs.parse(this.props.location.search);

@@ -14,7 +14,13 @@ import { ACCOUNTS_URL } from '../config';
 
 const errorStyle = { color: '#c23d4b' };
 
-export class VerifyAuthToken extends Component {
+interface VerifyAuthTokenProps {
+    handleSubmit: Function;
+    verifyAuthToken: Function;
+    login?: object;
+}
+
+export class VerifyAuthToken extends Component<VerifyAuthTokenProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

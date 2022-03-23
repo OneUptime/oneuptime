@@ -11,7 +11,16 @@ import { PricingPlan, IS_SAAS_SERVICE } from '../config';
 import MessageBox from '../components/MessageBox';
 import { savePlanId, signUpReset } from '../actions/register';
 
-class RegisterPage extends React.Component {
+interface RegisterPageProps {
+    location: object;
+    register?: object;
+    success?: boolean;
+    savePlanId: Function;
+    signUpReset: Function;
+    masterAdminExists?: boolean;
+}
+
+class RegisterPage extends React.Component<RegisterPageProps> {
     planId: $TSFixMe;
     componentWillUnmount() {
         document.body.id = '';

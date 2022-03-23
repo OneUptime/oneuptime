@@ -17,7 +17,17 @@ import { removeQuery } from '../store';
 const errorStyle = {
     color: '#c23d4b',
 };
-export class ResendTokenForm extends Component {
+
+interface ResendTokenFormProps {
+    handleSubmit: Function;
+    resendTokenState: object;
+    resendToken: Function;
+    location: object;
+    masterAdminExists?: boolean;
+    requestingMasterAdmin?: boolean;
+}
+
+export class ResendTokenForm extends Component<ResendTokenFormProps> {
     state = {
         serverResponse: '',
     };

@@ -57,7 +57,23 @@ const createOptions = () => {
 const errorStyle = {
     color: '#c23d4b',
 };
-class CardForm extends Component {
+
+interface CardFormProps {
+    openModal?: Function;
+    handleSubmit: Function;
+    submitForm: Function;
+    register: object;
+    planId: string;
+    stripe?: object;
+    addCard: Function;
+    signUpRequest: Function;
+    signupError: Function;
+    signupSuccess: Function;
+    signupUser: Function;
+    formValues?: object;
+}
+
+class CardForm extends Component<CardFormProps> {
     plan: $TSFixMe;
     /* This state holds error 
     messages for cardNumber,

@@ -19,7 +19,15 @@ import { Link } from 'react-router-dom';
 const errorStyle = {
     color: '#c23d4b',
 };
-export class ChangePasswordForm extends Component {
+
+interface ChangePasswordFormProps {
+    changePassword: Function;
+    handleSubmit: Function;
+    changePasswordState: object;
+    token?: any;
+}
+
+export class ChangePasswordForm extends Component<ChangePasswordFormProps> {
     submitForm = (values: $TSFixMe) => {
 
         values.token = this.props.token || '';

@@ -4,7 +4,12 @@ import { connect } from 'react-redux';
 import { closeModal } from 'common-ui/actions/modal';
 import { bindActionCreators, Dispatch } from 'redux';
 
-class ExtraCharge extends React.Component {
+interface ExtraChargeProps {
+    closeModal?: Function;
+    modalId?: string;
+}
+
+class ExtraCharge extends React.Component<ExtraChargeProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

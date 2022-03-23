@@ -1,7 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-export default function MessageBox(props: $TSFixMe) {
+interface MessageBoxProps {
+    title?: string;
+    message?: string;
+    children?: React.ReactNode;
+}
+
+export default function MessageBox(props: MessageBoxProps) {
     return (
         <div id="main-body" className="box css">
             <div className="inner">

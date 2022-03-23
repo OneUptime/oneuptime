@@ -51,11 +51,17 @@ if (userIsLoggedIn) {
                 : DASHBOARD_URL;
 }
 
+interface AppProps {
+    saveStatusPage: Function;
+    checkIfMasterAdminExists: Function;
+    masterAdmin?: object;
+}
+
 const App = ({
     masterAdmin: { exists },
     checkIfMasterAdminExists,
     saveStatusPage
-}: $TSFixMe) => {
+}: AppProps) => {
     useEffect(() => {
         // store initialUrl in sessionStorage
         User.setInitialUrl(window.location.href);
